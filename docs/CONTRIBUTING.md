@@ -1,6 +1,13 @@
 
 # Contributing to AIQuantTradingResearch
 
+**Status:** Active
+**Version:** 1.0
+**Last Updated:** 2026-08-06
+**Maintainers:** AIQuantTradingResearch Team
+
+---
+
 First of all, thank you for considering contributing to AIQuantTradingResearch.
 
 Whether you are fixing a typo, improving documentation, reporting a bug, or implementing a new feature, your contribution is appreciated.

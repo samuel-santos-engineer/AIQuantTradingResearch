@@ -1,5 +1,11 @@
-
 # AIQuantTradingResearch Project Constitution
+
+**Status:** Active
+**Version:** 1.0
+**Last Updated:** 2026-08-06
+**Maintainers:** AIQuantTradingResearch Team
+
+---
 
 ## Purpose
 
