@@ -1,9 +1,9 @@
 <Solution>
-  <Folder Name="/src/">
+  <Folder Name="src">
     <Project Path="src/AIQuantTradingResearch.Api/AIQuantTradingResearch.Api.csproj" />
     <Project Path="src/AIQuantTradingResearch.SharedKernel/AIQuantTradingResearch.SharedKernel.csproj" />
   </Folder>
-  <Folder Name="/tests/">
+  <Folder Name="tests">
     <Project Path="tests/AIQuantTradingResearch.Api.Tests/AIQuantTradingResearch.Api.Tests.csproj" />
     <Project Path="tests/AIQuantTradingResearch.SharedKernel.Tests/AIQuantTradingResearch.SharedKernel.Tests.csproj" />
   </Folder>
