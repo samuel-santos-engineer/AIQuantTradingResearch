@@ -1,4 +1,3 @@
-
 # AIQuantTradingResearch Project Constitution
 
 **Status:** Active
@@ -205,6 +204,18 @@ Amendments should:
 Changing implementation is routine.
 
 Changing principles is exceptional.
+
+---
+
+# Documentation Hierarchy
+
+AIQuantTradingResearch documentation is organized into three layers:
+
+* **Principles** define enduring engineering values and practices.
+* **Architecture** captures technical design and engineering decisions.
+* **Execution** tracks the project's ongoing evolution and delivery.
+
+Lower layers should remain consistent with the guidance established by higher layers.
 
 ---
 
