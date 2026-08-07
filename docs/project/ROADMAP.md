@@ -1,4 +1,3 @@
-
 # AIQuantTradingResearch Roadmap
 
 **Status:** Active
@@ -32,7 +31,7 @@ The roadmap follows these principles:
 
 ---
 
-# Release 0.1 — Engineering Foundation
+# Release 0.1 — Engineering Governance Foundation
 
 **Objective**
 
