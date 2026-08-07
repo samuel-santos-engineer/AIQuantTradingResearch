@@ -187,7 +187,6 @@ Future assets include:
 
 ---
 
-
 ## Repository Asset Taxonomy
 
 AIQuantTradingResearch organizes its repository into distinct categories of engineering assets.
@@ -367,6 +366,210 @@ The repository itself is an engineering system.
 Its organization should reflect the same architectural discipline, clarity, and intentionality expected from the software it contains.
 
 Knowledge, automation, and software are complementary engineering assets that together enable sustainable software development.
+
+# Engineering Knowledge Lifecycle
+
+Engineering knowledge is one of the project's most valuable assets.
+
+AIQuantTradingResearch defines a structured lifecycle that transforms ideas into durable engineering knowledge through collaboration, implementation, and continuous improvement.
+
+This lifecycle ensures that important technical discussions are not lost, but instead evolve into documented engineering practices and software capabilities.
+
+---
+
+## Lifecycle Overview
+
+```text
+                 Engineering Knowledge Lifecycle
+
+                  💡 Idea
+                     │
+                     ▼
+          GitHub Discussions
+                     │
+                     ▼
+      Engineering Decision
+       (Decision Log / ADR)
+                     │
+                     ▼
+             GitHub Issue
+                     │
+                     ▼
+            Implementation
+             (Pull Request)
+                     │
+                     ▼
+                Release
+                     │
+                     ▼
+       Engineering Handbook
+                     │
+                     ▼
+          Continuous Learning
+                     │
+                     └──────────────┐
+                                    │
+                                    ▼
+                               New Ideas
+```
+
+Engineering knowledge continuously evolves through this feedback loop.
+
+---
+
+## Stage 1 — Idea
+
+Engineering begins with curiosity.
+
+Ideas may originate from:
+
+* Contributors
+* Research
+* Production observations
+* Community feedback
+* Retrospectives
+* Technical experimentation
+
+Not every idea becomes implementation work.
+
+The purpose of this stage is exploration.
+
+---
+
+## Stage 2 — GitHub Discussions
+
+Ideas are collaboratively refined before implementation.
+
+Typical activities include:
+
+* Brainstorming
+* Architecture discussions
+* Technology evaluation
+* Research sharing
+* Community feedback
+
+The objective is to improve ideas through collective engineering experience.
+
+---
+
+## Stage 3 — Engineering Decision
+
+When a discussion results in a meaningful technical direction, the decision is documented.
+
+Depending on its significance, knowledge is captured through:
+
+* Engineering Decision Log
+* Architecture Decision Record (ADR)
+
+Documenting decisions preserves context, rationale, and trade-offs for future contributors.
+
+---
+
+## Stage 4 — GitHub Issue
+
+Once a decision becomes actionable, implementation work is planned.
+
+Issues define:
+
+* Scope
+* Priority
+* Ownership
+* Milestone
+* Acceptance criteria
+
+Issues represent committed engineering work rather than open-ended discussion.
+
+---
+
+## Stage 5 — Implementation
+
+Implementation occurs through Pull Requests.
+
+Every Pull Request should:
+
+* Reference the related Issue
+* Follow Coding Standards
+* Respect the Project Constitution
+* Include appropriate documentation updates
+* Undergo peer review
+
+Implementation transforms engineering decisions into working software.
+
+---
+
+## Stage 6 — Release
+
+Completed work is delivered through planned releases.
+
+Each release contributes to:
+
+* Platform capabilities
+* Engineering maturity
+* Documentation quality
+* Repository evolution
+
+Releases represent stable milestones in the project's engineering journey.
+
+---
+
+## Stage 7 — Engineering Handbook
+
+Important knowledge generated during implementation should become permanent project documentation.
+
+Examples include:
+
+* New engineering practices
+* Architectural insights
+* Updated standards
+* Lessons learned
+* Governance improvements
+
+The Engineering Handbook serves as the long-term memory of the project.
+
+---
+
+## Continuous Learning
+
+Every completed release generates new knowledge.
+
+This knowledge may inspire:
+
+* Better architecture
+* Improved tooling
+* Additional automation
+* New research
+* Future features
+* Process improvements
+
+Engineering is viewed as a continuous learning system rather than a sequence of isolated tasks.
+
+---
+
+## Governance Principles
+
+The Engineering Knowledge Lifecycle is guided by the following principles:
+
+* Knowledge should be shared openly.
+* Significant decisions should be documented.
+* Discussions should precede implementation when practical.
+* Documentation should evolve with the software.
+* Engineering improvements are continuous.
+* Lessons learned should be preserved for future contributors.
+
+---
+
+## Expected Outcomes
+
+Following this lifecycle enables AIQuantTradingResearch to:
+
+* Preserve engineering knowledge.
+* Improve architectural consistency.
+* Increase contributor onboarding efficiency.
+* Strengthen technical transparency.
+* Reduce repeated discussions.
+* Build a sustainable engineering culture.
+
+Engineering knowledge is considered a strategic asset and should evolve with the same discipline as the software itself.
 
 # Infrastructure Evolution
 
