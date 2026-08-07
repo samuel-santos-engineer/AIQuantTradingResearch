@@ -187,6 +187,187 @@ Future assets include:
 
 ---
 
+
+## Repository Asset Taxonomy
+
+AIQuantTradingResearch organizes its repository into distinct categories of engineering assets.
+
+Each asset category serves a specific purpose, has a well-defined audience, and follows its own lifecycle.
+
+Maintaining this separation improves discoverability, reduces repository entropy, and reinforces the project's engineering principles.
+
+---
+
+### Knowledge Assets
+
+Knowledge Assets capture the collective engineering knowledge of the project.
+
+Their purpose is to explain **why** and **how** engineering decisions are made.
+
+These assets are primarily consumed by engineers and contributors.
+
+**Characteristics**
+
+* Human-readable
+* Documentation-first
+* Version controlled
+* Reviewed alongside code changes
+* Long-lived
+* Incrementally improved
+
+**Examples**
+
+```text
+docs/
+docs/handbook/
+docs/architecture/
+README.md
+ROADMAP.md
+CHANGELOG.md
+```
+
+Typical contents include:
+
+* Product Vision
+* Project Constitution
+* Architecture documentation
+* Engineering Playbook
+* Engineering Decision Log
+* Coding Standards
+* Dependency Guidelines
+
+---
+
+### Automation Assets
+
+Automation Assets enable the engineering platform.
+
+Their purpose is to automate repetitive engineering activities while ensuring consistent and reproducible development workflows.
+
+These assets are consumed by developers, build pipelines, and automation services.
+
+**Characteristics**
+
+* Executable
+* Infrastructure-oriented
+* Cross-platform whenever practical
+* Deterministic
+* Idempotent
+* Continuously maintained
+
+**Examples**
+
+```text
+eng/
+.github/
+Directory.Build.props
+Directory.Packages.props
+global.json
+.editorconfig
+.gitattributes
+.gitignore
+```
+
+Typical responsibilities include:
+
+* Build automation
+* Test execution
+* Code formatting
+* Static analysis
+* Package management
+* Continuous Integration
+* Continuous Delivery
+* Release automation
+* Repository maintenance
+
+---
+
+### Software Assets
+
+Software Assets implement the business capabilities of AIQuantTradingResearch.
+
+They represent the executable software delivered by the project.
+
+**Characteristics**
+
+* Production-oriented
+* Tested
+* Maintainable
+* Observable
+* Secure
+* Evolvable
+
+**Examples**
+
+```text
+src/
+tests/
+notebooks/
+data/
+```
+
+Typical contents include:
+
+* Domain models
+* Services
+* APIs
+* AI components
+* Market data ingestion
+* Backtesting engine
+* Machine learning pipelines
+* Integration tests
+* Sample datasets
+
+---
+
+## Asset Ownership
+
+Each asset category has different ownership expectations.
+
+| Asset Category    | Primary Focus            | Primary Consumers          |
+| ----------------- | ------------------------ | -------------------------- |
+| Knowledge Assets  | Engineering knowledge    | Contributors               |
+| Automation Assets | Engineering productivity | Developers and CI/CD       |
+| Software Assets   | Business capabilities    | End users and applications |
+
+While contributors may interact with all asset types, changes should respect the purpose and boundaries of each category.
+
+---
+
+## Engineering Principles
+
+Every repository asset should satisfy the following principles:
+
+* Have a clearly defined purpose.
+* Belong to exactly one primary asset category.
+* Follow the repository organization conventions.
+* Contribute to the maintainability of the project.
+* Be discoverable by contributors.
+* Be version controlled.
+* Evolve intentionally.
+
+Assets should never exist without a clear engineering rationale.
+
+---
+
+## Repository Evolution
+
+As AIQuantTradingResearch grows, new assets should extend existing categories before introducing new ones.
+
+Creating a new top-level directory is considered an architectural decision and should be justified based on clear engineering needs.
+
+This approach preserves a cohesive repository structure and minimizes unnecessary complexity.
+
+---
+
+## Guiding Statement
+
+The repository itself is an engineering system.
+
+Its organization should reflect the same architectural discipline, clarity, and intentionality expected from the software it contains.
+
+Knowledge, automation, and software are complementary engineering assets that together enable sustainable software development.
+
 # Infrastructure Evolution
 
 The engineering platform evolves incrementally alongside the software platform.
