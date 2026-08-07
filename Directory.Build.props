@@ -1,0 +1,117 @@
+<Project>
+
+  <!-- ========================================================= -->
+  <!-- AIQuantTradingResearch                                    -->
+  <!-- Central Build Configuration                               -->
+  <!-- ========================================================= -->
+
+  <PropertyGroup>
+
+    <!-- ===================================================== -->
+    <!-- Target Framework                                       -->
+    <!-- ===================================================== -->
+
+    <TargetFramework>net10.0</TargetFramework>
+
+    <!-- ===================================================== -->
+    <!-- Language                                               -->
+    <!-- ===================================================== -->
+
+    <!--
+      Use the latest C# language version supported by the .NET 10 SDK.
+      When new SDKs are adopted, review this setting.
+    -->
+    <LangVersion>preview</LangVersion>
+
+    <Nullable>enable</Nullable>
+
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- ===================================================== -->
+    <!-- Code Quality                                           -->
+    <!-- ===================================================== -->
+
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <AnalysisMode>Recommended</AnalysisMode>
+
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      During the foundation phase we keep warnings visible
+      without blocking development.
+
+      Planned roadmap:
+      - Releases 0.1–0.4 : false
+      - Release 0.5      : warning-free repository
+      - Release 0.6+     : true
+    -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- ===================================================== -->
+    <!-- Build                                                  -->
+    <!-- ===================================================== -->
+
+    <Deterministic>true</Deterministic>
+
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <DebugSymbols>true</DebugSymbols>
+
+    <DebugType>portable</DebugType>
+
+    <!-- ===================================================== -->
+    <!-- Globalization                                          -->
+    <!-- ===================================================== -->
+
+    <InvariantGlobalization>false</InvariantGlobalization>
+
+    <!-- ===================================================== -->
+    <!-- Repository Metadata                                    -->
+    <!-- ===================================================== -->
+
+    <Company>AIQuantTradingResearch</Company>
+
+    <Authors>AIQuantTradingResearch Contributors</Authors>
+
+    <Product>AIQuantTradingResearch</Product>
+
+    <RepositoryType>git</RepositoryType>
+
+    <RepositoryUrl>https://github.com/samuel-santos-engineer/AIQuantTradingResearch</RepositoryUrl>
+
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+    <!-- ===================================================== -->
+    <!-- Versioning                                             -->
+    <!-- ===================================================== -->
+
+    <Version>0.1.0</Version>
+
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+
+    <FileVersion>0.1.0.0</FileVersion>
+
+    <InformationalVersion>0.1.0</InformationalVersion>
+
+  </PropertyGroup>
+
+  <!-- ========================================================= -->
+  <!-- Compiler Warnings                                         -->
+  <!-- ========================================================= -->
+
+  <PropertyGroup>
+
+    <!--
+      Ignore missing XML documentation warnings for now.
+      Once the public API stabilizes, this warning should be re-enabled.
+    -->
+    <NoWarn>$(NoWarn);1591</NoWarn>
+
+  </PropertyGroup>
+
+</Project>
