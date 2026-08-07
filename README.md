@@ -1,4 +1,4 @@
-![AIQuantTradingResearch Logo](https://samuel-santos-engineer.github.io/AIQuantTradingResearch/imgs/AIQuantTradingResearch.jpg)
+![AIQuantTradingResearch Logo](https://samuel-santos-engineer.github.io/dev/docs/assets/img/AIQuantTradingResearch/AIQuantTradingResearchBanner-01.jpg)
 # AIQuantTradingResearch
 
 > **Engineering AI-powered quantitative research with transparency, discipline, and production-grade software architecture.**
