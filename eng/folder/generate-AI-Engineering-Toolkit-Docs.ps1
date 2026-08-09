@@ -1,5 +1,5 @@
 # Define the target root directory
-$baseDir = "AI-Engineering-Toolkit/documents"
+$baseDir = "AI-Engineering-Toolkit/docs"
 
 # Array of all subdirectories to create
 $directories = @(
