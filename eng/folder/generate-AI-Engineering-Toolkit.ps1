@@ -37,6 +37,7 @@ $files = @(
     "$rootDir/templates/prompts/prompt-template.md",
     "$rootDir/templates/prompts/playbook-template.md",
     "$rootDir/templates/prompts/review-template.md",
+    "$rootDir/templates/prompts/validation-template.md",
     "$rootDir/standards/prompt-quality.md",
     "$rootDir/standards/prompt-lifecycle.md",
     "$rootDir/standards/naming-conventions.md",
