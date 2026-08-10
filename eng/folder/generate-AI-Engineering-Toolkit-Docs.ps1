@@ -6,6 +6,8 @@ $directories = @(
     "$baseDir/architecture",
     "$baseDir/standards",
     "$baseDir/framework",
+    "$baseDir/prompt-framework",
+    "$baseDir/bootstrap",
     "$baseDir/guides",
     "$baseDir/roadmap"
 )
@@ -20,6 +22,13 @@ $files = @(
     "$baseDir/framework/PLAYBOOK_TEMPLATE.md",
     "$baseDir/framework/REVIEW_TEMPLATE.md",
     "$baseDir/framework/VALIDATION_TEMPLATE.md",
+    "$baseDir/prompt-framework/PROMPT_ARCHITECTURE.md",
+    "$baseDir/prompt-framework/PROMPT_METADATA.md",
+    "$baseDir/prompt-framework/PROMPT_LIFECYCLE.md",
+    "$baseDir/bootstrap/BOOTSTRAP_PROMPT_ARCHITECTURE.md",
+    "$baseDir/bootstrap/BOOTSTRAP_EXECUTION_MODEL.md",
+    "$baseDir/bootstrap/BOOTSTRAP_STATE_MACHINE.md",
+    "$baseDir/bootstrap/BOOTSTRAP_ORCHESTRATION.md",
     "$baseDir/guides/GETTING_STARTED.md",
     "$baseDir/guides/AUTHORING_PLAYBOOKS.md",
     "$baseDir/guides/CONTRIBUTING.md",
