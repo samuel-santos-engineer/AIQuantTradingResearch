@@ -11,6 +11,10 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- ===================================================== -->
+    <!-- Hosting                                                -->
+    <!-- ===================================================== -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
+    <!-- ===================================================== -->
     <!-- Logging                                                -->
     <!-- ===================================================== -->
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
