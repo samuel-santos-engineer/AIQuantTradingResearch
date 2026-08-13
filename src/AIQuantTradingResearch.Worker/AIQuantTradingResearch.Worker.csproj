@@ -1,5 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
 
+  <ItemGroup>
+    <ProjectReference Include="..\AIQuantTradingResearch.Application\AIQuantTradingResearch.Application.csproj" />
+    <ProjectReference Include="..\AIQuantTradingResearch.Infrastructure\AIQuantTradingResearch.Infrastructure.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
