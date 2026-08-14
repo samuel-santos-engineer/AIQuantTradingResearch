@@ -1,2 +1,14 @@
 <Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AIQuantTradingResearch.Application/AIQuantTradingResearch.Application.csproj" />
+    <Project Path="src/AIQuantTradingResearch.Domain/AIQuantTradingResearch.Domain.csproj" />
+    <Project Path="src/AIQuantTradingResearch.Infrastructure/AIQuantTradingResearch.Infrastructure.csproj" />
+    <Project Path="src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj" />
+    <Project Path="tests/AIQuantTradingResearch.Architecture.Tests/AIQuantTradingResearch.Architecture.Tests.csproj" />
+    <Project Path="tests/AIQuantTradingResearch.Domain.Tests/AIQuantTradingResearch.Domain.Tests.csproj" />
+    <Project Path="tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj" />
+  </Folder>
 </Solution>
