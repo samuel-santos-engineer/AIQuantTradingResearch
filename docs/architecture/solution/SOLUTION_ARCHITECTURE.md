@@ -46,7 +46,7 @@ This approach promotes:
 
 # Architectural Capability Map
 
-The following map describes the planned long-term capability architecture. It is not the current Release 0.8 physical project inventory. Release 0.8 currently implements only Domain, Application, Infrastructure, and Worker production projects plus their four test projects.
+The following map describes the planned long-term capability architecture. It is not the current Release 0.9 physical project inventory. Release 0.9 implements Domain, Application, Infrastructure, and Worker production projects plus their four test projects. Within that structure, the current research capability is one deterministic, offline mean-price vertical slice; the remaining capabilities in this map are planned rather than implemented.
 
 ```text
                     AIQuantTradingResearch

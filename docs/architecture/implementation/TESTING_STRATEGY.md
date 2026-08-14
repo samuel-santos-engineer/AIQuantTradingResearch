@@ -210,7 +210,7 @@ Deterministic testing supports reproducible engineering outcomes.
 
 Testing projects should mirror architectural responsibilities.
 
-Current Release 0.8 organization:
+Current Release 0.9 organization:
 
 ```text
 tests/
@@ -220,7 +220,12 @@ tests/
 └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-Domain.Tests, Application.Tests, and Infrastructure.Tests are intentionally empty test skeletons in Release 0.8. Architecture.Tests currently executes seven tests: six forbidden production-dependency checks and one production-graph acyclicity check.
+The implemented test responsibilities are:
+
+* **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
+* **Application.Tests** verifies `ResearchUseCase` orchestration with a test-owned `IObservationSource` double and no concrete Infrastructure dependency.
+* **Infrastructure.Tests** directly verifies the deterministic observation adapter, exact fixture values, count behavior, failure outcomes, and repeatability.
+* **Architecture.Tests** verifies structural dependency, ownership, visibility, and acyclicity boundaries.
 
 The executable forbidden edges are:
 
@@ -233,7 +238,9 @@ Application !→ Worker
 Infrastructure !→ Worker
 ```
 
-Unit, integration, contract, resilience, performance, and end-to-end coverage will be introduced only when later capabilities require it.
+Architecture tests additionally enforce Application ownership of `IObservationSource` and require concrete production implementations of `IResearchUseCase` and `IObservationSource` to remain non-public. Narrow `InternalsVisibleTo` declarations allow Application.Tests and Infrastructure.Tests to directly exercise those internal implementations; this is not a general testing policy or runtime dependency.
+
+Integration, resilience, performance, and end-to-end coverage will be introduced only when later capabilities require it.
 
 ---
 

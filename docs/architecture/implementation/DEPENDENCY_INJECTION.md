@@ -87,9 +87,9 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Implemented Release 0.8 Composition
+# Implemented Release 0.9 Composition
 
-`AIQuantTradingResearch.Worker` is the current composition root. Its startup lifecycle is:
+`AIQuantTradingResearch.Worker` is the current composition root. Its one-shot execution lifecycle is:
 
 ```text
 Create generic host builder
@@ -100,10 +100,16 @@ AddInfrastructure()
         ↓
 Build host
         ↓
-Run host
+Resolve IResearchUseCase
+        ↓
+Execute SAMPLE-USD / 3 once
+        ↓
+Surface ResearchOutcome and exit
 ```
 
-`AddApplication` and `AddInfrastructure` are intentionally empty `IServiceCollection` extension boundaries in Release 0.8. They register no application, infrastructure, provider, storage, or background services. Configuration is not currently passed to `AddInfrastructure`.
+`AddApplication` registers `IResearchUseCase` to the internal `ResearchUseCase` implementation with a transient lifetime. `AddInfrastructure` registers `IObservationSource` to the internal `DeterministicObservationSource` adapter with a singleton lifetime. The Worker resolves only `IResearchUseCase`; it does not resolve the source or construct either implementation manually.
+
+No hosted/background service, provider selection, network client, persistence, or configuration binding is part of the Release 0.9 composition.
 
 ---
 

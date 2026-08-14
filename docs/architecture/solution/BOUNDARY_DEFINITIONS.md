@@ -109,6 +109,15 @@ Projects should:
 
 Project organization should remain aligned with the Module Catalog.
 
+The implemented Release 0.9 project boundaries are:
+
+* **Domain** owns `PriceObservation`, `ObservationSeries`, arithmetic-mean behavior, and `MeanPrice`. It has no project dependencies.
+* **Application** owns the research request, outcome, result, expected failures, `IResearchUseCase`, `IObservationSource`, and use-case orchestration. It depends only on Domain.
+* **Infrastructure** implements the Application-owned observation-source port with a deterministic offline adapter. It depends on Application and does not own the port.
+* **Worker** is the composition and one-shot execution boundary. It registers Application and Infrastructure, resolves `IResearchUseCase`, executes the canonical request, and contains no reusable research or Domain logic.
+
+The concrete research use case and deterministic adapter remain non-public. Narrow friend-assembly declarations permit their corresponding test projects to exercise them directly; these declarations are testability boundaries, not runtime dependencies or public contracts.
+
 ---
 
 # Namespace Boundaries

@@ -56,6 +56,21 @@ Consumers depend on contracts rather than implementations.
 
 Provider modules remain free to evolve internally without affecting consumers.
 
+The implemented Release 0.9 research interaction follows this model:
+
+```text
+Worker
+  -> IResearchUseCase (Application)
+  -> ResearchUseCase (internal Application implementation)
+  -> IObservationSource (Application-owned port)
+  -> DeterministicObservationSource (internal Infrastructure adapter)
+  -> PriceObservation / ObservationSeries / MeanPrice (Domain)
+  -> ResearchOutcome / ResearchResult (Application)
+  -> Worker presentation
+```
+
+Worker composes and initiates this interaction but does not calculate the mean or invoke the observation source directly. Infrastructure implements the port without redefining the Application-owned contract.
+
 ---
 
 # Interaction Types
