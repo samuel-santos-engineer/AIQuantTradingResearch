@@ -38,7 +38,7 @@ The preferred architecture is one where stable foundations support higher-level 
 
 ---
 
-# Implemented Release 0.8 Project Graph
+# Implemented Release 0.9 Project Graph
 
 The current production project references are:
 
@@ -60,7 +60,11 @@ Application !→ Worker
 Infrastructure !→ Worker
 ```
 
-The seventh architecture test verifies that the production project graph is acyclic. Release 0.8 does not currently enforce naming, namespace, or folder-convention rules through architecture tests.
+The architecture suite also verifies that the production project graph is acyclic. Release 0.9 adds structural rules that keep `IObservationSource` owned by Application and concrete production implementations of `IResearchUseCase` and `IObservationSource` non-public.
+
+Worker has no direct Domain project reference. Its compiled use of Domain-owned result values is exposed through Application contracts and does not change the project-reference graph.
+
+Naming, namespace, folder-convention, Worker source-content, and direct-versus-transitive test-project rules are not enforced by the current architecture suite.
 
 ---
 

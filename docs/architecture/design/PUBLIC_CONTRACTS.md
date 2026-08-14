@@ -172,6 +172,18 @@ The owning module is responsible for:
 
 Consumers may rely on contracts but should not redefine them.
 
+## Implemented Release 0.9 Research Contracts
+
+Application owns the public boundary for the current deterministic research operation:
+
+* `IResearchUseCase` exposes execution of a `ResearchRequest` and returns a `ResearchOutcome`.
+* `IObservationSource` is the Application-owned external observation port.
+* `ObservationSourceResult` and `ObservationSourceFailure` describe expected source outcomes without exposing Infrastructure details.
+* `ResearchResult` associates the requested target and observation count with the Domain-owned `MeanPrice`.
+* `ResearchFailure` distinguishes invalid requests, unsupported targets, and insufficient observations.
+
+`ResearchUseCase` and `DeterministicObservationSource` are internal implementations behind these contracts. Their test-only friend-assembly access does not make them supported public API.
+
 ---
 
 # Contract Evolution

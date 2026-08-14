@@ -141,7 +141,7 @@ Utilities supporting engineering workflows without becoming production dependenc
 
 The solution should group projects according to architectural responsibilities rather than implementation technology.
 
-Current Release 0.8 organization:
+Current Release 0.9 organization:
 
 ```text
 AIQuantTradingResearch.slnx
@@ -163,20 +163,20 @@ Solution folders exist solely to improve navigation and should not influence arc
 
 # Current Production Projects
 
-Release 0.8 implements four production projects:
+Release 0.9 implements four production projects:
 
-* **Domain** contains the intentionally minimal domain foundation and has no production project dependencies.
-* **Application** owns the application composition boundary and depends only on Domain.
-* **Infrastructure** owns the infrastructure composition boundary and depends only on Application.
-* **Worker** is the minimal generic host and composition root and depends on Application and Infrastructure.
+* **Domain** owns the research value model and arithmetic-mean behavior and has no production project dependencies.
+* **Application** owns research orchestration and the observation-source abstraction and depends only on Domain.
+* **Infrastructure** supplies the deterministic offline observation adapter and depends only on Application.
+* **Worker** is the one-shot composition and execution root and depends on Application and Infrastructure.
 
-`AddApplication` and `AddInfrastructure` currently establish empty registration boundaries; they do not register feature services.
+`AddApplication` registers the research use case, and `AddInfrastructure` registers the deterministic observation source. Worker resolves the use-case abstraction and does not manually construct either implementation.
 
 ---
 
 # Planned Production Evolution
 
-Projects should represent cohesive architectural capabilities. The following sections describe planned architectural concepts, not additional projects implemented in Release 0.8.
+Projects should represent cohesive architectural capabilities. The following sections describe planned architectural concepts, not additional projects implemented in Release 0.9.
 
 Illustrative responsibilities include:
 
@@ -261,7 +261,7 @@ The host acts as the composition root of the platform.
 
 Testing projects should remain independent of production implementations.
 
-Current Release 0.8 organization:
+Current Release 0.9 organization:
 
 ```text
 tests/
@@ -271,7 +271,7 @@ tests/
 └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-The first three projects are intentionally empty test skeletons. Architecture.Tests currently contains the executable Release 0.8 dependency-boundary checks.
+Domain.Tests verifies Domain invariants and mean behavior. Application.Tests verifies orchestration with a test-owned source double. Infrastructure.Tests verifies the deterministic adapter directly. Architecture.Tests verifies dependency direction, cycles, Application ownership of the observation-source port, and non-public concrete research implementations.
 
 ---
 
