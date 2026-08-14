@@ -79,18 +79,12 @@ The project is guided by a small set of enduring engineering principles:
 
 Each release expands both the platform and the engineering capabilities it demonstrates.
 
-| Release | Engineering Capability                         |
-| ------- | ---------------------------------------------- |
-| 0.1     | Engineering Governance & Software Architecture |
-| 0.2     | Data Engineering & Distributed Systems         |
-| 0.3     | Feature Engineering                            |
-| 0.4     | Simulation & Backtesting                       |
-| 0.5     | Machine Learning Engineering                   |
-| 0.6     | Explainable AI                                 |
-| 0.7     | Quantitative Finance & Risk Engineering        |
-| 0.8     | Cloud-Native Engineering, DevOps & SRE         |
-| 0.9     | MLOps & Research Infrastructure                |
-| 1.0     | Production Engineering                         |
+| Release | Engineering Capability                  |
+| ------- | --------------------------------------- |
+| 0.1–0.6 | Architecture and engineering foundation |
+| 0.7     | AI Engineering Toolkit                  |
+| 0.8     | Executable .NET solution skeleton       |
+| 0.9+    | Later platform capabilities             |
 
 ---
 
@@ -141,23 +135,51 @@ Technology choices are continuously evaluated and documented through the Enginee
 
 # Current Status
 
-**Current Release:** 0.1 – Engineering Foundation
+**Current Release:** 0.8 – Solution Skeleton
 
-Completed:
+The repository currently contains the executable structural foundation for later platform capabilities:
 
-* Repository structure
-* Engineering Handbook
-* Project governance
-* Documentation framework
-* Coding standards
-* Architecture foundation
+```text
+AIQuantTradingResearch.slnx
+├── /src/
+│   ├── AIQuantTradingResearch.Domain
+│   ├── AIQuantTradingResearch.Application
+│   ├── AIQuantTradingResearch.Infrastructure
+│   └── AIQuantTradingResearch.Worker
+└── /tests/
+    ├── AIQuantTradingResearch.Domain.Tests
+    ├── AIQuantTradingResearch.Application.Tests
+    ├── AIQuantTradingResearch.Infrastructure.Tests
+    └── AIQuantTradingResearch.Architecture.Tests
+```
 
-Next:
+The Worker is a minimal generic host and composition root. `AddApplication` and `AddInfrastructure` are intentionally empty registration boundaries. Market data, storage, trading, plugins, AI/ML, APIs, and production infrastructure remain planned for later releases.
 
-* Market Data Platform
-* Historical data ingestion
-* Data persistence
-* Initial REST APIs
+The production dependency graph is:
+
+```text
+Domain          → none
+Application     → Domain
+Infrastructure  → Application
+Worker          → Application, Infrastructure
+```
+
+# Local Verification
+
+From the repository root:
+
+```powershell
+./eng/restore.ps1
+./eng/format.ps1
+./eng/build.ps1
+./eng/test.ps1
+./eng/verify.ps1
+./eng/clean.ps1
+```
+
+`format.ps1` verifies formatting without changing files. `verify.ps1` delegates restore, format verification, build, and test. The cross-platform build counterpart is `eng/build.sh`.
+
+The architecture test project currently executes six forbidden-dependency checks plus production-graph acyclicity validation.
 
 ---
 

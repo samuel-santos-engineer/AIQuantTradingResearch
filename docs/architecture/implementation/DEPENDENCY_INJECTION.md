@@ -87,29 +87,35 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Architectural Composition
+# Implemented Release 0.8 Composition
 
-Application composition should mirror the documented architectural layers.
-
-Illustrative dependency flow:
+`AIQuantTradingResearch.Worker` is the current composition root. Its startup lifecycle is:
 
 ```text
-Host
-      │
-      ▼
-Infrastructure
-      │
-      ▼
-Data
-      │
-      ▼
-Domain
-      │
-      ▼
-Abstractions
-      │
-      ▼
-Core
+Create generic host builder
+        ↓
+AddApplication()
+        ↓
+AddInfrastructure()
+        ↓
+Build host
+        ↓
+Run host
+```
+
+`AddApplication` and `AddInfrastructure` are intentionally empty `IServiceCollection` extension boundaries in Release 0.8. They register no application, infrastructure, provider, storage, or background services. Configuration is not currently passed to `AddInfrastructure`.
+
+---
+
+# Architectural Composition
+
+Application composition mirrors the implemented production graph:
+
+```text
+Domain          → none
+Application     → Domain
+Infrastructure  → Application
+Worker          → Application, Infrastructure
 ```
 
 Dependency Injection should preserve this architecture rather than bypass it.
@@ -133,28 +139,17 @@ Alternative injection mechanisms should be introduced only when architectural ju
 
 # Module Registration
 
-Each architectural module should register its own services.
-
-Illustrative organization:
+Each architectural module should own its service registrations as real services are introduced. Current organization:
 
 ```text
-Core
-        RegisterCore()
-
-Abstractions
-        RegisterAbstractions()
-
-Data
-        RegisterData()
+Application
+        AddApplication()
 
 Infrastructure
-        RegisterInfrastructure()
-
-Plugins
-        RegisterPlugins()
+        AddInfrastructure()
 ```
 
-The Composition Root orchestrates module registration without owning implementation details.
+The Worker composition root invokes both boundaries without owning implementation details. Additional module or plugin registration remains planned for later releases.
 
 ---
 

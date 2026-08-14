@@ -210,20 +210,30 @@ Deterministic testing supports reproducible engineering outcomes.
 
 Testing projects should mirror architectural responsibilities.
 
-Illustrative organization:
+Current Release 0.8 organization:
 
 ```text
 tests/
-
-├── Unit
-├── Integration
-├── Contract
-├── Resilience
-├── Performance
-└── EndToEnd
+├── AIQuantTradingResearch.Domain.Tests
+├── AIQuantTradingResearch.Application.Tests
+├── AIQuantTradingResearch.Infrastructure.Tests
+└── AIQuantTradingResearch.Architecture.Tests
 ```
 
-Each category focuses on a distinct verification objective.
+Domain.Tests, Application.Tests, and Infrastructure.Tests are intentionally empty test skeletons in Release 0.8. Architecture.Tests currently executes seven tests: six forbidden production-dependency checks and one production-graph acyclicity check.
+
+The executable forbidden edges are:
+
+```text
+Domain !→ Application
+Domain !→ Infrastructure
+Domain !→ Worker
+Application !→ Infrastructure
+Application !→ Worker
+Infrastructure !→ Worker
+```
+
+Unit, integration, contract, resilience, performance, and end-to-end coverage will be introduced only when later capabilities require it.
 
 ---
 

@@ -114,7 +114,7 @@ Solution files should clearly identify the product.
 Example:
 
 ```text
-AIQuantTradingResearch.sln
+AIQuantTradingResearch.slnx
 ```
 
 Multiple solution files introduced in the future should communicate their purpose explicitly.
@@ -122,9 +122,8 @@ Multiple solution files introduced in the future should communicate their purpos
 Illustrative examples:
 
 ```text
-AIQuantTradingResearch.sln
-AIQuantTradingResearch.Samples.sln
-AIQuantTradingResearch.Benchmarks.sln
+AIQuantTradingResearch.Samples.slnx
+AIQuantTradingResearch.Benchmarks.slnx
 ```
 
 ---
@@ -136,12 +135,10 @@ Project names should reflect architectural responsibility.
 Examples:
 
 ```text
-AIQuantTradingResearch.Core
 AIQuantTradingResearch.Domain
-AIQuantTradingResearch.Data
+AIQuantTradingResearch.Application
 AIQuantTradingResearch.Infrastructure
-AIQuantTradingResearch.Plugins
-AIQuantTradingResearch.Host
+AIQuantTradingResearch.Worker
 ```
 
 Projects should avoid technology-specific or implementation-specific names whenever possible.
@@ -362,9 +359,10 @@ Test project names should mirror production projects.
 Examples:
 
 ```text
-AIQuantTradingResearch.Core.Tests
 AIQuantTradingResearch.Domain.Tests
-AIQuantTradingResearch.Data.Tests
+AIQuantTradingResearch.Application.Tests
+AIQuantTradingResearch.Infrastructure.Tests
+AIQuantTradingResearch.Architecture.Tests
 ```
 
 Test methods should clearly describe expected behavior.

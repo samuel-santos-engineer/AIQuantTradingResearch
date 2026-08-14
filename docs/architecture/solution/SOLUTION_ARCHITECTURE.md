@@ -46,6 +46,8 @@ This approach promotes:
 
 # Architectural Capability Map
 
+The following map describes the planned long-term capability architecture. It is not the current Release 0.8 physical project inventory. Release 0.8 currently implements only Domain, Application, Infrastructure, and Worker production projects plus their four test projects.
+
 ```text
                     AIQuantTradingResearch
                                │
@@ -75,11 +77,11 @@ Engineering Governance   Developer Platform      Shared Kernel
                     Observability Platform
 ```
 
-Each capability provides services to the layers above while remaining independent of implementation technologies.
+Each planned capability provides services to the layers above while remaining independent of implementation technologies.
 
 ---
 
-# Architectural Capabilities
+# Planned Architectural Capabilities
 
 ## Engineering Governance
 

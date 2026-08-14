@@ -78,6 +78,21 @@ Examples include:
 - Dependency updates
 - Releases
 
+## Current Local Workflow
+
+Release 0.8 provides these repository-root entry points:
+
+```powershell
+./eng/restore.ps1
+./eng/format.ps1
+./eng/build.ps1
+./eng/test.ps1
+./eng/verify.ps1
+./eng/clean.ps1
+```
+
+`format.ps1` runs formatting verification and does not apply changes. `verify.ps1` delegates restore, format verification, build, and test in that order. `eng/build.sh` provides the cross-platform build counterpart.
+
 ---
 
 ## Quality over Quantity

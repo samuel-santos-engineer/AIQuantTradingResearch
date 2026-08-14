@@ -95,35 +95,23 @@ Each top-level directory should own a single responsibility.
 
 # Implementation Structure
 
-The implementation should mirror the logical module organization.
-
-Illustrative examples include:
+Release 0.8 implements the following physical solution skeleton:
 
 ```text
-src/
-
-AIQuantTradingResearch.SharedKernel
-
-AIQuantTradingResearch.Data
-
-AIQuantTradingResearch.FeatureEngineering
-
-AIQuantTradingResearch.ExperimentManagement
-
-AIQuantTradingResearch.MachineLearning
-
-AIQuantTradingResearch.Backtesting
-
-AIQuantTradingResearch.PortfolioAnalytics
-
-AIQuantTradingResearch.Knowledge
-
-AIQuantTradingResearch.Integration
-
-AIQuantTradingResearch.Observability
+AIQuantTradingResearch.slnx
+├── /src/
+│   ├── AIQuantTradingResearch.Domain
+│   ├── AIQuantTradingResearch.Application
+│   ├── AIQuantTradingResearch.Infrastructure
+│   └── AIQuantTradingResearch.Worker
+└── /tests/
+    ├── AIQuantTradingResearch.Domain.Tests
+    ├── AIQuantTradingResearch.Application.Tests
+    ├── AIQuantTradingResearch.Infrastructure.Tests
+    └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-Future implementation details should preserve this alignment between modules and projects.
+The solution folders `/src/` and `/tests/` are navigational only. Planned data, feature engineering, machine learning, backtesting, analytics, plugin, integration, and observability capabilities are not implemented in the current skeleton.
 
 ---
 
@@ -181,9 +169,10 @@ Naming should remain consistent across the solution.
 ## Projects
 
 ```text
-AIQuantTradingResearch.Data
-AIQuantTradingResearch.Backtesting
-AIQuantTradingResearch.SharedKernel
+AIQuantTradingResearch.Domain
+AIQuantTradingResearch.Application
+AIQuantTradingResearch.Infrastructure
+AIQuantTradingResearch.Worker
 ```
 
 ## Namespaces

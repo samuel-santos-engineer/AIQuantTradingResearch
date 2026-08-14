@@ -38,6 +38,32 @@ The preferred architecture is one where stable foundations support higher-level 
 
 ---
 
+# Implemented Release 0.8 Project Graph
+
+The current production project references are:
+
+```text
+Domain          → none
+Application     → Domain
+Infrastructure  → Application
+Worker          → Application, Infrastructure
+```
+
+`AIQuantTradingResearch.Architecture.Tests` executes these forbidden-dependency rules:
+
+```text
+Domain !→ Application
+Domain !→ Infrastructure
+Domain !→ Worker
+Application !→ Infrastructure
+Application !→ Worker
+Infrastructure !→ Worker
+```
+
+The seventh architecture test verifies that the production project graph is acyclic. Release 0.8 does not currently enforce naming, namespace, or folder-convention rules through architecture tests.
+
+---
+
 # Dependency Hierarchy
 
 Dependencies exist at multiple architectural levels.
@@ -69,7 +95,7 @@ The same dependency principles apply consistently across every level.
 
 Dependencies should always flow toward foundational capabilities.
 
-Illustrative dependency direction:
+Illustrative future capability direction:
 
 ```text
 Engineering Governance
@@ -108,7 +134,7 @@ Integration Platform
 Future Applications
 ```
 
-Foundational capabilities should remain independent of business-specific modules.
+Foundational capabilities should remain independent of business-specific modules. This capability hierarchy is planned architecture and is not the current Release 0.8 project inventory.
 
 ---
 

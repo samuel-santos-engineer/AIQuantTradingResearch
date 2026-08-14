@@ -79,13 +79,10 @@ Code should strive to:
 ## Projects
 
 ```text
-AIQuantTradingResearch.Api
-
-AIQuantTradingResearch.SharedKernel
-
-AIQuantTradingResearch.MarketData
-
-AIQuantTradingResearch.Backtesting
+AIQuantTradingResearch.Domain
+AIQuantTradingResearch.Application
+AIQuantTradingResearch.Infrastructure
+AIQuantTradingResearch.Worker
 ```
 
 ---
@@ -97,7 +94,7 @@ Match project names.
 Example:
 
 ```csharp
-namespace AIQuantTradingResearch.Api;
+namespace AIQuantTradingResearch.Application;
 ```
 
 ---

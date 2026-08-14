@@ -141,28 +141,42 @@ Utilities supporting engineering workflows without becoming production dependenc
 
 The solution should group projects according to architectural responsibilities rather than implementation technology.
 
-Illustrative organization:
+Current Release 0.8 organization:
 
 ```text
-AIQuantTradingResearch.sln
-
-├── Core
-├── Abstractions
-├── Domain
-├── Data
-├── Infrastructure
-├── Plugins
-├── Host
-└── Shared
+AIQuantTradingResearch.slnx
+├── /src/
+│   ├── AIQuantTradingResearch.Domain
+│   ├── AIQuantTradingResearch.Application
+│   ├── AIQuantTradingResearch.Infrastructure
+│   └── AIQuantTradingResearch.Worker
+└── /tests/
+    ├── AIQuantTradingResearch.Domain.Tests
+    ├── AIQuantTradingResearch.Application.Tests
+    ├── AIQuantTradingResearch.Infrastructure.Tests
+    └── AIQuantTradingResearch.Architecture.Tests
 ```
 
 Solution folders exist solely to improve navigation and should not influence architectural dependencies.
 
 ---
 
-# Production Projects
+# Current Production Projects
 
-Projects should represent cohesive architectural capabilities.
+Release 0.8 implements four production projects:
+
+* **Domain** contains the intentionally minimal domain foundation and has no production project dependencies.
+* **Application** owns the application composition boundary and depends only on Domain.
+* **Infrastructure** owns the infrastructure composition boundary and depends only on Application.
+* **Worker** is the minimal generic host and composition root and depends on Application and Infrastructure.
+
+`AddApplication` and `AddInfrastructure` currently establish empty registration boundaries; they do not register feature services.
+
+---
+
+# Planned Production Evolution
+
+Projects should represent cohesive architectural capabilities. The following sections describe planned architectural concepts, not additional projects implemented in Release 0.8.
 
 Illustrative responsibilities include:
 
@@ -247,20 +261,17 @@ The host acts as the composition root of the platform.
 
 Testing projects should remain independent of production implementations.
 
-Illustrative organization:
+Current Release 0.8 organization:
 
 ```text
 tests/
-
-├── Unit
-├── Integration
-├── Contract
-├── Performance
-├── Resilience
-└── EndToEnd
+├── AIQuantTradingResearch.Domain.Tests
+├── AIQuantTradingResearch.Application.Tests
+├── AIQuantTradingResearch.Infrastructure.Tests
+└── AIQuantTradingResearch.Architecture.Tests
 ```
 
-Each testing category validates a different quality attribute of the platform.
+The first three projects are intentionally empty test skeletons. Architecture.Tests currently contains the executable Release 0.8 dependency-boundary checks.
 
 ---
 
@@ -278,25 +289,13 @@ Project responsibilities should remain cohesive and well-defined.
 
 Physical project references should follow the documented dependency rules.
 
-Illustrative dependency flow:
+Current production dependency flow:
 
 ```text
-Host
-        │
-        ▼
-Infrastructure
-        │
-        ▼
-Data
-        │
-        ▼
-Domain
-        │
-        ▼
-Abstractions
-        │
-        ▼
-Core
+Domain          → none
+Application     → Domain
+Infrastructure  → Application
+Worker          → Application, Infrastructure
 ```
 
 Dependency direction should remain intentional and acyclic.
