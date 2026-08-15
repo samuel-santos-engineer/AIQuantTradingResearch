@@ -109,14 +109,14 @@ Projects should:
 
 Project organization should remain aligned with the Module Catalog.
 
-The implemented Release 0.9 project boundaries are:
+The implemented Release 1.0 project boundaries are:
 
 * **Domain** owns `PriceObservation`, `ObservationSeries`, arithmetic-mean behavior, and `MeanPrice`. It has no project dependencies.
-* **Application** owns the research request, outcome, result, expected failures, `IResearchUseCase`, `IObservationSource`, and use-case orchestration. It depends only on Domain.
-* **Infrastructure** implements the Application-owned observation-source port with a deterministic offline adapter. It depends on Application and does not own the port.
-* **Worker** is the composition and one-shot execution boundary. It registers Application and Infrastructure, resolves `IResearchUseCase`, executes the canonical request, and contains no reusable research or Domain logic.
+* **Application** owns the provider-independent research request, outcome, result, failures, `IResearchUseCase`, `IObservationSource`, `ObservationSourceResult`, and `ObservationSourceFailure`. It depends only on Domain.
+* **Infrastructure** implements the Application-owned observation-source port using Twelve Data. It owns provider transport DTOs, HTTP/authentication mechanics, normalization, response validation, failure mapping, and DI registration. It depends on Application and does not redefine the port.
+* **Worker** is the outer composition and one-shot execution boundary. It obtains `TwelveData:ApiKey` from configuration, registers Application and Infrastructure, resolves `IResearchUseCase`, executes the canonical request, and owns no provider transport, normalization, research, or Domain logic.
 
-The concrete research use case and deterministic adapter remain non-public. Narrow friend-assembly declarations permit their corresponding test projects to exercise them directly; these declarations are testability boundaries, not runtime dependencies or public contracts.
+The concrete research use case and Twelve Data observation-source implementation remain non-public. `TwelveDataConfiguration` is the intentional public composition surface. Narrow friend-assembly declarations permit Application.Tests and Infrastructure.Tests to exercise internal implementations directly; these declarations are testability boundaries, not runtime dependencies or public contracts.
 
 ---
 

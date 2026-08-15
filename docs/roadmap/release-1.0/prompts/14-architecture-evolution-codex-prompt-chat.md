@@ -1,0 +1,5 @@
+Read and execute `docs/roadmap/release-1.0/prompts/14-architecture-evolution-codex-prompt.md` completely.
+Treat the accepted WP13 result as the predecessor gate: preserve all valid Release 0.9 architecture rules and evolve executable enforcement only for stable Release 1.0 Market Data Foundation boundaries supported by authority and repository truth.
+Keep production code, packages, project references, solution membership, visibility, friend assemblies, documentation, and Git/GitHub state unchanged; add only the minimum deterministic Architecture.Tests needed for provider independence, contract ownership, provider confinement, Worker boundaries, acyclicity, and authoritative visibility.
+Do not duplicate WP12/WP13 behavioral tests, weaken existing architecture rules, invent incidental namespace/folder/count rules, stage, commit, push, create a PR, mutate issue #99/milestone #41, or begin WP15/WP16/Release 1.1.
+Run architecture tests, all permanent suites, build, `eng/verify.ps1`, provider-leakage/dependency/cycle/diff/working-tree checks; return the complete WP14 execution report with the rule-to-authority matrix and exact test-count delta, then stop.

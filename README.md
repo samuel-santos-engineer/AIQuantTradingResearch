@@ -127,7 +127,7 @@ The platform is currently evolving around the following technologies:
 * GitHub Actions
 * OpenTelemetry
 * Ollama
-* Binance Market Data APIs
+* Twelve Data historical market-data API
 
 Technology choices are continuously evaluated and documented through the Engineering Decision Log.
 
@@ -135,9 +135,9 @@ Technology choices are continuously evaluated and documented through the Enginee
 
 # Current Status
 
-**Current Release:** 0.8 – Solution Skeleton
+**Current Release:** 1.0 – Market Data Foundation
 
-The repository currently contains the executable structural foundation for later platform capabilities:
+The repository contains the first provider-backed historical market-data vertical slice:
 
 ```text
 AIQuantTradingResearch.slnx
@@ -153,7 +153,9 @@ AIQuantTradingResearch.slnx
     └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-The Worker is a minimal generic host and composition root. `AddApplication` and `AddInfrastructure` are intentionally empty registration boundaries. Market data, storage, trading, plugins, AI/ML, APIs, and production infrastructure remain planned for later releases.
+The Worker is a one-shot composition and execution root. `AddApplication` registers the research use case, while `AddInfrastructure` composes the Application-owned observation-source contract with the Infrastructure-owned Twelve Data client, normalizer, validation/failure mapping, and adapter. The API key is supplied externally through `TwelveData:ApiKey`; it is never placed in the request URI.
+
+Release 1.0 implements historical daily observations through one provider. Storage, streaming/live feeds, provider failover, trading, plugins, AI/ML, APIs, and production deployment remain planned for later releases.
 
 The production dependency graph is:
 

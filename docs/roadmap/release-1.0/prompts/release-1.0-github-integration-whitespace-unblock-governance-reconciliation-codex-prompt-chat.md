@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.0/prompts/release-1.0-github-integration-whitespace-unblock-governance-reconciliation-codex-prompt.md` as the narrow WU10-01 reconciliation authority.
+Stage exactly the two whitespace-unblock governance artifacts unchanged, preserving their hashes and the 5-line companion, and supersede the governed integration count from 80 to exactly 82 files.
+Require the post-reconciliation state to be staged=82, unstaged=0, untracked=0, unexpected=0, while preserving the WP16 78-file candidate and original 2 integration-governance files exactly.
+Do not correct whitespace yet, commit, push, create a PR, merge, mutate planning, alter any other file, or begin Release 1.1; only confirm cached whitespace remains the same 31 findings across the same seven files.
+Return the required reconciliation report and stop so the existing whitespace-unblock prompt can be rerun under this later 82-file authority.

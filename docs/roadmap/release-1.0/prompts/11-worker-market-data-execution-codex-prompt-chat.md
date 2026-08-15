@@ -1,0 +1,5 @@
+Read and execute `docs/roadmap/release-1.0/prompts/11-worker-market-data-execution-codex-prompt.md` completely.
+Treat the Release 1.0 execution plan/file manifest, accepted WP02 provider decision, cumulative WP03–WP10 implementation, WP10 execution report, and GitHub issue #96 as the governing WP11 authorities.
+Implement only the authorized Worker configuration handoff and one-shot executable research flow through `IResearchUseCase → IObservationSource → TwelveDataObservationSource`, using the exact `TwelveData:ApiKey` contract and existing DI boundaries.
+Do not expose or invent credentials, bypass Application, call provider infrastructure directly from Worker, redesign WP07–WP10 behavior, add unauthorized packages/references, mutate GitHub/Git history, or begin WP12/WP13.
+Run all required offline Worker, security, provider-leakage, regression, architecture, build, test, verification, diff, and live-execution-gate checks; return the complete WP11 execution report and stop before WP12 — Domain & Application Tests (#97).

@@ -32,6 +32,14 @@ internal sealed class ResearchUseCase : IResearchUseCase
                     ResearchOutcome.Failed(ResearchFailure.UnsupportedTarget),
                 ObservationSourceFailure.InsufficientObservations =>
                     ResearchOutcome.Failed(ResearchFailure.InsufficientObservations),
+                ObservationSourceFailure.SourceUnavailable =>
+                    ResearchOutcome.Failed(ResearchFailure.SourceUnavailable),
+                ObservationSourceFailure.AccessDenied =>
+                    ResearchOutcome.Failed(ResearchFailure.AccessDenied),
+                ObservationSourceFailure.UsageLimitReached =>
+                    ResearchOutcome.Failed(ResearchFailure.UsageLimitReached),
+                ObservationSourceFailure.InvalidSourceResponse =>
+                    ResearchOutcome.Failed(ResearchFailure.InvalidSourceResponse),
                 _ => throw new InvalidOperationException("The observation source returned an unknown failure."),
             };
         }

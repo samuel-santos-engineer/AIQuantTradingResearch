@@ -46,7 +46,9 @@ This approach promotes:
 
 # Architectural Capability Map
 
-The following map describes the planned long-term capability architecture. It is not the current Release 0.9 physical project inventory. Release 0.9 implements Domain, Application, Infrastructure, and Worker production projects plus their four test projects. Within that structure, the current research capability is one deterministic, offline mean-price vertical slice; the remaining capabilities in this map are planned rather than implemented.
+The following map describes the planned long-term capability architecture. It is not the current Release 1.0 physical project inventory. Release 1.0 implements Domain, Application, Infrastructure, and Worker production projects plus their four test projects. Its current vertical slice retrieves daily historical observations from Twelve Data through Infrastructure, normalizes them into provider-independent Domain values, executes the Application research use case, and reports the result through Worker. The remaining capabilities in this map are planned rather than implemented.
+
+The current provider boundary is deliberately asymmetric: Application owns the acquisition contracts, Infrastructure owns Twelve Data transport and mapping mechanics, and Domain contains no provider concepts. Runtime provider selection, storage, streaming, and provider fallback are future capabilities.
 
 ```text
                     AIQuantTradingResearch

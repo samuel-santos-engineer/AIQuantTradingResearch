@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.0/prompts/release-1.0-github-integration-governance-finalization-codex-prompt.md` as the final recursion-breaking governance authority.
+Enumerate exactly the eight recognized Release 1.0 integration-lifecycle governance artifacts, including this prompt pair itself, preserve their hashes and 5-line companions, and stage every recognized untracked governance file unchanged.
+Derive the final governed candidate from repository truth as immutable WP16 78 files plus 8 governance files, requiring exactly 86 staged files with zero unstaged, untracked, unexpected, missing, or duplicate paths.
+Do not correct whitespace, modify candidate semantics, commit, push, create a PR, merge, mutate planning, close Release 1.0, or begin Release 1.1; only run cached whitespace discovery after the 86-file governance set is fully staged.
+Return the required governance-finalization report and stop, using this authority to supersede all earlier 80/82/84 integration candidate counts.

@@ -1,0 +1,5 @@
+Read and execute `docs/roadmap/release-1.0/prompts/15-documentation-alignment-codex-prompt.md` completely.
+Treat the accepted WP14 result as the predecessor gate and reconcile the exact WP15 documentation scope from `RELEASE_1.0_FILE_MANIFEST.md` before editing anything.
+Minimally align only authorized current-state documentation to implemented Release 1.0 truth: dependency graph, layer/provider boundaries, Application contracts, Twelve Data Infrastructure flow, DI/Worker composition, failure/normalization semantics where relevant, test responsibilities, and the 13 executable architecture rules.
+Keep production code, tests, packages, project references, solution/build assets, governance authorities, and Git/GitHub state unchanged; preserve planned capabilities only when clearly labeled future, and do not begin WP16 or Release 1.1.
+Run stale-reference, cross-document, local-link, build, 105-test, `eng/verify.ps1`, diff, and working-tree validation; return the complete WP15 execution report with a per-document gap justification, then stop.
