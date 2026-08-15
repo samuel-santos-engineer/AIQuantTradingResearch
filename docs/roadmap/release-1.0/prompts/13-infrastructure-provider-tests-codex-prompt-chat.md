@@ -1,0 +1,5 @@
+Read and execute `docs/roadmap/release-1.0/prompts/13-infrastructure-provider-tests-codex-prompt.md` completely.
+Treat the Release 1.0 execution plan/file manifest, accepted cumulative WP06–WP12 implementation/results, WP08 semantic-unblock authority, and GitHub issue #98 as the governing WP13 authorities; first prove WP12 completed successfully.
+Add only permanent deterministic offline Infrastructure/provider tests for WP07 HTTP/auth/deserialization, WP08 normalization/timezone/culture/order/failures, WP09 validation/failure mapping/cancellation/count semantics, and WP10 DI/configuration behavior.
+Use the existing Infrastructure friend-assembly boundary; do not change production code or visibility, use live provider access or real credentials, add packages/references, mutate Git/GitHub, or begin WP14.
+Run all required permanent suites, canonical verification, determinism, security/leakage, regression, architecture, diff, and working-tree checks; return the complete WP13 report and stop before WP14 — Architecture Evolution (#99).

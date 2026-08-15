@@ -56,20 +56,22 @@ Consumers depend on contracts rather than implementations.
 
 Provider modules remain free to evolve internally without affecting consumers.
 
-The implemented Release 0.9 research interaction follows this model:
+The implemented Release 1.0 research interaction follows this model:
 
 ```text
 Worker
   -> IResearchUseCase (Application)
   -> ResearchUseCase (internal Application implementation)
   -> IObservationSource (Application-owned port)
-  -> DeterministicObservationSource (internal Infrastructure adapter)
+  -> TwelveDataObservationSource (internal Infrastructure adapter)
+  -> TwelveDataClient / /time_series (Infrastructure transport)
+  -> TwelveDataTimeSeriesNormalizer (Infrastructure mapping)
   -> PriceObservation / ObservationSeries / MeanPrice (Domain)
   -> ResearchOutcome / ResearchResult (Application)
   -> Worker presentation
 ```
 
-Worker composes and initiates this interaction but does not calculate the mean or invoke the observation source directly. Infrastructure implements the port without redefining the Application-owned contract.
+Worker supplies configuration and initiates this interaction but does not calculate the mean, invoke the source directly, or own provider mechanics. Infrastructure calls `/time_series` with `interval=1day` and `adjust=splits`, carrying the configured key only in the authentication header. It validates transport/provider evidence, normalizes the daily close at exchange-local midnight with the resolved offset, orders observations by absolute instant, rejects malformed/non-positive closes and duplicate instants, and maps failures to the provider-independent Application vocabulary before returning across the port.
 
 ---
 

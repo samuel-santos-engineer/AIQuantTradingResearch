@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.0/prompts/release-1.0-github-integration-whitespace-unblock-codex-prompt.md` as the narrow GI10-01 authorization.
+Touch only the seven reported Markdown files and remove only the exact 31 Git-reported trailing-whitespace / terminal-EOF whitespace violations, proving zero substantive content differences.
+Preserve the exact 80-file staged candidate, re-stage only those seven corrected files, and require both `git diff --check` and `git diff --cached --check` to pass.
+Run canonical verification, but do not commit, push, create a PR, merge, mutate planning, change Git whitespace policy, modify any eighth file, or begin Release 1.1.
+Return the required whitespace-unblock report and stop with the 80-file candidate still staged so the existing Release 1.0 integration prompt can resume from the commit gate.

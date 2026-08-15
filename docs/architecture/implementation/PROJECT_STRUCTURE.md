@@ -141,7 +141,7 @@ Utilities supporting engineering workflows without becoming production dependenc
 
 The solution should group projects according to architectural responsibilities rather than implementation technology.
 
-Current Release 0.9 organization:
+Current Release 1.0 organization:
 
 ```text
 AIQuantTradingResearch.slnx
@@ -163,20 +163,20 @@ Solution folders exist solely to improve navigation and should not influence arc
 
 # Current Production Projects
 
-Release 0.9 implements four production projects:
+Release 1.0 implements four production projects:
 
 * **Domain** owns the research value model and arithmetic-mean behavior and has no production project dependencies.
 * **Application** owns research orchestration and the observation-source abstraction and depends only on Domain.
-* **Infrastructure** supplies the deterministic offline observation adapter and depends only on Application.
+* **Infrastructure** owns the Twelve Data transport, normalization, validation/failure mapping, observation-source adapter, and its registration; it depends only on Application.
 * **Worker** is the one-shot composition and execution root and depends on Application and Infrastructure.
 
-`AddApplication` registers the research use case, and `AddInfrastructure` registers the deterministic observation source. Worker resolves the use-case abstraction and does not manually construct either implementation.
+`AddApplication` registers the research use case. `AddInfrastructure` registers the configured Twelve Data `HttpClient`, client, and singleton observation source. Worker supplies `TwelveData:ApiKey`, resolves the use-case abstraction, and does not construct provider implementations manually.
 
 ---
 
 # Planned Production Evolution
 
-Projects should represent cohesive architectural capabilities. The following sections describe planned architectural concepts, not additional projects implemented in Release 0.9.
+Projects should represent cohesive architectural capabilities. The following sections describe planned architectural concepts, not additional projects implemented in Release 1.0.
 
 Illustrative responsibilities include:
 
@@ -261,7 +261,7 @@ The host acts as the composition root of the platform.
 
 Testing projects should remain independent of production implementations.
 
-Current Release 0.9 organization:
+Current Release 1.0 organization:
 
 ```text
 tests/
@@ -271,7 +271,7 @@ tests/
 └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-Domain.Tests verifies Domain invariants and mean behavior. Application.Tests verifies orchestration with a test-owned source double. Infrastructure.Tests verifies the deterministic adapter directly. Architecture.Tests verifies dependency direction, cycles, Application ownership of the observation-source port, and non-public concrete research implementations.
+Domain.Tests verifies Domain invariants and mean behavior. Application.Tests verifies orchestration and every provider-independent source-failure mapping using a test-owned source. Infrastructure.Tests verifies Twelve Data transport, normalization, validation/failure mapping, cancellation, observation sufficiency, and DI composition entirely offline with synthetic payloads and a fake HTTP handler. Architecture.Tests verifies dependency direction, cycles, contract ownership, provider/HTTP confinement, and authoritative visibility.
 
 ---
 

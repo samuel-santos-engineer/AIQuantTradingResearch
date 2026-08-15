@@ -1,0 +1,5 @@
+Read and execute `docs/roadmap/release-1.0/prompts/13-infrastructure-provider-tests-di-unblock-codex-prompt.md` completely.
+Treat it as narrow human authority to add only repository-consistent `Microsoft.Extensions.DependencyInjection` test support for `AIQuantTradingResearch.Infrastructure.Tests` and the minimum permanent concrete-container proof required to resolve B13-01.
+Preserve Central Package Management, add no production/Worker/framework/project-reference changes, and prove real `BuildServiceProvider` validation plus `IObservationSource → TwelveDataObservationSource`, singleton behavior, correct `HttpClient` base address, and zero provider calls.
+Do not modify production behavior, broaden visibility, mutate Git/GitHub, stage, commit, push, create a PR, start WP14, or replace the existing WP13 prompt.
+Run restore, build, all permanent suites, canonical verification, architecture/security/diff/working-tree checks; return the complete WP13 DI-unblock report, then stop so the existing WP13 prompt can be rerun.

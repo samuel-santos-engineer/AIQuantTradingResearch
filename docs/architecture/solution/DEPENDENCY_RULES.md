@@ -38,7 +38,7 @@ The preferred architecture is one where stable foundations support higher-level 
 
 ---
 
-# Implemented Release 0.9 Project Graph
+# Implemented Release 1.0 Project Graph
 
 The current production project references are:
 
@@ -60,11 +60,13 @@ Application !→ Worker
 Infrastructure !→ Worker
 ```
 
-The architecture suite also verifies that the production project graph is acyclic. Release 0.9 adds structural rules that keep `IObservationSource` owned by Application and concrete production implementations of `IResearchUseCase` and `IObservationSource` non-public.
+The architecture suite also verifies that the production project graph is acyclic. The preserved structural rules keep `IObservationSource` owned by Application and concrete production implementations of `IResearchUseCase` and `IObservationSource` non-public.
+
+Release 1.0 adds four executable checks: Domain and Application define no Twelve Data-specific types; Domain and Application do not reference HTTP transport; `ObservationSourceResult`, `ObservationSourceFailure`, and `ResearchFailure` remain Application-owned alongside `IObservationSource`; and Twelve Data types remain confined to Infrastructure with the public configuration surface and non-public implementation/transport visibility preserved.
 
 Worker has no direct Domain project reference. Its compiled use of Domain-owned result values is exposed through Application contracts and does not change the project-reference graph.
 
-Naming, namespace, folder-convention, Worker source-content, and direct-versus-transitive test-project rules are not enforced by the current architecture suite.
+The suite contains 13 tests: the nine preserved dependency, acyclicity, ownership, and visibility tests plus four Release 1.0 provider-boundary tests. Naming conventions, folder layout, exact provider-type counts, Worker output, HTTP request values, normalization calculations, and feature behavior are not architecture-test rules.
 
 ---
 
@@ -138,7 +140,7 @@ Integration Platform
 Future Applications
 ```
 
-Foundational capabilities should remain independent of business-specific modules. This capability hierarchy is planned architecture and is not the current Release 0.8 project inventory.
+Foundational capabilities should remain independent of business-specific modules. This capability hierarchy is planned architecture and is not the current physical project inventory.
 
 ---
 

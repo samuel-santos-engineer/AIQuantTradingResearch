@@ -78,6 +78,26 @@ public sealed class ResearchUseCaseTests
         Assert.Equal(1, source.CallCount);
     }
 
+    [Theory]
+    [InlineData(ObservationSourceFailure.SourceUnavailable, ResearchFailure.SourceUnavailable)]
+    [InlineData(ObservationSourceFailure.AccessDenied, ResearchFailure.AccessDenied)]
+    [InlineData(ObservationSourceFailure.UsageLimitReached, ResearchFailure.UsageLimitReached)]
+    [InlineData(ObservationSourceFailure.InvalidSourceResponse, ResearchFailure.InvalidSourceResponse)]
+    public void ExecuteWhenSourceReportsExtendedFailureReturnsCorrespondingResearchFailure(
+        ObservationSourceFailure sourceFailure,
+        ResearchFailure expectedFailure)
+    {
+        var source = new StubObservationSource(ObservationSourceResult.Failed(sourceFailure));
+        var useCase = new ResearchUseCase(source);
+
+        var outcome = useCase.Execute(new ResearchRequest("SAMPLE-USD", 3));
+
+        Assert.False(outcome.IsSuccess);
+        Assert.Null(outcome.Result);
+        Assert.Equal(expectedFailure, outcome.Failure);
+        Assert.Equal(1, source.CallCount);
+    }
+
     [Fact]
     public void ExecuteWhenSourceReturnsTooFewObservationsReturnsInsufficientObservations()
     {

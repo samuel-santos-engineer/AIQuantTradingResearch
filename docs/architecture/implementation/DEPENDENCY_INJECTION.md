@@ -87,29 +87,31 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Implemented Release 0.9 Composition
+# Implemented Release 1.0 Composition
 
 `AIQuantTradingResearch.Worker` is the current composition root. Its one-shot execution lifecycle is:
 
 ```text
 Create generic host builder
         ↓
+Read TwelveData:ApiKey
+        ↓
 AddApplication()
         ↓
-AddInfrastructure()
+AddInfrastructure(TwelveDataConfiguration)
         ↓
 Build host
         ↓
 Resolve IResearchUseCase
         ↓
-Execute SAMPLE-USD / 3 once
+Execute AAPL / 3 once
         ↓
 Surface ResearchOutcome and exit
 ```
 
-`AddApplication` registers `IResearchUseCase` to the internal `ResearchUseCase` implementation with a transient lifetime. `AddInfrastructure` registers `IObservationSource` to the internal `DeterministicObservationSource` adapter with a singleton lifetime. The Worker resolves only `IResearchUseCase`; it does not resolve the source or construct either implementation manually.
+`AddApplication` registers `IResearchUseCase` to the internal `ResearchUseCase` implementation with a transient lifetime. The configured `AddInfrastructure` overload registers a singleton `HttpClient` with base address `https://api.twelvedata.com/`, a singleton `TwelveDataClient`, and singleton `IObservationSource` implemented by internal `TwelveDataObservationSource`. The Worker resolves only `IResearchUseCase`; it does not resolve the source or construct provider implementations manually.
 
-No hosted/background service, provider selection, network client, persistence, or configuration binding is part of the Release 0.9 composition.
+`TwelveData:ApiKey` is mandatory external configuration. Worker reports a deterministic configuration failure and exits non-zero when it is absent; parameterless `AddInfrastructure()` also rejects missing configuration. Authentication remains header-based, and credentials are not committed or placed in request URLs. No hosted/background service, runtime provider selection, persistence, streaming, or fallback framework is part of Release 1.0 composition.
 
 ---
 

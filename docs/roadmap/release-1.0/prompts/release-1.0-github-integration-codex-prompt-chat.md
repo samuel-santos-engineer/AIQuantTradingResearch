@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.0/prompts/release-1.0-github-integration-codex-prompt.md` as the authoritative post-WP16 Release 1.0 integration contract.
+Reconcile the exact 78-file `RELEASE 1.0 ACCEPTED` candidate plus these two unchanged integration-governance artifacts, requiring an exact 80-file integration candidate and zero unexpected files.
+Revalidate the candidate, create `release/1.0-market-data-foundation`, stage exactly the reconciled files, create the single authorized Conventional Commit, revalidate it, and push without force.
+Create and inspect one open PR to `main`, but do not merge, enable auto-merge, mutate Release 1.0 planning, create a tag/GitHub Release, close the release, or begin Release 1.1.
+Return the required Git/GitHub Integration Report and emit the success terminal only when the PR represents the exact validated commit and is ready for explicit human merge authorization.

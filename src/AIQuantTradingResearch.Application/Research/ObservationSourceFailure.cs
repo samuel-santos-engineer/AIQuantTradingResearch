@@ -4,4 +4,8 @@ public enum ObservationSourceFailure
 {
     UnsupportedTarget,
     InsufficientObservations,
+    SourceUnavailable,
+    AccessDenied,
+    UsageLimitReached,
+    InvalidSourceResponse,
 }

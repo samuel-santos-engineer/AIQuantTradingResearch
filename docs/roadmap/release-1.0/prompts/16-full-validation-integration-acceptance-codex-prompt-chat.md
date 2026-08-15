@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.0/prompts/16-full-validation-integration-acceptance-codex-prompt.md` as the authoritative Release 1.0 WP16 execution contract.
+Validate the exact cumulative WP01–WP15 candidate against repository truth, the execution plan, file manifest, accepted unblock authorities, and GitHub issue #101.
+Perform full offline acceptance evidence: scope reconciliation, architecture, provider semantics, DI/configuration, Worker boundaries, security, restore/build, all permanent tests, canonical verification, documentation/link checks, and diff integrity.
+Do not modify implementation/tests/docs, stage, commit, push, create/merge a PR, mutate GitHub planning, close Release 1.0, or begin Release 1.1; stop and report any material blocker.
+Return the required WP16 execution report and emit `RELEASE 1.0 ACCEPTED` only if every mandatory gate passes.

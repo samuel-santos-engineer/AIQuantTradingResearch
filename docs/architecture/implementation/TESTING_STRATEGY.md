@@ -210,7 +210,7 @@ Deterministic testing supports reproducible engineering outcomes.
 
 Testing projects should mirror architectural responsibilities.
 
-Current Release 0.9 organization:
+Current Release 1.0 organization:
 
 ```text
 tests/
@@ -222,10 +222,12 @@ tests/
 
 The implemented test responsibilities are:
 
+The current verified Release 1.0 baseline is 11 Domain, 16 Application, 65 Infrastructure, and 13 Architecture tests: 105 permanent tests in total.
+
 * **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
 * **Application.Tests** verifies `ResearchUseCase` orchestration with a test-owned `IObservationSource` double and no concrete Infrastructure dependency.
-* **Infrastructure.Tests** directly verifies the deterministic observation adapter, exact fixture values, count behavior, failure outcomes, and repeatability.
-* **Architecture.Tests** verifies structural dependency, ownership, visibility, and acyclicity boundaries.
+* **Infrastructure.Tests** verifies Twelve Data request/authentication/deserialization, normalization/timezone/culture/order/failures, adapter mapping/cancellation/count semantics, and real DI-container composition using synthetic payloads and a test-owned HTTP handler. The suite is offline, deterministic, credential-free, and provider-call-free.
+* **Architecture.Tests** verifies structural dependency, ownership, visibility, provider confinement, HTTP confinement, and acyclicity boundaries.
 
 The executable forbidden edges are:
 
@@ -238,7 +240,9 @@ Application !→ Worker
 Infrastructure !→ Worker
 ```
 
-Architecture tests additionally enforce Application ownership of `IObservationSource` and require concrete production implementations of `IResearchUseCase` and `IObservationSource` to remain non-public. Narrow `InternalsVisibleTo` declarations allow Application.Tests and Infrastructure.Tests to directly exercise those internal implementations; this is not a general testing policy or runtime dependency.
+The 13 architecture tests comprise the nine preserved dependency, acyclicity, ownership, and non-public implementation rules plus four Release 1.0 rules. The added rules reject Twelve Data types in Domain/Application, reject HTTP transport dependencies in Domain/Application, keep provider-independent acquisition result/failure contracts in Application, and confine Twelve Data types to Infrastructure with authoritative visibility. They do not enforce folder layout, naming, request values, normalization calculations, or feature behavior.
+
+Narrow `InternalsVisibleTo` declarations allow Application.Tests and Infrastructure.Tests to directly exercise internal implementations; this is not a general testing policy or runtime dependency. The concrete `Microsoft.Extensions.DependencyInjection` package used by Infrastructure.Tests is test-only and does not alter the production dependency graph.
 
 Integration, resilience, performance, and end-to-end coverage will be introduced only when later capabilities require it.
 
