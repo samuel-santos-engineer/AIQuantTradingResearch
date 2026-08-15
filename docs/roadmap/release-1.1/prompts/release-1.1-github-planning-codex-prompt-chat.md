@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.1/prompts/release-1.1-github-planning-codex-prompt.md` as the authoritative Release 1.1 GitHub-planning contract.
+Read `RELEASE_1.1_EXECUTION_PLAN.md` and `RELEASE_1.1_FILE_MANIFEST.md` completely, prove Release 1.0 is closed, preserve legacy milestone #42 closed, and establish exactly one open `Phase 3 - Release 1.1: Market Data Persistence Foundation` milestone.
+Create/reconcile exactly 16 open WP01–WP16 issues with the authoritative titles, eight-section body contract, exact dependency graph, owner assignment, existing labels, and Project #2 fields for Release 1.1 / P1 / appropriate Area.
+Do not modify repository files, start WP01, create WP17+, lifecycle-gate issues, Release 1.2 planning, branches, commits, pushes, PRs, labels, Project schema, or unrelated historical planning.
+Return the complete Release 1.1 GitHub Planning Execution Report and emit the success terminal only when the final planning state matches the execution plan with zero dependency drift.
