@@ -71,7 +71,18 @@ Worker
   -> Worker presentation
 ```
 
-Worker supplies configuration and initiates this interaction but does not calculate the mean, invoke the source directly, or own provider mechanics. Infrastructure calls `/time_series` with `interval=1day` and `adjust=splits`, carrying the configured key only in the authentication header. It validates transport/provider evidence, normalizes the daily close at exchange-local midnight with the resolved offset, orders observations by absolute instant, rejects malformed/non-positive closes and duplicate instants, and maps failures to the provider-independent Application vocabulary before returning across the port.
+Worker supplies configuration and initiates this interaction; its Worker-owned coordinator invokes the Application acquisition port and then the persistence use case, while Worker owns no provider mechanics, SQL, or persistence semantics. Infrastructure calls `/time_series` with `interval=1day` and `adjust=splits`, carrying the configured key only in the authentication header. It validates transport/provider evidence, normalizes the daily close at exchange-local midnight with the resolved offset, orders observations by absolute instant, rejects malformed/non-positive closes and duplicate instants, and maps failures to the provider-independent Application vocabulary before returning across the port.
+
+Release 1.1 adds a separate persistence interaction after successful acquisition:
+
+```text
+Worker -> IObservationSource -> normalized PriceObservation values
+      -> IPersistHistoricalObservationsUseCase
+      -> IHistoricalObservationStore
+      -> SqliteHistoricalObservationStore -> historical_observations
+```
+
+New, idempotent, and conflicting duplicates remain distinct; conflicts are not storage failures. Retrieval is exact-target, ascending, fidelity-preserving, and successfully empty when no history exists.
 
 ---
 

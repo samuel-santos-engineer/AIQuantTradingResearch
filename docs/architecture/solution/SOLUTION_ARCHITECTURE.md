@@ -48,7 +48,9 @@ This approach promotes:
 
 The following map describes the planned long-term capability architecture. It is not the current Release 1.0 physical project inventory. Release 1.0 implements Domain, Application, Infrastructure, and Worker production projects plus their four test projects. Its current vertical slice retrieves daily historical observations from Twelve Data through Infrastructure, normalizes them into provider-independent Domain values, executes the Application research use case, and reports the result through Worker. The remaining capabilities in this map are planned rather than implemented.
 
-The current provider boundary is deliberately asymmetric: Application owns the acquisition contracts, Infrastructure owns Twelve Data transport and mapping mechanics, and Domain contains no provider concepts. Runtime provider selection, storage, streaming, and provider fallback are future capabilities.
+The current boundaries are deliberately asymmetric: Application owns provider-independent acquisition and persistence contracts, Infrastructure owns Twelve Data transport/mapping and SQLite persistence mechanics, and Domain contains no provider or storage concepts. Runtime provider selection, streaming, provider fallback, scheduling, and broader storage evolution are future capabilities.
+
+Release 1.1 adds the implemented persistence slice without changing project direction. Normalized `PriceObservation` values cross the Application persistence boundary to Infrastructure's version-1 SQLite `historical_observations` store. The store preserves exact target identity, timestamp/offset and decimal fidelity, immutable history, idempotent duplicates, deterministic conflicts, ascending retrieval, and successful empty retrieval.
 
 ```text
                     AIQuantTradingResearch

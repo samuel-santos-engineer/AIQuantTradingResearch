@@ -1,0 +1,5 @@
+Run `docs/roadmap/release-1.1/prompts/03-historical-observation-persistence-semantics-codex-prompt.md` as the authoritative Release 1.1 WP03 execution contract.
+Read the merged Release 1.1 execution plan and file manifest completely, reconcile accepted WP01/WP02 completion, current Git/GitHub truth, milestone #52, issue #105, the actual Domain model, and the accepted SQLite decision before mutation.
+Treat this WP03 prompt pair and prior prompt pairs as recursion-safe EXPECTED GOVERNANCE; define technology-independent identity, timestamp/price fidelity, ordering, duplicate/conflict, immutability, and empty-result semantics, preferring `Domain delta = 0`.
+Do not add Application/Infrastructure/Worker persistence code, SQLite/schema/packages, tests, DI, Git transport, WP04 artifacts, or modify issues #106--#118; modify Domain only if a mandatory provider-independent semantic invariant is provably missing.
+Only after every WP03 gate passes, close issue #105 as Done with concise evidence; return the complete report and emit `RELEASE 1.1 WP03 COMPLETE` with the Domain delta and WP04/#106 as the next authorized work package.

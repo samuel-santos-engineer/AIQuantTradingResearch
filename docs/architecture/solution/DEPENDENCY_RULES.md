@@ -66,6 +66,8 @@ Release 1.0 adds four executable checks: Domain and Application define no Twelve
 
 Worker has no direct Domain project reference. Its compiled use of Domain-owned result values is exposed through Application contracts and does not change the project-reference graph.
 
+Release 1.1 preserves this graph. Application persistence contracts and the persistence use case remain SQLite-independent; Infrastructure implements them with SQLite; Worker composes acquisition and persistence. Domain and Application must not reference SQLite types, SQL, connection strings, or provider transport mechanics.
+
 The suite contains 13 tests: the nine preserved dependency, acyclicity, ownership, and visibility tests plus four Release 1.0 provider-boundary tests. Naming conventions, folder layout, exact provider-type counts, Worker output, HTTP request values, normalization calculations, and feature behavior are not architecture-test rules.
 
 ---

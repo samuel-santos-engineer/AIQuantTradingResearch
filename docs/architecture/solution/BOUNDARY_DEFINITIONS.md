@@ -114,7 +114,9 @@ The implemented Release 1.0 project boundaries are:
 * **Domain** owns `PriceObservation`, `ObservationSeries`, arithmetic-mean behavior, and `MeanPrice`. It has no project dependencies.
 * **Application** owns the provider-independent research request, outcome, result, failures, `IResearchUseCase`, `IObservationSource`, `ObservationSourceResult`, and `ObservationSourceFailure`. It depends only on Domain.
 * **Infrastructure** implements the Application-owned observation-source port using Twelve Data. It owns provider transport DTOs, HTTP/authentication mechanics, normalization, response validation, failure mapping, and DI registration. It depends on Application and does not redefine the port.
-* **Worker** is the outer composition and one-shot execution boundary. It obtains `TwelveData:ApiKey` from configuration, registers Application and Infrastructure, resolves `IResearchUseCase`, executes the canonical request, and owns no provider transport, normalization, research, or Domain logic.
+* **Worker** is the outer composition and one-shot execution boundary. It obtains `TwelveData:ApiKey` and `Persistence:DatabasePath` from configuration, registers Application and Infrastructure, resolves the bounded acquisition-to-persistence coordinator, and owns no provider transport, normalization, SQL, or persistence semantics.
+
+Release 1.1 keeps persistence technology below the Application boundary: Application owns `IHistoricalObservationStore`, persistence outcomes, failures, retrieval results, and the persistence use case; Infrastructure owns SQLite schema, connections, mapping, writes, retrieval, and failure containment.
 
 The concrete research use case and Twelve Data observation-source implementation remain non-public. `TwelveDataConfiguration` is the intentional public composition surface. Narrow friend-assembly declarations permit Application.Tests and Infrastructure.Tests to exercise internal implementations directly; these declarations are testability boundaries, not runtime dependencies or public contracts.
 
