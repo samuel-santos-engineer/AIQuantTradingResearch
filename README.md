@@ -115,6 +115,26 @@ The architecture test suite makes dependency direction, ownership, visibility, p
 
 ## Run & Verify
 
+### 🚀 Start Here — Run the Platform Locally
+
+Want to see AIQuantTradingResearch working with real market data?
+
+Start with the **[Local Platform Execution](docs/guides/LOCAL_PLATFORM_EXECUTION.md)** guide — the project's short **Hello World** path from local setup to a real provider-backed execution:
+
+```text
+Twelve Data
+     ↓
+Real historical market data
+     ↓
+AIQuantTradingResearch
+     ↓
+SQLite
+     ↓
+SUCCESS
+```
+
+For deeper, independently reproducible evidence, continue with the **[Platform Execution &amp; Verification Guides](docs/guides/README.md)** covering real provider acquisition, durable persistence, idempotent retries, data integrity, and restart recovery.
+
 ### Prerequisites
 
 The repository is built around the .NET SDK version pinned by `global.json`.
