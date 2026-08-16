@@ -13,6 +13,9 @@ Write-Host '==> Restore'
 Write-Host '==> Format verification'
 & (Join-Path $PSScriptRoot 'format.ps1')
 
+Write-Host '==> Secret scanning'
+& (Join-Path $PSScriptRoot 'secret-scan.ps1')
+
 Write-Host '==> Build'
 & (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration
 

@@ -1,0 +1,10 @@
+title = "AIQuantTradingResearch Gitleaks Configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secret test placeholders"
+regexes = [
+    '''wp13-placeholder-key'''
+]
