@@ -96,6 +96,28 @@ From the repository root:
 ./eng/verify.ps1
 ```
 
+Expected result:
+
+```text
+Verification completed successfully.
+```
+
+### Windows PowerShell execution policy
+
+If PowerShell reports that `verify.ps1` cannot be loaded because **running scripts is disabled on this system**, allow locally executed scripts for the current PowerShell session:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+```
+
+Then run the verification again:
+
+```powershell
+./eng/verify.ps1
+```
+
+`-Scope Process` limits the execution-policy change to the current PowerShell process. Closing that PowerShell session removes the change.
+
 Continue when verification succeeds.
 
 ---
