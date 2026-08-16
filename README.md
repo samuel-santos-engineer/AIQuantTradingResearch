@@ -1,163 +1,73 @@
 ![AIQuantTradingResearch Logo](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/blob/main/imgs/AIQuantTradingResearchBanner-01.jpg?raw=true)
+
 # AIQuantTradingResearch
 
-> **Engineering AI-powered quantitative research with transparency, discipline, and production-grade software architecture.**
+> **A production-oriented quantitative research platform for acquiring, persisting, and analyzing real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
 
-AIQuantTradingResearch is an open-source engineering platform that demonstrates how to design, build, and evolve an AI-assisted quantitative trading research system using modern software engineering practices.
+AIQuantTradingResearch is an open-source engineering project for building a quantitative research platform from the ground up with explicit architecture, executable quality gates, incremental delivery, and transparent technical decisions.
 
-Rather than focusing solely on trading algorithms or machine learning models, this project places equal emphasis on architecture, engineering governance, documentation, observability, testing, and long-term maintainability.
+The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-The goal is to demonstrate that great software is the result of disciplined engineering—not isolated technical solutions.
+**Current completed milestone:** **Release 1.1 — Market Data Persistence Foundation**
 
----
-
-# Why This Project Exists
-
-Many quantitative trading repositories focus on prediction accuracy.
-
-Many AI repositories focus on model experimentation.
-
-Few demonstrate **how an enterprise-grade engineering team would build and evolve such a platform from the ground up.**
-
-AIQuantTradingResearch exists to bridge that gap.
-
-This repository documents not only the software being built, but also the engineering decisions, architectural trade-offs, governance, and development practices behind it.
-
-Every significant decision is transparent.
-
-Every architectural choice is documented.
-
-Every milestone strengthens both the platform and the engineering practices that support it.
+[What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
 ---
 
-# Project Objectives
+## What Works Today
 
-The platform is being designed to:
+Release 1.1 completes the first provider-backed, durable historical market-data vertical slice.
 
-* Build a production-grade quantitative research platform.
-* Explore AI-assisted market analysis and prediction.
-* Demonstrate modern software architecture.
-* Showcase cloud-native engineering practices.
-* Apply DevOps and Site Reliability Engineering principles.
-* Promote documentation-driven development.
-* Preserve engineering decisions through transparent documentation.
-* Serve as a long-term reference implementation for professional software engineering.
+```text
+Twelve Data
+    │
+    ▼
+Infrastructure provider adapter
+    │
+    ▼
+Application use cases
+    │
+    ├──────────────► Domain model
+    │
+    ▼
+Infrastructure persistence adapter
+    │
+    ▼
+SQLite
+```
 
----
+The current implementation can:
 
-# What Makes This Project Different?
+- Acquire historical market observations through the Twelve Data provider integration.
+- Keep provider and storage details outside the Domain and Application layers.
+- Persist historical observations durably in local SQLite storage.
+- Retrieve historical observations deterministically in ascending chronological order.
+- Preserve exact target, timestamp/offset, and decimal-value fidelity across persistence.
+- Distinguish newly accepted, idempotent, and conflicting persistence outcomes.
+- Preserve immutable accepted history and atomic write behavior.
+- Map controlled storage failures through Application-owned failure contracts.
+- Compose acquisition and persistence through an externally configured Worker execution root.
+- Validate architectural boundaries with executable architecture tests.
 
-| Traditional AI Projects    | AIQuantTradingResearch               |
-| -------------------------- | ------------------------------------ |
-| Prototype-oriented         | Engineering-oriented                 |
-| Code-first                 | Architecture-first                   |
-| Documentation added later  | Documentation-driven development     |
-| Hidden design decisions    | Transparent engineering decision log |
-| Focus on implementation    | Focus on engineering excellence      |
-| Technology-driven          | Principle-driven                     |
-| Short-term experimentation | Long-term maintainability            |
+### Release 1.1 quality baseline
 
----
+| Evidence                                    |      Current baseline |
+| ------------------------------------------- | --------------------: |
+| Permanent automated tests                   | **145 passing** |
+| Architecture tests                          |  **13 passing** |
+| Build warnings                              |           **0** |
+| Build errors                                |           **0** |
+| Canonical repository verification           |        **PASS** |
+| Provider/network calls in persistence tests |           **0** |
+| Production dependency cycles                |           **0** |
 
-# Engineering Principles
-
-The project is guided by a small set of enduring engineering principles:
-
-* Architecture before implementation
-* Documentation is part of the deliverable
-* Incremental delivery
-* Engineering excellence through transparency
-* Automation by default
-* Simplicity over unnecessary complexity
-* Security and observability by design
-* Continuous learning and continuous improvement
-
----
-
-# Engineering Capability Journey
-
-Each release expands both the platform and the engineering capabilities it demonstrates.
-
-| Release | Engineering Capability                  |
-| ------- | --------------------------------------- |
-| 0.1–0.6 | Architecture and engineering foundation |
-| 0.7     | AI Engineering Toolkit                  |
-| 0.8     | Executable .NET solution skeleton       |
-| 0.9+    | Later platform capabilities             |
+Release 1.1 is a foundation, not a claim that the full quantitative trading vision is complete. Streaming/live feeds, provider failover, trading execution, AI/ML models, APIs, scheduling, advanced resilience, and production deployment remain future capabilities.
 
 ---
-
-# Engineering Handbook
-
-The repository is supported by a structured Engineering Handbook that documents the project's architecture, governance, and engineering practices.
-
-## Foundation
-
-* Project Constitution
-* Product Vision
-* Engineering Guide
-* Engineering Playbook
-* Engineering Decision Log
 
 ## Architecture
 
-* Architecture Overview
-* Architecture Decision Records (ADRs)
-
-## Engineering Practices
-
-* Coding Standards
-* Contributing Guide
-* Code of Conduct
-* Changelog
-* Roadmap
-* Engineer Growth Path
-
----
-
-# Technology Direction
-
-The platform is currently evolving around the following technologies:
-
-* ASP.NET Core (.NET)
-* Python
-* PostgreSQL + TimescaleDB
-* Docker
-* GitHub Actions
-* OpenTelemetry
-* Ollama
-* Twelve Data historical market-data API
-
-Technology choices are continuously evaluated and documented through the Engineering Decision Log.
-
----
-
-# Current Status
-
-**Current Release:** 1.1 – Market Data Persistence Foundation
-
-The repository contains the first provider-backed historical market-data vertical slice:
-
-```text
-AIQuantTradingResearch.slnx
-├── /src/
-│   ├── AIQuantTradingResearch.Domain
-│   ├── AIQuantTradingResearch.Application
-│   ├── AIQuantTradingResearch.Infrastructure
-│   └── AIQuantTradingResearch.Worker
-└── /tests/
-    ├── AIQuantTradingResearch.Domain.Tests
-    ├── AIQuantTradingResearch.Application.Tests
-    ├── AIQuantTradingResearch.Infrastructure.Tests
-    └── AIQuantTradingResearch.Architecture.Tests
-```
-
-The Worker is a one-shot composition and execution root. `AddApplication` registers the research and persistence use cases, while `AddInfrastructure` composes the Application-owned observation-source and persistence contracts with the Infrastructure-owned Twelve Data and SQLite implementations. The API key is supplied externally through `TwelveData:ApiKey`; the persistence path is supplied through `Persistence:DatabasePath`.
-
-Release 1.1 implements durable historical observations through one provider and local SQLite persistence behind provider-independent contracts. Streaming/live feeds, provider failover, trading, plugins, AI/ML, APIs, scheduling, retry/resilience policy, and production deployment remain planned for later releases.
-
-The production dependency graph is:
+The solution uses explicit dependency direction and layer ownership.
 
 ```text
 Domain          → none
@@ -166,7 +76,51 @@ Infrastructure  → Application
 Worker          → Application, Infrastructure
 ```
 
-# Local Verification
+### Layer responsibilities
+
+| Layer                    | Responsibility                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| **Domain**         | Core quantitative concepts and invariants without provider or storage dependencies.                         |
+| **Application**    | Use cases and contracts that express platform behavior independently of infrastructure technology.          |
+| **Infrastructure** | Twelve Data integration, SQLite persistence, connection/bootstrap behavior, and infrastructure composition. |
+| **Worker**         | Composition and bounded execution root for the current vertical slice.                                      |
+
+This keeps market-data providers and persistence technologies replaceable without pushing those concerns into the core model.
+
+### Current solution structure
+
+```text
+AIQuantTradingResearch.slnx
+├── src/
+│   ├── AIQuantTradingResearch.Domain
+│   ├── AIQuantTradingResearch.Application
+│   ├── AIQuantTradingResearch.Infrastructure
+│   └── AIQuantTradingResearch.Worker
+└── tests/
+    ├── AIQuantTradingResearch.Domain.Tests
+    ├── AIQuantTradingResearch.Application.Tests
+    ├── AIQuantTradingResearch.Infrastructure.Tests
+    └── AIQuantTradingResearch.Architecture.Tests
+```
+
+The architecture test suite makes dependency direction, ownership, visibility, provider confinement, storage independence, and acyclicity executable rather than relying only on documentation.
+
+---
+
+## Run & Verify
+
+### Prerequisites
+
+The repository is built around the .NET SDK version pinned by `global.json`.
+
+For the provider-backed execution path, configuration is supplied externally:
+
+- `TwelveData:ApiKey` — Twelve Data API key.
+- `Persistence:DatabasePath` — local SQLite database path.
+
+Secrets and environment-specific paths should not be committed to the repository.
+
+### Verify the repository
 
 From the repository root:
 
@@ -176,56 +130,298 @@ From the repository root:
 ./eng/build.ps1
 ./eng/test.ps1
 ./eng/verify.ps1
+```
+
+Optional cleanup:
+
+```powershell
 ./eng/clean.ps1
 ```
 
-`format.ps1` verifies formatting without changing files. `verify.ps1` delegates restore, format verification, build, and test. The cross-platform build counterpart is `eng/build.sh`.
+`format.ps1` verifies formatting without rewriting files. `verify.ps1` is the canonical quality gate and delegates the repository restore, formatting verification, build, and test workflow.
 
-The architecture test project currently executes 13 dependency, ownership, visibility, provider-confinement, and acyclicity checks.
+A cross-platform build counterpart is available at `eng/build.sh`.
+
+### Current execution flow
+
+At Release 1.1, the Worker acts as a bounded composition and execution root:
+
+```text
+External configuration
+        │
+        ▼
+      Worker
+        │
+        ▼
+Historical market-data acquisition
+        │
+        ▼
+Application persistence boundary
+        │
+        ▼
+SQLite durable storage
+```
+
+The current release intentionally keeps this execution model small while the platform foundations are established.
 
 ---
 
-# Repository Philosophy
+## Engineering Evidence
 
-AIQuantTradingResearch is built on the belief that engineering quality is as important as functional correctness.
+This repository is designed to expose the engineering process as well as the resulting code.
 
-The repository values:
+### Persistence semantics
 
-* Clear architecture
-* Thoughtful engineering decisions
-* Transparent trade-offs
-* High-quality documentation
-* Sustainable software design
-* Incremental evolution
+Release 1.1 establishes explicit behavior for durable historical observations:
 
-The software should not only solve problems—it should demonstrate how professional engineering teams solve them.
+- **NewlyAccepted** — a previously unseen observation is durably accepted.
+- **Idempotent** — an equivalent observation already exists and does not create duplicate history.
+- **Conflict** — the same observation identity exists with incompatible data and accepted history is not destructively replaced.
+- **Unavailable** — an accepted infrastructure/storage availability failure.
+- **InvalidData** — invalid input or persisted data that cannot satisfy the established contract.
+
+Persistence is designed around immutable accepted history, deterministic retrieval, atomic writes, and explicit fidelity guarantees.
+
+### Testing strategy
+
+The current permanent test baseline covers:
+
+- Domain invariants.
+- Application persistence contracts.
+- Persistence use-case behavior.
+- Twelve Data provider behavior.
+- SQLite schema and bootstrap.
+- Connection lifecycle.
+- Persistence and retrieval semantics.
+- Idempotency and conflict behavior.
+- Atomic rollback.
+- Timestamp/offset/decimal fidelity.
+- Storage failure mapping.
+- Dependency injection and configuration.
+- Executable architecture rules.
+
+SQLite persistence tests use isolated local databases and deterministic cleanup. Provider/network access is not required by the persistence test suite.
+
+### Engineering automation
+
+The `eng/` scripts provide repeatable repository operations for restore, formatting verification, build, tests, canonical verification, and cleanup.
+
+The goal is a repository that can prove its expected engineering state instead of relying on manual inspection alone.
 
 ---
 
-# Contributing
+## AI-Assisted Engineering Approach
+
+AIQuantTradingResearch is also an experiment in **AI-assisted software engineering as a disciplined engineering workflow**, rather than AI-generated code without governance.
+
+Work is decomposed into bounded releases and work packages. Architecture, contracts, acceptance criteria, repository constraints, tests, and validation gates constrain implementation before a work package is considered complete.
+
+The workflow emphasizes:
+
+```text
+Engineering intent
+      ↓
+Architecture & contracts
+      ↓
+Bounded work package
+      ↓
+AI-assisted implementation
+      ↓
+Automated tests & architecture rules
+      ↓
+Canonical validation
+      ↓
+Evidence & release acceptance
+```
+
+AI assists the engineering process; it does not replace architecture, testing, reviewability, or explicit technical decisions.
+
+---
+
+## What Makes This Project Different
+
+| Typical prototype-oriented project         | AIQuantTradingResearch                                        |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| Code first                                 | Architecture and contracts before implementation              |
+| Documentation added later                  | Documentation treated as part of the deliverable              |
+| Design decisions remain implicit           | Decisions and trade-offs are made visible                     |
+| Tests focus only on functional behavior    | Functional and architecture rules are executable              |
+| Infrastructure leaks into core logic       | Provider/storage concerns are kept behind boundaries          |
+| Large feature drops                        | Incremental releases and bounded work packages                |
+| AI used primarily for code generation      | AI used inside a governed engineering lifecycle               |
+| Current code presented as the final vision | Implemented and planned capabilities are explicitly separated |
+
+---
+
+## Implemented Technology
+
+The current executable platform is centered on:
+
+- **C# / .NET**
+- **Worker-based composition and execution**
+- **Twelve Data historical market-data integration**
+- **SQLite durable persistence**
+- **Automated Domain, Application, Infrastructure, and Architecture tests**
+- **PowerShell engineering automation**
+- **GitHub-based planning, issues, milestones, and project tracking**
+
+Technology is selected incrementally as capabilities become real rather than being presented as implemented before it exists.
+
+---
+
+## Planned Technology & Platform Direction
+
+The longer-term platform direction includes areas such as:
+
+- AI/ML-assisted quantitative research.
+- Python interoperability where it provides clear research value.
+- PostgreSQL / TimescaleDB for later storage requirements where justified.
+- Docker and cloud-native deployment.
+- OpenTelemetry-based observability.
+- Local or hosted model integration where appropriate.
+- Resilience, scheduling, pipelines, analytics, and operational capabilities.
+
+These are **directional or planned capabilities**, not claims about the current Release 1.1 implementation.
+
+Technology choices remain subject to architecture and engineering decisions as the platform evolves.
+
+---
+
+## Engineering Capability Journey
+
+Each release is intended to add a concrete platform capability while strengthening the engineering system around it.
+
+| Release            | Engineering capability                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| **0.1–0.6** | Architecture, governance, design, resilience, and implementation foundations              |
+| **0.7**      | AI Engineering Toolkit                                                                    |
+| **0.8**      | Executable .NET solution skeleton                                                         |
+| **0.9**      | Build, CI, and platform bootstrap evolution                                               |
+| **1.0**      | Provider-backed historical market-data acquisition                                        |
+| **1.1**      | **Durable market-data persistence and deterministic historical retrieval**          |
+| **Next**     | Derived from the accepted platform state and architecture rather than assumed prematurely |
+
+The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted.
+
+### Public engineering roadmap
+
+The project is planned transparently through GitHub milestones, issues, and the public **AIQuantTradingResearch Engineering Roadmap** project.
+
+- [Engineering Roadmap Project](https://github.com/users/samuel-santos-engineer/projects/2)
+- [Repository Issues](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/issues)
+- [Repository Milestones](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+
+This provides traceability from platform direction to release milestones, bounded work packages, implementation, tests, and acceptance evidence.
+
+---
+
+## Why This Project Exists
+
+Many quantitative repositories understandably emphasize strategies, prediction accuracy, notebooks, or model experiments.
+
+AIQuantTradingResearch explores a complementary question:
+
+> **How would a long-lived quantitative research platform be engineered so that new data sources, storage models, analytics, AI/ML capabilities, and operational requirements can evolve without sacrificing maintainability?**
+
+The project therefore gives deliberate attention to:
+
+- Architecture and dependency management.
+- Engineering governance.
+- Testability and deterministic validation.
+- Documentation-driven development.
+- Explicit trade-offs and technical decisions.
+- DevOps and Site Reliability Engineering principles.
+- Incremental platform evolution.
+- AI-assisted engineering under explicit constraints.
+
+The objective is not merely to produce working features, but to build a transparent reference implementation of the engineering practices required to evolve them responsibly.
+
+---
+
+## Engineering Principles
+
+The project is guided by a small set of enduring principles:
+
+- Architecture before implementation.
+- Documentation is part of the deliverable.
+- Incremental delivery.
+- Automation by default.
+- Simplicity over unnecessary complexity.
+- Security and observability by design.
+- Transparent engineering decisions.
+- Functional correctness and architectural integrity.
+- Continuous learning and improvement.
+
+---
+
+## Engineering Handbook
+
+The repository contains a structured body of engineering documentation supporting the platform.
+
+### Foundation
+
+- Project Constitution
+- Product Vision
+- Engineering Guide
+- Engineering Playbook
+- Engineering Decision Log
+
+### Architecture
+
+- Architecture overview and solution architecture
+- Data-platform architecture
+- Dependency and boundary definitions
+- Design and extensibility guidance
+- Resilience and failure-handling guidance
+- Implementation architecture and practices
+- Architecture Decision Records (ADRs)
+
+### Engineering practices
+
+- Coding standards
+- Testing strategy
+- Logging and observability guidance
+- Dependency-injection guidance
+- Contributing guide
+- Code of Conduct
+- Changelog
+- Roadmap
+- Engineer growth guidance
+
+Start with the [`docs/`](docs/) directory for the detailed engineering record.
+
+---
+
+## Repository Philosophy
+
+AIQuantTradingResearch is built on the belief that engineering quality is part of functional quality.
+
+The repository values clear architecture, thoughtful technical decisions, transparent trade-offs, high-quality documentation, sustainable design, executable validation, and incremental evolution.
+
+The software should not only solve a problem. It should make the reasoning, constraints, and engineering practices behind the solution inspectable.
+
+---
+
+## Contributing
 
 Contributions are welcome.
 
-Whether you are improving documentation, reviewing architecture, fixing defects, or implementing new features, every contribution helps strengthen both the platform and the engineering practices behind it.
+Whether improving documentation, reviewing architecture, fixing defects, strengthening tests, or implementing an accepted capability, contributions should preserve the project's architecture and engineering standards.
 
-Please review the Engineering Handbook before contributing.
-
----
-
-# Roadmap
-
-The project evolves through incremental engineering releases.
-
-Each release introduces new technical capabilities while reinforcing architecture, testing, documentation, and operational excellence.
-
-See the Roadmap for detailed release planning and long-term objectives.
+Before contributing, review the repository's contributing guidance and relevant engineering documentation under `docs/`.
 
 ---
 
-# License
+## Disclaimer
 
-This project is released under the MIT License.
+AIQuantTradingResearch is an engineering and quantitative research project. It is **not financial advice**, does not guarantee investment performance, and should not be interpreted as a recommendation to buy, sell, or trade any financial instrument.
 
 ---
 
-> **AIQuantTradingResearch is more than a quantitative trading platform. It is a living demonstration of how modern software engineering, artificial intelligence, and transparent technical leadership can come together to build software that is designed to evolve.**
+## License
+
+This project is released under the [MIT License](LICENSE).
+
+---
+
+> **AIQuantTradingResearch is a living demonstration of how modern .NET engineering, quantitative research, AI-assisted development, and transparent technical leadership can be combined to build a platform designed to evolve.**
