@@ -6,7 +6,7 @@ Practical, executable guides for running AIQuantTradingResearch and independentl
 
 If this is your first time running the project, begin with:
 
-**`LOCAL_PLATFORM_EXECUTION.md`**
+**[LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md)**
 
 This is the AIQuantTradingResearch **Hello World** guide.
 
@@ -38,9 +38,7 @@ The guides are organized into two levels.
 
 ### Level 1 — Getting Started
 
-```text
-LOCAL_PLATFORM_EXECUTION.md
-```
+[LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md)
 
 Answers:
 
@@ -50,19 +48,13 @@ This is the entry point for developers, reviewers, recruiters, and contributors 
 
 ### Level 2 — Platform Verification
 
-The remaining guides each prove one independently observable platform property.
+The remaining guides each prove one independently observable platform property:
 
-```text
-REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md
-              ↓
-DURABLE_PERSISTENCE_SQLITE.md
-              ↓
-IDEMPOTENCY_PROOF.md
-              ↓
-DATA_INTEGRITY_PROOF.md
-              ↓
-RESTART_RECOVERY_PROOF.md
-```
+1. [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md)
+2. [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md)
+3. [IDEMPOTENCY_PROOF.md](./IDEMPOTENCY_PROOF.md)
+4. [DATA_INTEGRITY_PROOF.md](./DATA_INTEGRITY_PROOF.md)
+5. [RESTART_RECOVERY_PROOF.md](./RESTART_RECOVERY_PROOF.md)
 
 Together they progressively answer:
 
@@ -82,7 +74,7 @@ Can a new process recover and continue safely?
 
 # Level 1 — Getting Started
 
-## LOCAL_PLATFORM_EXECUTION.md — Start Here
+## [LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md) — Start Here
 
 **Purpose:** Run the platform locally with the minimum required setup.
 
@@ -112,7 +104,7 @@ Once this guide succeeds, the platform is ready for the deeper capability proofs
 
 # Level 2 — Platform Verification
 
-## 1. REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md
+## 1. [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md)
 
 **Question:**
 
@@ -130,7 +122,7 @@ This guide focuses on the real provider boundary, external configuration, provid
 
 ---
 
-## 2. DURABLE_PERSISTENCE_SQLITE.md
+## 2. [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md)
 
 **Question:**
 
@@ -156,7 +148,7 @@ This guide proves that accepted historical state is durable rather than process-
 
 ---
 
-## 3. IDEMPOTENCY_PROOF.md
+## 3. [IDEMPOTENCY_PROOF.md](./IDEMPOTENCY_PROOF.md)
 
 **Question:**
 
@@ -190,7 +182,7 @@ This guide proves that retries do not create duplicate logical history.
 
 ---
 
-## 4. DATA_INTEGRITY_PROOF.md
+## 4. [DATA_INTEGRITY_PROOF.md](./DATA_INTEGRITY_PROOF.md)
 
 **Question:**
 
@@ -219,7 +211,7 @@ This guide verifies the semantic integrity of the current normalized and persist
 
 ---
 
-## 5. RESTART_RECOVERY_PROOF.md
+## 5. [RESTART_RECOVERY_PROOF.md](./RESTART_RECOVERY_PROOF.md)
 
 **Question:**
 
@@ -321,12 +313,12 @@ RECOVERABLE DATA PLATFORM
 
 | Order | Guide | Role | Primary Outcome |
 | --- | --- | --- | --- |
-| Start | `LOCAL_PLATFORM_EXECUTION.md` | Getting started | Run the platform locally and see a real result. |
-| 1 | `REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md` | Verification | Acquire real historical observations from Twelve Data. |
-| 2 | `DURABLE_PERSISTENCE_SQLITE.md` | Verification | Prove accepted observations survive process termination. |
-| 3 | `IDEMPOTENCY_PROOF.md` | Verification | Prove equivalent replay does not create duplicate history. |
-| 4 | `DATA_INTEGRITY_PROOF.md` | Verification | Verify expected observation identity and values in durable storage. |
-| 5 | `RESTART_RECOVERY_PROOF.md` | Verification | Prove a new process can safely reuse existing durable state. |
+| Start | [LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md) | Getting started | Run the platform locally and see a real result. |
+| 1 | [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md) | Verification | Acquire real historical observations from Twelve Data. |
+| 2 | [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md) | Verification | Prove accepted observations survive process termination. |
+| 3 | [IDEMPOTENCY_PROOF.md](./IDEMPOTENCY_PROOF.md) | Verification | Prove equivalent replay does not create duplicate history. |
+| 4 | [DATA_INTEGRITY_PROOF.md](./DATA_INTEGRITY_PROOF.md) | Verification | Verify expected observation identity and values in durable storage. |
+| 5 | [RESTART_RECOVERY_PROOF.md](./RESTART_RECOVERY_PROOF.md) | Verification | Prove a new process can safely reuse existing durable state. |
 
 ---
 
@@ -768,53 +760,12 @@ That is the purpose of `docs/guides/`.
 
 ## Quick Navigation
 
-**New to the project?**
-
-Start with:
-
-```text
-LOCAL_PLATFORM_EXECUTION.md
-```
-
-**Want to understand real provider acquisition?**
-
-Continue with:
-
-```text
-REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md
-```
-
-**Want to prove persistence durability?**
-
-Continue with:
-
-```text
-DURABLE_PERSISTENCE_SQLITE.md
-```
-
-**Want to prove retries are safe?**
-
-Continue with:
-
-```text
-IDEMPOTENCY_PROOF.md
-```
-
-**Want to verify durable data integrity?**
-
-Continue with:
-
-```text
-DATA_INTEGRITY_PROOF.md
-```
-
-**Want to prove restart recovery?**
-
-Continue with:
-
-```text
-RESTART_RECOVERY_PROOF.md
-```
+- **New to the project?** Start with [LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md).
+- **Want to understand real provider acquisition?** See [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md).
+- **Want to prove persistence durability?** See [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md).
+- **Want to prove retries are safe?** See [IDEMPOTENCY_PROOF.md](./IDEMPOTENCY_PROOF.md).
+- **Want to verify durable data integrity?** See [DATA_INTEGRITY_PROOF.md](./DATA_INTEGRITY_PROOF.md).
+- **Want to prove restart recovery?** See [RESTART_RECOVERY_PROOF.md](./RESTART_RECOVERY_PROOF.md).
 
 ---
 
