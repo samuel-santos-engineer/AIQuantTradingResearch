@@ -2,7 +2,13 @@
 
 # AIQuantTradingResearch
 
-> **A production-oriented quantitative research platform for acquiring, persisting, and analyzing real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
+> **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
+
+[![Release](https://img.shields.io/badge/release-1.1-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-145%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
+[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 AIQuantTradingResearch is an open-source engineering project for building a quantitative research platform from the ground up with explicit architecture, executable quality gates, incremental delivery, and transparent technical decisions.
 
