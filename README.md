@@ -135,7 +135,7 @@ Technology choices are continuously evaluated and documented through the Enginee
 
 # Current Status
 
-**Current Release:** 1.0 – Market Data Foundation
+**Current Release:** 1.1 – Market Data Persistence Foundation
 
 The repository contains the first provider-backed historical market-data vertical slice:
 
@@ -153,9 +153,9 @@ AIQuantTradingResearch.slnx
     └── AIQuantTradingResearch.Architecture.Tests
 ```
 
-The Worker is a one-shot composition and execution root. `AddApplication` registers the research use case, while `AddInfrastructure` composes the Application-owned observation-source contract with the Infrastructure-owned Twelve Data client, normalizer, validation/failure mapping, and adapter. The API key is supplied externally through `TwelveData:ApiKey`; it is never placed in the request URI.
+The Worker is a one-shot composition and execution root. `AddApplication` registers the research and persistence use cases, while `AddInfrastructure` composes the Application-owned observation-source and persistence contracts with the Infrastructure-owned Twelve Data and SQLite implementations. The API key is supplied externally through `TwelveData:ApiKey`; the persistence path is supplied through `Persistence:DatabasePath`.
 
-Release 1.0 implements historical daily observations through one provider. Storage, streaming/live feeds, provider failover, trading, plugins, AI/ML, APIs, and production deployment remain planned for later releases.
+Release 1.1 implements durable historical observations through one provider and local SQLite persistence behind provider-independent contracts. Streaming/live feeds, provider failover, trading, plugins, AI/ML, APIs, scheduling, retry/resilience policy, and production deployment remain planned for later releases.
 
 The production dependency graph is:
 
@@ -181,7 +181,7 @@ From the repository root:
 
 `format.ps1` verifies formatting without changing files. `verify.ps1` delegates restore, format verification, build, and test. The cross-platform build counterpart is `eng/build.sh`.
 
-The architecture test project currently executes six forbidden-dependency checks plus production-graph acyclicity validation.
+The architecture test project currently executes 13 dependency, ownership, visibility, provider-confinement, and acyclicity checks.
 
 ---
 

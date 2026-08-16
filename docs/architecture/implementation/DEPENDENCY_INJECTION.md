@@ -109,9 +109,9 @@ Execute AAPL / 3 once
 Surface ResearchOutcome and exit
 ```
 
-`AddApplication` registers `IResearchUseCase` to the internal `ResearchUseCase` implementation with a transient lifetime. The configured `AddInfrastructure` overload registers a singleton `HttpClient` with base address `https://api.twelvedata.com/`, a singleton `TwelveDataClient`, and singleton `IObservationSource` implemented by internal `TwelveDataObservationSource`. The Worker resolves only `IResearchUseCase`; it does not resolve the source or construct provider implementations manually.
+`AddApplication` registers `IResearchUseCase` and `IPersistHistoricalObservationsUseCase` to their internal implementations with transient lifetimes. The configured `AddInfrastructure` overload registers the provider graph plus singleton `SqliteStorageConfiguration`, singleton `ISqliteConnectionFactory`, and transient `IHistoricalObservationStore`. The Worker resolves the bounded persistence coordinator through DI and does not construct provider or storage implementations manually.
 
-`TwelveData:ApiKey` is mandatory external configuration. Worker reports a deterministic configuration failure and exits non-zero when it is absent; parameterless `AddInfrastructure()` also rejects missing configuration. Authentication remains header-based, and credentials are not committed or placed in request URLs. No hosted/background service, runtime provider selection, persistence, streaming, or fallback framework is part of Release 1.0 composition.
+`TwelveData:ApiKey` and `Persistence:DatabasePath` are mandatory external configuration. Worker reports deterministic configuration failures and exits non-zero when either is absent. Authentication remains header-based, and credentials are not committed or placed in request URLs. SQLite connections are operation-owned and resolution alone creates no database. No hosted/background service, runtime provider selection, streaming, or fallback framework is part of Release 1.1 composition.
 
 ---
 

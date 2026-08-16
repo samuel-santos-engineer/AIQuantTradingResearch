@@ -141,7 +141,7 @@ Utilities supporting engineering workflows without becoming production dependenc
 
 The solution should group projects according to architectural responsibilities rather than implementation technology.
 
-Current Release 1.0 organization:
+Current Release 1.1 organization:
 
 ```text
 AIQuantTradingResearch.slnx
@@ -170,7 +170,7 @@ Release 1.0 implements four production projects:
 * **Infrastructure** owns the Twelve Data transport, normalization, validation/failure mapping, observation-source adapter, and its registration; it depends only on Application.
 * **Worker** is the one-shot composition and execution root and depends on Application and Infrastructure.
 
-`AddApplication` registers the research use case. `AddInfrastructure` registers the configured Twelve Data `HttpClient`, client, and singleton observation source. Worker supplies `TwelveData:ApiKey`, resolves the use-case abstraction, and does not construct provider implementations manually.
+`AddApplication` registers the research and persistence use cases. `AddInfrastructure` registers the configured Twelve Data provider graph and SQLite persistence graph. Worker supplies `TwelveData:ApiKey` and `Persistence:DatabasePath`, resolves the bounded coordinator, and does not construct provider or storage implementations manually. Application persistence contracts remain under `Application/Persistence`; concrete storage remains under `Infrastructure/Persistence/Sqlite`.
 
 ---
 
@@ -261,7 +261,7 @@ The host acts as the composition root of the platform.
 
 Testing projects should remain independent of production implementations.
 
-Current Release 1.0 organization:
+Current Release 1.1 organization:
 
 ```text
 tests/

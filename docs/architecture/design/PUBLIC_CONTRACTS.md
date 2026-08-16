@@ -282,6 +282,14 @@ Together these documents define how architectural capabilities are exposed, cons
 
 ---
 
+# Release 1.1 Persistence Contracts
+
+Application owns `IHistoricalObservationStore`, `IPersistHistoricalObservationsUseCase`, and the provider-independent persistence result vocabulary. `NewlyAccepted`, `Idempotent`, and `Conflict` are distinct outcomes; `Unavailable` and `InvalidData` are the bounded persistence failures. Historical retrieval is successful with a non-null empty collection when no observations exist.
+
+These contracts preserve exact opaque targets, `PriceObservation` timestamp/offset and decimal fidelity, and do not expose SQLite records, SQL, connection factories, or provider DTOs. SQLite remains an Infrastructure implementation detail.
+
+---
+
 # Future Evolution
 
 As the platform grows, public contracts may include additional capabilities, extension points, and interaction patterns.
