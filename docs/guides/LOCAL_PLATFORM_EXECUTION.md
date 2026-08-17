@@ -23,7 +23,6 @@ SUCCESS
 At the end, you should have executed the platform locally using the real Twelve Data integration and SQLite persistence.
 
 ---
-
 ## What You Will Run
 
 ```text
@@ -49,7 +48,6 @@ Persistence outcome: NewlyAccepted
 The exact observation count may evolve with the platform. Use the current Worker output as the authority.
 
 ---
-
 ## Prerequisites
 
 You need:
@@ -87,7 +85,6 @@ git pull
 ```
 
 ---
-
 ## 2. Verify the Repository
 
 From the repository root:
@@ -121,7 +118,6 @@ Then run the verification again:
 Continue when verification succeeds.
 
 ---
-
 ## 3. Create Local Runtime Storage
 
 Create a local directory for the SQLite database:
@@ -138,20 +134,51 @@ $env:Persistence__DatabasePath = $databasePath
 ```
 
 ---
-
 ## 4. Configure Twelve Data
 
-Get an API key from your Twelve Data account.
+AIQuantTradingResearch uses Twelve Data as the real market-data provider for this local execution path.
 
-Set it for the current PowerShell session:
+### 4.1 Create a Twelve Data account
+
+Open the Twelve Data website:
+
+https://twelvedata.com/
+
+Create an account if you do not already have one, then complete any required email verification and sign in.
+
+Twelve Data's official quickstart documentation requires an account before you can obtain the personal API key used to authenticate API requests.
+
+### 4.2 Get your API key
+
+After signing in, open your Twelve Data dashboard and locate the **API key** associated with your account.
+
+Official quickstart documentation:
+
+https://twelvedata.com/docs/introduction/quickstart
+
+Twelve Data also provides an API request builder:
+
+https://twelvedata.com/request-builder
+
+Use your **personal API key** for the AIQuantTradingResearch real-provider execution. Do not use a placeholder value in the runtime configuration.
+
+> **Security:** Treat the API key as a secret. Do not commit it to Git, place it in repository configuration files, include it in documentation, tests, screenshots, logs, issues, or pull requests, or paste it into public conversations.
+
+### 4.3 Configure the API key for the current PowerShell session
+
+Set the key as an environment variable:
 
 ```powershell
 $env:TwelveData__ApiKey = "YOUR_TWELVE_DATA_API_KEY"
 ```
 
-Do not commit the API key to the repository.
+Replace `YOUR_TWELVE_DATA_API_KEY` locally with your actual key.
 
-Quick configuration check:
+The value exists only in the environment of the current PowerShell session and is not written to the repository by this command.
+
+### 4.4 Verify the local runtime configuration
+
+Run:
 
 ```powershell
 if ([string]::IsNullOrWhiteSpace($env:TwelveData__ApiKey)) {
@@ -165,8 +192,15 @@ if ([string]::IsNullOrWhiteSpace($env:Persistence__DatabasePath)) {
 Write-Host "Runtime configuration ready."
 ```
 
----
+Expected result:
 
+```text
+Runtime configuration ready.
+```
+
+Do not print the API key itself as part of configuration verification.
+
+---
 ## 5. Run AIQuantTradingResearch
 
 From the repository root:
@@ -180,7 +214,6 @@ That's it.
 You are now running the real provider-backed platform locally.
 
 ---
-
 ## 6. Look for Success
 
 A successful execution should look similar to:
@@ -214,7 +247,6 @@ Persistence outcome: Idempotent
 That is also a successful result.
 
 ---
-
 ## 7. Confirm the SQLite Database Exists
 
 Run:
@@ -246,7 +278,6 @@ SQLite database
 ```
 
 ---
-
 # Hello, AIQuantTradingResearch
 
 If you reached this point:
@@ -273,7 +304,6 @@ Your local platform is working.
 ```
 
 ---
-
 ## What Just Happened?
 
 In one execution you exercised several real platform boundaries:
@@ -304,7 +334,6 @@ The other guides explain how to prove each capability in depth.
 ---
 
 ## Next Guides
-
 ### 1. Real Provider Acquisition
 
 ```text
@@ -388,16 +417,17 @@ Continue safely
 ```
 
 ---
-
 ## Quick Troubleshooting
 
 ### Missing API key
 
-Set:
+Return to **4. Configure Twelve Data**, obtain your personal API key from your Twelve Data account, and set it for the current PowerShell session:
 
 ```powershell
 $env:TwelveData__ApiKey = "YOUR_TWELVE_DATA_API_KEY"
 ```
+
+Do not print or commit the real key.
 
 ### Missing database path
 
@@ -434,7 +464,6 @@ REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md
 ```
 
 ---
-
 ## Clean Up the Current Shell
 
 When finished:
@@ -452,7 +481,7 @@ It does not delete the SQLite database.
 
 ## Five-Minute Path
 
-If the repository is already cloned and the required SDK is installed, the complete path is:
+If the repository is already cloned, the required SDK is installed, and you already have a Twelve Data API key, the complete path is:
 
 ```powershell
 # Verify
@@ -493,13 +522,13 @@ True
 Done.
 
 ---
-
 ## Definition of Done
 
 This Hello World guide is complete when:
 
 ```text
 [PASS] ./eng/verify.ps1 succeeds
+[PASS] Twelve Data account and personal API key are available
 [PASS] Twelve Data configuration is supplied externally
 [PASS] SQLite path is supplied externally
 [PASS] Worker runs successfully
@@ -521,7 +550,6 @@ SUCCESS
 ```
 
 ---
-
 ## References
 
 AIQuantTradingResearch:
@@ -531,6 +559,14 @@ https://github.com/samuel-santos-engineer/AIQuantTradingResearch
 Twelve Data:
 
 https://twelvedata.com/
+
+Twelve Data API quickstart:
+
+https://twelvedata.com/docs/introduction/quickstart
+
+Twelve Data request builder:
+
+https://twelvedata.com/request-builder
 
 Guide index:
 
