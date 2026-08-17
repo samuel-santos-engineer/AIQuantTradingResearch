@@ -69,6 +69,14 @@ The current implementation can:
 
 Release 1.1 is a foundation, not a claim that the full quantitative trading vision is complete. Streaming/live feeds, provider failover, trading execution, AI/ML models, APIs, scheduling, advanced resilience, and production deployment remain future capabilities.
 
+### Release 1.1 showcase
+
+The completed vertical slice has also been exercised manually against real AAPL market data and independently inspected at the SQLite boundary. The evidence demonstrates durable persistence, idempotent repeat execution, zero duplicate logical history, database integrity, and restart recovery.
+
+![Release 1.1 Showcase](imgs/release-1.1-showcase.png)
+
+For reproducible steps behind this evidence, see the **[Platform Execution & Verification Guides](docs/guides/README.md)**.
+
 ---
 
 ## Architecture
