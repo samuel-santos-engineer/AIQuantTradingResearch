@@ -220,7 +220,7 @@ Before starting:
 - SQLite durable persistence is working;
 - the Worker can acquire the desired observation count;
 - the same database path can be reused between executions;
-- the SQLite CLI is available, or another SQLite inspection tool is installed.
+- the SQLite CLI is available, or another SQLite inspection tool is installed. If you use `sqlite3`, install and verify it with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide.
 
 Follow these guides first if necessary:
 

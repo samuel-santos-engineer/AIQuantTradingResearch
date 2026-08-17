@@ -259,7 +259,7 @@ Before starting:
 - Twelve Data acquisition works;
 - SQLite persistence works;
 - a valid Twelve Data API key is available;
-- SQLite CLI or another SQLite inspection tool is available.
+- SQLite CLI or another SQLite inspection tool is available. If you use `sqlite3`, install and verify it with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide.
 
 Recommended preceding guides:
 

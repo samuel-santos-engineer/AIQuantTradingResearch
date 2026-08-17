@@ -227,7 +227,7 @@ Before starting:
 - confirm the repository verification gate passes;
 - have a valid Twelve Data API key;
 - have a writable local directory for SQLite;
-- have the SQLite CLI or another SQLite inspection tool available.
+- have the SQLite CLI or another SQLite inspection tool available. If you use `sqlite3`, install and verify it with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide.
 
 The preceding operational guides should already work:
 

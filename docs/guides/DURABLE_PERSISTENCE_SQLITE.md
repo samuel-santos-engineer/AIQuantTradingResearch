@@ -122,7 +122,10 @@ Before starting, confirm:
 - the required .NET SDK is installed;
 - the repository engineering baseline passes;
 - a writable local directory is available for the SQLite database;
-- the real-provider acquisition path can produce observations.
+- the real-provider acquisition path can produce observations;
+- the SQLite CLI is available for the independent verification steps below.
+
+Install and verify `sqlite3` with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide before the SQLite CLI verification steps.
 
 For the complete provider setup, follow:
 
@@ -1189,7 +1192,7 @@ Database verification remains intentionally separate so that storage is inspecte
 
 ## 39. SQLite Verification Script
 
-With `sqlite3` installed:
+After installing and verifying `sqlite3` with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide:
 
 ```powershell
 sqlite3 $databasePath

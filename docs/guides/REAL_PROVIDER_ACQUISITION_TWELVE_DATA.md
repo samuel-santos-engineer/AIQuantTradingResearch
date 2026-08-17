@@ -104,7 +104,7 @@ Before running the provider-backed path, confirm the following.
 
 ### Optional but useful
 
-- SQLite CLI
+- SQLite CLI — install and verify `sqlite3` with the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide.
 - VS Code
 - A SQLite database viewer extension
 
@@ -404,7 +404,9 @@ This is part of the release's immutable/idempotent historical-storage behavior.
 
 ## 11. Inspect the Persisted Observations with SQLite CLI
 
-If the `sqlite3` command is installed:
+If you want to inspect the database with `sqlite3`, first complete the [SQLite CLI Installation](SQLITE_CLI_INSTALLATION.md) guide.
+
+Then run:
 
 ```powershell
 sqlite3 $env:Persistence__DatabasePath
