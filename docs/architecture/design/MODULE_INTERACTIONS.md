@@ -77,6 +77,20 @@ Release 1.1 adds a separate persistence interaction after successful acquisition
 
 ```text
 Worker -> IObservationSource -> normalized PriceObservation values
+
+## Release 1.2 Dataset Materialization
+
+Release 1.2 reuses accepted Release 1.1 historical observations rather than
+provider transport as dataset source truth. The Worker provides one explicit
+`DatasetDefinition` (`Dataset:Target`, `Dataset:From`, `Dataset:To`) to the
+Application integration seam. Application selects exact-target observations in
+the `[from,to)` interval, orders by semantic instant, constructs deterministic
+identity/version/provenance/lineage evidence, and asks Infrastructure to persist
+an immutable SQLite schema-v2 snapshot and register the same evidence for exact
+Snapshot Identity lookup. `NewlyAccepted`, equivalent existing evidence,
+integrity conflict, unavailable storage, and invalid persisted evidence retain
+their existing result meanings. This is a one-shot bounded action: no polling,
+scheduling, refresh, retries, or pipeline orchestration is implemented.
       -> IPersistHistoricalObservationsUseCase
       -> IHistoricalObservationStore
       -> SqliteHistoricalObservationStore -> historical_observations

@@ -5,7 +5,7 @@
 > **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
 
 [![Release](https://img.shields.io/badge/release-1.1-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-145%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Tests](<https://img.shields.io/badge/tests-171%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -14,7 +14,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 
 The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current completed milestone:** **Release 1.1 — Market Data Persistence Foundation**
+**Current in-progress milestone:** **Release 1.2 — Research Dataset Foundation**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -55,11 +55,26 @@ The current implementation can:
 - Compose acquisition and persistence through an externally configured Worker execution root.
 - Validate architectural boundaries with executable architecture tests.
 
-### Release 1.1 quality baseline
+### Release 1.2 current foundation
+
+Release 1.2 builds on Release 1.1 historical observations. It materializes one
+exact-target, `[from,to)` research dataset definition into immutable SQLite
+snapshot/catalog evidence. Definitions are ordered by semantic instant; empty
+selection is valid; original offsets and decimal values are preserved. The
+`aiq-dataset-identity-v1` scheme uses deterministic SHA-256-backed identities
+for the definition, research dataset, source state, and snapshot; the snapshot
+identity is also the immutable dataset version. Re-running equivalent evidence
+is recognized without overwrite, while conflicts remain explicit.
+
+The Worker has one externally configured bounded dataset execution using
+`Persistence:DatabasePath`, `Dataset:Target`, `Dataset:From`, and `Dataset:To`.
+It is not a scheduler, refresh loop, or Release 1.3 pipeline.
+
+### Release 1.2 quality baseline
 
 | Evidence                                    |      Current baseline |
 | ------------------------------------------- | --------------------: |
-| Permanent automated tests                   | **145 passing** |
+| Permanent automated tests                   | **171 passing** |
 | Architecture tests                          |  **13 passing** |
 | Build warnings                              |           **0** |
 | Build errors                                |           **0** |
