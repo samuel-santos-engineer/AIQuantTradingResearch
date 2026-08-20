@@ -1,0 +1,5 @@
+Read `06-dataset-metadata-catalog-model-codex-prompt.md` completely and treat it as the authoritative Release 1.2 WP06 execution contract.
+Execute only WP06 — Dataset Metadata & Catalog Model for GitHub issue #126, preserving accepted WP02–WP05 semantics and the Release 1.1 foundation.
+Keep the work Application-owned and storage/provider independent; do not implement physical storage, snapshot persistence, catalog persistence/lookup, Worker execution, or Release 1.3 behavior.
+Run every governance, architecture, security, build, test, whitespace, and lifecycle gate required by the authority; stop on any unresolved authority or starting-state conflict.
+Finish only with the authority's required WP06 execution report and terminal marker; leave WP07 issue #127 Open / Backlog and do not stage, commit, push, branch, or open a PR.

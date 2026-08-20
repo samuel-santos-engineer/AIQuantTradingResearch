@@ -16,12 +16,12 @@ public sealed class SqlitePersistenceTests
         new(2024, 3, 10, 0, 0, 0, TimeSpan.FromHours(-4));
 
     [Fact]
-    public void OpenConnectionBootstrapsExactVersionOneStrictWithoutRowIdSchema()
+    public void OpenConnectionBootstrapsExactVersionTwoStrictWithoutRowIdSchema()
     {
         using var database = new TestDatabase();
         using var connection = database.Factory.OpenConnection();
 
-        Assert.Equal(1L, Scalar<long>(connection, "PRAGMA user_version;"));
+        Assert.Equal(2L, Scalar<long>(connection, "PRAGMA user_version;"));
         Assert.Equal(4L, Scalar<long>(connection, "SELECT COUNT(*) FROM pragma_table_info('historical_observations');"));
         using (var columns = connection.CreateCommand())
         {
@@ -64,13 +64,13 @@ public sealed class SqlitePersistenceTests
         using (var connection = new SqliteConnection($"Data Source={database.Path}"))
         {
             connection.Open();
-            Execute(connection, "PRAGMA user_version = 2;");
+            Execute(connection, "PRAGMA user_version = 3;");
         }
 
         Assert.Throws<InvalidOperationException>(() => database.Factory.OpenConnection());
         using var verification = new SqliteConnection($"Data Source={database.Path}");
         verification.Open();
-        Assert.Equal(2L, Scalar<long>(verification, "PRAGMA user_version;"));
+        Assert.Equal(3L, Scalar<long>(verification, "PRAGMA user_version;"));
     }
 
     [Fact]

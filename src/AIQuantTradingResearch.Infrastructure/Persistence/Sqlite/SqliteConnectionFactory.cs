@@ -27,6 +27,11 @@ internal sealed class SqliteConnectionFactory : ISqliteConnectionFactory
             SqliteSchemaBootstrapper.Bootstrap(connection);
             return connection;
         }
+        catch (SqliteSchemaValidationException exception)
+        {
+            connection.Dispose();
+            throw new InvalidOperationException(exception.Message, exception);
+        }
         catch
         {
             connection.Dispose();

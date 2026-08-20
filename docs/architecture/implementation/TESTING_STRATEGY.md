@@ -210,7 +210,7 @@ Deterministic testing supports reproducible engineering outcomes.
 
 Testing projects should mirror architectural responsibilities.
 
-Current Release 1.1 organization:
+Current Release 1.2 organization:
 
 ```text
 tests/
@@ -222,11 +222,11 @@ tests/
 
 The implemented test responsibilities are:
 
-The current verified Release 1.1 baseline is 11 Domain, 42 Application, 79 Infrastructure, and 13 Architecture tests: 145 permanent tests in total.
+The current verified Release 1.2 baseline is 11 Domain, 60 Application, 87 Infrastructure, and 13 Architecture tests: 171 permanent tests in total.
 
 * **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
-* **Application.Tests** verifies `ResearchUseCase` plus provider-independent persistence contracts and use-case behavior with test-owned fakes and no concrete Infrastructure dependency.
-* **Infrastructure.Tests** verifies Twelve Data transport/normalization and the real isolated file-backed SQLite schema, bootstrap, mapping, persistence, retrieval, failure mapping, and DI composition. The suite is offline, deterministic, credential-free, and provider-call-free.
+* **Application.Tests** verifies provider-independent research/persistence behavior plus deterministic dataset definitions, identities, materialization, immutable catalog evidence, integration outcomes, and failure propagation using test-owned fakes and no concrete Infrastructure dependency.
+* **Infrastructure.Tests** verifies Twelve Data transport/normalization and the real isolated file-backed SQLite schema v2, v1-to-v2 preservation, dataset mapping, immutable snapshot/catalog evidence, retrieval, atomicity, failure mapping, and DI composition. The suite is offline, deterministic, credential-free, and provider-call-free.
 * **Architecture.Tests** verifies structural dependency, ownership, visibility, provider confinement, HTTP confinement, and acyclicity boundaries.
 
 The executable forbidden edges are:

@@ -87,14 +87,14 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Implemented Release 1.0 Composition
+# Implemented Release 1.2 Composition
 
 `AIQuantTradingResearch.Worker` is the current composition root. Its one-shot execution lifecycle is:
 
 ```text
 Create generic host builder
         ↓
-Read TwelveData:ApiKey
+Read TwelveData:ApiKey, Persistence:DatabasePath, and Dataset inputs
         ↓
 AddApplication()
         ↓
@@ -102,16 +102,16 @@ AddInfrastructure(TwelveDataConfiguration)
         ↓
 Build host
         ↓
-Resolve IResearchUseCase
+Resolve IDatasetMaterializationIntegrationUseCase
         ↓
-Execute AAPL / 3 once
+Execute one exact-target DatasetDefinition once
         ↓
-Surface ResearchOutcome and exit
+Surface newly accepted, equivalent existing, or existing failure and exit
 ```
 
-`AddApplication` registers `IResearchUseCase` and `IPersistHistoricalObservationsUseCase` to their internal implementations with transient lifetimes. The configured `AddInfrastructure` overload registers the provider graph plus singleton `SqliteStorageConfiguration`, singleton `ISqliteConnectionFactory`, and transient `IHistoricalObservationStore`. The Worker resolves the bounded persistence coordinator through DI and does not construct provider or storage implementations manually.
+`AddApplication` registers the research/persistence use cases plus the transient dataset materialization and bounded integration use cases. The configured `AddInfrastructure` overload preserves the provider graph, singleton `SqliteStorageConfiguration`, singleton `ISqliteConnectionFactory`, and transient historical store; it also registers transient SQLite dataset snapshot-store and catalog implementations. The Worker resolves the bounded integration seam through DI and does not construct provider or storage implementations manually.
 
-`TwelveData:ApiKey` and `Persistence:DatabasePath` are mandatory external configuration. Worker reports deterministic configuration failures and exits non-zero when either is absent. Authentication remains header-based, and credentials are not committed or placed in request URLs. SQLite connections are operation-owned and resolution alone creates no database. No hosted/background service, runtime provider selection, streaming, or fallback framework is part of Release 1.1 composition.
+`TwelveData:ApiKey`, `Persistence:DatabasePath`, `Dataset:Target`, `Dataset:From`, and `Dataset:To` are mandatory external configuration. Worker reports deterministic configuration failures and exits non-zero when required values are absent or invalid. Authentication remains header-based, and credentials are not committed or placed in request URLs. SQLite connections are operation-owned and resolution alone creates no database. No hosted/background service, runtime provider selection, streaming, scheduler, retry framework, or Release 1.3 pipeline is implemented.
 
 ---
 
