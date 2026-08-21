@@ -110,6 +110,21 @@ identities. Equivalent reruns preserve execution identity; failure stops at the
 first failed stage and does not fabricate downstream evidence. This is not live
 acquisition, a scheduler, retry loop, configurable DAG, or durable run history.
 
+## Release 1.4 Feature Generation
+
+Release 1.4 adds a separate Application-owned request/response interaction:
+an exact snapshot identity/version request is validated, looked up through the
+existing snapshot store, validated as accepted evidence, and computed as the
+single built-in `simple-return-lag-1-v1` feature. The immutable result retains
+`aiq-feature-identity-v1` definition/set identities, snapshot-bound provenance,
+lineage, ordered decimal values, and the current observation timestamp/offset.
+Worker selects this bounded mode from `Feature:SnapshotIdentity` and
+`Feature:SnapshotVersion`, invokes it once, presents safe evidence, and exits.
+
+Infrastructure contributes only existing SQLite snapshot lookup. Feature
+generation does not call Twelve Data or HTTP, does not persist features, and is
+not a sixth pipeline stage.
+
 ---
 
 # Interaction Types

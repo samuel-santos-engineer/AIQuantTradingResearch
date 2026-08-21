@@ -186,6 +186,24 @@ Application owns the public, provider-independent boundary for the current resea
 
 ---
 
+# Implemented Release 1.4 Feature Contracts
+
+Application owns `FeatureDefinition`, typed Feature Definition/Feature Set
+identities, immutable feature evidence, `FeatureGenerationRequest`,
+`FeatureGenerationResult`, and `IFeatureGenerationUseCase`. The only built-in
+definition is `simple-return-lag-1-v1`; its code-owned semantics use decimal
+`(p[i] / p[i-1]) - 1` over accepted snapshot order. The result belongs to the
+current observation and preserves its original timestamp/offset. Empty and
+single-observation snapshots are successful empty results.
+
+`aiq-feature-identity-v1` uses canonical SHA-256 fingerprints represented as
+64 lowercase hexadecimal characters. Definition and set identities are distinct
+and bind feature evidence to the exact dataset snapshot/version, provenance, and
+lineage. Snapshot NotFound, dependency unavailable, invalid evidence/numeric
+input, and integrity conflict remain bounded result failures; unexpected defects
+propagate. No provider DTO, HTTP contract, SQLite record, feature persistence,
+or configurable formula/lag belongs to this Application contract surface.
+
 # Contract Evolution
 
 Contracts should evolve conservatively.

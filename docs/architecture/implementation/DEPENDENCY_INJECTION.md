@@ -87,7 +87,7 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Implemented Release 1.3 Composition
+# Implemented Release 1.3 and 1.4 Composition
 
 `AIQuantTradingResearch.Worker` is the current composition root. Its one-shot execution lifecycle is:
 
@@ -124,6 +124,15 @@ deterministic failures and exits non-zero for invalid configuration. SQLite
 connections are operation-owned and resolution alone creates no database. No
 hosted loop, pipeline-managed acquisition, scheduler, retry framework, or
 durable pipeline run history is implemented.
+
+Release 1.4 adds transient `IFeatureGenerationUseCase`, `IFeatureComputer`,
+and `IFeatureGenerationValidator` registrations in Application. They reuse the
+existing transient `IDatasetSnapshotStore`; resolving the graph neither looks
+up a snapshot nor executes feature generation or creates a database. The Worker
+uses `Feature:SnapshotIdentity` and `Feature:SnapshotVersion` to select one
+bounded feature execution; it owns no feature-computation semantics. Feature
+output remains in-memory evidence only, with no feature persistence, cache, or
+run history.
 
 ---
 

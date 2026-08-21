@@ -100,6 +100,15 @@ Worker presents this bounded evidence without credentials, connection strings,
 or durable run history. Metrics, tracing backends, dashboards, and persisted
 operational telemetry remain future capabilities; no such backend was added.
 
+## Implemented Release 1.4 Feature Evidence
+
+Release 1.4 presents bounded local evidence for one feature-generation request:
+the built-in definition name, deterministic definition/set identities, exact
+snapshot/version identity, ordered feature count/values, or one accepted bounded
+failure. This evidence is semantic and reproducible; credentials, connection
+strings, provider transport, metrics backends, distributed tracing, dashboards,
+and durable feature execution history are not implemented.
+
 ---
 
 # Metrics

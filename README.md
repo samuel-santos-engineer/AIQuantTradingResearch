@@ -4,8 +4,8 @@
 
 > **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
 
-[![Release](https://img.shields.io/badge/release-1.3-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-197%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Release](https://img.shields.io/badge/release-1.4-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-214%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -14,7 +14,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 
 The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current in-progress milestone:** **Release 1.3 — Research Pipeline Foundation**
+**Current in-progress milestone:** **Release 1.4 — Deterministic Feature Engineering Foundation**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -88,11 +88,28 @@ stop at the first failing stage and expose only established upstream evidence.
 Live acquisition is not a pipeline stage, and the release adds neither schema
 evolution nor durable pipeline run history.
 
-### Release 1.3 quality baseline
+### Release 1.4 current foundation
+
+Release 1.4 adds one separate, deterministic feature-generation use case over
+an exact accepted immutable snapshot. The sole built-in definition is
+`simple-return-lag-1-v1`, with decimal result `r[i] = (p[i] / p[i-1]) - 1`.
+Application owns feature identities, provenance, validation, exact snapshot
+lookup, and computation; Infrastructure reuses snapshot storage without feature
+persistence; Worker selects feature mode, executes once, presents bounded
+evidence, and exits. `aiq-feature-identity-v1` keeps distinct deterministic
+Feature Definition and Feature Set identities bound to the exact snapshot and
+version. Empty and single-observation snapshots are successful empty feature
+sets. This is not a sixth Release 1.3 pipeline stage, a provider acquisition
+path, or a feature engine.
+
+SQLite remains schema version 2. No feature table, catalog, cache, scheduler,
+retry loop, or durable feature run history exists.
+
+### Release 1.4 quality baseline
 
 | Evidence                                    |      Current baseline |
 | ------------------------------------------- | --------------------: |
-| Permanent automated tests                   | **197 passing** |
+| Permanent automated tests                   | **214 passing** |
 | Architecture tests                          |  **13 passing** |
 | Build warnings                              |           **0** |
 | Build errors                                |           **0** |
@@ -235,6 +252,11 @@ The Worker presents bounded semantic evidence and terminates. There is no
 pipeline-managed provider acquisition, scheduler, retry, refresh loop, DAG,
 checkpoint/resume path, or durable pipeline-run history.
 
+Release 1.4 adds a separate bounded feature mode selected by exact
+`Feature:SnapshotIdentity` and `Feature:SnapshotVersion`. It resolves the
+Application feature use case once over existing snapshot evidence and exits; it
+does not invoke Twelve Data, add a pipeline stage, or persist feature output.
+
 ---
 
 ## Engineering Evidence
@@ -354,7 +376,7 @@ The longer-term platform direction includes areas such as:
 - Local or hosted model integration where appropriate.
 - Resilience, scheduling, pipelines, analytics, and operational capabilities.
 
-These are **directional or planned capabilities**, not claims about the current Release 1.3 implementation.
+These are **directional or planned capabilities**, not claims about the current Release 1.4 implementation.
 
 Technology choices remain subject to architecture and engineering decisions as the platform evolves.
 
@@ -374,6 +396,7 @@ Each release is intended to add a concrete platform capability while strengtheni
 | **1.1**      | **Durable market-data persistence and deterministic historical retrieval**          |
 | **1.2**      | **Deterministic immutable research datasets, snapshots, and catalog evidence**      |
 | **1.3**      | **Fixed deterministic one-shot Research Pipeline over accepted persisted history**  |
+| **1.4**      | **Deterministic simple-return feature generation over exact immutable snapshots** |
 | **Next**     | Derived from the accepted platform state and architecture rather than assumed prematurely |
 
 The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted.
