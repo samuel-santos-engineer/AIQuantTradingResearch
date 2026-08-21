@@ -1,0 +1,5 @@
+Execute Release 1.3 WP06 — Pipeline Validation & Failure Semantics for `samuel-santos-engineer/AIQuantTradingResearch` under GitHub issue #143.
+Read `06-pipeline-validation-failure-semantics-codex-prompt.md` completely and reconcile the Release 1.3 definition/plan/manifest, WP02–WP05 semantics/contracts/orchestration, and accepted Release 1.2 failure boundaries before mutation.
+Harden only Application-owned validation and first-failure semantics; preserve the fixed five-stage topology, `aiq-pipeline-identity-v1`, schema v2, immutable/equivalent dataset behavior, unknown-failure propagation, and the existing dependency graph.
+Do not start WP07+, add permanent tests, redesign orchestration, mutate Worker/schema/packages/references, add retries/recovery/scheduling/DAG/run-history behavior, perform provider/network acquisition, or stage/commit/push/branch/PR.
+Run every required gate, close #143/mark Done only after full acceptance, keep #144 Open/Backlog, and end with the mandated WP06 completion marker and WP07 handoff.
