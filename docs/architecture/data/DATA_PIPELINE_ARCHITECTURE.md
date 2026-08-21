@@ -24,6 +24,18 @@ The Data Pipeline should provide a modular, observable, and extensible processin
 
 Each stage should perform a single responsibility and communicate through well-defined contracts.
 
+## Implemented Release 1.3 Slice
+
+The current implementation is intentionally narrower than the broader vision
+below. Release 1.3 provides one fixed, deterministic, sequential pipeline over
+already persisted historical observations: retrieval, dataset materialization,
+immutable snapshot persistence, catalog registration, and structured
+result/evidence. Application owns its semantics and first-failure evidence;
+Infrastructure owns the reused SQLite/provider mechanics; Worker invokes it
+once and exits. Live acquisition, enrichment, publishing, continuous
+observation, configurable DAGs, scheduling, retries, streaming, and durable
+run history remain future capabilities; SQLite remains schema version 2.
+
 ---
 
 # Architectural Principles

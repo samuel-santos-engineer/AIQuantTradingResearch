@@ -98,6 +98,18 @@ scheduling, refresh, retries, or pipeline orchestration is implemented.
 
 New, idempotent, and conflicting duplicates remain distinct; conflicts are not storage failures. Retrieval is exact-target, ascending, fidelity-preserving, and successfully empty when no history exists.
 
+## Release 1.3 Fixed Research Pipeline
+
+Release 1.3 composes the Release 1.1 and Release 1.2 interactions. Worker
+supplies explicit dataset configuration and invokes one Application-owned fixed
+pipeline over persisted historical observations: retrieval, deterministic
+materialization, immutable snapshot persistence, catalog registration, and
+structured result/evidence. Pipeline definition and semantic execution
+identities use `aiq-pipeline-identity-v1` and remain distinct from dataset
+identities. Equivalent reruns preserve execution identity; failure stops at the
+first failed stage and does not fabricate downstream evidence. This is not live
+acquisition, a scheduler, retry loop, configurable DAG, or durable run history.
+
 ---
 
 # Interaction Types

@@ -238,6 +238,19 @@ Validation should verify:
 
 Invalid configuration should fail early with clear diagnostics.
 
+## Implemented Release 1.3 Bounded Execution Configuration
+
+The current Worker validates external `TwelveData:ApiKey` and
+`Persistence:DatabasePath` plus `Dataset:Target`, `Dataset:From`, and
+`Dataset:To`. Dataset timestamps use invariant round-trip `DateTimeOffset`
+values, preserve their supplied offsets, and must form a valid `[from,to)`
+interval. Target text is preserved exactly.
+
+Release 1.3 adds no `Pipeline:*` configuration. The fixed topology, identity
+scheme, stage order, and fail-stop policy are Application semantics rather than
+operational switches. No implicit dataset default, in-memory fallback,
+scheduler, retry policy, or dynamic pipeline configuration is implemented.
+
 ---
 
 # Override Strategy

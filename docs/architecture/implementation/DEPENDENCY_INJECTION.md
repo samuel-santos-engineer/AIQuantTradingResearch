@@ -87,7 +87,7 @@ Centralized composition improves predictability and maintainability.
 
 ---
 
-# Implemented Release 1.2 Composition
+# Implemented Release 1.3 Composition
 
 `AIQuantTradingResearch.Worker` is the current composition root. Its one-shot execution lifecycle is:
 
@@ -102,16 +102,28 @@ AddInfrastructure(TwelveDataConfiguration)
         ↓
 Build host
         ↓
-Resolve IDatasetMaterializationIntegrationUseCase
+Resolve PipelineExecution
         ↓
-Execute one exact-target DatasetDefinition once
+Create and execute one IPipelineExecutionUseCase request
         ↓
-Surface newly accepted, equivalent existing, or existing failure and exit
+Present bounded semantic evidence and exit
 ```
 
-`AddApplication` registers the research/persistence use cases plus the transient dataset materialization and bounded integration use cases. The configured `AddInfrastructure` overload preserves the provider graph, singleton `SqliteStorageConfiguration`, singleton `ISqliteConnectionFactory`, and transient historical store; it also registers transient SQLite dataset snapshot-store and catalog implementations. The Worker resolves the bounded integration seam through DI and does not construct provider or storage implementations manually.
+`AddApplication` registers the research/persistence and dataset seams, the
+transient `IPipelineExecutionUseCase`, and singleton stateless
+`IPipelineRequestFactory`. The configured `AddInfrastructure` overload preserves
+the provider graph, singleton SQLite configuration/connection factory, and
+transient historical, snapshot-store, and catalog implementations. Worker
+resolves the bounded pipeline through DI and does not construct implementations.
 
-`TwelveData:ApiKey`, `Persistence:DatabasePath`, `Dataset:Target`, `Dataset:From`, and `Dataset:To` are mandatory external configuration. Worker reports deterministic configuration failures and exits non-zero when required values are absent or invalid. Authentication remains header-based, and credentials are not committed or placed in request URLs. SQLite connections are operation-owned and resolution alone creates no database. No hosted/background service, runtime provider selection, streaming, scheduler, retry framework, or Release 1.3 pipeline is implemented.
+`TwelveData:ApiKey`, `Persistence:DatabasePath`, `Dataset:Target`,
+`Dataset:From`, and `Dataset:To` are mandatory external configuration. Release
+1.3 adds no `Pipeline:*` semantic configuration: topology, identity scheme,
+stage order, and failure policy are fixed Application semantics. Worker reports
+deterministic failures and exits non-zero for invalid configuration. SQLite
+connections are operation-owned and resolution alone creates no database. No
+hosted loop, pipeline-managed acquisition, scheduler, retry framework, or
+durable pipeline run history is implemented.
 
 ---
 

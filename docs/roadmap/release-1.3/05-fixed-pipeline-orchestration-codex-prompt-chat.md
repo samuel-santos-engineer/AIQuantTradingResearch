@@ -1,0 +1,5 @@
+Execute Release 1.3 WP05 — Fixed Pipeline Orchestration for `samuel-santos-engineer/AIQuantTradingResearch` under GitHub issue #142.
+Read `05-fixed-pipeline-orchestration-codex-prompt.md` completely and treat it, the Release 1.3 definition/plan/manifest, WP02–WP04 semantics/contracts, and accepted Release 1.2 dataset capabilities as authoritative.
+Implement only the minimum Application-owned deterministic one-shot fixed five-stage orchestration; preserve `aiq-pipeline-identity-v1`, Release 1.2 dataset semantics, schema v2, fail-stop behavior, and the existing dependency graph.
+Do not start WP06+, add permanent tests, mutate Infrastructure/Worker/schema/packages/references, perform provider/network acquisition, add retries/scheduling/DAG/run-history behavior, or stage/commit/push/branch/PR.
+Validate exactly as required, close #142/mark Done only after every gate passes, keep #143 Open/Backlog, and end with the mandated WP05 completion marker and WP06 handoff.

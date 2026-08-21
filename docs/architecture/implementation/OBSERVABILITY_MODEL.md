@@ -87,6 +87,19 @@ Logs answer questions such as:
 
 Logging strategy is defined separately in the Logging Strategy document.
 
+## Implemented Release 1.3 Execution Evidence
+
+Release 1.3 provides bounded local evidence for one Worker-triggered fixed
+Research Pipeline. Application-owned semantic evidence contains pipeline
+definition/execution identities, established dataset/source/snapshot identities,
+ordered stage evidence, terminal disposition, and the first failing
+stage/category when applicable. Operational invocation or correlation facts are
+non-semantic and do not change identity or equivalence.
+
+Worker presents this bounded evidence without credentials, connection strings,
+or durable run history. Metrics, tracing backends, dashboards, and persisted
+operational telemetry remain future capabilities; no such backend was added.
+
 ---
 
 # Metrics

@@ -1,5 +1,6 @@
 using AIQuantTradingResearch.Application.Datasets;
 using AIQuantTradingResearch.Application.Persistence;
+using AIQuantTradingResearch.Application.Pipelines;
 using AIQuantTradingResearch.Application.Research;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -13,7 +14,29 @@ public static class DependencyInjection
         services.AddTransient<IPersistHistoricalObservationsUseCase, PersistHistoricalObservationsUseCase>();
         services.AddTransient<IMaterializeDatasetUseCase, MaterializeDatasetUseCase>();
         services.AddTransient<IDatasetMaterializationIntegrationUseCase, DatasetMaterializationIntegrationUseCase>();
+        services.AddTransient<IPipelineExecutionUseCase, PipelineExecutionUseCase>();
+        services.AddSingleton<IPipelineRequestFactory, PipelineRequestFactory>();
 
         return services;
+    }
+}
+
+public interface IPipelineRequestFactory
+{
+    PipelineRequest Create(DatasetDefinition definition);
+}
+
+internal sealed class PipelineRequestFactory : IPipelineRequestFactory
+{
+    public PipelineRequest Create(DatasetDefinition definition)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+
+        DatasetDefinitionIdentity datasetDefinitionIdentity =
+            DatasetIdentityComputer.ComputeDefinitionIdentity(definition);
+        PipelineDefinitionIdentity pipelineDefinitionIdentity =
+            PipelineIdentityComputer.ComputeDefinitionIdentity(datasetDefinitionIdentity);
+
+        return new PipelineRequest(new PipelineDefinition(definition, pipelineDefinitionIdentity));
     }
 }

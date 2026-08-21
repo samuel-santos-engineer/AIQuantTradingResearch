@@ -1,0 +1,5 @@
+Use GPT-5.6 Sol. Execute Release 1.3 WP14 — Full Validation, Integration & Acceptance exactly from the authoritative `14-full-validation-integration-acceptance-codex-prompt.md`.
+Reconcile the exact governed Release 1.3 candidate first; require zero missing/unexpected/duplicate/residue paths and preserve the WP13 baseline of Domain 11, Application 77, Infrastructure 96, Architecture 13 — 197/197 total.
+Validate fixed pipeline semantics, `aiq-pipeline-identity-v1`, structured evidence, failure behavior, schema v2, DI/configuration, one-shot offline Worker behavior, Release 1.1/1.2 regression, documentation, security, architecture, and Release 1.4+ exclusions.
+Only after every gate passes, create `release/1.3-research-pipeline-foundation`, one commit `feat: establish Release 1.3 research pipeline foundation`, prove it from a fresh checkout, push it, open the review-ready PR, and close #151/Done; do not merge the PR or close milestone #54.
+End with `RELEASE 1.3 WP14 COMPLETE` or `RELEASE 1.3 WP14 BLOCKED`; on success the next action is human review and explicit merge authorization for the Release 1.3 integration pull request.
