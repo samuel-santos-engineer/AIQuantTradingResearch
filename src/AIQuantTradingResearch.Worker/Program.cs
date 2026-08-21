@@ -1,4 +1,5 @@
 using AIQuantTradingResearch.Application;
+using AIQuantTradingResearch.Application.Features;
 using AIQuantTradingResearch.Infrastructure;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
@@ -11,7 +12,8 @@ var databasePath = $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConf
 
 TwelveDataConfiguration twelveDataConfiguration;
 SqliteStorageConfiguration sqliteStorageConfiguration;
-PipelineExecutionConfiguration pipelineExecutionConfiguration;
+var isFeatureExecutionRequested = builder.Configuration["Feature:SnapshotIdentity"] is not null
+    || builder.Configuration["Feature:SnapshotVersion"] is not null;
 
 try
 {
@@ -35,6 +37,27 @@ catch (ArgumentException)
     return 1;
 }
 
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfiguration);
+builder.Services.AddTransient<PipelineExecution>();
+builder.Services.AddTransient<FeatureExecution>();
+
+using var host = builder.Build();
+if (isFeatureExecutionRequested)
+{
+    try
+    {
+        var featureConfiguration = FeatureExecutionConfiguration.From(builder.Configuration);
+        return host.Services.GetRequiredService<FeatureExecution>().Execute(featureConfiguration);
+    }
+    catch (ArgumentException)
+    {
+        Console.Error.WriteLine("Invalid mandatory feature configuration.");
+        return 1;
+    }
+}
+
+PipelineExecutionConfiguration pipelineExecutionConfiguration;
 try
 {
     pipelineExecutionConfiguration = PipelineExecutionConfiguration.From(builder.Configuration);
@@ -45,10 +68,5 @@ catch (ArgumentException)
     return 1;
 }
 
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfiguration);
-builder.Services.AddTransient<PipelineExecution>();
-
-using var host = builder.Build();
 var execution = host.Services.GetRequiredService<PipelineExecution>();
 return execution.Execute(pipelineExecutionConfiguration);

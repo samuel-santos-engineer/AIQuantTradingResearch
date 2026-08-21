@@ -238,7 +238,7 @@ Validation should verify:
 
 Invalid configuration should fail early with clear diagnostics.
 
-## Implemented Release 1.3 Bounded Execution Configuration
+## Implemented Release 1.3 and 1.4 Bounded Execution Configuration
 
 The current Worker validates external `TwelveData:ApiKey` and
 `Persistence:DatabasePath` plus `Dataset:Target`, `Dataset:From`, and
@@ -250,6 +250,14 @@ Release 1.3 adds no `Pipeline:*` configuration. The fixed topology, identity
 scheme, stage order, and fail-stop policy are Application semantics rather than
 operational switches. No implicit dataset default, in-memory fallback,
 scheduler, retry policy, or dynamic pipeline configuration is implemented.
+
+Release 1.4 adds feature-mode selection through exact
+`Feature:SnapshotIdentity` and `Feature:SnapshotVersion` values. Both are
+mandatory together and identify one accepted immutable snapshot/version. The
+built-in `simple-return-lag-1-v1` definition is code-owned: there is no
+`Feature:Formula`, configurable lag, or rounding option. Feature mode executes
+once and does not invoke provider acquisition. Invalid feature configuration
+fails before feature execution.
 
 ---
 

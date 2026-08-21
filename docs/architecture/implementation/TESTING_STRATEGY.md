@@ -210,7 +210,7 @@ Deterministic testing supports reproducible engineering outcomes.
 
 Testing projects should mirror architectural responsibilities.
 
-Current Release 1.3 organization:
+Current Release 1.4 organization:
 
 ```text
 tests/
@@ -222,11 +222,11 @@ tests/
 
 The implemented test responsibilities are:
 
-The current verified Release 1.3 baseline is 11 Domain, 77 Application, 96 Infrastructure, and 13 Architecture tests: 197 permanent tests in total.
+The current verified Release 1.4 baseline is 11 Domain, 86 Application, 104 Infrastructure, and 13 Architecture tests: 214 permanent tests in total.
 
 * **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
-* **Application.Tests** verifies provider-independent research/persistence and dataset behavior plus fixed pipeline identity, orchestration, validation, fail-stop, equivalence, empty-result, and semantic-evidence behavior using test-owned fakes.
-* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v2, persistence, dataset evidence, retrieval, atomicity, failure mapping, DI composition, and bounded offline Worker-process execution. The suite is offline, deterministic, credential-free, and provider-call-free.
+* **Application.Tests** verifies provider-independent research/persistence and dataset behavior, fixed pipeline semantics, and deterministic feature identities, formula, fidelity, validation, failures, and exact lookup integration using test-owned fakes.
+* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v2, persistence, dataset evidence, retrieval, atomicity, failure mapping, DI composition, and bounded offline Worker-process execution for both pipeline and feature modes. The suite is offline, deterministic, credential-free, and provider-call-free.
 * **Architecture.Tests** verifies structural dependency, ownership, visibility, provider confinement, HTTP confinement, and acyclicity boundaries.
 
 The executable forbidden edges are:

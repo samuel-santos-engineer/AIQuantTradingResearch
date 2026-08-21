@@ -36,6 +36,12 @@ once and exits. Live acquisition, enrichment, publishing, continuous
 observation, configurable DAGs, scheduling, retries, streaming, and durable
 run history remain future capabilities; SQLite remains schema version 2.
 
+Release 1.4 feature generation is deliberately outside this topology. It is a
+separate one-shot Application use case over one exact immutable snapshot, not a
+sixth pipeline stage. It performs only `simple-return-lag-1-v1` with
+`aiq-feature-identity-v1`; it neither acquires provider data nor persists
+feature output.
+
 ---
 
 # Architectural Principles
