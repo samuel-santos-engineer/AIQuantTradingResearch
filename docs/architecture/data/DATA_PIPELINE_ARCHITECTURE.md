@@ -42,6 +42,13 @@ sixth pipeline stage. It performs only `simple-return-lag-1-v1` with
 `aiq-feature-identity-v1`; it neither acquires provider data nor persists
 feature output.
 
+Release 1.5 experiment generation is also deliberately outside the five-stage
+pipeline. Its sole built-in `simple-return-descriptive-summary-v1` consumes one
+accepted Feature Set and returns immutable in-memory count/decimal-summary
+evidence under `aiq-experiment-identity-v1`. It neither acquires provider data,
+persists experiment evidence, evolves SQLite schema v2, nor introduces a sixth
+pipeline stage, scheduler, retry, DAG, or durable run history.
+
 ---
 
 # Architectural Principles

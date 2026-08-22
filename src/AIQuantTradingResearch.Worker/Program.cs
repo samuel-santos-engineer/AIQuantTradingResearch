@@ -1,4 +1,5 @@
 using AIQuantTradingResearch.Application;
+using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Features;
 using AIQuantTradingResearch.Infrastructure;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
@@ -12,8 +13,24 @@ var databasePath = $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConf
 
 TwelveDataConfiguration twelveDataConfiguration;
 SqliteStorageConfiguration sqliteStorageConfiguration;
+var isExperimentExecutionRequested = builder.Configuration["Experiment:SnapshotIdentity"] is not null
+    || builder.Configuration["Experiment:SnapshotVersion"] is not null;
 var isFeatureExecutionRequested = builder.Configuration["Feature:SnapshotIdentity"] is not null
     || builder.Configuration["Feature:SnapshotVersion"] is not null;
+
+ExperimentExecutionConfiguration? experimentExecutionConfiguration = null;
+if (isExperimentExecutionRequested)
+{
+    try
+    {
+        experimentExecutionConfiguration = ExperimentExecutionConfiguration.From(builder.Configuration);
+    }
+    catch (ArgumentException)
+    {
+        Console.Error.WriteLine("Invalid mandatory experiment configuration.");
+        return 1;
+    }
+}
 
 try
 {
@@ -41,8 +58,14 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfiguration);
 builder.Services.AddTransient<PipelineExecution>();
 builder.Services.AddTransient<FeatureExecution>();
+builder.Services.AddTransient<ExperimentExecution>();
 
 using var host = builder.Build();
+if (experimentExecutionConfiguration is not null)
+{
+    return host.Services.GetRequiredService<ExperimentExecution>().Execute(experimentExecutionConfiguration);
+}
+
 if (isFeatureExecutionRequested)
 {
     try

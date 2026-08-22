@@ -204,6 +204,26 @@ input, and integrity conflict remain bounded result failures; unexpected defects
 propagate. No provider DTO, HTTP contract, SQLite record, feature persistence,
 or configurable formula/lag belongs to this Application contract surface.
 
+# Implemented Release 1.5 Experiment Contracts
+
+Application owns `ExperimentDefinition`, typed Experiment Definition/Result
+identities, immutable summary/provenance/lineage evidence,
+`ExperimentGenerationRequest`, `ExperimentGenerationResult`,
+`IExperimentGenerationUseCase`, `IExperimentSummaryComputer`, and
+`IExperimentGenerationValidator`. The sole built-in definition is
+`simple-return-descriptive-summary-v1`; it consumes accepted Feature Set evidence
+and returns count plus exact decimal mean/minimum/maximum when non-empty, or
+count zero with absent aggregates when empty.
+
+`aiq-experiment-identity-v1` uses distinct canonical SHA-256 definition/result
+fingerprints. Result identity binds the exact Feature Set identity, so equivalent
+evidence remains equivalent while different Feature Sets remain distinct even
+when their summaries coincide. The contract exposes bounded failures for invalid
+request/evidence, missing Feature Set, unavailable dependency, numeric evidence,
+and integrity conflict; failures establish no partial Experiment Result and
+unknown defects propagate. It contains no provider, HTTP, SQLite, persistence,
+registry, history, or configurable-statistics contract.
+
 # Contract Evolution
 
 Contracts should evolve conservatively.
