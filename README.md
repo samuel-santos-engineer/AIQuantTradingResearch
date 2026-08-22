@@ -4,8 +4,8 @@
 
 > **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/.NET and an AI-assisted engineering workflow.**
 
-[![Release](https://img.shields.io/badge/release-1.4-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-214%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Release](https://img.shields.io/badge/release-1.5-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-238%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -14,7 +14,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 
 The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current in-progress milestone:** **Release 1.4 — Deterministic Feature Engineering Foundation**
+**Current in-progress milestone:** **Release 1.5 — Deterministic Research Experiment Foundation**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -105,11 +105,29 @@ path, or a feature engine.
 SQLite remains schema version 2. No feature table, catalog, cache, scheduler,
 retry loop, or durable feature run history exists.
 
-### Release 1.4 quality baseline
+### Release 1.5 current foundation
+
+Release 1.5 adds one separate deterministic experiment over an exact accepted
+`simple-return-lag-1-v1` Feature Set: `simple-return-descriptive-summary-v1`.
+Application owns immutable experiment contracts, validation, decimal summary
+computation, Feature Set-to-Experiment provenance/lineage, and distinct
+`aiq-experiment-identity-v1` definition/result identities. Empty Feature Sets
+succeed with count zero and absent aggregates; non-empty evidence contains exact
+count, arithmetic mean, minimum, and maximum. Results are in-memory only and
+remain bound to the exact Feature Set/snapshot evidence.
+
+Worker selects Experiment mode only when `Experiment:SnapshotIdentity` or
+`Experiment:SnapshotVersion` is present; that explicit mode takes precedence
+over Feature mode, which takes precedence over the existing five-stage pipeline.
+Partial Experiment configuration fails without fallback. Experiment execution
+does not acquire provider data, persist results, create experiment tables, or
+alter SQLite schema v2.
+
+### Release 1.5 quality baseline
 
 | Evidence                                    |      Current baseline |
 | ------------------------------------------- | --------------------: |
-| Permanent automated tests                   | **214 passing** |
+| Permanent automated tests                   | **238 passing** |
 | Architecture tests                          |  **13 passing** |
 | Build warnings                              |           **0** |
 | Build errors                                |           **0** |
@@ -203,6 +221,8 @@ For the provider-backed execution path, configuration is supplied externally:
 - `Persistence:DatabasePath` — local SQLite database path.
 - `Dataset:Target`, `Dataset:From`, and `Dataset:To` — explicit dataset input;
   timestamps use invariant round-trip `DateTimeOffset` values.
+- `Experiment:SnapshotIdentity`, `Experiment:SnapshotVersion` — exact
+  immutable snapshot/version input for the code-owned experiment definition.
 
 Secrets and environment-specific paths should not be committed to the repository.
 
@@ -256,6 +276,12 @@ Release 1.4 adds a separate bounded feature mode selected by exact
 `Feature:SnapshotIdentity` and `Feature:SnapshotVersion`. It resolves the
 Application feature use case once over existing snapshot evidence and exits; it
 does not invoke Twelve Data, add a pipeline stage, or persist feature output.
+
+Release 1.5 adds an explicit one-shot Experiment mode selected by exact
+`Experiment:SnapshotIdentity` and `Experiment:SnapshotVersion`. It invokes the
+Application experiment use case once over existing Feature Set evidence, emits
+bounded semantic result/failure evidence, and terminates. It is not a sixth
+pipeline stage, a provider fallback, an experiment registry, or durable history.
 
 ---
 

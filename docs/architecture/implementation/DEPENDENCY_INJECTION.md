@@ -134,6 +134,16 @@ bounded feature execution; it owns no feature-computation semantics. Feature
 output remains in-memory evidence only, with no feature persistence, cache, or
 run history.
 
+Release 1.5 adds transient `IExperimentGenerationUseCase`,
+`IExperimentSummaryComputer`, and `IExperimentGenerationValidator`
+registrations in Application. They reuse the existing transient Feature
+generation graph and snapshot store. Resolution remains side-effect-free: it
+does not look up a snapshot, generate a feature or experiment, create a
+database, call a provider, or persist experiment evidence. Worker binds only
+`Experiment:SnapshotIdentity` and `Experiment:SnapshotVersion`, then invokes
+one code-owned `simple-return-descriptive-summary-v1` request when Experiment
+mode is explicitly selected.
+
 ---
 
 # Architectural Composition

@@ -109,6 +109,17 @@ failure. This evidence is semantic and reproducible; credentials, connection
 strings, provider transport, metrics backends, distributed tracing, dashboards,
 and durable feature execution history are not implemented.
 
+## Implemented Release 1.5 Experiment Evidence
+
+Release 1.5 presents bounded local evidence for one one-shot experiment:
+definition and result identities, exact Feature Set/snapshot/version binding,
+count, and exact decimal aggregates when present, or explicit aggregate absence
+for an empty result. Governed failures present only their bounded category and
+never fabricate a result identity. This is semantic evidence rather than a
+telemetry backend: credentials, provider payloads, metrics/tracing backends,
+durable experiment history, registry, or persisted operational telemetry remain
+unimplemented.
+
 ---
 
 # Metrics

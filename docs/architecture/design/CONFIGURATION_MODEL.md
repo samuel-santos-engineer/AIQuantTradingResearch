@@ -259,6 +259,15 @@ built-in `simple-return-lag-1-v1` definition is code-owned: there is no
 once and does not invoke provider acquisition. Invalid feature configuration
 fails before feature execution.
 
+Release 1.5 adds explicit Experiment-mode selection through
+`Experiment:SnapshotIdentity` and `Experiment:SnapshotVersion`. Both are
+mandatory together and identify one accepted immutable snapshot/version. The
+sole `simple-return-descriptive-summary-v1` definition is code-owned: there is
+no configurable statistic, formula, feature selection, persistence, retry, or
+schedule. Any Experiment selector takes precedence over Feature mode; malformed
+or partial Experiment intent fails before execution and does not fall back to
+Feature or pipeline behavior.
+
 ---
 
 # Override Strategy

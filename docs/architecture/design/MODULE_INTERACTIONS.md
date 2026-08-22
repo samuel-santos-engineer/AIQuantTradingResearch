@@ -125,6 +125,23 @@ Infrastructure contributes only existing SQLite snapshot lookup. Feature
 generation does not call Twelve Data or HTTP, does not persist features, and is
 not a sixth pipeline stage.
 
+## Release 1.5 Experiment Generation
+
+Release 1.5 adds a separate Application-owned request/response interaction over
+one exact successful Feature Set. An exact snapshot identity/version request is
+forwarded through existing feature generation, validated as accepted Feature Set
+evidence, summarized deterministically, and returned as immutable Experiment
+Result evidence. `simple-return-descriptive-summary-v1` is the sole built-in
+definition. `aiq-experiment-identity-v1` binds distinct definition/result
+identities to the exact Feature Set, provenance, and acyclic predecessor lineage.
+
+Worker selects this one-shot mode when either `Experiment:SnapshotIdentity` or
+`Experiment:SnapshotVersion` is explicit; Experiment takes precedence over
+Feature mode, which takes precedence over the existing pipeline. Partial
+Experiment intent fails without fallback. Infrastructure contributes only the
+existing snapshot path: there is no provider acquisition, experiment
+persistence, experiment registry/history, or schema change.
+
 ---
 
 # Interaction Types

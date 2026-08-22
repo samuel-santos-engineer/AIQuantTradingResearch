@@ -1,0 +1,5 @@
+Read `release-1.5-github-planning-codex-prompt.md` completely and use it as the sole authority for this GitHub-planning run; do not rerun or reapply the historical Release 1.5 planning-definition starting-state constraints.
+Treat the accepted Release 1.5 definition, execution plan, file manifest, and this GitHub-planning prompt pair as expected post-definition governance artifacts, not premature Release 1.5 implementation.
+Reconcile existing empty milestone #46, then create or idempotently reconcile exactly WP01–WP13 and add all 13 to milestone #46 and Project #2 using the established Backlog, P1, Release 1.5, Area, and dependency conventions.
+Perform GitHub planning mutations only: do not edit/delete repository artifacts, stage, commit, branch, push, create/merge a PR, change schema/packages/references, begin WP01 implementation, or begin Release 1.6.
+Validate GitHub read-back plus the 214-test technical baseline, report every WP issue number and mutation, and finish with `RELEASE 1.5 GITHUB PLANNING COMPLETE` followed by `NEXT AUTHORIZED WORK PACKAGE: WP01 — Release & Repository Preflight`, or the required blocked marker.

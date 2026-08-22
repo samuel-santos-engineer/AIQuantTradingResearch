@@ -1,4 +1,5 @@
 using AIQuantTradingResearch.Application.Datasets;
+using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Features;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Application.Pipelines;
@@ -20,6 +21,9 @@ public static class DependencyInjection
         services.AddTransient<IFeatureGenerationUseCase, FeatureGenerationUseCase>();
         services.AddTransient<IFeatureComputer, SimpleReturnFeatureComputer>();
         services.AddTransient<IFeatureGenerationValidator, FeatureGenerationValidator>();
+        services.AddTransient<IExperimentGenerationUseCase, ExperimentGenerationUseCase>();
+        services.AddTransient<IExperimentSummaryComputer, SimpleReturnDescriptiveSummaryComputer>();
+        services.AddTransient<IExperimentGenerationValidator, ExperimentGenerationValidator>();
 
         return services;
     }
