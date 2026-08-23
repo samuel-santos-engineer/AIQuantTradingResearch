@@ -222,11 +222,11 @@ tests/
 
 The implemented test responsibilities are:
 
-The current verified Release 1.6 baseline is 11 Domain, 111 Application, 117 Infrastructure, and 13 Architecture tests: 250 permanent tests in total.
+The current verified Release 1.7 baseline is 11 Domain, 119 Application, 125 Infrastructure, and 13 Architecture tests: 268 permanent tests in total.
 
 * **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
-* **Application.Tests** verifies provider-independent research/persistence and dataset behavior, fixed pipeline semantics, deterministic feature semantics, and deterministic experiment identities, summaries, validation, failures, provenance, and exact Feature Set integration using test-owned fakes.
-* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v3, migration, durable Experiment acceptance/retrieval/conflict behavior, dataset evidence, failure mapping, DI composition, and bounded offline Worker-process execution for pipeline, feature, experiment, and Durable Experiment modes. The suite is offline, deterministic, credential-free, and provider-call-free.
+* **Application.Tests** verifies provider-independent research/persistence and dataset behavior, fixed pipeline semantics, deterministic feature and experiment semantics, and durable Evidence Discovery request validation, exact one-call orchestration, empty/non-empty pass-through, bounded failures, and unknown-defect propagation using test-owned fakes.
+* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v3, migration, durable Experiment acceptance/retrieval/conflict behavior, exact dual-identity read-only Evidence Discovery with binary Result Identity ordering and bounds, failure mapping, DI composition, and bounded offline Worker-process execution for pipeline, feature, experiment, Durable Experiment, and Discovery modes. The suite is offline, deterministic, credential-free, and provider-call-free.
 * **Architecture.Tests** verifies structural dependency, ownership, visibility, provider confinement, HTTP confinement, and acyclicity boundaries.
 
 The executable forbidden edges are:
@@ -240,7 +240,7 @@ Application !→ Worker
 Infrastructure !→ Worker
 ```
 
-The 13 architecture tests comprise the preserved dependency, acyclicity, ownership, visibility, provider-confinement, and HTTP-confinement rules. They already protect the stable Release 1.5 structural boundaries; WP12 adds no architecture test because experiment behavior, identities, configuration, and Worker exits belong in the Application and Infrastructure suites.
+The 13 architecture tests comprise the preserved dependency, acyclicity, ownership, visibility, provider-confinement, and HTTP-confinement rules. They already protect the stable Release 1.7 structural boundaries; WP12 adds no architecture test because discovery behavior, identities, configuration, and Worker exits belong in the Application and Infrastructure suites.
 
 Narrow `InternalsVisibleTo` declarations allow Application.Tests and Infrastructure.Tests to directly exercise internal implementations; this is not a general testing policy or runtime dependency. The concrete `Microsoft.Extensions.DependencyInjection` package used by Infrastructure.Tests is test-only and does not alter the production dependency graph.
 

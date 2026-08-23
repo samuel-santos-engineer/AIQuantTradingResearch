@@ -384,3 +384,14 @@ A platform that cannot explain itself cannot continuously improve.
 ## Release 1.6 Durable Experiment Evidence
 
 The one-shot Durable Experiment Worker presents bounded semantic evidence only: the acceptance disposition, typed Experiment Result identity, exact Feature Set and snapshot bindings, count, and present aggregate values. It reports bounded failure categories without connection strings, credentials, database paths, or provider payloads. No telemetry backend, durable run history, random metadata, or operational timestamp participates in durable identity or equivalence.
+
+## Release 1.7 Durable Experiment Evidence Discovery
+
+The one-shot Discovery Worker presents bounded semantic evidence only: exact
+Snapshot and Experiment Definition request identities, requested maximum,
+returned count, and each returned existing Experiment Result identity and durable
+summary/provenance facts. Ordered results and successful empty collections are
+semantic output; no discovery identity, connection string, credential, database
+path, provider payload, telemetry backend, trace, dashboard, or durable
+operational history is emitted. Bounded failures present their established
+category without fabricated evidence.

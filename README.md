@@ -14,7 +14,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 
 The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current in-progress milestone:** **Release 1.5 — Deterministic Research Experiment Foundation**
+**Current in-progress milestone:** **Release 1.7 — Durable Experiment Evidence Discovery**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -123,11 +123,11 @@ Partial Experiment configuration fails without fallback. Experiment execution
 does not acquire provider data, persist results, create experiment tables, or
 alter SQLite schema v2.
 
-### Release 1.5 quality baseline
+### Release 1.7 quality baseline
 
 | Evidence                                    |      Current baseline |
 | ------------------------------------------- | --------------------: |
-| Permanent automated tests                   | **250 passing** |
+| Permanent automated tests                   | **268 passing** |
 | Architecture tests                          |  **13 passing** |
 | Build warnings                              |           **0** |
 | Build errors                                |           **0** |
@@ -140,6 +140,22 @@ alter SQLite schema v2.
 Release 1.6 persists accepted `simple-return-descriptive-summary-v1` Experiment Result evidence in schema v3. `experiment_results` is the single immutable durable-result table. Its exact `aiq-experiment-identity-v1` result identity is the lookup key: first acceptance is `NewlyAccepted`, equivalent reacceptance is `EquivalentExisting`, and contradictory same-identity evidence is `IntegrityConflict`. Exact lookup is read-only and returns durable reduced evidence or `NotFound`; it neither regenerates Feature Values nor calls a provider.
 
 The explicit Durable Experiment Worker mode uses `DurableExperiment:SnapshotIdentity` and `DurableExperiment:SnapshotVersion`, with precedence Durable Experiment → Experiment → Feature → five-stage pipeline. Partial durable intent fails without fallback. Feature Set persistence, experiment registry/history/search, update/delete, retry, and provider acquisition remain deferred.
+
+### Release 1.7 durable Experiment Evidence Discovery
+
+Release 1.7 adds read-only bounded discovery of accepted durable Experiment
+Results for one exact Snapshot Identity and Experiment Definition Identity.
+`DurableExperimentDiscovery:MaximumResultCount` is mandatory and positive;
+matches are ordered by binary Experiment Result Identity ascending, and no
+matches return a successful immutable empty collection rather than `NotFound`.
+Discovery reuses `aiq-experiment-identity-v1` and complete durable evidence
+without generating, accepting, changing, or repairing Experiment Results.
+
+The Worker selects Discovery before Durable Experiment, Experiment, Feature,
+and the fixed pipeline. Partial or malformed discovery intent fails without
+fallback. Discovery remains schema-v3 read-only over `experiment_results`, uses
+no provider or network fallback, and adds no registry, history, search,
+pagination, new index, or persistence mutation.
 
 Release 1.1 is a foundation, not a claim that the full quantitative trading vision is complete. Streaming/live feeds, provider failover, trading execution, AI/ML models, APIs, scheduling, advanced resilience, and production deployment remain future capabilities.
 
@@ -229,6 +245,10 @@ For the provider-backed execution path, configuration is supplied externally:
   timestamps use invariant round-trip `DateTimeOffset` values.
 - `Experiment:SnapshotIdentity`, `Experiment:SnapshotVersion` — exact
   immutable snapshot/version input for the code-owned experiment definition.
+- `DurableExperimentDiscovery:SnapshotIdentity`,
+  `DurableExperimentDiscovery:ExperimentDefinitionIdentity`, and
+  `DurableExperimentDiscovery:MaximumResultCount` — exact bounded
+  read-only durable-evidence discovery input; all three are mandatory.
 
 Secrets and environment-specific paths should not be committed to the repository.
 
@@ -289,6 +309,14 @@ Application experiment use case once over existing Feature Set evidence, emits
 bounded semantic result/failure evidence, and terminates. It is not a sixth
 pipeline stage, a provider fallback, an experiment registry, or durable history.
 
+Release 1.7 adds an explicit one-shot Durable Experiment Evidence Discovery
+mode. It requires exact Snapshot and Experiment Definition identities plus a
+positive maximum, invokes the Application discovery use case once, presents
+ordered bounded durable evidence (including successful empty results), and
+exits. Its precedence is Discovery → Durable Experiment → Experiment →
+Feature → pipeline; it does not write SQLite, regenerate evidence, or call a
+provider.
+
 ---
 
 ## Engineering Evidence
@@ -325,6 +353,9 @@ The current permanent test baseline covers:
 - Dependency injection and configuration.
 - Fixed pipeline identity, orchestration, validation, failure, and evidence semantics.
 - Offline composition and separate one-shot Worker-process validation.
+- Read-only bounded durable Experiment Evidence Discovery, including exact
+  dual-identity filtering, binary identity ordering, empty success, DI, and
+  offline Worker-process routing.
 - Executable architecture rules.
 
 SQLite persistence tests use isolated local databases and deterministic cleanup. Provider/network access is not required by the persistence test suite.

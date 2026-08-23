@@ -347,3 +347,17 @@ A carefully designed contract is an investment in the long-term sustainability o
 ## Implemented Release 1.6 Durable Evidence Contracts
 
 Application owns `IDurableExperimentUseCase`, `IDurableExperimentEvidenceStore`, typed durable evidence, exact retrieval and acceptance request/result types, and the bounded `InvalidRequest`, `NotFound`, `DependencyUnavailable`, `InvalidEvidence`, and `IntegrityConflict` vocabulary. The semantic lookup key remains the existing `aiq-experiment-identity-v1` Result identity; no storage identity is introduced. Durable evidence binds exact Feature Set, definition, snapshot/version, provenance, lineage, and decimal aggregate facts without persisting or fabricating Feature Values. SQLite records and SQL remain Infrastructure details.
+
+## Implemented Release 1.7 Discovery Contracts
+
+Application owns `DurableExperimentDiscoveryRequest`, immutable
+`DurableExperimentDiscoveryResult`,
+`IDurableExperimentEvidenceDiscoveryStore`, and
+`IDurableExperimentDiscoveryUseCase`. A request has exact Snapshot and
+Experiment Definition identities plus a mandatory positive maximum. Valid
+requests return zero or more existing `DurableExperimentEvidence` values in
+ascending Experiment Result Identity order; an empty collection is successful
+and is not `NotFound`. These contracts reuse `aiq-experiment-identity-v1` and
+the Release 1.6 evidence/failure vocabulary without adding a discovery or query
+identity. They contain no SQLite, SQL, provider, write, registry, history, or
+pagination mechanics; unknown defects propagate.

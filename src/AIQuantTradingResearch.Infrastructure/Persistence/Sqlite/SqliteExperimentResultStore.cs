@@ -3,7 +3,9 @@ using Microsoft.Data.Sqlite;
 
 namespace AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 
-internal sealed class SqliteExperimentResultStore : IDurableExperimentEvidenceStore
+internal sealed class SqliteExperimentResultStore :
+    IDurableExperimentEvidenceStore,
+    IDurableExperimentEvidenceDiscoveryStore
 {
     private const string ReadStatement = """
         SELECT
@@ -28,6 +30,34 @@ internal sealed class SqliteExperimentResultStore : IDurableExperimentEvidenceSt
             maximum_canonical
         FROM experiment_results
         WHERE experiment_result_identity = $identity;
+        """;
+
+    private const string DiscoveryStatement = """
+        SELECT
+            experiment_result_identity,
+            experiment_identity_scheme,
+            experiment_definition_name,
+            experiment_definition_identity,
+            feature_identity_scheme,
+            feature_set_identity,
+            feature_definition_identity,
+            dataset_identity_scheme,
+            snapshot_identity,
+            dataset_definition_identity,
+            research_dataset_identity,
+            source_state_identity,
+            source_authority,
+            dataset_observation_count,
+            summary_count,
+            aggregates_present,
+            arithmetic_mean_canonical,
+            minimum_canonical,
+            maximum_canonical
+        FROM experiment_results
+        WHERE snapshot_identity = $snapshotIdentity
+          AND experiment_definition_identity = $definitionIdentity
+        ORDER BY experiment_result_identity COLLATE BINARY ASC
+        LIMIT $maximumResultCount;
         """;
 
     private const string InsertStatement = """
@@ -169,6 +199,41 @@ internal sealed class SqliteExperimentResultStore : IDurableExperimentEvidenceSt
         }
     }
 
+    DurableExperimentDiscoveryResult IDurableExperimentEvidenceDiscoveryStore.Discover(
+        DurableExperimentDiscoveryRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        try
+        {
+            using var connection = connectionFactory.OpenConnection();
+            var records = ReadDiscovery(connection, request);
+            var evidence = records.Select(SqliteExperimentResultMapper.ToEvidence);
+            return DurableExperimentDiscoveryResult.Discovered(evidence);
+        }
+        catch (SqliteException exception) when (IsUnavailable(exception))
+        {
+            return DurableExperimentDiscoveryResult.Failed(
+                DurableExperimentEvidenceFailure.DependencyUnavailable);
+        }
+        catch (SqliteSchemaValidationException)
+        {
+            return DurableExperimentDiscoveryResult.Failed(
+                DurableExperimentEvidenceFailure.InvalidEvidence);
+        }
+        catch (InvalidOperationException exception)
+            when (exception.InnerException is SqliteSchemaValidationException)
+        {
+            return DurableExperimentDiscoveryResult.Failed(
+                DurableExperimentEvidenceFailure.InvalidEvidence);
+        }
+        catch (ArgumentException)
+        {
+            return DurableExperimentDiscoveryResult.Failed(
+                DurableExperimentEvidenceFailure.InvalidEvidence);
+        }
+    }
+
     private static SqliteExperimentResultRecord? Read(
         SqliteConnection connection,
         SqliteTransaction? transaction,
@@ -185,7 +250,36 @@ internal sealed class SqliteExperimentResultStore : IDurableExperimentEvidenceSt
             return null;
         }
 
-        return new SqliteExperimentResultRecord(
+        return ReadRecord(reader);
+    }
+
+    private static List<SqliteExperimentResultRecord> ReadDiscovery(
+        SqliteConnection connection,
+        DurableExperimentDiscoveryRequest request)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = DiscoveryStatement;
+        command.Parameters.AddWithValue(
+            "$snapshotIdentity",
+            request.SnapshotIdentity.Fingerprint);
+        command.Parameters.AddWithValue(
+            "$definitionIdentity",
+            request.DefinitionIdentity.Fingerprint);
+        command.Parameters.AddWithValue(
+            "$maximumResultCount",
+            request.MaximumResultCount);
+        using var reader = command.ExecuteReader();
+        var records = new List<SqliteExperimentResultRecord>();
+
+        while (reader.Read())
+        {
+            records.Add(ReadRecord(reader));
+        }
+
+        return records;
+    }
+
+    private static SqliteExperimentResultRecord ReadRecord(SqliteDataReader reader) => new(
             reader.GetString(0),
             reader.GetString(1),
             reader.GetString(2),
@@ -205,7 +299,6 @@ internal sealed class SqliteExperimentResultStore : IDurableExperimentEvidenceSt
             reader.IsDBNull(16) ? null : reader.GetString(16),
             reader.IsDBNull(17) ? null : reader.GetString(17),
             reader.IsDBNull(18) ? null : reader.GetString(18));
-    }
 
     private static void Insert(
         SqliteConnection connection,

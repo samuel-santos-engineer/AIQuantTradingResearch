@@ -379,3 +379,15 @@ Well-designed composition makes a complex platform feel simple.
 ## Release 1.6 Durable Experiment Composition
 
 `AddApplication` registers `IDurableExperimentUseCase` as `DurableExperimentUseCase`; `AddInfrastructure` registers `IDurableExperimentEvidenceStore` as `SqliteExperimentResultStore`. Each is registered exactly once using the accepted transient lifetime. Resolution is side-effect free: it does not open or migrate SQLite, generate an Experiment, persist evidence, or contact a provider. The Worker reuses `Persistence:DatabasePath` and selects Durable Experiment before Experiment, Feature, and the fixed pipeline when both durable selectors are present.
+
+## Release 1.7 Durable Experiment Evidence Discovery Composition
+
+`AddApplication` registers `IDurableExperimentDiscoveryUseCase` as
+`DurableExperimentDiscoveryUseCase` with the transient lifetime. Infrastructure
+uses one transient `SqliteExperimentResultStore` and forwards both durable
+acceptance and discovery abstractions to that same store implementation; there is
+one effective discovery-store registration. Resolution is side-effect free: it
+does not open or migrate SQLite, query or mutate evidence, execute a Feature or
+Experiment, or contact a provider. The Worker binds the complete
+`DurableExperimentDiscovery:*` request and routes Discovery before Durable
+Experiment, Experiment, Feature, and pipeline execution.

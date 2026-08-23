@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using AIQuantTradingResearch.Application.Datasets;
 using AIQuantTradingResearch.Application.Features;
 
@@ -204,6 +205,28 @@ public sealed record DurableExperimentRetrievalRequest
     public ExperimentResultIdentity Identity { get; }
 }
 
+public sealed record DurableExperimentDiscoveryRequest
+{
+    public DurableExperimentDiscoveryRequest(
+        DatasetSnapshotIdentity snapshotIdentity,
+        ExperimentDefinitionIdentity definitionIdentity,
+        int maximumResultCount)
+    {
+        ArgumentNullException.ThrowIfNull(snapshotIdentity);
+        ArgumentNullException.ThrowIfNull(definitionIdentity);
+
+        SnapshotIdentity = snapshotIdentity;
+        DefinitionIdentity = definitionIdentity;
+        MaximumResultCount = maximumResultCount;
+    }
+
+    public DatasetSnapshotIdentity SnapshotIdentity { get; }
+
+    public ExperimentDefinitionIdentity DefinitionIdentity { get; }
+
+    public int MaximumResultCount { get; }
+}
+
 public sealed record DurableExperimentAcceptanceResult
 {
     private DurableExperimentAcceptanceResult(
@@ -284,11 +307,75 @@ public sealed record DurableExperimentRetrievalResult
     }
 }
 
+public sealed record DurableExperimentDiscoveryResult
+{
+    private DurableExperimentDiscoveryResult(
+        ReadOnlyCollection<DurableExperimentEvidence>? evidence,
+        DurableExperimentEvidenceFailure? failure)
+    {
+        Evidence = evidence;
+        Failure = failure;
+    }
+
+    public bool IsSuccess => Evidence is not null;
+
+    public IReadOnlyList<DurableExperimentEvidence>? Evidence { get; }
+
+    public DurableExperimentEvidenceFailure? Failure { get; }
+
+    public static DurableExperimentDiscoveryResult Discovered(
+        IEnumerable<DurableExperimentEvidence> evidence)
+    {
+        ArgumentNullException.ThrowIfNull(evidence);
+
+        var snapshot = evidence.ToArray();
+
+        if (snapshot.Any(static item => item is null))
+        {
+            throw new ArgumentException(
+                "Discovered durable experiment evidence cannot contain null items.",
+                nameof(evidence));
+        }
+
+        for (var index = 1; index < snapshot.Length; index++)
+        {
+            if (string.CompareOrdinal(
+                    snapshot[index - 1].Identity.Fingerprint,
+                    snapshot[index].Identity.Fingerprint) >= 0)
+            {
+                throw new ArgumentException(
+                    "Discovered durable experiment evidence must be ordered by distinct result identity ascending.",
+                    nameof(evidence));
+            }
+        }
+
+        return new DurableExperimentDiscoveryResult(Array.AsReadOnly(snapshot), null);
+    }
+
+    public static DurableExperimentDiscoveryResult Failed(DurableExperimentEvidenceFailure failure)
+    {
+        if (!Enum.IsDefined(failure))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(failure),
+                failure,
+                "Unknown durable-experiment evidence failure.");
+        }
+
+        return new DurableExperimentDiscoveryResult(null, failure);
+    }
+}
+
 public interface IDurableExperimentEvidenceStore
 {
     DurableExperimentAcceptanceResult Accept(DurableExperimentAcceptanceRequest request);
 
     DurableExperimentRetrievalResult Retrieve(DurableExperimentRetrievalRequest request);
+}
+
+public interface IDurableExperimentEvidenceDiscoveryStore
+{
+    DurableExperimentDiscoveryResult Discover(DurableExperimentDiscoveryRequest request);
 }
 
 public sealed record DurableExperimentUseCaseResult
