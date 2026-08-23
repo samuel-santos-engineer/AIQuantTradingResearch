@@ -1,10 +1,10 @@
-![AIQuantTradingResearch Logo](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/blob/main/imgs/AIQuantTradingResearchBanner-01.jpg?raw=true)	
+![AIQuantTradingResearch Logo](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/blob/main/imgs/AIQuantTradingResearchBanner-01.jpg?raw=true)
 
 # AIQuantTradingResearch
 
-> **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/#/.NET and an AI-assisted engineering workflow.**
+> **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/#/#/#/.NET and an AI-assisted engineering workflow.**
 
-[![Release](https://img.shields.io/badge/release-1.5-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Release](https://img.shields.io/badge/release-1.7-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
 [![Tests](<https://img.shields.io/badge/tests-238%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
@@ -112,7 +112,7 @@ evolution nor durable pipeline run history.
 
 Deliver a deterministic, one-shot Feature Engineering Foundation over canonical Release 1.2 dataset snapshots.
 The only built-in computation is simple-return-lag-1-v1. Application owns feature semantics and orchestration;
-output is in-memory and SQLite remains schema version 2. Feature persistence/catalog/cache, plugins, 
+output is in-memory and SQLite remains schema version 2. Feature persistence/catalog/cache, plugins,
 generalized DAGs, scheduling, retries, live acquisition, model training, and MLOps are excluded.
 
 Release 1.4 adds one separate, deterministic feature-generation use case over
