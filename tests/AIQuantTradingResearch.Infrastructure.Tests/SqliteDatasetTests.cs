@@ -128,9 +128,10 @@ public sealed class SqliteDatasetTests
         }
 
         using var upgraded = database.Factory.OpenConnection();
-        Assert.Equal(2L, Scalar<long>(upgraded, "PRAGMA user_version;"));
+        Assert.Equal(3L, Scalar<long>(upgraded, "PRAGMA user_version;"));
         Assert.Equal(1L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM historical_observations;"));
         Assert.Equal(1L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'dataset_snapshots';"));
+        Assert.Equal(1L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM sqlite_schema WHERE name = 'experiment_results';"));
     }
 
     [Fact]

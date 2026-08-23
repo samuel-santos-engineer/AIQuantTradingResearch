@@ -7,7 +7,7 @@ internal static class SqliteSchemaBootstrapper
 {
     private const string EnableForeignKeysStatement = "PRAGMA foreign_keys = ON;";
     private const string ReadSchemaVersionStatement = "PRAGMA user_version;";
-    private const string WriteSchemaVersionStatement = "PRAGMA user_version = 2;";
+    private const string WriteSchemaVersionStatement = "PRAGMA user_version = 3;";
 
     private static readonly ExpectedColumn[] ExpectedHistoricalObservationColumns =
     {
@@ -47,6 +47,29 @@ internal static class SqliteSchemaBootstrapper
         new("price_text", "TEXT", true, 0),
     };
 
+    private static readonly ExpectedColumn[] ExpectedExperimentResultColumns =
+    {
+        new("experiment_result_identity", "TEXT", true, 1),
+        new("experiment_identity_scheme", "TEXT", true, 0),
+        new("experiment_definition_name", "TEXT", true, 0),
+        new("experiment_definition_identity", "TEXT", true, 0),
+        new("feature_identity_scheme", "TEXT", true, 0),
+        new("feature_set_identity", "TEXT", true, 0),
+        new("feature_definition_identity", "TEXT", true, 0),
+        new("dataset_identity_scheme", "TEXT", true, 0),
+        new("snapshot_identity", "TEXT", true, 0),
+        new("dataset_definition_identity", "TEXT", true, 0),
+        new("research_dataset_identity", "TEXT", true, 0),
+        new("source_state_identity", "TEXT", true, 0),
+        new("source_authority", "INTEGER", true, 0),
+        new("dataset_observation_count", "INTEGER", true, 0),
+        new("summary_count", "INTEGER", true, 0),
+        new("aggregates_present", "INTEGER", true, 0),
+        new("arithmetic_mean_canonical", "TEXT", false, 0),
+        new("minimum_canonical", "TEXT", false, 0),
+        new("maximum_canonical", "TEXT", false, 0),
+    };
+
     private static readonly string[] RequiredHistoricalObservationFragments =
     {
         "target TEXT COLLATE BINARY NOT NULL",
@@ -76,6 +99,19 @@ internal static class SqliteSchemaBootstrapper
         "STRICT, WITHOUT ROWID",
     };
 
+    private static readonly string[] RequiredExperimentResultFragments =
+    {
+        "experiment_result_identity TEXT COLLATE BINARY NOT NULL",
+        "experiment_identity_scheme = 'aiq-experiment-identity-v1'",
+        "experiment_definition_name = 'simple-return-descriptive-summary-v1'",
+        "feature_identity_scheme = 'aiq-feature-identity-v1'",
+        "dataset_identity_scheme = 'aiq-dataset-identity-v1'",
+        "PRIMARY KEY (experiment_result_identity)",
+        "FOREIGN KEY (snapshot_identity) REFERENCES dataset_snapshots(snapshot_identity)",
+        "ON UPDATE RESTRICT ON DELETE RESTRICT",
+        "STRICT, WITHOUT ROWID",
+    };
+
     public static void Bootstrap(SqliteConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
@@ -96,6 +132,8 @@ internal static class SqliteSchemaBootstrapper
             ValidateHistoricalObservationSchema(connection, transaction);
             CreateDatasetSchema(connection, transaction);
             ValidateDatasetSchema(connection, transaction);
+            CreateExperimentResultSchema(connection, transaction);
+            ValidateExperimentResultSchema(connection, transaction);
             Execute(connection, transaction, WriteSchemaVersionStatement);
         }
         else if (version == SqliteHistoricalObservationSchema.Version)
@@ -103,17 +141,28 @@ internal static class SqliteSchemaBootstrapper
             ValidateHistoricalObservationSchema(connection, transaction);
             CreateDatasetSchema(connection, transaction);
             ValidateDatasetSchema(connection, transaction);
+            CreateExperimentResultSchema(connection, transaction);
+            ValidateExperimentResultSchema(connection, transaction);
             Execute(connection, transaction, WriteSchemaVersionStatement);
         }
         else if (version == SqliteDatasetSchema.Version)
         {
             ValidateHistoricalObservationSchema(connection, transaction);
             ValidateDatasetSchema(connection, transaction);
+            CreateExperimentResultSchema(connection, transaction);
+            ValidateExperimentResultSchema(connection, transaction);
+            Execute(connection, transaction, WriteSchemaVersionStatement);
+        }
+        else if (version == SqliteExperimentResultSchema.Version)
+        {
+            ValidateHistoricalObservationSchema(connection, transaction);
+            ValidateDatasetSchema(connection, transaction);
+            ValidateExperimentResultSchema(connection, transaction);
         }
         else
         {
             throw new SqliteSchemaValidationException(
-                $"Unsupported SQLite schema version '{version}'. Expected version '{SqliteDatasetSchema.Version}'.");
+                $"Unsupported SQLite schema version '{version}'. Expected version '{SqliteExperimentResultSchema.Version}'.");
         }
 
         transaction.Commit();
@@ -144,6 +193,13 @@ internal static class SqliteSchemaBootstrapper
         Execute(connection, transaction, SqliteDatasetSchema.CreateSnapshotTableStatement);
         Execute(connection, transaction, SqliteDatasetSchema.CreateObservationTableStatement);
     }
+
+    private static void CreateExperimentResultSchema(
+        SqliteConnection connection,
+        SqliteTransaction transaction) => Execute(
+        connection,
+        transaction,
+        SqliteExperimentResultSchema.CreateTableStatement);
 
     private static void ValidateHistoricalObservationSchema(
         SqliteConnection connection,
@@ -188,6 +244,23 @@ internal static class SqliteSchemaBootstrapper
             SqliteDatasetSchema.ObservationTableName,
             RequiredDatasetObservationFragments);
         ValidateDatasetObservationForeignKey(connection, transaction);
+    }
+
+    private static void ValidateExperimentResultSchema(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        ValidateColumns(
+            connection,
+            transaction,
+            SqliteExperimentResultSchema.TableName,
+            ExpectedExperimentResultColumns);
+        ValidateTableDefinition(
+            connection,
+            transaction,
+            SqliteExperimentResultSchema.TableName,
+            RequiredExperimentResultFragments);
+        ValidateExperimentResultForeignKey(connection, transaction);
     }
 
     private static void ValidateColumns(
@@ -270,6 +343,27 @@ internal static class SqliteSchemaBootstrapper
             || reader.Read())
         {
             throw new SqliteSchemaValidationException("The SQLite dataset-observation foreign key is incompatible.");
+        }
+    }
+
+    private static void ValidateExperimentResultForeignKey(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"PRAGMA foreign_key_list({SqliteExperimentResultSchema.TableName});";
+        using var reader = command.ExecuteReader();
+
+        if (!reader.Read()
+            || !string.Equals(reader.GetString(2), SqliteDatasetSchema.SnapshotTableName, StringComparison.Ordinal)
+            || !string.Equals(reader.GetString(3), "snapshot_identity", StringComparison.Ordinal)
+            || !string.Equals(reader.GetString(4), "snapshot_identity", StringComparison.Ordinal)
+            || !string.Equals(reader.GetString(5), "RESTRICT", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(reader.GetString(6), "RESTRICT", StringComparison.OrdinalIgnoreCase)
+            || reader.Read())
+        {
+            throw new SqliteSchemaValidationException("The SQLite experiment-result foreign key is incompatible.");
         }
     }
 

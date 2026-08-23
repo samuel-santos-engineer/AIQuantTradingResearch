@@ -17,8 +17,16 @@ var isExperimentExecutionRequested = builder.Configuration["Experiment:SnapshotI
     || builder.Configuration["Experiment:SnapshotVersion"] is not null;
 var isFeatureExecutionRequested = builder.Configuration["Feature:SnapshotIdentity"] is not null
     || builder.Configuration["Feature:SnapshotVersion"] is not null;
+var isDurableExperimentExecutionRequested = builder.Configuration["DurableExperiment:SnapshotIdentity"] is not null
+    || builder.Configuration["DurableExperiment:SnapshotVersion"] is not null;
 
 ExperimentExecutionConfiguration? experimentExecutionConfiguration = null;
+DurableExperimentExecutionConfiguration? durableExperimentExecutionConfiguration = null;
+if (isDurableExperimentExecutionRequested)
+{
+    try { durableExperimentExecutionConfiguration = DurableExperimentExecutionConfiguration.From(builder.Configuration); }
+    catch (ArgumentException) { Console.Error.WriteLine("Invalid mandatory durable experiment configuration."); return 1; }
+}
 if (isExperimentExecutionRequested)
 {
     try
@@ -59,8 +67,13 @@ builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfigu
 builder.Services.AddTransient<PipelineExecution>();
 builder.Services.AddTransient<FeatureExecution>();
 builder.Services.AddTransient<ExperimentExecution>();
+builder.Services.AddTransient<DurableExperimentExecution>();
 
 using var host = builder.Build();
+if (durableExperimentExecutionConfiguration is not null)
+{
+    return host.Services.GetRequiredService<DurableExperimentExecution>().Execute(durableExperimentExecutionConfiguration);
+}
 if (experimentExecutionConfiguration is not null)
 {
     return host.Services.GetRequiredService<ExperimentExecution>().Execute(experimentExecutionConfiguration);

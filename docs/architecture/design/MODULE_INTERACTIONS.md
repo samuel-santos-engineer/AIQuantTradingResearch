@@ -366,3 +366,7 @@ Together these documents define how AIQuantTradingResearch modules collaborate w
 Modules should communicate through stable, intentional, and business-oriented contracts.
 
 Well-designed interactions enable independent evolution, reduce coupling, and preserve the autonomy of every architectural capability, allowing AIQuantTradingResearch to grow without sacrificing clarity or maintainability.
+
+## Release 1.6 Durable Experiment Evidence
+
+Worker Durable Experiment intent invokes `IDurableExperimentUseCase` exactly once. Application reuses existing Experiment generation, projects reduced immutable evidence, then calls `IDurableExperimentEvidenceStore.Accept`. Infrastructure owns schema-v3 `experiment_results`, atomic acceptance, exact read-only lookup, and bounded storage classification. Worker owns neither SQL nor persistence semantics. `NewlyAccepted` and `EquivalentExisting` are successes; exact absence is `NotFound` and contradictory same-identity evidence is `IntegrityConflict`.

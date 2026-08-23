@@ -251,6 +251,13 @@ scheme, stage order, and fail-stop policy are Application semantics rather than
 operational switches. No implicit dataset default, in-memory fallback,
 scheduler, retry policy, or dynamic pipeline configuration is implemented.
 
+Release 1.6 adds the explicit Worker-owned Durable Experiment selector pair
+`DurableExperiment:SnapshotIdentity` and `DurableExperiment:SnapshotVersion`.
+Both are required and parsed as invariant typed snapshot identity/version
+evidence. Partial or malformed durable intent fails without borrowing
+Experiment, Feature, or pipeline configuration. It reuses
+`Persistence:DatabasePath`; no separate durable database configuration exists.
+
 Release 1.4 adds feature-mode selection through exact
 `Feature:SnapshotIdentity` and `Feature:SnapshotVersion` values. Both are
 mandatory together and identify one accepted immutable snapshot/version. The
