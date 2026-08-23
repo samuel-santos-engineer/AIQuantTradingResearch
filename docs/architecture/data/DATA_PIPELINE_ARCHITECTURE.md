@@ -34,7 +34,9 @@ result/evidence. Application owns its semantics and first-failure evidence;
 Infrastructure owns the reused SQLite/provider mechanics; Worker invokes it
 once and exits. Live acquisition, enrichment, publishing, continuous
 observation, configurable DAGs, scheduling, retries, streaming, and durable
-run history remain future capabilities; SQLite remains schema version 2.
+run history remain future capabilities. Release 1.6 later evolves SQLite to
+schema v3 only for bounded durable Experiment Result evidence; it does not
+alter the five-stage pipeline.
 
 Release 1.4 feature generation is deliberately outside this topology. It is a
 separate one-shot Application use case over one exact immutable snapshot, not a
@@ -48,6 +50,12 @@ accepted Feature Set and returns immutable in-memory count/decimal-summary
 evidence under `aiq-experiment-identity-v1`. It neither acquires provider data,
 persists experiment evidence, evolves SQLite schema v2, nor introduces a sixth
 pipeline stage, scheduler, retry, DAG, or durable run history.
+
+Release 1.6 adds a downstream explicit Durable Experiment path after accepted
+Experiment generation. Reduced Result evidence is accepted immutably and may be
+looked up exactly by `aiq-experiment-identity-v1`. It is not a pipeline stage,
+does not persist Feature Values, and does not add acquisition, registry/history,
+search, or scheduling behavior.
 
 ---
 

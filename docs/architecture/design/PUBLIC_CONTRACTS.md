@@ -343,3 +343,7 @@ Public contracts are the architectural language of AIQuantTradingResearch.
 They define how capabilities are shared, how modules collaborate, and how the platform evolves without sacrificing clarity, stability, or modularity.
 
 A carefully designed contract is an investment in the long-term sustainability of the entire solution.
+
+## Implemented Release 1.6 Durable Evidence Contracts
+
+Application owns `IDurableExperimentUseCase`, `IDurableExperimentEvidenceStore`, typed durable evidence, exact retrieval and acceptance request/result types, and the bounded `InvalidRequest`, `NotFound`, `DependencyUnavailable`, `InvalidEvidence`, and `IntegrityConflict` vocabulary. The semantic lookup key remains the existing `aiq-experiment-identity-v1` Result identity; no storage identity is introduced. Durable evidence binds exact Feature Set, definition, snapshot/version, provenance, lineage, and decimal aggregate facts without persisting or fabricating Feature Values. SQLite records and SQL remain Infrastructure details.

@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddTransient<IExperimentGenerationUseCase, ExperimentGenerationUseCase>();
         services.AddTransient<IExperimentSummaryComputer, SimpleReturnDescriptiveSummaryComputer>();
         services.AddTransient<IExperimentGenerationValidator, ExperimentGenerationValidator>();
+        services.AddTransient<IDurableExperimentUseCase, DurableExperimentUseCase>();
 
         return services;
     }

@@ -102,7 +102,7 @@ version. Empty and single-observation snapshots are successful empty feature
 sets. This is not a sixth Release 1.3 pipeline stage, a provider acquisition
 path, or a feature engine.
 
-SQLite remains schema version 2. No feature table, catalog, cache, scheduler,
+At the Release 1.4 boundary SQLite remains schema version 2. No feature table, catalog, cache, scheduler,
 retry loop, or durable feature run history exists.
 
 ### Release 1.5 current foundation
@@ -127,13 +127,19 @@ alter SQLite schema v2.
 
 | Evidence                                    |      Current baseline |
 | ------------------------------------------- | --------------------: |
-| Permanent automated tests                   | **238 passing** |
+| Permanent automated tests                   | **250 passing** |
 | Architecture tests                          |  **13 passing** |
 | Build warnings                              |           **0** |
 | Build errors                                |           **0** |
 | Canonical repository verification           |        **PASS** |
 | Provider/network calls in persistence tests |           **0** |
 | Production dependency cycles                |           **0** |
+
+### Release 1.6 durable Experiment evidence
+
+Release 1.6 persists accepted `simple-return-descriptive-summary-v1` Experiment Result evidence in schema v3. `experiment_results` is the single immutable durable-result table. Its exact `aiq-experiment-identity-v1` result identity is the lookup key: first acceptance is `NewlyAccepted`, equivalent reacceptance is `EquivalentExisting`, and contradictory same-identity evidence is `IntegrityConflict`. Exact lookup is read-only and returns durable reduced evidence or `NotFound`; it neither regenerates Feature Values nor calls a provider.
+
+The explicit Durable Experiment Worker mode uses `DurableExperiment:SnapshotIdentity` and `DurableExperiment:SnapshotVersion`, with precedence Durable Experiment → Experiment → Feature → five-stage pipeline. Partial durable intent fails without fallback. Feature Set persistence, experiment registry/history/search, update/delete, retry, and provider acquisition remain deferred.
 
 Release 1.1 is a foundation, not a claim that the full quantitative trading vision is complete. Streaming/live feeds, provider failover, trading execution, AI/ML models, APIs, scheduling, advanced resilience, and production deployment remain future capabilities.
 

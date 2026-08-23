@@ -222,11 +222,11 @@ tests/
 
 The implemented test responsibilities are:
 
-The current verified Release 1.5 baseline is 11 Domain, 102 Application, 112 Infrastructure, and 13 Architecture tests: 238 permanent tests in total.
+The current verified Release 1.6 baseline is 11 Domain, 111 Application, 117 Infrastructure, and 13 Architecture tests: 250 permanent tests in total.
 
 * **Domain.Tests** verifies price and series invariants plus deterministic mean behavior.
 * **Application.Tests** verifies provider-independent research/persistence and dataset behavior, fixed pipeline semantics, deterministic feature semantics, and deterministic experiment identities, summaries, validation, failures, provenance, and exact Feature Set integration using test-owned fakes.
-* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v2, persistence, dataset evidence, retrieval, atomicity, failure mapping, DI composition, and bounded offline Worker-process execution for pipeline, feature, and experiment modes. The suite is offline, deterministic, credential-free, and provider-call-free.
+* **Infrastructure.Tests** verifies Twelve Data transport/normalization and isolated SQLite schema v3, migration, durable Experiment acceptance/retrieval/conflict behavior, dataset evidence, failure mapping, DI composition, and bounded offline Worker-process execution for pipeline, feature, experiment, and Durable Experiment modes. The suite is offline, deterministic, credential-free, and provider-call-free.
 * **Architecture.Tests** verifies structural dependency, ownership, visibility, provider confinement, HTTP confinement, and acyclicity boundaries.
 
 The executable forbidden edges are:

@@ -71,7 +71,7 @@ public sealed class ExperimentCompositionTests
         Assert.Equal(ReadValue(first.StandardOutput, "Feature set identity: "), ReadValue(second.StandardOutput, "Feature set identity: "));
         Assert.Equal(ReadValue(first.StandardOutput, "Experiment result identity: "), ReadValue(second.StandardOutput, "Experiment result identity: "));
         Assert.Empty(first.StandardError);
-        AssertNoExperimentTables(database);
+        AssertExpectedExperimentResultTable(database);
     }
 
     [Theory]
@@ -94,7 +94,7 @@ public sealed class ExperimentCompositionTests
         Assert.Contains("Experiment result identity: ", result.StandardOutput, StringComparison.Ordinal);
         Assert.DoesNotContain("Experiment arithmetic mean:", result.StandardOutput, StringComparison.Ordinal);
         Assert.Empty(result.StandardError);
-        AssertNoExperimentTables(database);
+        AssertExpectedExperimentResultTable(database);
     }
 
     [Theory]
@@ -130,7 +130,7 @@ public sealed class ExperimentCompositionTests
         Assert.Contains("Experiment failure: FeatureSetNotFound", result.StandardError, StringComparison.Ordinal);
         Assert.DoesNotContain("Experiment result identity:", result.StandardOutput, StringComparison.Ordinal);
         Assert.DoesNotContain("wp11-dummy-api-key", string.Concat(result.StandardOutput, result.StandardError), StringComparison.Ordinal);
-        AssertNoExperimentTables(database);
+        AssertExpectedExperimentResultTable(database);
     }
 
     [Fact]
@@ -176,14 +176,16 @@ public sealed class ExperimentCompositionTests
         using var connection = database.Factory.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA user_version;";
-        Assert.Equal(2L, (long)command.ExecuteScalar()!);
+        Assert.Equal(3L, (long)command.ExecuteScalar()!);
     }
 
-    private static void AssertNoExperimentTables(TemporaryDatabase database)
+    private static void AssertExpectedExperimentResultTable(TemporaryDatabase database)
     {
         using var connection = database.Factory.OpenConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name LIKE 'experiment%';";
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'experiment_results';";
+        Assert.Equal(1L, (long)command.ExecuteScalar()!);
+        command.CommandText = "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND (name LIKE 'experiment%' AND name <> 'experiment_results');";
         Assert.Equal(0L, (long)command.ExecuteScalar()!);
     }
 

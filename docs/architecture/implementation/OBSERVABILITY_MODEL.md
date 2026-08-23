@@ -380,3 +380,7 @@ Observability transforms execution into understanding.
 AIQuantTradingResearch treats operational visibility as a first-class architectural capability, enabling engineers to explain behavior, validate resilience, improve performance, and evolve the platform with confidence.
 
 A platform that cannot explain itself cannot continuously improve.
+
+## Release 1.6 Durable Experiment Evidence
+
+The one-shot Durable Experiment Worker presents bounded semantic evidence only: the acceptance disposition, typed Experiment Result identity, exact Feature Set and snapshot bindings, count, and present aggregate values. It reports bounded failure categories without connection strings, credentials, database paths, or provider payloads. No telemetry backend, durable run history, random metadata, or operational timestamp participates in durable identity or equivalence.

@@ -375,3 +375,7 @@ Dependency Injection is the architecture's assembly mechanism.
 AIQuantTradingResearch composes software through explicit, centralized, and modular dependency management that preserves architectural boundaries, enables extensibility, and simplifies long-term evolution.
 
 Well-designed composition makes a complex platform feel simple.
+
+## Release 1.6 Durable Experiment Composition
+
+`AddApplication` registers `IDurableExperimentUseCase` as `DurableExperimentUseCase`; `AddInfrastructure` registers `IDurableExperimentEvidenceStore` as `SqliteExperimentResultStore`. Each is registered exactly once using the accepted transient lifetime. Resolution is side-effect free: it does not open or migrate SQLite, generate an Experiment, persist evidence, or contact a provider. The Worker reuses `Persistence:DatabasePath` and selects Durable Experiment before Experiment, Feature, and the fixed pipeline when both durable selectors are present.

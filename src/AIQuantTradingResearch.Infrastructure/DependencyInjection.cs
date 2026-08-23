@@ -1,4 +1,5 @@
 using AIQuantTradingResearch.Application.Datasets;
+using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
@@ -53,6 +54,7 @@ public static class DependencyInjection
         services.AddTransient<IHistoricalObservationStore, SqliteHistoricalObservationStore>();
         services.AddTransient<IDatasetSnapshotStore, SqliteDatasetSnapshotStore>();
         services.AddTransient<IDatasetCatalog, SqliteDatasetCatalog>();
+        services.AddTransient<IDurableExperimentEvidenceStore, SqliteExperimentResultStore>();
 
         return services;
     }

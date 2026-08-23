@@ -166,6 +166,10 @@ Priority should be given to:
 
 Tests should be deterministic, independent, readable, and automated.
 
+### Process-Level Validation Prerequisites
+
+Process-level validation work packages must identify a repository-native fixture or seeding path during planning. When validation depends on synthetic durable state, the execution authority must explicitly select reuse of existing permanent test helpers, a removable probe hosted by an existing test project with the required internal access, or a dedicated supported validation-fixture mechanism already established by the repository. The authority must also define prerequisite construction, cleanup, residue checks, and whether any temporary artifact must survive across validation checkpoints. External ad hoc probes must not bypass repository visibility boundaries or require production types to be made public solely for validation.
+
 ---
 
 # Managing Technical Debt

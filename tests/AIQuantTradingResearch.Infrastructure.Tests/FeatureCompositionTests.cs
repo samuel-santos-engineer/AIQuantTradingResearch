@@ -158,7 +158,7 @@ public sealed class FeatureCompositionTests
         using var connection = database.Factory.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA user_version;";
-        Assert.Equal(2L, (long)command.ExecuteScalar()!);
+        Assert.Equal(3L, (long)command.ExecuteScalar()!);
     }
 
     private static void AssertNoFeatureTables(TemporaryDatabase database)
