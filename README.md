@@ -2,7 +2,7 @@
 
 # AIQuantTradingResearch
 
-> **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C#/#/#/#/.NET and an AI-assisted engineering workflow.**
+> **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C# .NET and an AI-assisted engineering workflow.**
 
 [![Release](https://img.shields.io/badge/release-1.7-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
 [![Tests](<https://img.shields.io/badge/tests-238%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
