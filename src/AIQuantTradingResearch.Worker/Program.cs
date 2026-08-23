@@ -19,15 +19,33 @@ var isFeatureExecutionRequested = builder.Configuration["Feature:SnapshotIdentit
     || builder.Configuration["Feature:SnapshotVersion"] is not null;
 var isDurableExperimentExecutionRequested = builder.Configuration["DurableExperiment:SnapshotIdentity"] is not null
     || builder.Configuration["DurableExperiment:SnapshotVersion"] is not null;
+var isDurableExperimentDiscoveryRequested =
+    builder.Configuration["DurableExperimentDiscovery:SnapshotIdentity"] is not null
+    || builder.Configuration["DurableExperimentDiscovery:ExperimentDefinitionIdentity"] is not null
+    || builder.Configuration["DurableExperimentDiscovery:MaximumResultCount"] is not null;
 
 ExperimentExecutionConfiguration? experimentExecutionConfiguration = null;
 DurableExperimentExecutionConfiguration? durableExperimentExecutionConfiguration = null;
-if (isDurableExperimentExecutionRequested)
+DurableExperimentDiscoveryConfiguration? durableExperimentDiscoveryConfiguration = null;
+if (isDurableExperimentDiscoveryRequested)
+{
+    try
+    {
+        durableExperimentDiscoveryConfiguration =
+            DurableExperimentDiscoveryConfiguration.From(builder.Configuration);
+    }
+    catch (ArgumentException)
+    {
+        Console.Error.WriteLine("Invalid mandatory durable experiment discovery configuration.");
+        return 1;
+    }
+}
+else if (isDurableExperimentExecutionRequested)
 {
     try { durableExperimentExecutionConfiguration = DurableExperimentExecutionConfiguration.From(builder.Configuration); }
     catch (ArgumentException) { Console.Error.WriteLine("Invalid mandatory durable experiment configuration."); return 1; }
 }
-if (isExperimentExecutionRequested)
+if (!isDurableExperimentDiscoveryRequested && isExperimentExecutionRequested)
 {
     try
     {
@@ -68,8 +86,14 @@ builder.Services.AddTransient<PipelineExecution>();
 builder.Services.AddTransient<FeatureExecution>();
 builder.Services.AddTransient<ExperimentExecution>();
 builder.Services.AddTransient<DurableExperimentExecution>();
+builder.Services.AddTransient<DurableExperimentDiscoveryExecution>();
 
 using var host = builder.Build();
+if (durableExperimentDiscoveryConfiguration is not null)
+{
+    return host.Services.GetRequiredService<DurableExperimentDiscoveryExecution>()
+        .Execute(durableExperimentDiscoveryConfiguration);
+}
 if (durableExperimentExecutionConfiguration is not null)
 {
     return host.Services.GetRequiredService<DurableExperimentExecution>().Execute(durableExperimentExecutionConfiguration);

@@ -57,6 +57,15 @@ looked up exactly by `aiq-experiment-identity-v1`. It is not a pipeline stage,
 does not persist Feature Values, and does not add acquisition, registry/history,
 search, or scheduling behavior.
 
+Release 1.7 adds a separate downstream, read-only Durable Experiment Evidence
+Discovery path. It selects already accepted `experiment_results` by exact
+Snapshot Identity and Experiment Definition Identity, orders existing Experiment
+Result Identities in ascending binary order, and returns at most the caller's
+positive bound. An empty match is a successful immutable collection. Discovery
+does not regenerate, accept, alter, or repair evidence; it preserves schema v3
+and is not a sixth pipeline stage, registry/history/search platform, provider
+path, or scheduling behavior.
+
 ---
 
 # Architectural Principles

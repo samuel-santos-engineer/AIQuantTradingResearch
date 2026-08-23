@@ -370,3 +370,16 @@ Well-designed interactions enable independent evolution, reduce coupling, and pr
 ## Release 1.6 Durable Experiment Evidence
 
 Worker Durable Experiment intent invokes `IDurableExperimentUseCase` exactly once. Application reuses existing Experiment generation, projects reduced immutable evidence, then calls `IDurableExperimentEvidenceStore.Accept`. Infrastructure owns schema-v3 `experiment_results`, atomic acceptance, exact read-only lookup, and bounded storage classification. Worker owns neither SQL nor persistence semantics. `NewlyAccepted` and `EquivalentExisting` are successes; exact absence is `NotFound` and contradictory same-identity evidence is `IntegrityConflict`.
+
+## Release 1.7 Durable Experiment Evidence Discovery
+
+Worker Discovery intent invokes `IDurableExperimentDiscoveryUseCase` exactly
+once. Application validates the exact Snapshot Identity, exact Experiment
+Definition Identity, and positive bound, then calls its storage-independent
+discovery abstraction once. Infrastructure forwards that abstraction through the
+SQLite Experiment Result store, which reads schema-v3 `experiment_results` with
+the exact dual-identity predicate and binary Result Identity ordering. Returned
+`DurableExperimentEvidence` is complete immutable predecessor evidence; zero
+matches are a successful empty collection. Worker owns configuration, precedence,
+bounded presentation, and exit behavior, never SQL, store mechanics, provider
+fallback, retries, or writes.

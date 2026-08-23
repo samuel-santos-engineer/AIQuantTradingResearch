@@ -330,6 +330,22 @@ The platform should be able to determine:
 
 Configuration diagnostics should assist troubleshooting without exposing sensitive information.
 
+## Implemented Release 1.7 Discovery Configuration
+
+The one-shot Durable Experiment Evidence Discovery mode is selected only by the
+complete `DurableExperimentDiscovery` configuration group:
+
+* `SnapshotIdentity`
+* `ExperimentDefinitionIdentity`
+* `MaximumResultCount`
+
+All values are mandatory; the maximum uses invariant positive-integer parsing.
+Any partial, malformed, non-positive, or incoherent discovery intent fails
+before execution and cannot fall back to another Worker mode. A complete
+Discovery intent takes precedence over Durable Experiment, Experiment, Feature,
+and the fixed pipeline. Configuration binds request intent only: it does not
+grant SQL access, create a database, call a provider, or change durable evidence.
+
 ---
 
 # Anti-Patterns

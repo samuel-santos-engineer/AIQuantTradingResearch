@@ -54,7 +54,11 @@ public static class DependencyInjection
         services.AddTransient<IHistoricalObservationStore, SqliteHistoricalObservationStore>();
         services.AddTransient<IDatasetSnapshotStore, SqliteDatasetSnapshotStore>();
         services.AddTransient<IDatasetCatalog, SqliteDatasetCatalog>();
-        services.AddTransient<IDurableExperimentEvidenceStore, SqliteExperimentResultStore>();
+        services.AddTransient<SqliteExperimentResultStore>();
+        services.AddTransient<IDurableExperimentEvidenceStore>(
+            static serviceProvider => serviceProvider.GetRequiredService<SqliteExperimentResultStore>());
+        services.AddTransient<IDurableExperimentEvidenceDiscoveryStore>(
+            static serviceProvider => serviceProvider.GetRequiredService<SqliteExperimentResultStore>());
 
         return services;
     }
