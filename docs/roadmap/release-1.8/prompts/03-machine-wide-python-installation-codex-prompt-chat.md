@@ -1,0 +1,5 @@
+Read `03-machine-wide-python-installation-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP03 — Machine-Wide Python Installation, GitHub issue #213.
+Install the governed Python 3.13 latest secure/current patch from an official/trusted source at Windows machine scope, proving x64 provenance, deterministic real-interpreter resolution, fresh-PowerShell behavior, base pip visibility, venv capability, and neutral-directory use.
+Protect against the WindowsApps alias and verify NumPy, pandas, scikit-learn, and Streamlit are not installed globally; do not create the AIQuantTradingResearch venv or install project dependencies.
+Preserve repository product/tests/schema/.NET packages/projects/references and do not configure VS Code, implement .NET↔Python/Streamlit/ML, execute WP04+, perform Git integration, or begin Release 1.9.
+Run E1–E20 plus canonical 268/268 validation, close #213 Done only on success, and finish with the authority's exact Python-runtime and WP04 completion markers.

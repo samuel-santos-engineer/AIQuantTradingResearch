@@ -1,0 +1,5 @@
+Read `release-1.8-wp02-documentation-completion-codex-prompt.md` completely and execute it as the sole authority for the post-WP02 engineering-selection-record correction.
+Apply the standing rule that every foundational external runtime/library/framework/tool requires an explicit selection record; create separate records for Python, NumPy, pandas, scikit-learn, and Streamlit and minimally reconcile the Release 1.8 manifest/governance surface.
+Preserve Python 3.13 as selected, but do not invent exact NumPy/pandas/scikit-learn/Streamlit versions if later dependency governance has not selected them; document rationale, alternatives, trade-offs, version policy, boundaries, and reconsideration triggers.
+This is documentation-only: do not install/configure Python/packages/venvs/VS Code, change production/tests/schema/packages/projects/references, execute WP03, begin Release 1.9, or perform Git integration.
+Validate the 268/268 baseline and all documentation/security/diff gates, keep #212 Closed/Done and #213 Open/Backlog, then finish with the authority's exact completion markers.

@@ -1,0 +1,5 @@
+Read `07-scientific-machine-learning-library-foundation-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP07 — Scientific & Machine Learning Library Foundation, GitHub issue #217.
+Using current authoritative upstream evidence rather than model memory, select exact stable Python-3.13-compatible versions of NumPy, pandas, scikit-learn, and Streamlit; reconcile their selection records and pin exactly those four direct dependencies in `requirements.txt`.
+Install only through the governed `.venv` interpreter, classify resolved transitives, run `pip check` plus bounded import/version/functionality checks, and prove the machine-global Python environment remains free of all four project dependencies.
+Delete/recreate `.venv` and reinstall from `requirements.txt` to prove direct-version reproducibility; do not introduce another lock/dependency tool, production Python/.NET integration, ML models, Streamlit application work, WP08+, Git integration, or Release 1.9 work.
+Run LIB1–LIB20 plus canonical 268/268 validation, close #217 Done only on success, and finish with the authority's exact library-foundation and next-WP markers.

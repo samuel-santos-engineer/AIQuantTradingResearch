@@ -1,0 +1,3 @@
+namespace AIQuantTradingResearch.Infrastructure.PythonIntegration;
+
+public sealed record PythonIntegrationConfiguration(string RepositoryRoot);

@@ -1,0 +1,5 @@
+Read `06-python-dependency-governance-environment-rules-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP06 — Python Dependency Governance & Environment Rules, GitHub issue #216.
+Establish durable machine-vs-project ownership, `.venv`-only installation, interpreter-qualified pip usage, authoritative dependency declaration/version/reproducibility/security rules, direct-vs-transitive boundaries, and controlled upgrade/removal workflows.
+Reconcile the existing NumPy, pandas, scikit-learn, and Streamlit selection records with those rules; select exact versions only if the accepted WP06 planning authority explicitly assigns that decision here, otherwise preserve explicit deferral.
+Do not introduce an ungoverned dependency manager, globally install project packages, prematurely implement Python/.NET/UI/ML, change schema/.NET dependencies, execute WP07+, perform Git integration, or begin Release 1.9.
+Run DG1–DG20 plus canonical 268/268 validation, close #216 Done only on success, and finish with the authority's exact dependency-governance and next-WP markers.

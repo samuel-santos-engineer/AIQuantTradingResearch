@@ -1,0 +1,5 @@
+Read `release-1.8-wp08-manifest-validation-shape-reconciliation-codex-prompt.md` completely and execute it as the sole corrective authority for the blocked WP08/#218 manifest gate.
+Freeze WP08's exact validation-only structure as `python/validation/scientific_stack_validation.py` and `python/validation/streamlit_validation_app.py`, using deterministic executable scripts rather than introducing pytest or another external test framework.
+Update only `RELEASE_1.8_FILE_MANIFEST.md` to govern that exact path/shape, explicitly preserve its non-production status, and keep WP09 as owner of .NET↔Python integration architecture and later work packages as owners of permanent Python tests.
+Do not create the validation scripts yet, execute WP08, change dependency versions/packages/.venv, introduce production Python structure, modify schema/.NET dependencies, perform Git integration, or begin WP09/Release 1.9.
+Validate the manifest-only correction, keep #218 Open/Backlog, add only the authorized corrective evidence comment, and finish with the authority's exact reconciliation and resume-WP08 markers.

@@ -1,0 +1,5 @@
+Execute the corrective authority in `release-1.8-partial-github-planning-reconciliation-codex-prompt.md` using the human-accepted Release 1.8 planning artifacts and existing GitHub Planning authority as inputs.
+First reconcile the live partial state for milestone #56 and issues #211/#212; preserve valid objects, query Project #2 membership before additions, and treat `Content already exists in this project` as a read-back signal rather than a creation failure.
+Only after WP01/WP02 are fully reconciled to Open/assigned/milestone #56/Backlog/P1/Release 1.8/authoritative Area with exact membership and dependency state, complete WP03–WP13 sequentially with immediate read-back after every mutation.
+Do not delete/recreate valid objects, create duplicates or WP14+, modify repository/Git/Python state, execute implementation, or begin Release 1.9; stop on any new ambiguity.
+Perform the complete final GitHub and repository read-back and finish with the authority's exact four completion markers without executing WP01.

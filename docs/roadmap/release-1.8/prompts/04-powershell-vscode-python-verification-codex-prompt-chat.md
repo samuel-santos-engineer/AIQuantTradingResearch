@@ -1,0 +1,5 @@
+Read `04-powershell-vscode-python-verification-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP04 — PowerShell & VS Code Python Verification, GitHub issue #214.
+Verify official machine CPython 3.13.15 deterministically from current/fresh/neutral-directory PowerShell and prove VS Code discovery/selection and integrated-terminal behavior truthfully, preserving WindowsApps-alias and environment-isolation safeguards.
+Establish only the portable interpreter policy: machine Python is the bootstrap runtime now and the future project-local venv becomes preferred after creation; never commit user-specific absolute interpreter paths.
+Do not create the project venv, install NumPy/pandas/scikit-learn/Streamlit or unauthorized extensions, change user/global VS Code or PowerShell settings, implement Python/.NET/UI/ML, execute WP05+, or perform Git integration.
+Run V1–V20 plus canonical 268/268 validation, close #214 Done only on success, and finish with the authority's exact verification and WP05 completion markers.

@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Version:** 1.0
-**Last Updated:** 2026-08-06
+**Last Updated:** 2026-08-24
 **Maintainers:** AIQuantTradingResearch Team
 
 ---
@@ -32,6 +32,30 @@ The format follows the principles of **Keep a Changelog** and adheres to **Seman
 - CI/CD Pipeline
 - Observability
 - Cloud Deployment
+
+---
+
+## [1.8.0] - 2026-08-24
+
+### Added
+
+- Governed PSF CPython 3.13 foundation with an isolated, disposable project `.venv`.
+- Exact NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0, and Streamlit 1.61.1 dependency foundation.
+- Deterministic offline scientific-stack and Streamlit validation.
+- One-shot local `.NET ↔ Python` interoperability through versioned JSON-over-stdio.
+- Permanent Application and Infrastructure interoperability tests.
+- Portable Python developer-environment guidance and foundational selection records.
+
+### Changed
+
+- Permanent verification baseline increased to 281 passing tests with zero skipped.
+- Current architecture and testing documentation aligned with the Release 1.8 foundation.
+
+### Security
+
+- Project dependencies remain isolated from machine Python, integration execution remains local and bounded, and schema v3 is unchanged.
+
+Release 1.8 provides Python and interoperability readiness only. Release 1.9 machine-learning behavior has not begun.
 
 ---
 

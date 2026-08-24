@@ -4,8 +4,8 @@
 
 > **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C# .NET and an AI-assisted engineering workflow.**
 
-[![Release](https://img.shields.io/badge/release-1.7-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-238%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Release](https://img.shields.io/badge/release-1.8-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-281%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -16,7 +16,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 
 **Current closed milestone:** **[Release 1.7: Durable Experiment Evidence Discover](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/55)**
 
-**Current in-progress milestone:** **[Release 1.8: Python & AI Engineering Foundation]([github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/56](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/56))**
+**Current accepted milestone:** **[Release 1.8: Python & AI Engineering Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/56)** — closed with all 13 work packages complete.
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -31,6 +31,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 - **Experiment Metrics (v1.5):** Descriptive aggregate computations (mean, min, max).
 - **Durable Evidence (v1.6):** Schema v3 persistence mapping outcomes to `NewlyAccepted` or `IntegrityConflict` states.
 - **Evidence Discovery (v1.7):** Mandatory bounded discovery (`MaximumResultCount`) returning ordered binary-sorted collections.
+- **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary; Release 1.9 ML behavior has not begun.
 
 ### [Release 1.1: Market Data Persistence Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/52)
 
@@ -180,7 +181,7 @@ pagination, new index, or persistence mutation.
 
 | Evidence                                    | Current baseline |
 | --------------------------------------------- | -----------------: |
-| Permanent automated tests                   |  **268 passing** |
+| Permanent automated tests                   |  **281 passing** |
 | Architecture tests                          |   **13 passing** |
 | Build warnings                              |            **0** |
 | Build errors                                |            **0** |
@@ -218,7 +219,7 @@ Worker          → Application, Infrastructure
 | -------------------- | ------------------------------------------------------------------------------------------------------------- |
 | **Domain**         | Core quantitative concepts and invariants without provider or storage dependencies.                         |
 | **Application**    | Use cases and contracts that express platform behavior independently of infrastructure technology.          |
-| **Infrastructure** | Twelve Data integration, SQLite persistence, connection/bootstrap behavior, and infrastructure composition. |
+| **Infrastructure** | Twelve Data integration, SQLite persistence, connection/bootstrap behavior, and the local Python process adapter. |
 | **Worker**         | Composition and bounded execution root for the current vertical slice.                                      |
 
 This keeps market-data providers and persistence technologies replaceable without pushing those concerns into the core model.
@@ -268,6 +269,14 @@ For deeper, independently reproducible evidence, continue with the **[Platform E
 ### Prerequisites
 
 The repository is built around the .NET SDK version pinned by `global.json`.
+
+Release 1.8 also uses machine CPython **3.13.15** as the base runtime and an
+ignored, disposable repository-local `.venv` for every project dependency.
+The four direct pins are NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0, and
+Streamlit 1.61.1. See the [Python developer environment guide](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
+and the [interoperability boundary](docs/architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md).
+The Python foundation supplies no product ML model, training workflow, or
+Streamlit product application; those remain Release 1.9 work.
 
 For the provider-backed execution path, configuration is supplied externally:
 

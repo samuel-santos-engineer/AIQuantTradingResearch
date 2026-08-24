@@ -1,0 +1,5 @@
+Read `01-release-repository-preflight-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP01 — Release & Repository Preflight, GitHub issue #211.
+Use `651c45bd0df0b717b2bb5ad272ec8c890612fb6d` as the authoritative Release 1.8 planning baseline and preserve Release 1.7 `f8e521af2c5262d6cc173d0731b5e915dbceac0a` only as the closed historical predecessor.
+Perform read-only repository/GitHub/environment inventory plus canonical .NET 268/268 verification, schema-v3/dependency/security checks, and verify no premature Python/Release 1.9 implementation; Python discovery is observational only.
+Do not install/configure Python, create venvs/packages, modify repository/Git/schema/packages/projects/references, stage/commit/push/branch/PR, or execute WP02+.
+On success close #211 Done, leave #212–#223 OPEN/Backlog, and end exactly with `RELEASE 1.8 WP01 COMPLETE` and `NEXT AUTHORIZED WORK PACKAGE: WP02 — Python Runtime Compatibility & Version Selection — GitHub issue #212`.

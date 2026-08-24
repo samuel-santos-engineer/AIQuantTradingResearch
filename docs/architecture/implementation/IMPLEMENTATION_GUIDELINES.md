@@ -268,6 +268,14 @@ These practices increase maintenance cost and reduce architectural clarity.
 
 Implementation decisions should remain consistent with the project's engineering governance.
 
+Every foundational external runtime, library, framework, or tool introduced
+into the platform must have an explicit engineering selection record
+describing why it was selected, alternatives considered, accepted
+trade-offs, version policy, architectural boundaries, and conditions that
+would cause the decision to be revisited. Technology selection and exact
+package-version selection are separate decisions; a selection record must
+defer the exact version when later dependency-governance authority owns it.
+
 When implementation requires significant architectural deviation:
 
 * Revisit the relevant architectural document.

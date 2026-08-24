@@ -313,6 +313,7 @@ RECOVERABLE DATA PLATFORM
 
 | Order | Guide | Role | Primary Outcome |
 | --- | --- | --- | --- |
+| Foundation | [PYTHON_DEVELOPER_ENVIRONMENT.md](./PYTHON_DEVELOPER_ENVIRONMENT.md) | Developer environment | Restore and validate the isolated Release 1.8 Python foundation without implying Release 1.9 product behavior. |
 | Start | [LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md) | Getting started | Run the platform locally and see a real result. |
 | 1 | [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md) | Verification | Acquire real historical observations from Twelve Data. |
 | 2 | [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md) | Verification | Prove accepted observations survive process termination. |
@@ -761,6 +762,7 @@ That is the purpose of `docs/guides/`.
 ## Quick Navigation
 
 - **New to the project?** Start with [LOCAL_PLATFORM_EXECUTION.md](./LOCAL_PLATFORM_EXECUTION.md).
+- **Setting up the Release 1.8 Python foundation?** See [PYTHON_DEVELOPER_ENVIRONMENT.md](./PYTHON_DEVELOPER_ENVIRONMENT.md).
 - **Want to understand real provider acquisition?** See [REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md](./REAL_PROVIDER_ACQUISITION_TWELVE_DATA.md).
 - **Want to prove persistence durability?** See [DURABLE_PERSISTENCE_SQLITE.md](./DURABLE_PERSISTENCE_SQLITE.md).
 - **Want to prove retries are safe?** See [IDEMPOTENCY_PROOF.md](./IDEMPOTENCY_PROOF.md).

@@ -16,4 +16,8 @@
     <ProjectReference Include="..\..\src\AIQuantTradingResearch.Infrastructure\AIQuantTradingResearch.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="PythonIntegrationFixtures\*.py" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

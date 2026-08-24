@@ -1,0 +1,5 @@
+Read `02-python-runtime-compatibility-version-selection-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP02 — Python Runtime Compatibility & Version Selection, GitHub issue #212.
+Use the synchronized Release 1.8 planning baseline `651c45bd0df0b717b2bb5ad272ec8c890612fb6d`, preserve WP01 completion, and research current official Python/NumPy/pandas/scikit-learn/Streamlit compatibility evidence rather than relying on model memory.
+Select exactly one broadly supported Python major/minor target for Windows 11 and later Release 1.9/Streamlit use, establish machine-runtime versus project-venv dependency rules, and follow WP02 file-manifest ownership exactly.
+Do not install/configure Python, pip, venvs, packages or VS Code; do not choose/implement .NET↔Python transport, Streamlit UI, ML capability, schema/package/project/reference changes, Git integration, or WP03+.
+Validate all governed gates, close #212 Done only on success, and finish with `RELEASE 1.8 WP02 COMPLETE`, `PYTHON RUNTIME TARGET: <selected major.minor>`, and the exact WP03 next-work-package marker.

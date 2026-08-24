@@ -1,0 +1,11 @@
+# Authoritative direct Python dependency declaration for AIQuantTradingResearch.
+#
+# WP07 governed direct dependencies; exact pins selected from current PyPI
+# release metadata for CPython 3.13 Windows x86-64 (observed 2026-08-24).
+numpy==2.5.1
+pandas==3.0.5
+scikit-learn==1.9.0
+streamlit==1.61.1
+#
+# Install only with the repository environment's qualified interpreter:
+#   .venv\Scripts\python.exe -m pip install -r requirements.txt

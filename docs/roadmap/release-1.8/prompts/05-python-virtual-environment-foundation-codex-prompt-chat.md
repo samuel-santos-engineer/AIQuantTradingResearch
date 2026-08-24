@@ -1,0 +1,5 @@
+Read `05-python-virtual-environment-foundation-codex-prompt.md` completely and execute it as the sole authority for Release 1.8 WP05 — Python Virtual Environment Foundation, GitHub issue #215.
+Create the repository-root `.venv` only after proving Git-ignore protection, using governed machine CPython 3.13.15 x64; prove interpreter/base-prefix provenance, isolation, PowerShell activation/deactivation, direct invocation, and clean delete/recreate reproducibility.
+Verify VS Code can discover/prefer `.venv` truthfully and preserve portability: machine Python remains the base runtime, `.venv` is disposable/untracked, and no user-specific absolute interpreter path may be committed.
+Do not install NumPy/pandas/scikit-learn/Streamlit or other third-party project packages/tools, select dependency versions, modify machine Python/PATH/global settings, implement Python/.NET/UI/ML, execute WP06+, or perform Git integration.
+Run VENV1–VENV20 plus canonical 268/268 validation, close #215 Done only on success, and finish with the authority's exact `.venv` isolation and WP06 completion markers.
