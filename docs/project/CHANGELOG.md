@@ -20,18 +20,12 @@ The format follows the principles of **Keep a Changelog** and adheres to **Seman
 
 ### Planned
 
-- Market Data Service
-- Binance Connector
-- Feature Engineering Pipeline
-- Backtesting Engine
-- Machine Learning Pipeline
-- Explainable AI
-- Portfolio Simulator
-- REST API
-- Dashboard
-- CI/CD Pipeline
-- Observability
-- Cloud Deployment
+- Release 1.9 — Real-Time Financial Data Visualization.
+- Release 1.10 — OpenTelemetry & Pipeline Observability.
+- Release 2.0 — Lightweight Machine Learning Evaluation.
+- Release 2.1 — broader Machine Learning (resequenced; scope preserved).
+- Release 2.2 — Explainable AI (resequenced; scope preserved).
+- Release 2.3 — Backtesting.
 
 ---
 
@@ -55,7 +49,7 @@ The format follows the principles of **Keep a Changelog** and adheres to **Seman
 
 - Project dependencies remain isolated from machine Python, integration execution remains local and bounded, and schema v3 is unchanged.
 
-Release 1.8 provides Python and interoperability readiness only. Release 1.9 machine-learning behavior has not begun.
+Release 1.8 provides Python and interoperability readiness only. Release 1.9 real-time visualization behavior has not begun; lightweight ML evaluation is planned separately for Release 2.0.
 
 ---
 

@@ -1,278 +1,140 @@
 # AIQuantTradingResearch Roadmap
 
 **Status:** Active
-**Version:** 1.0
-**Last Updated:** 2026-08-06
+**Version:** 1.1
+**Last Updated:** 2026-08-24
 **Maintainers:** AIQuantTradingResearch Team
 
 ---
 
 # Vision
 
-AIQuantTradingResearch is being developed through a series of incremental engineering releases.
-
-Each release introduces new technical capabilities while preserving the project's architectural integrity, engineering standards, and long-term maintainability.
-
-The objective is not simply to deliver features, but to demonstrate the evolution of a production-grade AI-assisted quantitative research platform.
+AIQuantTradingResearch advances through small, verifiable releases that add
+platform capability without weakening architectural boundaries, reproducibility,
+or engineering governance. Completed releases are evidence; future releases are
+direction until separately defined and accepted.
 
 ---
 
 # Roadmap Principles
 
-The roadmap follows these principles:
-
-- Deliver value incrementally.
-- Preserve architectural consistency.
-- Maintain production-quality standards.
-- Document every significant decision.
-- Automate wherever practical.
-- Avoid unnecessary complexity.
-- Keep every release demonstrable.
-
----
-
-# Release 0.1 — Engineering Governance Foundation
-
-**Objective**
-
-Establish the engineering foundations of the project.
-
-**Major Deliverables**
-
-- Repository organization
-- Engineering Handbook
-- Architecture documentation
-- Coding standards
-- Development environment
-- Initial solution
-- GitHub governance
-- Documentation framework
-
-**Status**
-
-Completed
+- Deliver value incrementally and preserve architectural consistency.
+- Keep releases demonstrable, deterministic where applicable, and documented.
+- Select every foundational external runtime, library, framework, or tool through
+  an explicit engineering selection record before implementation.
+- Do not infer implementation scope from a future milestone placeholder.
+- Integrate release work through a dedicated branch, acceptance, pull request,
+  verification, and merge to `main`; direct release integration into `main` is
+  prohibited except under separately authorized emergency/hotfix governance.
 
 ---
 
-# Release 0.2 — Market Data Platform
+# Completed Platform Foundations
 
-**Objective**
+| Releases | Delivered capability |
+| --- | --- |
+| 0.1–0.8 | Engineering governance, architecture, AI engineering toolkit, and executable .NET solution foundation. |
+| 0.9 | Deterministic offline research platform. |
+| 1.0 | Provider-backed historical market-data acquisition. |
+| 1.1 | Durable provider-independent historical market-data persistence. |
+| 1.2 | Deterministic immutable research datasets, snapshots, and catalog evidence. |
+| 1.3 | Fixed deterministic one-shot research pipeline. |
+| 1.4 | Deterministic simple-return feature generation. |
+| 1.5 | Deterministic research experiment foundation. |
+| 1.6 | Durable experiment evidence with schema v3. |
+| 1.7 | Bounded durable experiment-evidence discovery. |
+| 1.8 | Python and AI engineering foundation: isolated `.venv`, governed scientific stack, local JSON-over-stdio boundary, and permanent interoperability tests. |
 
-Build the platform responsible for acquiring, validating, and storing historical and real-time market data.
-
-**Major Deliverables**
-
-- Binance connector
-- Historical candle ingestion
-- PostgreSQL + TimescaleDB
-- REST endpoints
-- Background workers
-- Docker infrastructure
-
-**Engineering Focus**
-
-Reliability, resilience, and data quality.
-
----
-
-# Release 0.3 — Feature Engineering
-
-**Objective**
-
-Transform raw market data into machine learning features.
-
-**Major Deliverables**
-
-- Technical indicators
-- Feature pipelines
-- Data normalization
-- Feature validation
-- Dataset generation
-
-**Engineering Focus**
-
-Data quality and reproducibility.
+Release 1.8 is complete. It did not implement product ML behavior, real-time
+visualization, observability, explainability, or backtesting.
 
 ---
 
-# Release 0.4 — Backtesting Engine
+# Canonical Next Release Sequence
 
-**Objective**
+```text
+1.9 Visualization → 1.10 Observability → 2.0 Lightweight ML Evaluation
+→ 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting
+```
 
-Evaluate trading strategies using historical market data.
+The corresponding capability narrative is:
 
-**Major Deliverables**
+```text
+Acquire → Persist → Validate → Transform → Stream → Visualize → Observe → Learn → Explain → Backtest
+```
 
-- Strategy framework
-- Portfolio simulation
-- Performance metrics
-- Risk analysis
-- Trade history
+## Release 1.9 — Real-Time Financial Data Visualization
 
-**Engineering Focus**
+**Status:** NEXT — milestone placeholder only; no definition, work packages, or
+implementation exist.
 
-Deterministic execution and reproducibility.
+The future release is intended to use deterministic simulated/live-mock provider
+ticker behavior and the existing pipeline with a Streamlit presentation adapter.
+It may expose evolving financial charts, existing feature output such as
+`simple-return-lag-1-v1`, and dataset snapshot/data-quality states. It excludes
+ML training and a broad observability platform.
 
----
+## Release 1.10 — OpenTelemetry & Pipeline Observability
 
-# Release 0.5 — Machine Learning Foundation
+**Status:** PLANNED — milestone placeholder only.
 
-**Objective**
+The future release is intended to introduce governed OpenTelemetry for pipeline
+and stage timing, throughput, provider behavior, persistence latency, failures,
+and appropriate Python-boundary telemetry, including a Streamlit System Health
+view. An explicit OpenTelemetry selection record is required before
+implementation. ML training is excluded.
 
-Introduce predictive models for quantitative research.
+## Release 2.0 — Lightweight Machine Learning Evaluation
 
-**Major Deliverables**
+**Status:** PLANNED — milestone placeholder only.
 
-- Training pipeline
-- Model evaluation
-- Experiment tracking
-- Feature importance
-- Hyperparameter tuning
+The future release is intended to test one narrow deterministic ML hypothesis,
+with Logistic Regression through governed scikit-learn as the preferred initial
+candidate unless a later definition finds a blocker. It requires temporal—not
+random—evaluation, baseline comparison, reproducible experiment identity and
+metrics, and experiment visualization. It is not a broad reusable ML platform
+or strategy backtesting.
 
-**Engineering Focus**
+## Release 2.1 — Machine Learning
 
-Model quality and reproducibility.
+**Status:** RESEQUENCED — existing milestone identity and broader scope
+preserved; no work packages are defined here.
 
----
+## Release 2.2 — Explainable AI
 
-# Release 0.6 — Explainable AI
+**Status:** RESEQUENCED — existing milestone identity and broader scope
+preserved; no work packages are defined here.
 
-**Objective**
+## Release 2.3 — Backtesting
 
-Improve transparency and interpretability of machine learning predictions.
+**Status:** PLANNED — milestone placeholder only.
 
-**Major Deliverables**
-
-- SHAP integration
-- LLM-assisted explanations
-- Ollama integration
-- Prediction reports
-
-**Engineering Focus**
-
-Trust and explainability.
-
----
-
-# Release 0.7 — Portfolio Intelligence
-
-**Objective**
-
-Move from individual predictions toward portfolio-level decision support.
-
-**Major Deliverables**
-
-- Portfolio optimizer
-- Position sizing
-- Risk management
-- Capital allocation
-- Scenario simulation
-
-**Engineering Focus**
-
-Decision support.
+The future release is intended to evaluate decision policies and research
+outputs historically with explicit temporal integrity and trading assumptions.
+Detailed APIs, costs, slippage, portfolio rules, metrics, persistence, and UI
+remain undefined.
 
 ---
 
-# Release 0.8 — Cloud-Native Platform
+# Long-Term Direction
 
-**Objective**
-
-Introduce production-grade operational capabilities.
-
-**Major Deliverables**
-
-- CI/CD
-- OpenTelemetry
-- Health checks
-- Monitoring
-- Containerization
-- Deployment automation
-
-**Engineering Focus**
-
-Operational excellence.
-
----
-
-# Release 0.9 — Research Platform
-
-**Objective**
-
-Provide researchers with an integrated experimentation environment.
-
-**Major Deliverables**
-
-- Research notebooks
-- Dataset catalog
-- Experiment registry
-- Model registry
-- Benchmark suite
-
-**Engineering Focus**
-
-Knowledge management.
-
----
-
-# Release 1.0 — Production Candidate
-
-**Objective**
-
-Deliver a cohesive, production-ready platform that showcases modern software engineering practices.
-
-**Major Deliverables**
-
-- Complete documentation
-- Stable architecture
-- Security review
-- Performance optimization
-- Production deployment guide
-- Public release
-
-**Engineering Focus**
-
-Engineering maturity.
-
----
-
-# Beyond Version 1.0
-
-Potential future initiatives include:
-
-- Multi-asset support
-- Distributed processing
-- Reinforcement learning
-- Real-time strategy execution
-- Cloud deployment templates
-- Multi-agent AI workflows
-- Advanced visualization dashboards
-
-Future releases should be driven by demonstrated value rather than technology trends.
+Cloud/SRE, MLOps, production deployment, risk/portfolio intelligence,
+multi-asset support, distributed processing, and advanced visualization remain
+future directions. They must be separately justified, designed, and governed;
+their mention here is not implementation authorization.
 
 ---
 
 # Measuring Progress
 
-Success is evaluated through engineering outcomes rather than feature count.
-
-Examples include:
-
-- Stable architecture
-- Documentation quality
-- Automated testing
-- Deployment reliability
-- Observability
-- Maintainability
-- Reproducibility
-- Contributor experience
+Progress is measured through stable architecture, documentation quality,
+automated testing, reproducibility, observability, maintainability, security,
+and contributor experience—not feature count alone.
 
 ---
 
 # Living Roadmap
 
-This roadmap is intentionally evolutionary.
-
-As new requirements emerge and engineering knowledge grows, priorities may change.
-
-Changes to the roadmap should preserve the project's long-term vision while remaining consistent with the Project Constitution and Engineering Handbook.
+This roadmap is evolutionary. Changes must preserve the project’s long-term
+vision while remaining consistent with the Project Constitution, Engineering
+Handbook, and release-specific authorities.

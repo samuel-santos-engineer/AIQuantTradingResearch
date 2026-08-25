@@ -31,7 +31,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 - **Experiment Metrics (v1.5):** Descriptive aggregate computations (mean, min, max).
 - **Durable Evidence (v1.6):** Schema v3 persistence mapping outcomes to `NewlyAccepted` or `IntegrityConflict` states.
 - **Evidence Discovery (v1.7):** Mandatory bounded discovery (`MaximumResultCount`) returning ordered binary-sorted collections.
-- **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary; Release 1.9 ML behavior has not begun.
+- **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary; Release 1.9 real-time visualization behavior has not begun.
 
 ### [Release 1.1: Market Data Persistence Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/52)
 
@@ -276,7 +276,9 @@ The four direct pins are NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0, and
 Streamlit 1.61.1. See the [Python developer environment guide](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 and the [interoperability boundary](docs/architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md).
 The Python foundation supplies no product ML model, training workflow, or
-Streamlit product application; those remain Release 1.9 work.
+Streamlit product application. Release 1.9 is planned as real-time financial
+data visualization; lightweight ML evaluation is separately planned for
+Release 2.0.
 
 For the provider-backed execution path, configuration is supplied externally:
 
@@ -503,9 +505,15 @@ Each release is intended to add a concrete platform capability while strengtheni
 | **1.2**      | **Deterministic immutable research datasets, snapshots, and catalog evidence**            |
 | **1.3**      | **Fixed deterministic one-shot Research Pipeline over accepted persisted history**        |
 | **1.4**      | **Deterministic simple-return feature generation over exact immutable snapshots**         |
-| **Next**     | Derived from the accepted platform state and architecture rather than assumed prematurely |
+| **1.5–1.8** | Deterministic experiment evidence, discovery, and Python/AI engineering foundation        |
+| **1.9**      | **Planned: Real-Time Financial Data Visualization**                                        |
+| **1.10**     | **Planned: OpenTelemetry & Pipeline Observability**                                        |
+| **2.0**      | **Planned: Lightweight Machine Learning Evaluation**                                       |
+| **2.1**      | **Resequenced: Machine Learning**                                                          |
+| **2.2**      | **Resequenced: Explainable AI**                                                            |
+| **2.3**      | **Planned: Backtesting**                                                                   |
 
-The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted.
+The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The canonical future sequence is 1.9 Visualization → 1.10 Observability → 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
 
 ### Public engineering roadmap
 
