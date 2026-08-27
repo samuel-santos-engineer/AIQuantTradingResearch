@@ -1,0 +1,4 @@
+Execute `release-1.9-wp08-restart-cleanup-sequencing-fix-authority-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+Root cause is already classified as Class H. Treat the corrected helper, standalone CTRL_BREAK exit 0, and A/B/C/D 4/4 as frozen predecessor state.
+Modify only `WP08LifecycleDemonstrationTests.cs`. Compare the passing D scenario against the failing Worker A→B restart path, identify the exact ordering/cleanup delta, and make the smallest event/state-based sequencing fix. Align Worker B shutdown with D: required observations complete, probe complete if used, Streamlit remains in the governed stable state, targeted CTRL_BREAK, wait for Worker B exit 0, then final cleanup. No sleeps, helper/Worker/Python/Replay/WP05–WP07 changes, packages, GitHub, or WP09.
+Require restart-specific pass, preserve standalone and A/B/C/D, run focused/Infrastructure/full regressions, and keep #233/#234 Open/Backlog. End with the authority's exact terminal marker.

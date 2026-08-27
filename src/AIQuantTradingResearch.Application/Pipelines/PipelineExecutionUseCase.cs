@@ -1,4 +1,6 @@
 using AIQuantTradingResearch.Application.Datasets;
+using AIQuantTradingResearch.Application.Features;
+using AIQuantTradingResearch.Application.Visualization;
 
 namespace AIQuantTradingResearch.Application.Pipelines
 {
@@ -7,11 +9,13 @@ namespace AIQuantTradingResearch.Application.Pipelines
         private readonly IMaterializeDatasetUseCase materializeDataset;
         private readonly IDatasetSnapshotStore snapshotStore;
         private readonly IDatasetCatalog datasetCatalog;
+        private readonly IFeatureComputer featureComputer;
 
         public PipelineExecutionUseCase(
             IMaterializeDatasetUseCase materializeDataset,
             IDatasetSnapshotStore snapshotStore,
-            IDatasetCatalog datasetCatalog)
+            IDatasetCatalog datasetCatalog,
+            IFeatureComputer? featureComputer = null)
         {
             ArgumentNullException.ThrowIfNull(materializeDataset);
             ArgumentNullException.ThrowIfNull(snapshotStore);
@@ -20,6 +24,7 @@ namespace AIQuantTradingResearch.Application.Pipelines
             this.materializeDataset = materializeDataset;
             this.snapshotStore = snapshotStore;
             this.datasetCatalog = datasetCatalog;
+            this.featureComputer = featureComputer ?? new SimpleReturnFeatureComputer();
         }
 
         public PipelineExecutionResult Execute(PipelineRequest request)
@@ -29,6 +34,31 @@ namespace AIQuantTradingResearch.Application.Pipelines
             DatasetDefinition definition = request.DatasetDefinition;
             DatasetMaterializationResult materialization = materializeDataset.Execute(definition)
                 ?? throw new InvalidOperationException("The dataset materialization use case returned no result.");
+
+            return ExecuteCanonical(request, datasetDefinitionIdentity, definitionIdentity, definition, materialization);
+        }
+
+        public PipelineExecutionResult Execute(
+            PipelineRequest request,
+            IReadOnlyList<AIQuantTradingResearch.Domain.PriceObservation> observations)
+        {
+            (DatasetDefinitionIdentity datasetDefinitionIdentity, PipelineDefinitionIdentity definitionIdentity) =
+                PipelineValidation.ValidateRequest(request);
+            DatasetDefinition definition = request.DatasetDefinition;
+            DatasetMaterializationResult materialization = materializeDataset.Execute(definition, observations)
+                ?? throw new InvalidOperationException("The dataset materialization use case returned no result.");
+
+            return ExecuteCanonical(request, datasetDefinitionIdentity, definitionIdentity, definition, materialization);
+        }
+
+        private PipelineExecutionResult ExecuteCanonical(
+            PipelineRequest request,
+            DatasetDefinitionIdentity datasetDefinitionIdentity,
+            PipelineDefinitionIdentity definitionIdentity,
+            DatasetDefinition definition,
+            DatasetMaterializationResult materialization)
+        {
+            ArgumentNullException.ThrowIfNull(request);
 
             if (!materialization.IsSuccess)
             {
@@ -147,11 +177,18 @@ namespace AIQuantTradingResearch.Application.Pipelines
                 snapshot.SnapshotIdentity,
                 snapshot.Version);
 
+            var featureSet = featureComputer.Compute(
+                new FeatureGenerationRequest(FeatureDefinition.SimpleReturnLag1V1, snapshot.SnapshotIdentity, snapshot.Version), snapshot);
+            var presentationInputs = new HistoricalPresentationInputs(
+                snapshot.Observations.Select(static observation => new HistoricalPresentationObservation(observation.Instant, observation.Price)),
+                HistoricalPresentationFeature.From(featureSet, snapshot.Observations.Count), snapshot.SnapshotIdentity, snapshot.Version, establishedStages);
+
             return PipelineExecutionResult.Succeeded(
                 provenance,
                 persistence.Outcome == DatasetSnapshotStoreOutcome.NewlyAccepted
                     ? PipelineSuccessDisposition.NewlyAccepted
-                    : PipelineSuccessDisposition.EquivalentExisting);
+                    : PipelineSuccessDisposition.EquivalentExisting,
+                presentationInputs);
         }
 
         private static PipelineExecutionResult Failure(

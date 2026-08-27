@@ -32,7 +32,7 @@ internal static class SqliteExperimentResultSchema
                 CHECK (length(research_dataset_identity) = 64 AND research_dataset_identity NOT GLOB '*[^0-9a-f]*'),
             source_state_identity TEXT COLLATE BINARY NOT NULL
                 CHECK (length(source_state_identity) = 64 AND source_state_identity NOT GLOB '*[^0-9a-f]*'),
-            source_authority INTEGER NOT NULL CHECK (source_authority = 0),
+            source_authority INTEGER NOT NULL CHECK (source_authority IN (0, 1)),
             dataset_observation_count INTEGER NOT NULL CHECK (dataset_observation_count >= 0),
             summary_count INTEGER NOT NULL CHECK (summary_count >= 0),
             aggregates_present INTEGER NOT NULL CHECK (aggregates_present IN (0, 1)),

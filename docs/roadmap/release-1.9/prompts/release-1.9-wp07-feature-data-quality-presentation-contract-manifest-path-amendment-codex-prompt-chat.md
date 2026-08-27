@@ -1,0 +1,3 @@
+Execute `release-1.9-wp07-feature-data-quality-presentation-contract-manifest-path-amendment-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+Define only the WP07 factual Snapshot, Data Quality, Pipeline, and Idempotency presentation contract plus the minimum manifest/path amendment. Trace every displayed field to a canonical source, permit only a narrowly additive WP06 projection that preserves existing frame semantics, fix exact section/row labels and deterministic assertions, and authorize one WP07-exclusive test path.
+Do not implement production/tests, mutate GitHub, start WP08/WP09, or invent idempotency semantics. End with the authority's exact terminal marker.

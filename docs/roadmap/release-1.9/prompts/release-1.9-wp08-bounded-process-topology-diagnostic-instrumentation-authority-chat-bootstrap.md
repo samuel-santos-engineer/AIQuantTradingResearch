@@ -1,0 +1,4 @@
+Execute `release-1.9-wp08-bounded-process-topology-diagnostic-instrumentation-authority-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+This is diagnostic-only: do not fix behavior. Preserve all production, Replay, WP05–WP07, Python probe, signal semantics, and GitHub state.
+Modify only `WindowsIsolatedProcessGroup.cs` and `WP08LifecycleDemonstrationTests.cs` as needed to add bounded Worker stdout/stderr capture, process-group/console/stdio/handle metadata, monotonic timing, owned-process/listener snapshots, and the A/B/C/D topology matrix. No persistent logs, no new helper path, no packages, no WP09.
+Run the matrix, preserve the standalone passing CTRL_BREAK test, and classify the failure exactly as Class H/P/S/T/W or remain U. Do not apply a fix even if the cause becomes obvious. Keep #233 and #234 Open/Backlog; GitHub mutations zero. End with the authority's exact terminal marker.

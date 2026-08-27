@@ -4,9 +4,9 @@
 
 > **A production-oriented quantitative research platform for acquiring and persisting real-world market data, built with C# .NET and an AI-assisted engineering workflow.**
 
-[![Release](https://img.shields.io/badge/release-1.8-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-281%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
-[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
+[![Release](https://img.shields.io/badge/release-1.9-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-339%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-21%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
@@ -31,7 +31,12 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 - **Experiment Metrics (v1.5):** Descriptive aggregate computations (mean, min, max).
 - **Durable Evidence (v1.6):** Schema v3 persistence mapping outcomes to `NewlyAccepted` or `IntegrityConflict` states.
 - **Evidence Discovery (v1.7):** Mandatory bounded discovery (`MaximumResultCount`) returning ordered binary-sorted collections.
-- **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary; Release 1.9 real-time visualization behavior has not begun.
+- **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary.
+- **Visualization foundation (v1.9, in progress):** The existing pipeline publishes a bounded canonical JSON read model for a read-only Python/Streamlit presentation; the UI never bypasses the pipeline through direct provider or SQLite access.
+
+> **Release 1.9 warning:** Current visualization and demo flows use deterministic
+> simulated/replay data for local testing and demonstration. They are not a
+> live market-data feed and do not imply live-trading suitability.
 
 ### [Release 1.1: Market Data Persistence Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/52)
 
@@ -275,10 +280,12 @@ ignored, disposable repository-local `.venv` for every project dependency.
 The four direct pins are NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0, and
 Streamlit 1.61.1. See the [Python developer environment guide](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 and the [interoperability boundary](docs/architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md).
-The Python foundation supplies no product ML model, training workflow, or
-Streamlit product application. Release 1.9 is planned as real-time financial
-data visualization; lightweight ML evaluation is separately planned for
-Release 2.0.
+Windows Smart App Control local-development signing for test assemblies is
+documented [here](docs/development/WINDOWS_SMART_APP_CONTROL_LOCAL_SIGNING.md).
+The Release 1.9 presentation is a read-only local consumer of the Worker
+handoff. It does not directly call a provider or SQLite, and it does not add a
+product ML model, training workflow, live-data service, or trading workflow.
+Lightweight ML evaluation remains separately planned for Release 2.0.
 
 For the provider-backed execution path, configuration is supplied externally:
 
@@ -314,6 +321,8 @@ Optional cleanup:
 ```
 
 `format.ps1` verifies formatting without rewriting files. `verify.ps1` is the canonical quality gate and delegates the repository restore, formatting verification, build, and test workflow.
+
+Release work follows the documented [contribution and pull-request workflow](docs/project/CONTRIBUTING.md): use a focused branch, validate the change, submit one reviewable pull request, and merge to `main` only after review and acceptance. This README does not claim branch protection or CI requirements beyond those repository conventions.
 
 A cross-platform build counterpart is available at `eng/build.sh`.
 

@@ -1,0 +1,3 @@
+Execute `release-1.9-wp05-worker-handoff-test-isolation-deterministic-regression-codex-prompt.md` as the sole authority using GPT-5.6 Sol.
+Preserve WP05 production semantics and diagnose the nondeterministic Worker handoff/test interference. Prefer test-only unique handoff paths and deterministic Worker/process disposal; change production only for a concrete proven defect.
+Require 3 consecutive clean Infrastructure passes and 3 consecutive clean full-regression passes before declaring the predecessor baseline restored. Keep #230 Closed / Done and #231 Open / Backlog. Do not implement WP06 or WP07. End with the authority’s exact terminal marker.

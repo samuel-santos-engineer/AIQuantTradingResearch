@@ -1,0 +1,4 @@
+Execute `release-1.9-wp08-restart-specific-process-state-diagnostic-authority-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+Treat Smart App Control remediation, the corrected Windows helper, standalone CTRL_BREAK exit 0, A/B/C/D 4/4, and the failed Class-H restart sequencing fix as accepted predecessor state.
+Modify only `WP08LifecycleDemonstrationTests.cs`. Implement restart-specific R0/R1/R2/R3/R4 diagnostics to determine whether Worker B `0xC0000142` follows being the second Worker, shared runtime/handoff/database reuse, Streamlit across restart, probe involvement, or only the full combination. Add one fresh-runtime R1F split only if R1 requires it.
+Do not fix behavior or modify helper/Worker/Python/signing/Replay/WP05–WP07, add packages, mutate GitHub, or start WP09. Keep #233/#234 Open/Backlog. End with the authority's exact terminal marker.

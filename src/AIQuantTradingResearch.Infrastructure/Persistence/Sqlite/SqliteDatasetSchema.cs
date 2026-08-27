@@ -34,7 +34,7 @@ internal static class SqliteDatasetSchema
             last_observation_utc_ticks INTEGER,
             last_observation_offset_minutes INTEGER
                 CHECK (last_observation_offset_minutes BETWEEN -840 AND 840),
-            source_authority INTEGER NOT NULL CHECK (source_authority = 0),
+            source_authority INTEGER NOT NULL CHECK (source_authority IN (0, 1)),
             PRIMARY KEY (snapshot_identity),
             CHECK (requested_from_utc_ticks < requested_to_utc_ticks),
             CHECK (

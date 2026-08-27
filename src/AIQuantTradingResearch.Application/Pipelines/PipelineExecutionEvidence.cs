@@ -39,6 +39,10 @@ public sealed record PipelineExecutionEvidence
 
     public PipelineFailureCategory? FailureCategory => Result.FailureCategory;
 
+    public PresentationIdempotencyStatus PresentationIdempotencyStatus => Result.PresentationIdempotencyStatus;
+
+    public PresentationDataQualityStatus PresentationDataQualityStatus => Result.PresentationDataQualityStatus;
+
     public static PipelineExecutionEvidence From(PipelineExecutionResult result)
     {
         ArgumentNullException.ThrowIfNull(result);

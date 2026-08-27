@@ -6,6 +6,7 @@ namespace AIQuantTradingResearch.Application.Datasets;
 public enum DatasetSourceAuthority
 {
     AcceptedRelease11HistoricalObservations,
+    Release19SimulatedLiveReplay,
 }
 
 public sealed record DatasetCoverage

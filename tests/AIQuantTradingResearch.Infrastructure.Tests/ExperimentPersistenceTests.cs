@@ -59,7 +59,7 @@ public sealed class ExperimentPersistenceTests
         DurableExperimentEvidence found = store.Retrieve(new DurableExperimentRetrievalRequest(evidence.Identity)).Evidence!;
         Assert.Equal(evidence, found);
         Assert.Equal(1L, Scalar(database, "SELECT COUNT(*) FROM experiment_results;"));
-        Assert.Equal(3L, Scalar(database, "PRAGMA user_version;"));
+        Assert.Equal(4L, Scalar(database, "PRAGMA user_version;"));
         Assert.Equal(0L, Scalar(database, "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name LIKE 'feature%';"));
     }
 
@@ -114,12 +114,14 @@ public sealed class ExperimentPersistenceTests
     private static WorkerResult RunDurableWorker(string databasePath, string identity, string? version, bool includeFeatureSelectors = false)
     {
         string root = FindRepositoryRoot();
+        string handoffPath = Path.Combine(Path.GetTempPath(), $"aiq-wp05-handoff-{Guid.NewGuid():N}.json");
         var start = new ProcessStartInfo("dotnet") { WorkingDirectory = root, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         start.ArgumentList.Add("run"); start.ArgumentList.Add("--project"); start.ArgumentList.Add(Path.Combine(root, "src", "AIQuantTradingResearch.Worker", "AIQuantTradingResearch.Worker.csproj")); start.ArgumentList.Add("--no-build"); start.ArgumentList.Add("--configuration"); start.ArgumentList.Add("Release");
-        start.Environment["TwelveData__ApiKey"] = "wp12-dummy-api-key"; start.Environment["Persistence__DatabasePath"] = databasePath; start.Environment["DurableExperiment__SnapshotIdentity"] = identity;
+        start.Environment["TwelveData__ApiKey"] = "wp12-dummy-api-key"; start.Environment["Persistence__DatabasePath"] = databasePath; start.Environment["Visualization__HandoffPath"] = handoffPath; start.Environment["DurableExperiment__SnapshotIdentity"] = identity;
         if (version is not null) start.Environment["DurableExperiment__SnapshotVersion"] = version;
         if (includeFeatureSelectors) { start.Environment["Feature__SnapshotIdentity"] = Fingerprint('a'); start.Environment["Feature__SnapshotVersion"] = Fingerprint('a'); }
-        using Process process = Process.Start(start) ?? throw new InvalidOperationException("Worker did not start."); string output = process.StandardOutput.ReadToEnd(); string error = process.StandardError.ReadToEnd(); Assert.True(process.WaitForExit(30_000)); return new WorkerResult(process.ExitCode, output, error);
+        try { using Process process = Process.Start(start) ?? throw new InvalidOperationException("Worker did not start."); string output = process.StandardOutput.ReadToEnd(); string error = process.StandardError.ReadToEnd(); Assert.True(process.WaitForExit(30_000)); return new WorkerResult(process.ExitCode, output, error); }
+        finally { File.Delete(handoffPath); }
     }
     private static string ReadValue(string output, string marker) => output.Split('\n').Single(line => line.StartsWith(marker, StringComparison.Ordinal))[marker.Length..].Trim();
     private static string FindRepositoryRoot() { for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory is not null; directory = directory.Parent) if (File.Exists(Path.Combine(directory.FullName, "AIQuantTradingResearch.slnx"))) return directory.FullName; throw new InvalidOperationException("Repository root was not found."); }

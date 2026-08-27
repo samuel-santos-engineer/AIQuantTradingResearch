@@ -40,7 +40,31 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
             .OrderBy(static observation => observation.Instant.UtcTicks)
             .ToArray();
 
-        DatasetLineage.ValidateObservations(observations, nameof(history));
+        return CreateSnapshot(
+            definition,
+            observations,
+            DatasetSourceAuthority.AcceptedRelease11HistoricalObservations);
+    }
+
+    public DatasetMaterializationResult Execute(
+        DatasetDefinition definition,
+        IReadOnlyList<PriceObservation> observations)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(observations);
+
+        return CreateSnapshot(definition, observations, DatasetSourceAuthority.Release19SimulatedLiveReplay);
+    }
+
+    private static DatasetMaterializationResult CreateSnapshot(
+        DatasetDefinition definition,
+        IReadOnlyList<PriceObservation> observations,
+        DatasetSourceAuthority sourceAuthority)
+    {
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(observations);
+
+        DatasetLineage.ValidateObservations(observations, nameof(observations));
 
         var definitionIdentity = DatasetIdentityComputer.ComputeDefinitionIdentity(definition);
         var researchDatasetIdentity = DatasetIdentityComputer.ComputeResearchDatasetIdentity(definition);
@@ -50,9 +74,9 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
         var coverage = new DatasetCoverage(
             definition.From,
             definition.To,
-            observations.Length,
-            observations.Length == 0 ? null : observations[0].Instant,
-            observations.Length == 0 ? null : observations[^1].Instant);
+            observations.Count,
+            observations.Count == 0 ? null : observations[0].Instant,
+            observations.Count == 0 ? null : observations[^1].Instant);
         var provenance = new DatasetProvenance(
             definition,
             definitionIdentity,
@@ -60,8 +84,8 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
             sourceStateIdentity,
             snapshotIdentity,
             version,
-            DatasetSourceAuthority.AcceptedRelease11HistoricalObservations,
-            observations.Length);
+            sourceAuthority,
+            observations.Count);
         var lineage = new DatasetLineage(definitionIdentity, sourceStateIdentity, observations);
         var snapshot = new DatasetSnapshotCandidate(
             definition,
