@@ -1,9 +1,14 @@
+using AIQuantTradingResearch.Application;
 using AIQuantTradingResearch.Application.Datasets;
 using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Application.Persistence;
+using AIQuantTradingResearch.Application.Pipelines;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
+using AIQuantTradingResearch.Infrastructure.Research;
+using AIQuantTradingResearch.Infrastructure.Visualization;
+using AIQuantTradingResearch.Application.Visualization;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AIQuantTradingResearch.Infrastructure;
@@ -35,6 +40,17 @@ public static class DependencyInjection
                 serviceProvider.GetRequiredService<HttpClient>(),
                 configuration.ApiKey));
         services.AddSingleton<IObservationSource, TwelveDataObservationSource>();
+        services.AddSingleton<SimulatedLiveReplayConfiguration>();
+        services.AddSingleton<SimulatedLiveObservationSource>();
+        services.AddSingleton<ISimulatedLiveReplaySource>(
+            serviceProvider => serviceProvider.GetRequiredService<SimulatedLiveObservationSource>());
+        services.AddTransient<IncrementalPipelineExecutionUseCase>(
+            serviceProvider => new IncrementalPipelineExecutionUseCase(
+                serviceProvider.GetRequiredService<SimulatedLiveObservationSource>(),
+                serviceProvider.GetRequiredService<IPipelineRequestFactory>(),
+                serviceProvider.GetRequiredService<IPipelineExecutionUseCase>()));
+        services.AddSingleton<IVisualizationReadModelStore, AtomicVisualizationReadModelStore>();
+        services.AddSingleton<VisualizationReadModelUseCase>();
 
         return services;
     }

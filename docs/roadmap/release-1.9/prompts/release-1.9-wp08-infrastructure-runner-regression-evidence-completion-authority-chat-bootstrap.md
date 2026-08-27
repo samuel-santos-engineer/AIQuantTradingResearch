@@ -1,0 +1,4 @@
+Execute `release-1.9-wp08-infrastructure-runner-regression-evidence-completion-authority-codex-prompt.md` as the sole authority using GPT-5.6 Terra.
+Treat WP08 implementation as frozen and technically passing at focused level: RR-HANDOFF fixed, canonical R1 3/3, RF-HANDOFF pass, focused WP08 18/18, build 0/0, Domain 11/11, Application 125/125, Architecture 13/13.
+Do not modify repository code/tests/helper/Worker/Python/signing. Diagnose only the Infrastructure runner/result problem. Identify/terminate only owned stale test-runner processes, run one canonical Infrastructure attempt plus at most one clean retry, and use standard result artifacts only if terminal output is missing but completion is otherwise authoritative.
+Once Infrastructure acceptance is proven, complete full .NET, Python WP05/WP06/WP07, Streamlit/pip, and final residue/scope evidence. Keep #233/#234 Open/Backlog and make GitHub mutations zero. End with the authority's exact terminal marker.

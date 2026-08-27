@@ -1,6 +1,10 @@
 using AIQuantTradingResearch.Application.Datasets;
+using AIQuantTradingResearch.Application.Visualization;
 
 namespace AIQuantTradingResearch.Application.Pipelines;
+
+public enum PresentationIdempotencyStatus { NewlyPersisted, EquivalentExisting, Unavailable }
+public enum PresentationDataQualityStatus { Valid, Invalid, Unavailable }
 
 public sealed record PipelineExecutionResult
 {
@@ -8,7 +12,8 @@ public sealed record PipelineExecutionResult
         PipelineProvenance provenance,
         PipelineSuccessDisposition? disposition,
         ResearchPipelineStage? failingStage,
-        PipelineFailureCategory? failureCategory)
+        PipelineFailureCategory? failureCategory,
+        HistoricalPresentationInputs? presentationInputs)
     {
         ArgumentNullException.ThrowIfNull(provenance);
 
@@ -16,6 +21,19 @@ public sealed record PipelineExecutionResult
         Disposition = disposition;
         FailingStage = failingStage;
         FailureCategory = failureCategory;
+        HistoricalPresentationInputs = presentationInputs;
+        PresentationIdempotencyStatus = disposition switch
+        {
+            PipelineSuccessDisposition.NewlyAccepted => PresentationIdempotencyStatus.NewlyPersisted,
+            PipelineSuccessDisposition.EquivalentExisting => PresentationIdempotencyStatus.EquivalentExisting,
+            _ => PresentationIdempotencyStatus.Unavailable,
+        };
+        PresentationDataQualityStatus = disposition is not null
+            ? PresentationDataQualityStatus.Valid
+            : failingStage == ResearchPipelineStage.HistoricalObservationRetrieval
+              && failureCategory is PipelineFailureCategory.InvalidInput or PipelineFailureCategory.InvalidEvidence
+                ? PresentationDataQualityStatus.Invalid
+                : PresentationDataQualityStatus.Unavailable;
     }
 
     public PipelineProvenance Provenance { get; }
@@ -30,6 +48,12 @@ public sealed record PipelineExecutionResult
 
     public PipelineFailureCategory? FailureCategory { get; }
 
+    public HistoricalPresentationInputs? HistoricalPresentationInputs { get; }
+
+    public PresentationIdempotencyStatus PresentationIdempotencyStatus { get; }
+
+    public PresentationDataQualityStatus PresentationDataQualityStatus { get; }
+
     public bool IsSuccess => Disposition is not null;
 
     public DatasetSnapshotIdentity? SnapshotIdentity => Provenance.SnapshotIdentity;
@@ -38,7 +62,8 @@ public sealed record PipelineExecutionResult
 
     public static PipelineExecutionResult Succeeded(
         PipelineProvenance provenance,
-        PipelineSuccessDisposition disposition)
+        PipelineSuccessDisposition disposition,
+        HistoricalPresentationInputs? presentationInputs = null)
     {
         ArgumentNullException.ThrowIfNull(provenance);
 
@@ -58,7 +83,7 @@ public sealed record PipelineExecutionResult
                 nameof(provenance));
         }
 
-        return new PipelineExecutionResult(provenance, disposition, null, null);
+        return new PipelineExecutionResult(provenance, disposition, null, null, presentationInputs);
     }
 
     public static PipelineExecutionResult Failed(
@@ -87,11 +112,16 @@ public sealed record PipelineExecutionResult
                 nameof(provenance));
         }
 
-        return new PipelineExecutionResult(provenance, null, failingStage, failureCategory);
+        return new PipelineExecutionResult(provenance, null, failingStage, failureCategory, null);
     }
 }
 
 public interface IPipelineExecutionUseCase
 {
     PipelineExecutionResult Execute(PipelineRequest request);
+
+    PipelineExecutionResult Execute(
+        PipelineRequest request,
+        IReadOnlyList<AIQuantTradingResearch.Domain.PriceObservation> observations) =>
+        throw new NotSupportedException("This pipeline implementation does not accept explicit observations.");
 }

@@ -60,7 +60,7 @@ public sealed class ExperimentDiscoveryTests
         Assert.Equal(identitiesBefore, database.ResultIdentities());
         Assert.Equal(tablesBefore, database.Scalar("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table';"));
         Assert.Equal(indexesBefore, database.Scalar("SELECT COUNT(*) FROM sqlite_schema WHERE type = 'index';"));
-        Assert.Equal(3L, database.SchemaVersion());
+        Assert.Equal(4L, database.SchemaVersion());
     }
 
     [Fact]
@@ -341,6 +341,7 @@ public sealed class ExperimentDiscoveryTests
         bool includeLowerSelectors = false)
     {
         string root = FindRepositoryRoot();
+        string handoffPath = Path.Combine(Path.GetTempPath(), $"aiq-wp05-handoff-{Guid.NewGuid():N}.json");
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = root,
@@ -356,6 +357,7 @@ public sealed class ExperimentDiscoveryTests
         startInfo.ArgumentList.Add("Release");
         startInfo.Environment["TwelveData__ApiKey"] = "wp11-dummy-api-key";
         startInfo.Environment["Persistence__DatabasePath"] = databasePath;
+        startInfo.Environment["Visualization__HandoffPath"] = handoffPath;
         startInfo.Environment["DurableExperimentDiscovery__SnapshotIdentity"] = snapshotIdentity;
         if (definitionIdentity is not null) startInfo.Environment["DurableExperimentDiscovery__ExperimentDefinitionIdentity"] = definitionIdentity;
         if (maximum is not null) startInfo.Environment["DurableExperimentDiscovery__MaximumResultCount"] = maximum;
@@ -369,11 +371,15 @@ public sealed class ExperimentDiscoveryTests
             startInfo.Environment["Feature__SnapshotVersion"] = snapshotIdentity;
         }
 
-        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Worker did not start.");
-        string output = process.StandardOutput.ReadToEnd();
-        string error = process.StandardError.ReadToEnd();
-        Assert.True(process.WaitForExit(30_000), "Worker did not terminate within the bounded timeout.");
-        return new WorkerResult(process.ExitCode, output, error);
+        try
+        {
+            using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Worker did not start.");
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            Assert.True(process.WaitForExit(30_000), "Worker did not terminate within the bounded timeout.");
+            return new WorkerResult(process.ExitCode, output, error);
+        }
+        finally { File.Delete(handoffPath); }
     }
 
     private static string[] ReadResultIdentities(string output) => output.Split('\n')

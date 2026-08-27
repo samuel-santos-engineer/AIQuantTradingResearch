@@ -3,9 +3,9 @@
 ## Purpose
 
 This guide establishes the portable local workflow for the delivered Release
-1.8 Python engineering foundation. It covers the project environment and
-validation evidence; it does not introduce a product ML workflow, model
-training, provider access, or Streamlit product application.
+1.8 Python engineering foundation and the bounded Release 1.9 Streamlit
+presentation adapter. It does not introduce a product ML workflow, model
+training, provider access, or a live-market-data service.
 
 ## Runtime and ownership
 
@@ -69,10 +69,43 @@ bounded stderr diagnostics, and terminates only processes it owns on timeout or
 cancellation. See [the interoperability boundary](../architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md)
 for contracts, failure mapping, security, and portability rules.
 
+Windows developers whose Smart App Control blocks locally built test binaries
+may need [local-development Authenticode signing](../development/WINDOWS_SMART_APP_CONTROL_LOCAL_SIGNING.md).
+
+## Release 1.9 presentation checks
+
+Release 1.9 uses the same governed `.venv`. Streamlit 1.61.1 renders only the
+Worker-published local visualization read model; it does not read SQLite, call
+a provider, or compute the pipeline/feature evidence. Current visualization
+and demo flows use deterministic simulated/replay data for local testing and
+demonstration. They are not a live market-data feed or a statement of live
+trading suitability.
+
+Run the governed presentation tests from the repository root:
+
+```powershell
+Push-Location .\python\presentation
+..\..\.venv\Scripts\python.exe -m unittest discover -p "test_*.py"
+Pop-Location
+```
+
+The current suite is 17 tests. It includes parser, visualization-frame,
+factual-section, and permanent integration coverage. The Streamlit adapter is
+an independently launched read-only consumer; the finite WP08 harness and its
+probe are acceptance-only and are not a production supervisor or generic Python
+bridge. See [the interoperability boundary](../architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md)
+for the distinct Release 1.8 JSON-over-stdio boundary and the Release 1.9
+handoff/lifecycle rules.
+
+If a local test assembly is blocked by Windows App Control, use only the
+documented local-development Authenticode signing setup above. It keeps App
+Control enabled, uses uncommitted `Directory.Build.local.props`, and is not
+production trust or a Smart App Control bypass.
+
 ## Verify the repository
 
-The permanent Release 1.8 baseline is 281 passing .NET tests: 11 Domain, 121
-Application, 136 Infrastructure, and 13 Architecture. Run the repository's
+The current governed .NET baseline is 339 passing tests: 11 Domain, 125
+Application, 182 Infrastructure, and 21 Architecture. Run the repository's
 canonical verification from the root:
 
 ```powershell
@@ -90,5 +123,7 @@ runtime data, `.venv`, and local interpreter paths out of commits.
 ## Release boundary
 
 Release 1.8 delivers runtime, dependency, validation, and interoperability
-foundation only. Release 1.9 ML behavior, model training, production Streamlit
-UX, persistent services, and remote Python execution have not begun.
+foundation. Release 1.9 adds only the governed deterministic simulated/replay
+visualization presentation flow described above. Model training, prediction,
+real-provider streaming, persistent services, remote Python execution,
+OpenTelemetry, and Backtesting remain outside the delivered scope.

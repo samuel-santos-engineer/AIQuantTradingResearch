@@ -1,0 +1,5 @@
+Execute `release-1.9-wp08-post-fix-regression-stabilization-final-acceptance-authority-codex-prompt.md` as the sole authority using GPT-5.6 Terra.
+Treat RR-HANDOFF and the changed-payload Worker B readiness fix as accepted predecessor state. Do not reopen implementation.
+First stabilize the test environment by identifying and terminating only owned stale testhost processes if they block output/locks. Then require canonical shared-runtime restart 3/3, full focused WP08, Infrastructure with a terminal PASS summary, Application/Domain/Architecture, full .NET, build 0/0, Python WP05/WP06/WP07, Streamlit 1.61.1, pip check, and final process/listener/handoff/database residue.
+No repository mutation is authorized by default. If a real regression fails, stop with evidence rather than patching.
+Only after every acceptance row passes, identify the exact Project #2 item for #233, set Done, close #233, read back, and verify #234 remains Open/Backlog with WP09 unstarted. End with the authority's exact terminal marker.

@@ -1,0 +1,3 @@
+Execute `release-1.9-wp07-specific-execution-authority-codex-prompt.md` as the sole authority using GPT-5.6 Terra.
+First resolve #232's exact accepted semantics, deliverables, manifest paths, and boundary with completed WP06 and future WP08/WP09. Do not invent missing presentation semantics; if a material choice is unresolved, stop before mutation and request the minimum narrow GPT-5.6 Luna definition authority.
+Use WP06 Python 6/6, WP05 Python 3/3, build 0/0, and full .NET regression 305/305 as predecessor gates. Implement only WP07, close #232 only after every acceptance/scope gate passes, and do not start WP08. End with the authority's exact terminal marker.

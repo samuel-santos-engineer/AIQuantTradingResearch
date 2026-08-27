@@ -21,7 +21,7 @@ public sealed class SqlitePersistenceTests
         using var database = new TestDatabase();
         using var connection = database.Factory.OpenConnection();
 
-        Assert.Equal(3L, Scalar<long>(connection, "PRAGMA user_version;"));
+        Assert.Equal(4L, Scalar<long>(connection, "PRAGMA user_version;"));
         Assert.Equal(1L, Scalar<long>(connection, "SELECT COUNT(*) FROM sqlite_schema WHERE type = 'table' AND name = 'experiment_results';"));
         Assert.Equal(4L, Scalar<long>(connection, "SELECT COUNT(*) FROM pragma_table_info('historical_observations');"));
         using (var columns = connection.CreateCommand())
@@ -65,13 +65,58 @@ public sealed class SqlitePersistenceTests
         using (var connection = new SqliteConnection($"Data Source={database.Path}"))
         {
             connection.Open();
-            Execute(connection, "PRAGMA user_version = 4;");
+            Execute(connection, "PRAGMA user_version = 5;");
         }
 
         Assert.Throws<InvalidOperationException>(() => database.Factory.OpenConnection());
         using var verification = new SqliteConnection($"Data Source={database.Path}");
         verification.Open();
-        Assert.Equal(4L, Scalar<long>(verification, "PRAGMA user_version;"));
+        Assert.Equal(5L, Scalar<long>(verification, "PRAGMA user_version;"));
+    }
+
+    [Fact]
+    public void VersionThreeDatabaseMigratesToVersionFourPreservingHistoricalSnapshotAndExperimentEvidence()
+    {
+        using var database = new TestDatabase();
+        const long fromTicks = 638396640000000000L;
+        const long toTicks = 638396641000000000L;
+        string snapshot = new('a', 64);
+        string definition = new('b', 64);
+        string research = new('c', 64);
+        string sourceState = new('d', 64);
+        string experiment = new('e', 64);
+        string experimentDefinition = new('f', 64);
+        string featureSet = new('1', 64);
+        string featureDefinition = new('2', 64);
+
+        using (var connection = new SqliteConnection($"Data Source={database.Path}"))
+        {
+            connection.Open();
+            Execute(connection, SqliteHistoricalObservationSchema.CreateTableStatement);
+            Execute(connection, SqliteDatasetSchema.CreateSnapshotTableStatement.Replace("IN (0, 1)", "= 0", StringComparison.Ordinal));
+            Execute(connection, SqliteDatasetSchema.CreateObservationTableStatement);
+            Execute(connection, SqliteExperimentResultSchema.CreateTableStatement.Replace("IN (0, 1)", "= 0", StringComparison.Ordinal));
+            Execute(connection, $"""
+                INSERT INTO dataset_snapshots VALUES
+                ('{snapshot}', '{definition}', '{research}', '{sourceState}', 'aiq-dataset-identity-v1', 'TARGET',
+                {fromTicks}, 0, {toTicks}, 0, 0, 0, NULL, NULL, NULL, NULL, 0);
+                """);
+            Execute(connection, $"""
+                INSERT INTO experiment_results VALUES
+                ('{experiment}', 'aiq-experiment-identity-v1', 'simple-return-descriptive-summary-v1', '{experimentDefinition}',
+                'aiq-feature-identity-v1', '{featureSet}', '{featureDefinition}', 'aiq-dataset-identity-v1', '{snapshot}',
+                '{definition}', '{research}', '{sourceState}', 0, 0, 0, 0, NULL, NULL, NULL);
+                """);
+            Execute(connection, "PRAGMA user_version = 3;");
+        }
+
+        using var upgraded = database.Factory.OpenConnection();
+        Assert.Equal(4L, Scalar<long>(upgraded, "PRAGMA user_version;"));
+        Assert.Equal(1L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM dataset_snapshots WHERE source_authority = 0;"));
+        Assert.Equal(1L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM experiment_results WHERE source_authority = 0;"));
+        Assert.Equal(0L, Scalar<long>(upgraded, "SELECT COUNT(*) FROM pragma_foreign_key_check;"));
+        Assert.Contains("source_authority IN (0, 1)", Scalar<string>(upgraded, "SELECT sql FROM sqlite_schema WHERE name = 'dataset_snapshots';"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("source_authority IN (0, 1)", Scalar<string>(upgraded, "SELECT sql FROM sqlite_schema WHERE name = 'experiment_results';"), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

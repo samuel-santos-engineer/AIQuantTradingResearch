@@ -54,6 +54,49 @@ service boundary.
   WP08 scripts are scientific-stack evidence and are not protocol endpoints.
   The delivered production endpoint is `python/integration/protocol_endpoint.py`.
 
+## Release 1.9 presentation boundary
+
+Release 1.9 adds a separate local presentation flow. The .NET Application and
+Worker side produce a bounded visualization read model; the Python/Streamlit
+side consumes it read-only for presentation. Its canonical flow is:
+
+```text
+Replay or historical composition
+  -> Application-owned existing pipeline
+  -> visualization read model
+  -> Worker-owned atomic canonical JSON handoff
+  -> WP05 parser
+  -> WP06 visualization frame
+  -> WP07 factual sections
+  -> Streamlit presentation
+```
+
+Replay-origin evidence produces the evolving `Ready` and `WarmUp` states.
+`Empty` and `Failed` originate at the deepest existing canonical historical
+composition/pipeline/read-model boundary that owns those conditions. The
+presentation adapter never calls a provider, opens SQLite, reconstructs a
+snapshot, recomputes a feature, or creates a parallel pipeline.
+
+The Worker and Streamlit application remain independently launched processes:
+there is no production Worker-to-Streamlit supervision relationship. Worker
+startup removes only its canonical stale handoff under the governed runtime
+root; publication is atomic. Streamlit owns bounded read-only refresh and safe
+missing, malformed, stale, and failed-envelope display. Cancellation and
+restart use owned-process cleanup only, and a stale earlier publication cannot
+satisfy readiness for a new run.
+
+The finite WP08 lifecycle harness and its Python evidence probe are acceptance
+tools, not production presentation interfaces. Likewise, this file's Release
+1.8 JSON-over-stdio capability endpoint remains a separate one-shot boundary;
+it is not the Release 1.9 Worker-to-Streamlit JSON-file handoff.
+
+Presentation security follows the permanent no-bypass rules: no caller-selected
+script or interpreter, no provider or SQLite UI access, no credentials in the
+handoff, no arbitrary module execution, and no broad process termination.
+The canonical handoff contains bounded, non-authoritative presentation data;
+authoritative evidence remains governed by the existing Application and
+Infrastructure boundaries.
+
 ## Interpreter resolution and process lifecycle
 
 The delivered Infrastructure adapter resolves the repository root from its

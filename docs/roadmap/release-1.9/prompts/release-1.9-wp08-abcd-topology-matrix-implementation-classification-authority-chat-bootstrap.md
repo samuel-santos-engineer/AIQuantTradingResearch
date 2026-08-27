@@ -1,0 +1,4 @@
+Execute `release-1.9-wp08-abcd-topology-matrix-implementation-classification-authority-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+Treat the corrected synchronous native capture helper as frozen predecessor state: build 0/0, standalone CTRL_BREAK 1/1 exit 0, current focused WP08 4 passed / 1 combined failure.
+Modify only `WP08LifecycleDemonstrationTests.cs`. Implement one shared topology-scenario runner plus A Worker-only, B Worker+Streamlit, C Worker+governed-probe, and D Worker+Streamlit+probe. Use the same Worker helper, `--wp08-test-liveness`, genuine P2, and targeted CTRL_BREAK in every scenario. Emit factual bounded diagnostics and classify H/P/S/T/W or U.
+Do not fix behavior, modify the frozen helper/Worker/Python/Replay/WP05–WP07, add packages, mutate GitHub, or start WP09. Keep #233/#234 Open/Backlog. End with the authority's exact terminal marker.

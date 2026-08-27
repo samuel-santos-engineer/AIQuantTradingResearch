@@ -172,6 +172,7 @@ public sealed class PipelineCompositionTests
     {
         string repositoryRoot = FindRepositoryRoot();
         string workerProject = Path.Combine(repositoryRoot, "src", "AIQuantTradingResearch.Worker", "AIQuantTradingResearch.Worker.csproj");
+        string handoffPath = Path.Combine(Path.GetTempPath(), $"aiq-wp05-handoff-{Guid.NewGuid():N}.json");
         var startInfo = new ProcessStartInfo("dotnet")
         {
             WorkingDirectory = repositoryRoot,
@@ -187,6 +188,7 @@ public sealed class PipelineCompositionTests
         startInfo.ArgumentList.Add("Release");
         startInfo.Environment["TwelveData__ApiKey"] = "wp11-dummy-api-key";
         startInfo.Environment["Persistence__DatabasePath"] = databasePath;
+        startInfo.Environment["Visualization__HandoffPath"] = handoffPath;
         startInfo.Environment["Dataset__Target"] = target;
         startInfo.Environment["Dataset__From"] = from;
         startInfo.Environment["Dataset__To"] = to;
@@ -195,13 +197,16 @@ public sealed class PipelineCompositionTests
             startInfo.Environment.Remove(missingVariable);
         }
 
-        using Process process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("The Worker process could not be started.");
-        string standardOutput = process.StandardOutput.ReadToEnd();
-        string standardError = process.StandardError.ReadToEnd();
-        Assert.True(process.WaitForExit(30_000), "The bounded Worker process did not terminate.");
-
-        return new WorkerResult(process.ExitCode, standardOutput, standardError);
+        try
+        {
+            using Process process = Process.Start(startInfo)
+                ?? throw new InvalidOperationException("The Worker process could not be started.");
+            string standardOutput = process.StandardOutput.ReadToEnd();
+            string standardError = process.StandardError.ReadToEnd();
+            Assert.True(process.WaitForExit(30_000), "The bounded Worker process did not terminate.");
+            return new WorkerResult(process.ExitCode, standardOutput, standardError);
+        }
+        finally { File.Delete(handoffPath); }
     }
 
     private static int CountStageLines(string output) => output.Split('\n').Count(static line => line.StartsWith("Stage ", StringComparison.Ordinal));

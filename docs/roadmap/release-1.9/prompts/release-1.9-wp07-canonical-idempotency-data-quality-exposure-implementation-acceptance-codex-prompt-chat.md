@@ -1,0 +1,3 @@
+Execute `release-1.9-wp07-canonical-idempotency-data-quality-exposure-implementation-acceptance-codex-prompt.md` as the sole authority using GPT-5.6 Terra.
+Treat `docs/roadmap/release-1.9/RELEASE_1.9_WP07_CANONICAL_IDEMPOTENCY_DATA_QUALITY_SEMANTIC_DEFINITION.md` as binding semantic authority. Implement only the additive canonical idempotency/data-quality exposure through Application → WP04 → Worker JSON → WP05 parser → WP06 factual metadata.
+Do not implement WP07 sections/rendering, change persistence/schema behavior, alter WP04 state/revisions or WP05 cache/retry, change WP06 chart semantics, mutate #232 lifecycle, or start WP08/WP09. Stop before mutation if required paths lack manifest authority. End with the authority's exact terminal marker.

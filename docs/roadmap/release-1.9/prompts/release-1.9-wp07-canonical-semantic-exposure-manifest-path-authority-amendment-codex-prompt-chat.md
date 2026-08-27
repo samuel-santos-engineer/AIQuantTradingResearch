@@ -1,0 +1,3 @@
+Execute `release-1.9-wp07-canonical-semantic-exposure-manifest-path-authority-amendment-codex-prompt.md` as the sole authority using GPT-5.6 Luna.
+Treat `RELEASE_1.9_WP07_CANONICAL_IDEMPOTENCY_DATA_QUALITY_SEMANTIC_DEFINITION.md` as binding. Amend only the manifest/path authority needed for the canonical Application → WP04 → Worker JSON → WP05 parser → WP06 semantic-exposure chain and its dedicated focused tests.
+Use exact current repository paths and symbol/concern-level exceptions; do not transfer general WP04/WP05/WP06 ownership, implement code/tests, mutate GitHub, render WP07 UI, or touch WP08/WP09. End with the authority's exact terminal marker.

@@ -4,6 +4,8 @@ using AIQuantTradingResearch.Application.Features;
 using AIQuantTradingResearch.Infrastructure;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
+using AIQuantTradingResearch.Infrastructure.Visualization;
+using AIQuantTradingResearch.Application.Visualization;
 using AIQuantTradingResearch.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -80,13 +82,34 @@ catch (ArgumentException)
     return 1;
 }
 
+VisualizationHandoffOptions visualizationHandoffOptions;
+try
+{
+    visualizationHandoffOptions = VisualizationHandoffOptions.From(builder.Configuration);
+}
+catch (ArgumentException)
+{
+    Console.Error.WriteLine("Invalid visualization handoff configuration.");
+    return 1;
+}
+
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfiguration);
+builder.Services.AddSingleton(new VisualizationReadModelFilePublisher(visualizationHandoffOptions.HandoffPath));
+builder.Services.AddSingleton<AtomicVisualizationReadModelStore>();
+builder.Services.AddSingleton<IVisualizationReadModelStore>(serviceProvider =>
+    new VisualizationReadModelFilePublishingStore(
+        serviceProvider.GetRequiredService<AtomicVisualizationReadModelStore>(),
+        serviceProvider.GetRequiredService<VisualizationReadModelFilePublisher>()));
 builder.Services.AddTransient<PipelineExecution>();
 builder.Services.AddTransient<FeatureExecution>();
 builder.Services.AddTransient<ExperimentExecution>();
 builder.Services.AddTransient<DurableExperimentExecution>();
 builder.Services.AddTransient<DurableExperimentDiscoveryExecution>();
+builder.Services.AddSingleton<IWorkerLifecycleLivenessGate>(_ => args.Contains("--wp08-test-liveness", StringComparer.Ordinal)
+    ? new TestWorkerLifecycleLivenessGate()
+    : new NoOpWorkerLifecycleLivenessGate());
+builder.Services.AddTransient<SimulatedLiveVisualizationExecution>();
 
 using var host = builder.Build();
 if (durableExperimentDiscoveryConfiguration is not null)
@@ -117,6 +140,33 @@ if (isFeatureExecutionRequested)
     }
 }
 
+var workerMode = builder.Configuration["Worker:Mode"];
+if (string.Equals(workerMode, "Replay", StringComparison.OrdinalIgnoreCase)
+    || (!string.IsNullOrWhiteSpace(workerMode)
+        && !string.Equals(workerMode, "Historical", StringComparison.OrdinalIgnoreCase)))
+{
+    try
+    {
+        var workerConfiguration = SimulatedLiveVisualizationConfiguration.From(builder.Configuration);
+        using var lifetime = new WorkerLifetimeCancellation();
+        host.Services.GetRequiredService<VisualizationReadModelFilePublisher>().StartSession();
+        try
+        {
+            return host.Services.GetRequiredService<SimulatedLiveVisualizationExecution>()
+                .Execute(workerConfiguration, lifetime.Token);
+        }
+        catch (OperationCanceledException) when (lifetime.Token.IsCancellationRequested)
+        {
+            return 0;
+        }
+    }
+    catch (ArgumentException)
+    {
+        Console.Error.WriteLine("Invalid Worker or Dataset configuration.");
+        return 1;
+    }
+}
+
 PipelineExecutionConfiguration pipelineExecutionConfiguration;
 try
 {
@@ -129,4 +179,5 @@ catch (ArgumentException)
 }
 
 var execution = host.Services.GetRequiredService<PipelineExecution>();
+host.Services.GetRequiredService<VisualizationReadModelFilePublisher>().StartSession();
 return execution.Execute(pipelineExecutionConfiguration);

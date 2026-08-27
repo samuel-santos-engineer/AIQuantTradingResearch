@@ -7,7 +7,8 @@ internal static class SqliteSchemaBootstrapper
 {
     private const string EnableForeignKeysStatement = "PRAGMA foreign_keys = ON;";
     private const string ReadSchemaVersionStatement = "PRAGMA user_version;";
-    private const string WriteSchemaVersionStatement = "PRAGMA user_version = 3;";
+    private const int CurrentVersion = 4;
+    private const string WriteSchemaVersionStatement = "PRAGMA user_version = 4;";
 
     private static readonly ExpectedColumn[] ExpectedHistoricalObservationColumns =
     {
@@ -87,6 +88,7 @@ internal static class SqliteSchemaBootstrapper
         "PRIMARY KEY (snapshot_identity)",
         "observation_count = 0",
         "first_observation_utc_ticks IS NULL",
+        "source_authority IN (0, 1)",
         "STRICT, WITHOUT ROWID",
     };
 
@@ -108,6 +110,7 @@ internal static class SqliteSchemaBootstrapper
         "dataset_identity_scheme = 'aiq-dataset-identity-v1'",
         "PRIMARY KEY (experiment_result_identity)",
         "FOREIGN KEY (snapshot_identity) REFERENCES dataset_snapshots(snapshot_identity)",
+        "source_authority IN (0, 1)",
         "ON UPDATE RESTRICT ON DELETE RESTRICT",
         "STRICT, WITHOUT ROWID",
     };
@@ -122,9 +125,16 @@ internal static class SqliteSchemaBootstrapper
         }
 
         EnableForeignKeys(connection);
+        var version = ReadSchemaVersion(connection);
+        var requiresVersionThreeMigration = version == SqliteExperimentResultSchema.Version;
+        if (requiresVersionThreeMigration)
+        {
+            DisableForeignKeys(connection);
+        }
 
-        using var transaction = connection.BeginTransaction();
-        var version = ReadSchemaVersion(connection, transaction);
+        try
+        {
+            using var transaction = connection.BeginTransaction();
 
         if (version == 0)
         {
@@ -156,16 +166,43 @@ internal static class SqliteSchemaBootstrapper
         else if (version == SqliteExperimentResultSchema.Version)
         {
             ValidateHistoricalObservationSchema(connection, transaction);
+            ValidateV3DatasetSchema(connection, transaction);
+            ValidateV3ExperimentResultSchema(connection, transaction);
+            MigrateVersion3ToVersion4(connection, transaction);
+            ValidateDatasetSchema(connection, transaction);
+            ValidateExperimentResultSchema(connection, transaction);
+            ValidateForeignKeyIntegrity(connection, transaction);
+            Execute(connection, transaction, WriteSchemaVersionStatement);
+        }
+        else if (version == CurrentVersion)
+        {
+            ValidateHistoricalObservationSchema(connection, transaction);
             ValidateDatasetSchema(connection, transaction);
             ValidateExperimentResultSchema(connection, transaction);
         }
         else
         {
             throw new SqliteSchemaValidationException(
-                $"Unsupported SQLite schema version '{version}'. Expected version '{SqliteExperimentResultSchema.Version}'.");
+                $"Unsupported SQLite schema version '{version}'. Expected version '{CurrentVersion}'.");
         }
 
-        transaction.Commit();
+            transaction.Commit();
+        }
+        finally
+        {
+            if (requiresVersionThreeMigration)
+            {
+                EnableForeignKeys(connection);
+            }
+        }
+    }
+
+    private static long ReadSchemaVersion(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = ReadSchemaVersionStatement;
+        return (long)(command.ExecuteScalar()
+            ?? throw new SqliteSchemaValidationException("SQLite returned no schema version."));
     }
 
     private static long ReadSchemaVersion(
@@ -183,6 +220,13 @@ internal static class SqliteSchemaBootstrapper
     {
         using var command = connection.CreateCommand();
         command.CommandText = EnableForeignKeysStatement;
+        command.ExecuteNonQuery();
+    }
+
+    private static void DisableForeignKeys(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = "PRAGMA foreign_keys = OFF;";
         command.ExecuteNonQuery();
     }
 
@@ -246,6 +290,21 @@ internal static class SqliteSchemaBootstrapper
         ValidateDatasetObservationForeignKey(connection, transaction);
     }
 
+    private static void ValidateV3DatasetSchema(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        ValidateColumns(connection, transaction, SqliteDatasetSchema.SnapshotTableName, ExpectedDatasetSnapshotColumns);
+        ValidateColumns(connection, transaction, SqliteDatasetSchema.ObservationTableName, ExpectedDatasetObservationColumns);
+        ValidateTableDefinition(
+            connection,
+            transaction,
+            SqliteDatasetSchema.SnapshotTableName,
+            RequiredDatasetSnapshotFragments.Where(static fragment => !string.Equals(fragment, "source_authority IN (0, 1)", StringComparison.Ordinal)).Append("source_authority = 0").ToArray());
+        ValidateTableDefinition(connection, transaction, SqliteDatasetSchema.ObservationTableName, RequiredDatasetObservationFragments);
+        ValidateDatasetObservationForeignKey(connection, transaction);
+    }
+
     private static void ValidateExperimentResultSchema(
         SqliteConnection connection,
         SqliteTransaction transaction)
@@ -261,6 +320,54 @@ internal static class SqliteSchemaBootstrapper
             SqliteExperimentResultSchema.TableName,
             RequiredExperimentResultFragments);
         ValidateExperimentResultForeignKey(connection, transaction);
+    }
+
+    private static void ValidateV3ExperimentResultSchema(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        ValidateColumns(connection, transaction, SqliteExperimentResultSchema.TableName, ExpectedExperimentResultColumns);
+        ValidateTableDefinition(
+            connection,
+            transaction,
+            SqliteExperimentResultSchema.TableName,
+            RequiredExperimentResultFragments.Where(static fragment => !string.Equals(fragment, "source_authority IN (0, 1)", StringComparison.Ordinal)).Append("source_authority = 0").ToArray());
+        ValidateExperimentResultForeignKey(connection, transaction);
+    }
+
+    private static void MigrateVersion3ToVersion4(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        Execute(connection, transaction, CreateReplacementStatement(SqliteDatasetSchema.CreateSnapshotTableStatement, SqliteDatasetSchema.SnapshotTableName, "dataset_snapshots_v4"));
+        Execute(connection, transaction, "INSERT INTO dataset_snapshots_v4 SELECT * FROM dataset_snapshots;");
+        Execute(connection, transaction, "DROP TABLE dataset_snapshots;");
+        Execute(connection, transaction, "ALTER TABLE dataset_snapshots_v4 RENAME TO dataset_snapshots;");
+
+        Execute(connection, transaction, CreateReplacementStatement(SqliteExperimentResultSchema.CreateTableStatement, SqliteExperimentResultSchema.TableName, "experiment_results_v4"));
+        Execute(connection, transaction, "INSERT INTO experiment_results_v4 SELECT * FROM experiment_results;");
+        Execute(connection, transaction, "DROP TABLE experiment_results;");
+        Execute(connection, transaction, "ALTER TABLE experiment_results_v4 RENAME TO experiment_results;");
+    }
+
+    private static string CreateReplacementStatement(string statement, string existingTableName, string replacementTableName) =>
+        statement.Replace(
+            $"CREATE TABLE IF NOT EXISTS {existingTableName}",
+            $"CREATE TABLE {replacementTableName}",
+            StringComparison.Ordinal);
+
+    private static void ValidateForeignKeyIntegrity(
+        SqliteConnection connection,
+        SqliteTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "PRAGMA foreign_key_check;";
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            throw new SqliteSchemaValidationException("SQLite foreign-key integrity validation failed.");
+        }
     }
 
     private static void ValidateColumns(

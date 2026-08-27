@@ -2,7 +2,7 @@
 
 **Status:** Active
 **Version:** 1.1
-**Last Updated:** 2026-08-24
+**Last Updated:** 2026-08-27
 **Maintainers:** AIQuantTradingResearch Team
 
 ---
@@ -33,7 +33,7 @@ direction until separately defined and accepted.
 
 | Releases | Delivered capability |
 | --- | --- |
-| 0.1–0.8 | Engineering governance, architecture, AI engineering toolkit, and executable .NET solution foundation. |
+| 0.1-0.8 | Engineering governance, architecture, AI engineering toolkit, and executable .NET solution foundation. |
 | 0.9 | Deterministic offline research platform. |
 | 1.0 | Provider-backed historical market-data acquisition. |
 | 1.1 | Durable provider-independent historical market-data persistence. |
@@ -53,30 +53,36 @@ visualization, observability, explainability, or backtesting.
 # Canonical Next Release Sequence
 
 ```text
-1.9 Visualization → 1.10 Observability → 2.0 Lightweight ML Evaluation
-→ 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting
+1.9 Visualization -> 1.10 Observability -> 2.0 Lightweight ML Evaluation
+-> 2.1 Machine Learning -> 2.2 Explainable AI -> 2.3 Backtesting
 ```
 
 The corresponding capability narrative is:
 
 ```text
-Acquire → Persist → Validate → Transform → Stream → Visualize → Observe → Learn → Explain → Backtest
+Acquire -> Persist -> Validate -> Transform -> Stream -> Visualize -> Observe -> Learn -> Explain -> Backtest
 ```
 
-## Release 1.9 — Real-Time Financial Data Visualization
+## Release 1.9 - Real-Time Financial Data Visualization
 
-**Status:** NEXT — milestone placeholder only; no definition, work packages, or
-implementation exist.
+**Status:** ACTIVE - deterministic simulated/replay visualization foundation is
+being delivered under milestone #58. WP08 (lifecycle, resilience, and bounded
+demonstration) and WP09 (permanent integration and architecture tests) are
+complete. WP10 / #235 is complete for architecture, documentation, and
+developer alignment only; it added no executable tests. The milestone remains
+open and successor work packages remain untouched until separately authorized.
 
-The future release is intended to use deterministic simulated/live-mock provider
-ticker behavior and the existing pipeline with a Streamlit presentation adapter.
-It may expose evolving financial charts, existing feature output such as
-`simple-return-lag-1-v1`, and dataset snapshot/data-quality states. It excludes
-ML training and a broad observability platform.
+The delivered flow reuses the existing pipeline and publishes a bounded local
+canonical JSON read model for a read-only Streamlit presentation. Current
+visualization/demo flows use deterministic simulated/replay data for local
+testing and demonstration, not a live market-data feed. The UI does not call a
+provider, open SQLite, reconstruct features, or run a parallel pipeline. ML
+training, trading, real-provider streaming, a broad observability platform,
+and new Release 1.10/2.0 scope remain excluded.
 
-## Release 1.10 — OpenTelemetry & Pipeline Observability
+## Release 1.10 - OpenTelemetry & Pipeline Observability
 
-**Status:** PLANNED — milestone placeholder only.
+**Status:** PLANNED - milestone placeholder only.
 
 The future release is intended to introduce governed OpenTelemetry for pipeline
 and stage timing, throughput, provider behavior, persistence latency, failures,
@@ -84,30 +90,30 @@ and appropriate Python-boundary telemetry, including a Streamlit System Health
 view. An explicit OpenTelemetry selection record is required before
 implementation. ML training is excluded.
 
-## Release 2.0 — Lightweight Machine Learning Evaluation
+## Release 2.0 - Lightweight Machine Learning Evaluation
 
-**Status:** PLANNED — milestone placeholder only.
+**Status:** PLANNED - milestone placeholder only.
 
 The future release is intended to test one narrow deterministic ML hypothesis,
 with Logistic Regression through governed scikit-learn as the preferred initial
-candidate unless a later definition finds a blocker. It requires temporal—not
-random—evaluation, baseline comparison, reproducible experiment identity and
+candidate unless a later definition finds a blocker. It requires temporal-not-
+random evaluation, baseline comparison, reproducible experiment identity and
 metrics, and experiment visualization. It is not a broad reusable ML platform
 or strategy backtesting.
 
-## Release 2.1 — Machine Learning
+## Release 2.1 - Machine Learning
 
-**Status:** RESEQUENCED — existing milestone identity and broader scope
+**Status:** RESEQUENCED - existing milestone identity and broader scope
 preserved; no work packages are defined here.
 
-## Release 2.2 — Explainable AI
+## Release 2.2 - Explainable AI
 
-**Status:** RESEQUENCED — existing milestone identity and broader scope
+**Status:** RESEQUENCED - existing milestone identity and broader scope
 preserved; no work packages are defined here.
 
-## Release 2.3 — Backtesting
+## Release 2.3 - Backtesting
 
-**Status:** PLANNED — milestone placeholder only.
+**Status:** PLANNED - milestone placeholder only.
 
 The future release is intended to evaluate decision policies and research
 outputs historically with explicit temporal integrity and trading assumptions.
@@ -129,12 +135,12 @@ their mention here is not implementation authorization.
 
 Progress is measured through stable architecture, documentation quality,
 automated testing, reproducibility, observability, maintainability, security,
-and contributor experience—not feature count alone.
+and contributor experience-not feature count alone.
 
 ---
 
 # Living Roadmap
 
-This roadmap is evolutionary. Changes must preserve the project’s long-term
+This roadmap is evolutionary. Changes must preserve the project's long-term
 vision while remaining consistent with the Project Constitution, Engineering
 Handbook, and release-specific authorities.

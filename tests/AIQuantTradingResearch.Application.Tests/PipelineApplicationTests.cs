@@ -93,6 +93,24 @@ public sealed class PipelineApplicationTests
     }
 
     [Fact]
+    public void ExplicitObservationsUseTheSameFiveCanonicalStages()
+    {
+        var observations = new[] { new PriceObservation(From, 10m) };
+        var candidate = Candidate(observations);
+        var materializer = new StubMaterializer(DatasetMaterializationResult.Materialized(candidate));
+        var result = new PipelineExecutionUseCase(
+            materializer,
+            new StubSnapshotStore(DatasetSnapshotStoreResult.Completed(DatasetSnapshotStoreOutcome.NewlyAccepted)),
+            new StubCatalog(DatasetCatalogRegistrationResult.Completed(DatasetCatalogRegistrationOutcome.NewlyRegistered)))
+            .Execute(CreateRequest(), observations);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(PipelineDefinition.Topology, result.Provenance.Stages.Select(static stage => stage.Stage));
+        Assert.Equal(1, materializer.ObservationCalls);
+        Assert.Equal(0, materializer.Calls);
+    }
+
+    [Fact]
     public void EquivalentExistingExecutionPreservesTheDeterministicExecutionIdentity()
     {
         var candidate = Candidate([new PriceObservation(From, 10m)]);
@@ -278,9 +296,19 @@ public sealed class PipelineApplicationTests
     {
         public int Calls { get; private set; }
 
+        public int ObservationCalls { get; private set; }
+
         public DatasetMaterializationResult Execute(DatasetDefinition definition)
         {
             Calls++;
+            return result;
+        }
+
+        public DatasetMaterializationResult Execute(
+            DatasetDefinition definition,
+            IReadOnlyList<PriceObservation> observations)
+        {
+            ObservationCalls++;
             return result;
         }
     }

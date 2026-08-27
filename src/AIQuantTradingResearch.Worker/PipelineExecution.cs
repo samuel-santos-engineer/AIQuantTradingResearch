@@ -1,5 +1,6 @@
 using AIQuantTradingResearch.Application;
 using AIQuantTradingResearch.Application.Pipelines;
+using AIQuantTradingResearch.Application.Visualization;
 
 namespace AIQuantTradingResearch.Worker;
 
@@ -7,16 +8,20 @@ internal sealed class PipelineExecution
 {
     private readonly IPipelineExecutionUseCase pipelineExecutionUseCase;
     private readonly IPipelineRequestFactory pipelineRequestFactory;
+    private readonly VisualizationReadModelUseCase presentation;
 
     public PipelineExecution(
         IPipelineExecutionUseCase pipelineExecutionUseCase,
-        IPipelineRequestFactory pipelineRequestFactory)
+        IPipelineRequestFactory pipelineRequestFactory,
+        VisualizationReadModelUseCase presentation)
     {
         ArgumentNullException.ThrowIfNull(pipelineExecutionUseCase);
         ArgumentNullException.ThrowIfNull(pipelineRequestFactory);
+        ArgumentNullException.ThrowIfNull(presentation);
 
         this.pipelineExecutionUseCase = pipelineExecutionUseCase;
         this.pipelineRequestFactory = pipelineRequestFactory;
+        this.presentation = presentation;
     }
 
     public int Execute(PipelineExecutionConfiguration configuration)
@@ -27,6 +32,8 @@ internal sealed class PipelineExecution
         PipelineExecutionResult result = pipelineExecutionUseCase.Execute(request)
             ?? throw new InvalidOperationException("The pipeline execution use case returned no result.");
         PipelineExecutionEvidence evidence = PipelineExecutionEvidence.From(result);
+
+        presentation.PublishHistorical(configuration.DatasetDefinition.Target, result);
 
         Present(evidence);
         return evidence.IsSuccess ? 0 : 1;

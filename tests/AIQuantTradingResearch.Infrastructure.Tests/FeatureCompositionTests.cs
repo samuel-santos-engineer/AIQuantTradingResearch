@@ -158,7 +158,7 @@ public sealed class FeatureCompositionTests
         using var connection = database.Factory.OpenConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "PRAGMA user_version;";
-        Assert.Equal(3L, (long)command.ExecuteScalar()!);
+        Assert.Equal(4L, (long)command.ExecuteScalar()!);
     }
 
     private static void AssertNoFeatureTables(TemporaryDatabase database)
@@ -172,6 +172,7 @@ public sealed class FeatureCompositionTests
     private static WorkerResult RunWorker(string databasePath, string identity, string version, bool omitVersion = false)
     {
         string root = FindRepositoryRoot();
+        string handoffPath = Path.Combine(Path.GetTempPath(), $"aiq-wp05-handoff-{Guid.NewGuid():N}.json");
         var startInfo = new ProcessStartInfo("dotnet") { WorkingDirectory = root, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         startInfo.ArgumentList.Add("run");
         startInfo.ArgumentList.Add("--project");
@@ -181,14 +182,19 @@ public sealed class FeatureCompositionTests
         startInfo.ArgumentList.Add("Release");
         startInfo.Environment["TwelveData__ApiKey"] = "wp12-dummy-api-key";
         startInfo.Environment["Persistence__DatabasePath"] = databasePath;
+        startInfo.Environment["Visualization__HandoffPath"] = handoffPath;
         startInfo.Environment["Feature__SnapshotIdentity"] = identity;
         if (!omitVersion) startInfo.Environment["Feature__SnapshotVersion"] = version;
 
-        using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Worker process did not start.");
-        string standardOutput = process.StandardOutput.ReadToEnd();
-        string standardError = process.StandardError.ReadToEnd();
-        Assert.True(process.WaitForExit(30_000), "Worker did not terminate within the bounded timeout.");
-        return new WorkerResult(process.ExitCode, standardOutput, standardError);
+        try
+        {
+            using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Worker process did not start.");
+            string standardOutput = process.StandardOutput.ReadToEnd();
+            string standardError = process.StandardError.ReadToEnd();
+            Assert.True(process.WaitForExit(30_000), "Worker did not terminate within the bounded timeout.");
+            return new WorkerResult(process.ExitCode, standardOutput, standardError);
+        }
+        finally { File.Delete(handoffPath); }
     }
 
     private static string ReadValue(string output, string marker) => output.Split('\n').Single(line => line.StartsWith(marker, StringComparison.Ordinal))[marker.Length..].Trim();
