@@ -7,16 +7,17 @@
 [![Release](https://img.shields.io/badge/release-1.9-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
 [![Tests](<https://img.shields.io/badge/tests-339%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-21%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
-[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
+[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Python](https://img.shields.io/badge/Python-3.13.15-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 AIQuantTradingResearch is an open-source engineering project for building a quantitative research platform from the ground up with explicit architecture, executable quality gates, incremental delivery, and transparent technical decisions.
 
 	The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current closed milestone:** **[Release 1.7: Durable Experiment Evidence Discover](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/55)**
+**Current closed milestone:** **[Release 1.9: Real-Time Financial Data Visualization](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/58)** — closed with all 13 work packages complete.
 
-**Current accepted milestone:** **[Release 1.8: Python & AI Engineering Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/56)** — closed with all 13 work packages complete.
+**Current accepted milestone:** **[Release 1.10: OpenTelemetry & Pipeline Observability](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/59)**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -32,7 +33,7 @@ AIQuantTradingResearch is an open-source engineering project for building a quan
 - **Durable Evidence (v1.6):** Schema v3 persistence mapping outcomes to `NewlyAccepted` or `IntegrityConflict` states.
 - **Evidence Discovery (v1.7):** Mandatory bounded discovery (`MaximumResultCount`) returning ordered binary-sorted collections.
 - **Python Engineering Foundation (v1.8):** Isolated CPython scientific-stack tooling and a tested local JSON-over-stdio integration boundary.
-- **Visualization foundation (v1.9, in progress):** The existing pipeline publishes a bounded canonical JSON read model for a read-only Python/Streamlit presentation; the UI never bypasses the pipeline through direct provider or SQLite access.
+- **Real-Time Financial Data Visualization (v1.9):** The existing pipeline publishes a bounded canonical JSON read model for an independently owned read-only Python/Streamlit presentation; deterministic/replay flows never bypass the pipeline through direct provider or SQLite access.
 
 > **Release 1.9 warning:** Current visualization and demo flows use deterministic
 > simulated/replay data for local testing and demonstration. They are not a
@@ -183,6 +184,22 @@ fallback. Discovery remains schema-v3 read-only over `experiment_results`, uses
 no provider or network fallback, and adds no registry, history, search,
 pagination, new index, or persistence mutation.
 
+### [Release 1.8: Python & AI Engineering Foundation](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/56)
+
+Release 1.8 establishes the governed Python engineering foundation: CPython and
+an isolated `.venv`, deterministic scientific-stack validation, and a tested
+local .NET/Python JSON-over-stdio interoperability boundary. Python is an
+accepted first-class engineering capability; this foundation does not claim a
+generic AI/ML platform or model-training capability.
+
+### [Release 1.9: Real-Time Financial Data Visualization](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/58)
+
+Release 1.9 delivers an independently owned Python/Streamlit presentation over
+a canonical .NET-produced JSON visualization handoff. Its deterministic/replay
+flow preserves the governed cross-language boundary: Streamlit neither reads
+SQLite nor calls a market-data provider directly, and it does not supervise the
+Worker.
+
 
 | Evidence                                    | Current baseline |
 | --------------------------------------------- | -----------------: |
@@ -220,12 +237,12 @@ Worker          → Application, Infrastructure
 ### Layer responsibilities
 
 
-| Layer              | Responsibility                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Domain**         | Core quantitative concepts and invariants without provider or storage dependencies.                         |
-| **Application**    | Use cases and contracts that express platform behavior independently of infrastructure technology.          |
+| Layer              | Responsibility                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Domain**         | Core quantitative concepts and invariants without provider or storage dependencies.                               |
+| **Application**    | Use cases and contracts that express platform behavior independently of infrastructure technology.                |
 | **Infrastructure** | Twelve Data integration, SQLite persistence, connection/bootstrap behavior, and the local Python process adapter. |
-| **Worker**         | Composition and bounded execution root for the current vertical slice.                                      |
+| **Worker**         | Composition and bounded execution root for the current vertical slice.                                            |
 
 This keeps market-data providers and persistence technologies replaceable without pushing those concerns into the core model.
 
@@ -286,6 +303,8 @@ The Release 1.9 presentation is a read-only local consumer of the Worker
 handoff. It does not directly call a provider or SQLite, and it does not add a
 product ML model, training workflow, live-data service, or trading workflow.
 Lightweight ML evaluation remains separately planned for Release 2.0.
+See the [Release 1.9 showcase and local run guide](docs/guides/RELEASE_1.9_SHOWCASE_AND_LOCAL_RUN_GUIDE.md)
+for the governed .NET → JSON handoff → Streamlit demonstration and troubleshooting.
 
 For the provider-backed execution path, configuration is supplied externally:
 
@@ -503,26 +522,27 @@ Technology choices remain subject to architecture and engineering decisions as t
 Each release is intended to add a concrete platform capability while strengthening the engineering system around it.
 
 
-| Release      | Engineering capability                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------- |
-| **0.1–0.6** | Architecture, governance, design, resilience, and implementation foundations              |
-| **0.7**      | AI Engineering Toolkit                                                                    |
-| **0.8**      | Executable .NET solution skeleton                                                         |
-| **0.9**      | Build, CI, and platform bootstrap evolution                                               |
-| **1.0**      | Provider-backed historical market-data acquisition                                        |
-| **1.1**      | **Durable market-data persistence and deterministic historical retrieval**                |
-| **1.2**      | **Deterministic immutable research datasets, snapshots, and catalog evidence**            |
-| **1.3**      | **Fixed deterministic one-shot Research Pipeline over accepted persisted history**        |
-| **1.4**      | **Deterministic simple-return feature generation over exact immutable snapshots**         |
-| **1.5–1.8** | Deterministic experiment evidence, discovery, and Python/AI engineering foundation        |
-| **1.9**      | **Planned: Real-Time Financial Data Visualization**                                        |
-| **1.10**     | **Planned: OpenTelemetry & Pipeline Observability**                                        |
-| **2.0**      | **Planned: Lightweight Machine Learning Evaluation**                                       |
-| **2.1**      | **Resequenced: Machine Learning**                                                          |
-| **2.2**      | **Resequenced: Explainable AI**                                                            |
-| **2.3**      | **Planned: Backtesting**                                                                   |
+| Release      | Engineering capability                                                             |
+| -------------- | ------------------------------------------------------------------------------------ |
+| **0.1–0.6** | Architecture, governance, design, resilience, and implementation foundations       |
+| **0.7**      | AI Engineering Toolkit                                                             |
+| **0.8**      | Executable .NET solution skeleton                                                  |
+| **0.9**      | Build, CI, and platform bootstrap evolution                                        |
+| **1.0**      | Provider-backed historical market-data acquisition                                 |
+| **1.1**      | **Durable market-data persistence and deterministic historical retrieval**         |
+| **1.2**      | **Deterministic immutable research datasets, snapshots, and catalog evidence**     |
+| **1.3**      | **Fixed deterministic one-shot Research Pipeline over accepted persisted history** |
+| **1.4**      | **Deterministic simple-return feature generation over exact immutable snapshots**  |
+| **1.5–1.7** | Deterministic experiment evidence and discovery                                    |
+| **1.8**      | **Completed: Python & AI Engineering Foundation**                                  |
+| **1.9**      | **Completed: Real-Time Financial Data Visualization**                              |
+| **1.10**     | **Planned: OpenTelemetry & Pipeline Observability**                                |
+| **2.0**      | **Planned: Lightweight Machine Learning Evaluation**                               |
+| **2.1**      | **Resequenced: Machine Learning**                                                  |
+| **2.2**      | **Resequenced: Explainable AI**                                                    |
+| **2.3**      | **Planned: Backtesting**                                                           |
 
-The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The canonical future sequence is 1.9 Visualization → 1.10 Observability → 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
+The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The canonical future sequence is 1.10 Observability → 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
 
 ### Public engineering roadmap
 
