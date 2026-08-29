@@ -9,6 +9,30 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 public sealed class PythonCapabilityInvokerTests
 {
     [Fact]
+    public async Task GovernedInvocationEmitsBoundedInteropActivityWithoutProtocolContamination()
+    {
+        var activities = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "AIQuantTradingResearch.Worker",
+            Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = activity => activities.Add(activity)
+        };
+        ActivitySource.AddActivityListener(listener);
+
+        var result = await CreateGovernedInvoker().InvokeAsync(
+            new CapabilityInvocationRequest(1, "health", "SECRET-CORRELATION", new Dictionary<string, string>()),
+            TimeSpan.FromSeconds(10));
+
+        var activity = Assert.Single(activities, item => item.OperationName == "interop.invoke");
+        Assert.True(result.IsSuccess);
+        Assert.Equal("interop", activity.GetTagItem("aiq.component"));
+        Assert.Equal("interop.invoke", activity.GetTagItem("aiq.operation"));
+        Assert.Equal("success", activity.GetTagItem("aiq.outcome"));
+        Assert.DoesNotContain(activity.Tags, tag => tag.Value?.Contains("SECRET-CORRELATION", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
     public async Task GovernedEndpointSupportsDeterministicHealthAndEchoRoundTrips()
     {
         var invoker = CreateGovernedInvoker();

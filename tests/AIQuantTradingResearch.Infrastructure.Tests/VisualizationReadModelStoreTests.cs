@@ -56,6 +56,25 @@ public sealed class VisualizationReadModelStoreTests
     }
 
     [Fact]
+    public void PublicationComposesBoundedSystemHealthWithoutChangingVisualizationState()
+    {
+        var useCase = new VisualizationReadModelUseCase(new AtomicVisualizationReadModelStore());
+        var ready = useCase.PublishHistorical("BTC", DatasetSourceAuthority.AcceptedRelease11HistoricalObservations, VisualizationPresentationState.Ready);
+        var warmup = useCase.PublishHistorical("BTC", DatasetSourceAuthority.AcceptedRelease11HistoricalObservations, VisualizationPresentationState.WarmUp);
+        var empty = useCase.PublishHistorical("BTC", DatasetSourceAuthority.AcceptedRelease11HistoricalObservations, VisualizationPresentationState.Empty);
+        var stale = useCase.PublishHistorical("BTC", DatasetSourceAuthority.AcceptedRelease11HistoricalObservations, VisualizationPresentationState.Stale, category: "NoNewResult");
+        var failed = useCase.PublishHistorical("BTC", DatasetSourceAuthority.AcceptedRelease11HistoricalObservations, VisualizationPresentationState.Failed, category: "DependencyUnavailable");
+        var replay = useCase.PublishReplay(1, "BTC", DatasetSourceAuthority.Release19SimulatedLiveReplay, VisualizationPresentationState.Ready);
+
+        Assert.Equal((VisualizationPresentationState.Ready, SystemHealthState.Ready, "historical", (string?)null), (ready.State, ready.SystemHealth!.State, ready.SystemHealth.Provenance, ready.SystemHealth.Reason));
+        Assert.Equal((VisualizationPresentationState.WarmUp, SystemHealthState.WarmUp, "historical", (string?)null), (warmup.State, warmup.SystemHealth!.State, warmup.SystemHealth.Provenance, warmup.SystemHealth.Reason));
+        Assert.Equal((VisualizationPresentationState.Empty, SystemHealthState.Empty, "historical", (string?)null), (empty.State, empty.SystemHealth!.State, empty.SystemHealth.Provenance, empty.SystemHealth.Reason));
+        Assert.Equal((VisualizationPresentationState.Stale, SystemHealthState.Stale, "historical", "structural-staleness"), (stale.State, stale.SystemHealth!.State, stale.SystemHealth.Provenance, stale.SystemHealth.Reason));
+        Assert.Equal((VisualizationPresentationState.Failed, SystemHealthState.Failed, "historical", "pipeline-failed"), (failed.State, failed.SystemHealth!.State, failed.SystemHealth.Provenance, failed.SystemHealth.Reason));
+        Assert.Equal((VisualizationPresentationState.Ready, SystemHealthState.Ready, "simulated", (string?)null), (replay.State, replay.SystemHealth!.State, replay.SystemHealth.Provenance, replay.SystemHealth.Reason));
+    }
+
+    [Fact]
     public void ProducerIgnoresOlderRowsAndAccumulatesAcceptedRows()
     {
         var useCase = new VisualizationReadModelUseCase(new AtomicVisualizationReadModelStore()); var start = DateTimeOffset.UnixEpoch;

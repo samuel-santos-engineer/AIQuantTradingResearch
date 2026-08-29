@@ -90,6 +90,16 @@ claim. Never commit private keys, PFX files, passwords, certificate exports, or
 machine-specific paths. Do not weaken global App Control policy or describe
 this arrangement as an App Control “bypass”.
 
+## Release 1.10 observability documentation boundary
+
+Release 1.10 uses this local signing procedure only when App Control prevents a
+locally built Worker or test artifact from loading during validation. It does
+not add repository signing configuration, an external telemetry exporter,
+network endpoint, or a runtime health mechanism. The Worker remains responsible
+for its bounded lifecycle; Streamlit remains an independent read-only consumer
+of the canonical JSON handoff. Follow the Python developer guide for the
+governed `.venv`, Streamlit, and validation workflow.
+
 ## WP08 separation
 
 App Control initially prevented the WP08 test assembly from loading; local

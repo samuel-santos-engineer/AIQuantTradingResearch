@@ -16,6 +16,16 @@ _STATES = ("Ready", "WarmUp", "Empty", "Stale", "Failed")
 _SOURCE_MODES = ("Historical", "Replay")
 _IDEMPOTENCY_STATUSES = ("NewlyPersisted", "EquivalentExisting", "Unavailable")
 _DATA_QUALITY_STATUSES = ("Valid", "Invalid", "Unavailable")
+_SYSTEM_HEALTH_STATES = ("ready", "warmup", "empty", "failed", "stale", "unavailable")
+_SYSTEM_HEALTH_PROVENANCES = ("historical", "replay", "simulated")
+_SYSTEM_HEALTH_REASONS = {
+    "ready": None,
+    "warmup": None,
+    "empty": None,
+    "failed": "pipeline-failed",
+    "stale": "structural-staleness",
+    "unavailable": "required-health-evidence-unavailable",
+}
 
 
 class FrameIntegrityError(ValueError):
@@ -40,6 +50,9 @@ class VisualizationFrame:
     source_authority: int
     target: str
     state: str
+    system_health_state: str
+    system_health_provenance: str
+    system_health_reason: str | None
     points: tuple[PriceTimePoint, ...]
     latest: PriceTimePoint | None
     observation_count: int
@@ -109,6 +122,16 @@ def project_visualization_frame(envelope: Envelope, transport_warning: str | Non
         raise FrameIntegrityError("Historical revision requires Historical source mode")
     if revision_kind == "ReplayLogicalTick" and source_mode != "Replay":
         raise FrameIntegrityError("Replay revision requires Replay source mode")
+    health = (
+        {"state": "unavailable", "provenance": "historical" if source_authority == 0 else "simulated", "reason": "required-health-evidence-unavailable"}
+        if "systemHealth" not in raw
+        else _mapping(raw.get("systemHealth"), "systemHealth")
+    )
+    health_state, health_provenance, health_reason = health.get("state"), health.get("provenance"), health.get("reason")
+    if health_state not in _SYSTEM_HEALTH_STATES or health_provenance not in _SYSTEM_HEALTH_PROVENANCES or health_reason != _SYSTEM_HEALTH_REASONS.get(health_state):
+        raise FrameIntegrityError("systemHealth is invalid")
+    if transport_warning == "HealthIntegrity":
+        health_state, health_reason = "unavailable", "required-health-evidence-unavailable"
 
     window = raw.get("window")
     if not isinstance(window, list) or len(window) > WINDOW_CAPACITY:
@@ -168,7 +191,7 @@ def project_visualization_frame(envelope: Envelope, transport_warning: str | Non
 
     return VisualizationFrame(
         _string(raw.get("contractVersion"), "contractVersion"), revision_kind, revision_value, revision_identity,
-        source_mode, source_authority, _string(raw.get("target"), "target"), state, points, latest,
+        source_mode, source_authority, _string(raw.get("target"), "target"), state, health_state, health_provenance, health_reason, points, latest,
         observation_count, window_count, WINDOW_CAPACITY, feature_identity, feature_value, feature_observation_count,
         feature_required_observation_count, pipeline_success, idempotency_status, data_quality_status, failure_category, failure_message, failure_recoverable,
         stale_reason, transport_warning,
@@ -190,9 +213,24 @@ def project_wp07_presentation_sections(frame: VisualizationFrame) -> tuple[tuple
     )
 
 
+def project_system_health_presentation(frame: VisualizationFrame) -> tuple[str, str]:
+    mapping = {
+        "ready": ("info", "System Health: Canonical evidence available."),
+        "warmup": ("info", "System Health: Waiting for bounded canonical observations."),
+        "empty": ("info", "System Health: Canonical pipeline completed with no observations."),
+        "failed": ("error", "System Health: Canonical pipeline failed."),
+        "stale": ("warning", "System Health: Canonical visualization evidence is structurally stale."),
+        "unavailable": ("warning", "System Health: Health evidence is unavailable; visualization data may still be available."),
+    }
+    return mapping[frame.system_health_state]
+
+
 def render_visualization_frame(frame: VisualizationFrame) -> None:
     """Render only deterministic WP06 frame inputs; pixel layout is not semantic."""
     st.subheader(f"{frame.target} - {frame.state}")
+    st.subheader("System Health")
+    health_component, health_message = project_system_health_presentation(frame)
+    getattr(st, health_component)(health_message)
     if frame.transport_warning:
         st.warning(frame.transport_warning)
     if frame.points:

@@ -1,6 +1,8 @@
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Domain;
 using Microsoft.Data.Sqlite;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 
 namespace AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 
@@ -94,9 +96,17 @@ internal sealed class SqliteHistoricalObservationStore : IHistoricalObservationS
 
     public HistoricalObservationResult Retrieve(string target)
     {
+        using var observation = InfrastructureObservability.StartProviderRetrieve();
+        HistoricalObservationResult Complete(HistoricalObservationResult result)
+        {
+            var failure = result.IsSuccess ? null : result.Failure == PersistenceFailure.Unavailable ? "unavailable" : "invalid-data";
+            InfrastructureObservability.Complete(observation, result.IsSuccess ? (result.Observations!.Count == 0 ? "empty" : "success") : "failed", failure);
+            return result;
+        }
+
         if (string.IsNullOrWhiteSpace(target))
         {
-            return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+            return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
         }
 
         SqliteConnection connection;
@@ -107,46 +117,46 @@ internal sealed class SqliteHistoricalObservationStore : IHistoricalObservationS
         }
         catch (SqliteException exception) when (IsUnavailable(exception))
         {
-            return HistoricalObservationResult.Failed(PersistenceFailure.Unavailable);
+            return Complete(HistoricalObservationResult.Failed(PersistenceFailure.Unavailable));
         }
         catch (SqliteException exception) when (IsInvalidData(exception))
         {
-            return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+            return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
         }
         catch (InvalidOperationException)
         {
-            return HistoricalObservationResult.Failed(PersistenceFailure.Unavailable);
+            return Complete(HistoricalObservationResult.Failed(PersistenceFailure.Unavailable));
         }
 
         using (connection)
         {
             try
             {
-                return Retrieve(connection, target);
+                return Complete(Retrieve(connection, target));
             }
             catch (SqliteException exception) when (IsUnavailable(exception))
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.Unavailable);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.Unavailable));
             }
             catch (SqliteException exception) when (IsInvalidData(exception))
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
             }
             catch (InvalidCastException)
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
             }
             catch (OverflowException)
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
             }
             catch (FormatException)
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
             }
             catch (ArgumentOutOfRangeException)
             {
-                return HistoricalObservationResult.Failed(PersistenceFailure.InvalidData);
+                return Complete(HistoricalObservationResult.Failed(PersistenceFailure.InvalidData));
             }
         }
     }
@@ -260,5 +270,48 @@ internal sealed class SqliteHistoricalObservationStore : IHistoricalObservationS
         command.Parameters.AddWithValue("$offsetMinutes", record.OffsetMinutes);
         command.Parameters.AddWithValue("$priceText", record.PriceText);
         command.ExecuteNonQuery();
+    }
+}
+
+internal static class InfrastructureObservability
+{
+    internal const string SourceName = "AIQuantTradingResearch.Infrastructure";
+    internal const string ProviderRetrieveOperation = "historical-observation.retrieve";
+    internal const string SnapshotStoreOperation = "dataset-snapshot.store";
+    internal const string SnapshotRetrieveOperation = "dataset-snapshot.retrieve";
+
+    private static readonly ActivitySource ActivitySource = new(SourceName);
+    private static readonly Meter Meter = new(SourceName);
+    private static readonly Counter<long> ProviderOperations = Meter.CreateCounter<long>("provider.operations", "{operation}");
+    private static readonly Histogram<double> ProviderDuration = Meter.CreateHistogram<double>("provider.duration", "ms");
+    private static readonly Counter<long> ProviderFailures = Meter.CreateCounter<long>("provider.failures", "{operation}");
+    private static readonly Counter<long> PersistenceOperations = Meter.CreateCounter<long>("persistence.operations", "{operation}");
+    private static readonly Histogram<double> PersistenceDuration = Meter.CreateHistogram<double>("persistence.duration", "ms");
+    private static readonly Counter<long> PersistenceFailures = Meter.CreateCounter<long>("persistence.failures", "{operation}");
+
+    internal static Observation StartProviderRetrieve() => new(ActivitySource.StartActivity("provider.operation"), ProviderRetrieveOperation, true);
+    internal static Observation StartPersistence(string operation) => new(ActivitySource.StartActivity("persistence.operation"), operation, false);
+
+    internal static void Complete(Observation observation, string outcome, string? failure = null)
+    {
+        var tags = new TagList { { "aiq.release", "1.10" }, { "aiq.component", "infrastructure" }, { "aiq.operation", observation.Operation }, { "aiq.outcome", outcome } };
+        if (failure is not null) tags.Add("aiq.error_class", failure);
+        observation.Activity?.SetTag("aiq.release", "1.10");
+        observation.Activity?.SetTag("aiq.component", "infrastructure");
+        observation.Activity?.SetTag("aiq.operation", observation.Operation);
+        observation.Activity?.SetTag("aiq.outcome", outcome);
+        if (failure is null) observation.Activity?.SetStatus(ActivityStatusCode.Ok); else { observation.Activity?.SetTag("aiq.error_class", failure); observation.Activity?.SetStatus(ActivityStatusCode.Error, failure); }
+        var duration = Stopwatch.GetElapsedTime(observation.Start).TotalMilliseconds;
+        if (observation.IsProvider) { ProviderOperations.Add(1, tags); ProviderDuration.Record(duration, tags); if (failure is not null) ProviderFailures.Add(1, tags); }
+        else { PersistenceOperations.Add(1, tags); PersistenceDuration.Record(duration, tags); if (failure is not null) PersistenceFailures.Add(1, tags); }
+    }
+
+    internal sealed class Observation(Activity? activity, string operation, bool isProvider) : IDisposable
+    {
+        internal Activity? Activity { get; } = activity;
+        internal string Operation { get; } = operation;
+        internal bool IsProvider { get; } = isProvider;
+        internal long Start { get; } = Stopwatch.GetTimestamp();
+        public void Dispose() => Activity?.Dispose();
     }
 }

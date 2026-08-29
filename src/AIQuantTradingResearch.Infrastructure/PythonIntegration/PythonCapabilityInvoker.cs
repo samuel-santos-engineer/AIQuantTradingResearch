@@ -12,6 +12,7 @@ public sealed class PythonCapabilityInvoker : ICapabilityInvoker
     private const int MaximumResponseCharacters = 65_536;
     private const int MaximumDiagnosticCharacters = 16_384;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    private static readonly ActivitySource InteropActivitySource = new("AIQuantTradingResearch.Worker");
 
     private readonly string repositoryRoot;
     private readonly string interpreterPath;
@@ -84,22 +85,43 @@ public sealed class PythonCapabilityInvoker : ICapabilityInvoker
                 "The integration request exceeds the bounded protocol size.");
         }
 
+        using var activity = InteropActivitySource.StartActivity("interop.invoke");
+        CapabilityInvocationResult Complete(CapabilityInvocationResult result)
+        {
+            var outcome = result.IsSuccess
+                ? "success"
+                : result.Failure == CapabilityInvocationFailure.Cancelled
+                    ? "cancelled"
+                    : "failed";
+            activity?.SetTag("aiq.release", "1.10");
+            activity?.SetTag("aiq.component", "interop");
+            activity?.SetTag("aiq.operation", "interop.invoke");
+            activity?.SetTag("aiq.outcome", outcome);
+            if (!result.IsSuccess)
+            {
+                activity?.SetTag("aiq.error_class", result.Failure.ToString());
+            }
+
+            activity?.SetStatus(result.IsSuccess ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
+            return result;
+        }
+
         using var process = new Process { StartInfo = CreateStartInfo() };
 
         try
         {
             if (!process.Start())
             {
-                return CapabilityInvocationResult.Failed(
+                return Complete(CapabilityInvocationResult.Failed(
                     CapabilityInvocationFailure.DependencyFailure,
-                    "The integration process could not be started.");
+                    "The integration process could not be started."));
             }
         }
         catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
         {
-            return CapabilityInvocationResult.Failed(
+            return Complete(CapabilityInvocationResult.Failed(
                 CapabilityInvocationFailure.DependencyFailure,
-                "The integration process could not be started.");
+                "The integration process could not be started."));
         }
 
         var stdoutTask = ReadBoundedAsync(process.StandardOutput, MaximumResponseCharacters);
@@ -127,14 +149,14 @@ public sealed class PythonCapabilityInvoker : ICapabilityInvoker
 
                 if (cancellationToken.IsCancellationRequested)
                 {
-                    return CapabilityInvocationResult.Failed(
+                    return Complete(CapabilityInvocationResult.Failed(
                         CapabilityInvocationFailure.Cancelled,
-                        "The integration invocation was cancelled.");
+                        "The integration invocation was cancelled."));
                 }
 
-                return CapabilityInvocationResult.Failed(
+                return Complete(CapabilityInvocationResult.Failed(
                     CapabilityInvocationFailure.Timeout,
-                    "The integration invocation exceeded its bounded timeout.");
+                    "The integration invocation exceeded its bounded timeout."));
             }
 
             string stdout;
@@ -146,27 +168,27 @@ public sealed class PythonCapabilityInvoker : ICapabilityInvoker
             }
             catch (InvalidDataException)
             {
-                return CapabilityInvocationResult.Failed(
+                return Complete(CapabilityInvocationResult.Failed(
                     CapabilityInvocationFailure.MalformedResponse,
-                    "The integration process exceeded a bounded output limit.");
+                    "The integration process exceeded a bounded output limit."));
             }
 
             if (process.ExitCode != 0)
             {
-                return CapabilityInvocationResult.Failed(
+                return Complete(CapabilityInvocationResult.Failed(
                     CapabilityInvocationFailure.DependencyFailure,
-                    BuildSafeExitMessage(process.ExitCode, stderr));
+                    BuildSafeExitMessage(process.ExitCode, stderr)));
             }
 
-            return DeserializeResponse(stdout, request.CorrelationId);
+            return Complete(DeserializeResponse(stdout, request.CorrelationId));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             await TerminateOwnedProcessAsync(process);
             await DrainWithoutFailureAsync(stdoutTask, stderrTask);
-            return CapabilityInvocationResult.Failed(
+            return Complete(CapabilityInvocationResult.Failed(
                 CapabilityInvocationFailure.Cancelled,
-                "The integration invocation was cancelled.");
+                "The integration invocation was cancelled."));
         }
         catch
         {

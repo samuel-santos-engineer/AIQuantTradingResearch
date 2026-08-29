@@ -21,4 +21,25 @@ class ReadModelTests(unittest.TestCase):
             path.write_text(payload(1,"conflict"),encoding="utf-8"); self.assertEqual("RevisionConflict",cache.refresh(path)); self.assertIs(cache.last_good,first)
             path.write_text(payload(1,"r", "ReplayLogicalTick","Replay"),encoding="utf-8"); self.assertIsNone(cache.refresh(path)); self.assertEqual("Replay",cache.last_good.raw["sourceMode"])
     def test_version_rejected(self): self.assertRaises(ReadModelError, parse_envelope, '{"contractVersion":"wrong"}')
+
+    def test_system_health_is_optional_for_old_v1_and_strict_when_present(self):
+        legacy = parse_envelope(payload())
+        self.assertEqual({"state":"unavailable","provenance":"historical","reason":"required-health-evidence-unavailable"}, legacy.raw["systemHealth"])
+        current = json.loads(payload())
+        current["systemHealth"] = {"state":"failed","provenance":"historical","reason":"pipeline-failed"}
+        self.assertEqual("failed", parse_envelope(json.dumps(current)).raw["systemHealth"]["state"])
+        for health in (None, {}, {"state":"ready","provenance":"historical","reason":"pipeline-failed"}, {"state":"unknown","provenance":"historical","reason":None}):
+            malformed = json.loads(payload()); malformed["systemHealth"] = health
+            with self.assertRaisesRegex(ReadModelError, "HealthIntegrity"):
+                parse_envelope(json.dumps(malformed))
+
+    def test_malformed_system_health_retains_last_good_envelope(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "model.json"; cache = ReadModelCache()
+            valid = json.loads(payload()); valid["systemHealth"] = {"state":"ready","provenance":"historical","reason":None}
+            path.write_text(json.dumps(valid), encoding="utf-8")
+            self.assertIsNone(cache.refresh(path)); last_good = cache.last_good
+            malformed = json.loads(payload()); malformed["systemHealth"] = {"state":"ready","provenance":"historical","reason":"unexpected"}
+            path.write_text(json.dumps(malformed), encoding="utf-8")
+            self.assertEqual("HealthIntegrity", cache.refresh(path)); self.assertIs(last_good, cache.last_good)
 if __name__ == "__main__": unittest.main()

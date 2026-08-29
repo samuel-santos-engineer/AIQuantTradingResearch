@@ -10,6 +10,16 @@ CONTRACT_VERSION = "aiq-visualization-read-model-v1"
 DEFAULT_REFRESH_SECONDS, MIN_REFRESH_SECONDS, MAX_REFRESH_SECONDS = 2, 1, 60
 _IDEMPOTENCY_STATUSES = ("NewlyPersisted", "EquivalentExisting", "Unavailable")
 _DATA_QUALITY_STATUSES = ("Valid", "Invalid", "Unavailable")
+_SYSTEM_HEALTH_STATES = ("ready", "warmup", "empty", "failed", "stale", "unavailable")
+_SYSTEM_HEALTH_PROVENANCES = ("historical", "replay", "simulated")
+_SYSTEM_HEALTH_REASONS = {
+    "ready": None,
+    "warmup": None,
+    "empty": None,
+    "failed": "pipeline-failed",
+    "stale": "structural-staleness",
+    "unavailable": "required-health-evidence-unavailable",
+}
 
 class ConfigurationError(ValueError): pass
 class ReadModelError(ValueError): pass
@@ -39,6 +49,26 @@ class Envelope:
     @property
     def revision(self) -> dict: return self.raw["revision"]
 
+
+def _default_system_health(payload: dict) -> dict:
+    return {
+        "state": "unavailable",
+        "provenance": "historical" if payload["sourceAuthority"] == 0 else "simulated",
+        "reason": "required-health-evidence-unavailable",
+    }
+
+
+def _parse_system_health(payload: dict) -> dict:
+    value = payload.get("systemHealth")
+    if value is None and "systemHealth" not in payload:
+        return _default_system_health(payload)
+    if not isinstance(value, dict):
+        raise ReadModelError("HealthIntegrity")
+    state, provenance, reason = value.get("state"), value.get("provenance"), value.get("reason")
+    if state not in _SYSTEM_HEALTH_STATES or provenance not in _SYSTEM_HEALTH_PROVENANCES or reason != _SYSTEM_HEALTH_REASONS.get(state):
+        raise ReadModelError("HealthIntegrity")
+    return {"state": state, "provenance": provenance, "reason": reason}
+
 def parse_envelope(text: str) -> Envelope:
     try: payload = json.loads(text, parse_float=Decimal)
     except (json.JSONDecodeError, UnicodeDecodeError) as exc: raise ReadModelError("ReadIntegrity") from exc
@@ -49,6 +79,7 @@ def parse_envelope(text: str) -> Envelope:
     payload["idempotencyStatus"] = payload.get("idempotencyStatus", "Unavailable")
     payload["dataQualityStatus"] = payload.get("dataQualityStatus", "Unavailable")
     if payload["idempotencyStatus"] not in _IDEMPOTENCY_STATUSES or payload["dataQualityStatus"] not in _DATA_QUALITY_STATUSES: raise ReadModelError("ReadIntegrity")
+    payload["systemHealth"] = _parse_system_health(payload)
     return Envelope(payload)
 
 def compare_revision(candidate: Envelope, current: Envelope) -> str:

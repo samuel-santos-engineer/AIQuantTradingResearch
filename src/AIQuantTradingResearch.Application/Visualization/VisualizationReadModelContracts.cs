@@ -10,6 +10,33 @@ namespace AIQuantTradingResearch.Application.Visualization;
 public enum VisualizationRevisionKind { HistoricalPresentation, ReplayLogicalTick }
 public enum VisualizationSourceMode { Historical, Replay }
 public enum VisualizationPresentationState { Ready, Empty, WarmUp, Stale, Failed }
+public enum SystemHealthState { Ready, WarmUp, Empty, Failed, Stale, Unavailable }
+
+public sealed record SystemHealthSnapshot(SystemHealthState State, string Provenance, string? Reason)
+{
+    public static SystemHealthSnapshot From(VisualizationPresentationState state, VisualizationSourceMode sourceMode, DatasetSourceAuthority sourceAuthority)
+    {
+        if (!Enum.IsDefined(state) || !Enum.IsDefined(sourceMode) || !Enum.IsDefined(sourceAuthority))
+            throw new ArgumentOutOfRangeException(nameof(state));
+
+        var provenance = sourceAuthority switch
+        {
+            DatasetSourceAuthority.AcceptedRelease11HistoricalObservations => "historical",
+            DatasetSourceAuthority.Release19SimulatedLiveReplay => "simulated",
+            _ => throw new ArgumentOutOfRangeException(nameof(sourceAuthority), sourceAuthority, "Unknown dataset source authority."),
+        };
+
+        return state switch
+        {
+            VisualizationPresentationState.Ready => new(SystemHealthState.Ready, provenance, null),
+            VisualizationPresentationState.WarmUp => new(SystemHealthState.WarmUp, provenance, null),
+            VisualizationPresentationState.Empty => new(SystemHealthState.Empty, provenance, null),
+            VisualizationPresentationState.Failed => new(SystemHealthState.Failed, provenance, "pipeline-failed"),
+            VisualizationPresentationState.Stale => new(SystemHealthState.Stale, provenance, "structural-staleness"),
+            _ => throw new ArgumentOutOfRangeException(nameof(state), state, "Unknown visualization presentation state."),
+        };
+    }
+}
 
 public readonly record struct HistoricalPresentationRevision
 {
@@ -99,7 +126,8 @@ public sealed record VisualizationReadModel(
     VisualizationFailure? Failure,
     string? StaleReason,
     PresentationIdempotencyStatus IdempotencyStatus,
-    PresentationDataQualityStatus DataQualityStatus)
+    PresentationDataQualityStatus DataQualityStatus,
+    SystemHealthSnapshot? SystemHealth)
 {
     public const string ContractVersion = "aiq-visualization-read-model-v1";
     public const int WindowCapacity = 64;
@@ -113,7 +141,8 @@ public sealed record VisualizationReadModel(
         VisualizationFeature? feature = null, PipelineExecutionEvidence? pipeline = null,
         VisualizationFailure? failure = null, string? staleReason = null,
         PresentationIdempotencyStatus idempotencyStatus = PresentationIdempotencyStatus.Unavailable,
-        PresentationDataQualityStatus dataQualityStatus = PresentationDataQualityStatus.Unavailable)
+        PresentationDataQualityStatus dataQualityStatus = PresentationDataQualityStatus.Unavailable,
+        SystemHealthSnapshot? systemHealth = null)
     {
         ArgumentNullException.ThrowIfNull(revision); ArgumentException.ThrowIfNullOrWhiteSpace(target);
         if (!Enum.IsDefined(sourceMode) || !Enum.IsDefined(sourceAuthority) || !Enum.IsDefined(state)) throw new ArgumentOutOfRangeException(nameof(state));
@@ -121,10 +150,29 @@ public sealed record VisualizationReadModel(
         if (state == VisualizationPresentationState.Failed && failure is null) throw new ArgumentException("Failed state requires safe failure metadata.");
         if (state != VisualizationPresentationState.Failed && failure is not null) throw new ArgumentException("Only Failed may carry failure metadata.");
         if (state == VisualizationPresentationState.Stale && string.IsNullOrWhiteSpace(staleReason)) throw new ArgumentException("Stale state requires structural reason.");
+        var health = systemHealth ?? SystemHealthSnapshot.From(state, sourceMode, sourceAuthority);
+        ValidateSystemHealth(health);
         var rows = (window ?? []).GroupBy(x => x.SourceTime).Select(static group => group.Last()).OrderBy(x => x.SourceTime).ToArray();
         if (rows.Length > WindowCapacity) rows = rows[^WindowCapacity..];
         if (!Enum.IsDefined(idempotencyStatus) || !Enum.IsDefined(dataQualityStatus)) throw new ArgumentOutOfRangeException(nameof(idempotencyStatus));
-        return new(revision, sourceMode, sourceAuthority, target, state, new ReadOnlyCollection<VisualizationObservation>(rows), snapshotIdentity, datasetVersion, feature, pipeline, failure, staleReason, idempotencyStatus, dataQualityStatus);
+        return new(revision, sourceMode, sourceAuthority, target, state, new ReadOnlyCollection<VisualizationObservation>(rows), snapshotIdentity, datasetVersion, feature, pipeline, failure, staleReason, idempotencyStatus, dataQualityStatus, health);
+    }
+
+    private static void ValidateSystemHealth(SystemHealthSnapshot health)
+    {
+        ArgumentNullException.ThrowIfNull(health);
+        if (!Enum.IsDefined(health.State) || health.Provenance is not ("historical" or "replay" or "simulated"))
+            throw new ArgumentOutOfRangeException(nameof(health));
+        var expectedReason = health.State switch
+        {
+            SystemHealthState.Ready or SystemHealthState.WarmUp or SystemHealthState.Empty => null,
+            SystemHealthState.Failed => "pipeline-failed",
+            SystemHealthState.Stale => "structural-staleness",
+            SystemHealthState.Unavailable => "required-health-evidence-unavailable",
+            _ => throw new ArgumentOutOfRangeException(nameof(health)),
+        };
+        if (!string.Equals(health.Reason, expectedReason, StringComparison.Ordinal))
+            throw new ArgumentException("System Health reason is invalid for its state.", nameof(health));
     }
 }
 

@@ -97,6 +97,66 @@ The canonical handoff contains bounded, non-authoritative presentation data;
 authoritative evidence remains governed by the existing Application and
 Infrastructure boundaries.
 
+## Release 1.10 observability and System Health
+
+Release 1.10 observes the existing pipeline; it does not create a live-data,
+trading, ML, backtesting, parallel-pipeline, or external telemetry-backend
+capability. Application owns BCL `System.Diagnostics` pipeline observations:
+the root `pipeline.execute` activity and the five governed stages
+`HistoricalObservationRetrieval`, `DatasetMaterialization`,
+`SnapshotPersistence`, `CatalogRegistration`, and `FeatureComputation`.
+Historical retrieval measures only store retrieval; dataset materialization
+starts only after retrieval, so two semantic activities do not time the same
+opaque interval. Infrastructure activities inherit the ambient
+`Activity.Current` parent.
+
+Infrastructure owns BCL source and meter `AIQuantTradingResearch.Infrastructure`.
+Only `SqliteHistoricalObservationStore.Retrieve(string target)`,
+`SqliteDatasetSnapshotStore.Store(DatasetSnapshotCandidate)`, and
+`SqliteDatasetSnapshotStore.Retrieve(DatasetSnapshotIdentity)` emit the
+`provider.operation` or `persistence.operation` mechanics. `SqliteDatasetCatalog`
+and `SqliteHistoricalObservationStore.Persist(...)` are deliberately not
+instrumented. Metrics are bounded operation/duration/failure instruments;
+attributes and failure categories are finite and sanitized. They contain no
+raw exception text, credentials, endpoints, or uncontrolled identifiers.
+
+The Worker owns bounded BCL lifecycle observations and its existing cancellation
+and disposal path. Python capability invocation remains bounded; Streamlit
+remains independently launched and is not supervised by Worker. Release 1.10
+selects no external exporter, exporter package, exporter configuration, endpoint,
+or dashboard. Disabled or unavailable in-process observation must not change
+pipeline results, persistence, JSON publication, protocol stdout, cancellation,
+or shutdown.
+
+The canonical `aiq-visualization-read-model-v1` file handoff remains the only
+Worker-to-presentation boundary and SQLite persistence schema remains v4. Its
+optional nested `systemHealth` object is .NET-owned and has exactly
+`state`, `provenance`, and `reason`. Its presence extends v1 compatibly; a
+pre-WP05 v1 document without it remains usable and projects health as
+`unavailable` with reason `required-health-evidence-unavailable`. A present
+malformed object is an integrity error; the presentation retains its safe
+last-good behavior and warns rather than inventing health.
+
+Visualization state and System Health are separate dimensions. Visualization
+remains `Ready`, `WarmUp`, `Empty`, `Stale`, or `Failed`; System Health is
+`ready`, `warmup`, `empty`, `failed`, `stale`, or `unavailable`. The exact
+mapping is Ready→ready, WarmUp→warmup, Empty→empty, Failed→failed with
+`pipeline-failed`, and Stale→stale with `structural-staleness`.
+`unavailable` means required health evidence is absent or unreadable and has
+reason `required-health-evidence-unavailable`. `degraded` is intentionally
+excluded: current WP03/WP04 facts do not provide a truthful source predicate.
+There is no independent health timestamp, age field, or freshness threshold;
+`stale` only reflects the existing structural visualization state.
+
+Python parses this canonical file and projects a deterministic frame; Streamlit
+renders an always-visible **System Health** subheader immediately after its
+target/state subheader and before charts or metadata. It displays only the
+bounded canonical messages, including the unavailable warning that visualization
+data may still be available. Streamlit must never read SQLite, call providers,
+inspect Worker/listener/exporter state, create a second health authority, or
+create another handoff channel. The Release 1.8 JSON-over-stdio capability
+endpoint remains a separate boundary.
+
 ## Interpreter resolution and process lifecycle
 
 The delivered Infrastructure adapter resolves the repository root from its

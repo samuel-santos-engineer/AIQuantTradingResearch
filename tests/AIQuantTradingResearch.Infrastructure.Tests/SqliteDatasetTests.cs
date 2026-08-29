@@ -1,4 +1,6 @@
 using AIQuantTradingResearch.Application.Datasets;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Domain;
@@ -13,6 +15,29 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 
 public sealed class SqliteDatasetTests
 {
+    [Fact]
+    public void StoreAndRetrieveEmitBoundedPersistenceActivitiesAndMetrics()
+    {
+        using var database = new DatasetDatabase();
+        var store = new SqliteDatasetSnapshotStore(database.Factory);
+        var snapshot = Snapshot('a');
+        var activities = new List<Activity>();
+        using var parent = new Activity(nameof(StoreAndRetrieveEmitBoundedPersistenceActivitiesAndMetrics)).Start();
+        using var listener = new ActivityListener { ShouldListenTo = source => source.Name == "AIQuantTradingResearch.Infrastructure", Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData, ActivityStopped = activity => activities.Add(activity) };
+        ActivitySource.AddActivityListener(listener);
+        var instruments = new List<(string Name, string? Unit)>();
+        using var meter = new MeterListener();
+        meter.InstrumentPublished = (instrument, observer) => { if (instrument.Meter.Name == "AIQuantTradingResearch.Infrastructure") { instruments.Add((instrument.Name, instrument.Unit)); observer.EnableMeasurementEvents(instrument); } };
+        meter.Start();
+
+        Assert.Equal(DatasetSnapshotStoreOutcome.NewlyAccepted, store.Store(snapshot).Outcome);
+        Assert.True(store.Retrieve(snapshot.SnapshotIdentity).IsFound);
+
+        Assert.Equal(2, activities.Count(activity => activity.OperationName == "persistence.operation" && activity.TraceId == parent.TraceId));
+        Assert.Contains(("persistence.operations", "{operation}"), instruments);
+        Assert.Contains(("persistence.duration", "ms"), instruments);
+        Assert.Contains(("persistence.failures", "{operation}"), instruments);
+    }
     [Fact]
     public void MapperRoundTripPreservesDatasetEvidenceIncludingOffsetsAndDecimals()
     {
