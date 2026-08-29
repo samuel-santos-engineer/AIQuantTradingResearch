@@ -1,4 +1,6 @@
 using System.Globalization;
+using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Domain;
@@ -14,6 +16,41 @@ public sealed class SqlitePersistenceTests
 {
     private static readonly DateTimeOffset FirstInstant =
         new(2024, 3, 10, 0, 0, 0, TimeSpan.FromHours(-4));
+
+    [Fact]
+    public void RetrieveEmitsBoundedProviderActivityAndMetricsWithoutTargetData()
+    {
+        using var database = new TestDatabase();
+        database.Store.Persist("SECRET-TARGET", [Observation(0, 1m)]);
+        var activities = new List<Activity>();
+        using var parent = new Activity("HistoricalObservationRetrieval").Start();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == "AIQuantTradingResearch.Infrastructure",
+            Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = activity => activities.Add(activity),
+        };
+        ActivitySource.AddActivityListener(listener);
+        var instruments = new List<(string Name, string? Unit)>();
+        using var meter = new MeterListener();
+        meter.InstrumentPublished = (instrument, observer) =>
+        {
+            if (instrument.Meter.Name == "AIQuantTradingResearch.Infrastructure") { instruments.Add((instrument.Name, instrument.Unit)); observer.EnableMeasurementEvents(instrument); }
+        };
+        meter.Start();
+
+        Assert.True(database.Store.Retrieve("SECRET-TARGET").IsSuccess);
+
+        var activity = Assert.Single(activities, item => item.OperationName == "provider.operation");
+        Assert.Equal(parent.SpanId, activity.ParentSpanId);
+        Assert.Equal(parent.TraceId, activity.TraceId);
+        Assert.Equal("historical-observation.retrieve", activity.GetTagItem("aiq.operation"));
+        Assert.Equal("success", activity.GetTagItem("aiq.outcome"));
+        Assert.DoesNotContain(activity.Tags, tag => tag.Value?.Contains("SECRET-TARGET", StringComparison.Ordinal) == true);
+        Assert.Contains(("provider.operations", "{operation}"), instruments);
+        Assert.Contains(("provider.duration", "ms"), instruments);
+        Assert.Contains(("provider.failures", "{operation}"), instruments);
+    }
 
     [Fact]
     public void OpenConnectionBootstrapsExactVersionTwoStrictWithoutRowIdSchema()

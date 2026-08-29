@@ -36,7 +36,8 @@ public sealed class VisualizationReadModelUseCase
             Window(VisualizationSourceMode.Historical, state, prior, observations), snapshotIdentity ?? prior?.SnapshotIdentity, datasetVersion ?? prior?.DatasetVersion, feature, pipeline, failure,
             state == VisualizationPresentationState.Stale ? category ?? "Structural staleness." : null,
             state == VisualizationPresentationState.Stale ? prior?.IdempotencyStatus ?? PresentationIdempotencyStatus.Unavailable : pipeline?.PresentationIdempotencyStatus ?? PresentationIdempotencyStatus.Unavailable,
-            state == VisualizationPresentationState.Stale ? prior?.DataQualityStatus ?? PresentationDataQualityStatus.Unavailable : pipeline?.PresentationDataQualityStatus ?? PresentationDataQualityStatus.Unavailable);
+            state == VisualizationPresentationState.Stale ? prior?.DataQualityStatus ?? PresentationDataQualityStatus.Unavailable : pipeline?.PresentationDataQualityStatus ?? PresentationDataQualityStatus.Unavailable,
+            SystemHealthSnapshot.From(state, VisualizationSourceMode.Historical, authority));
         store.Publish(model);
         return model;
     }
@@ -84,7 +85,8 @@ public sealed class VisualizationReadModelUseCase
             Window(VisualizationSourceMode.Replay, state, prior, observations), snapshotIdentity ?? prior?.SnapshotIdentity, datasetVersion ?? prior?.DatasetVersion, feature, pipeline, failure,
             state == VisualizationPresentationState.Stale ? category ?? "Structural staleness." : null,
             state == VisualizationPresentationState.Stale ? prior?.IdempotencyStatus ?? PresentationIdempotencyStatus.Unavailable : pipeline?.PresentationIdempotencyStatus ?? PresentationIdempotencyStatus.Unavailable,
-            state == VisualizationPresentationState.Stale ? prior?.DataQualityStatus ?? PresentationDataQualityStatus.Unavailable : pipeline?.PresentationDataQualityStatus ?? PresentationDataQualityStatus.Unavailable);
+            state == VisualizationPresentationState.Stale ? prior?.DataQualityStatus ?? PresentationDataQualityStatus.Unavailable : pipeline?.PresentationDataQualityStatus ?? PresentationDataQualityStatus.Unavailable,
+            SystemHealthSnapshot.From(state, VisualizationSourceMode.Replay, authority));
         store.Publish(model);
         return model;
     }

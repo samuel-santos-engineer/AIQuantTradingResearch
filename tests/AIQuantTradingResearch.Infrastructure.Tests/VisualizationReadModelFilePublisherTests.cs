@@ -30,6 +30,10 @@ public sealed class VisualizationReadModelFilePublisherTests
         Assert.Equal("HistoricalPresentation", document.RootElement.GetProperty("revision").GetProperty("kind").GetString());
         Assert.Equal(0, document.RootElement.GetProperty("sourceAuthority").GetInt32());
         Assert.Equal("Ready", document.RootElement.GetProperty("state").GetString());
+        var health = document.RootElement.GetProperty("systemHealth");
+        Assert.Equal("ready", health.GetProperty("state").GetString());
+        Assert.Equal("historical", health.GetProperty("provenance").GetString());
+        Assert.Equal(JsonValueKind.Null, health.GetProperty("reason").ValueKind);
     }
 
     [Fact]
@@ -42,6 +46,7 @@ public sealed class VisualizationReadModelFilePublisherTests
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(fixture.Path));
         Assert.Equal("ReplayLogicalTick", document.RootElement.GetProperty("revision").GetProperty("kind").GetString());
         Assert.Equal(1, document.RootElement.GetProperty("sourceAuthority").GetInt32());
+        Assert.Equal("simulated", document.RootElement.GetProperty("systemHealth").GetProperty("provenance").GetString());
     }
 
     [Fact]

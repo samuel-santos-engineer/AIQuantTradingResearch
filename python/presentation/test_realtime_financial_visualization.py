@@ -2,13 +2,14 @@
 import json
 import unittest
 
-from realtime_financial_visualization import project_visualization_frame, project_wp07_presentation_sections
+import realtime_financial_visualization as visualization
+from realtime_financial_visualization import project_system_health_presentation, project_visualization_frame, project_wp07_presentation_sections, render_visualization_frame
 from visualization_read_model import parse_envelope
 
 
-def envelope(state, points, *, feature=None, failure=None):
+def envelope(state, points, *, feature=None, failure=None, system_health=None):
     latest = points[-1] if points else None
-    return {
+    result = {
         "contractVersion": "aiq-visualization-read-model-v1",
         "revision": {"kind": "HistoricalPresentation", "value": 1, "identity": "a" * 64},
         "sourceMode": "Historical", "sourceAuthority": 0, "target": "BTC", "state": state,
@@ -17,6 +18,9 @@ def envelope(state, points, *, feature=None, failure=None):
         "idempotencyStatus": "Unavailable", "dataQualityStatus": "Unavailable", "failure": failure,
         "staleReason": None,
     }
+    if system_health is not None:
+        result["systemHealth"] = system_health
+    return result
 
 
 class PermanentVisualizationTests(unittest.TestCase):
@@ -43,6 +47,36 @@ class PermanentVisualizationTests(unittest.TestCase):
     def test_pi_failed_preserves_safe_failure_and_sections(self):
         frame = self.project(envelope("Failed", [], failure={"category": "DependencyUnavailable", "message": "safe failure", "recoverable": True}))
         self.assertEqual("DependencyUnavailable", frame.failure_category); self.assertEqual("safe failure", frame.failure_message); self.assert_sections(frame, "Failed")
+
+    def test_wp05_health_frame_and_fixed_presentation_mapping(self):
+        expected = {
+            "ready": ("info", "System Health: Canonical evidence available."),
+            "warmup": ("info", "System Health: Waiting for bounded canonical observations."),
+            "empty": ("info", "System Health: Canonical pipeline completed with no observations."),
+            "failed": ("error", "System Health: Canonical pipeline failed."),
+            "stale": ("warning", "System Health: Canonical visualization evidence is structurally stale."),
+            "unavailable": ("warning", "System Health: Health evidence is unavailable; visualization data may still be available."),
+        }
+        for health_state, mapping in expected.items():
+            reason = {"ready": None, "warmup": None, "empty": None, "failed": "pipeline-failed", "stale": "structural-staleness", "unavailable": "required-health-evidence-unavailable"}[health_state]
+            frame = self.project(envelope("Ready", [], system_health={"state":health_state,"provenance":"historical","reason":reason}))
+            self.assertEqual(health_state, frame.system_health_state); self.assertEqual(mapping, project_system_health_presentation(frame))
+
+    def test_wp05_health_message_follows_target_state_heading(self):
+        class FakeStreamlit:
+            def __init__(self): self.calls=[]
+            def subheader(self, value): self.calls.append(("subheader", value))
+            def info(self, value): self.calls.append(("info", value))
+            def warning(self, value): self.calls.append(("warning", value))
+            def error(self, value): self.calls.append(("error", value))
+            def write(self, value): self.calls.append(("write", value))
+            def line_chart(self, *args, **kwargs): self.calls.append(("line_chart", None))
+        fake = FakeStreamlit(); original = visualization.st; visualization.st = fake
+        try:
+            render_visualization_frame(self.project(envelope("Ready", [], system_health={"state":"ready","provenance":"historical","reason":None})))
+        finally:
+            visualization.st = original
+        self.assertEqual([("subheader", "BTC - Ready"), ("subheader", "System Health"), ("info", "System Health: Canonical evidence available.")], fake.calls[:3])
 
 
 if __name__ == "__main__":

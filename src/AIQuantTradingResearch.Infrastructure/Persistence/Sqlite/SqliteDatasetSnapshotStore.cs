@@ -104,6 +104,13 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
 
     public DatasetSnapshotStoreResult Store(DatasetSnapshotCandidate snapshot)
     {
+        using var observation = InfrastructureObservability.StartPersistence(InfrastructureObservability.SnapshotStoreOperation);
+        DatasetSnapshotStoreResult Complete(DatasetSnapshotStoreResult result)
+        {
+            var failure = result.HasOutcome ? (result.Outcome == DatasetSnapshotStoreOutcome.IntegrityConflict ? "conflict" : null) : result.Failure == DatasetStoreFailure.Unavailable ? "unavailable" : "invalid-data";
+            InfrastructureObservability.Complete(observation, result.HasOutcome ? "success" : "failed", failure);
+            return result;
+        }
         ArgumentNullException.ThrowIfNull(snapshot);
 
         var snapshotRecord = SqliteDatasetMapper.ToSnapshotRecord(new DatasetCatalogEntry(snapshot));
@@ -117,20 +124,20 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
         }
         catch (SqliteException exception) when (IsUnavailable(exception))
         {
-            return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.Unavailable);
+            return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.Unavailable));
         }
         catch (SqliteException exception) when (IsInvalidData(exception))
         {
-            return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
         }
         catch (SqliteSchemaValidationException)
         {
-            return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
         }
         catch (InvalidOperationException exception)
             when (exception.InnerException is SqliteSchemaValidationException)
         {
-            return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
         }
 
         using (connection)
@@ -148,10 +155,10 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
                         snapshotRecord.SnapshotIdentity);
                     _ = SqliteDatasetMapper.ToSnapshotCandidate(existingSnapshot, existingObservations);
 
-                    return DatasetSnapshotStoreResult.Completed(
+                    return Complete(DatasetSnapshotStoreResult.Completed(
                         IsEquivalent(existingSnapshot, existingObservations, snapshotRecord, observationRecords)
                             ? DatasetSnapshotStoreOutcome.EquivalentExisting
-                            : DatasetSnapshotStoreOutcome.IntegrityConflict);
+                            : DatasetSnapshotStoreOutcome.IntegrityConflict));
                 }
 
                 InsertSnapshot(connection, transaction, snapshotRecord);
@@ -162,41 +169,48 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
                 }
 
                 transaction.Commit();
-                return DatasetSnapshotStoreResult.Completed(DatasetSnapshotStoreOutcome.NewlyAccepted);
+                return Complete(DatasetSnapshotStoreResult.Completed(DatasetSnapshotStoreOutcome.NewlyAccepted));
             }
             catch (SqliteException exception) when (IsUnavailable(exception))
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.Unavailable);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.Unavailable));
             }
             catch (SqliteException exception) when (IsInvalidData(exception))
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (InvalidCastException)
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (OverflowException)
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (FormatException)
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (ArgumentException)
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (SqliteDatasetEvidenceException)
             {
-                return DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotStoreResult.Failed(DatasetStoreFailure.InvalidData));
             }
         }
     }
 
     public DatasetSnapshotRetrievalResult Retrieve(DatasetSnapshotIdentity snapshotIdentity)
     {
+        using var observation = InfrastructureObservability.StartPersistence(InfrastructureObservability.SnapshotRetrieveOperation);
+        DatasetSnapshotRetrievalResult Complete(DatasetSnapshotRetrievalResult result)
+        {
+            var failure = result.IsFound || result.IsNotFound ? null : result.Failure == DatasetStoreFailure.Unavailable ? "unavailable" : "invalid-data";
+            InfrastructureObservability.Complete(observation, result.IsFound ? "success" : result.IsNotFound ? "empty" : "failed", failure);
+            return result;
+        }
         ArgumentNullException.ThrowIfNull(snapshotIdentity);
 
         SqliteConnection connection;
@@ -207,20 +221,20 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
         }
         catch (SqliteException exception) when (IsUnavailable(exception))
         {
-            return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.Unavailable);
+            return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.Unavailable));
         }
         catch (SqliteException exception) when (IsInvalidData(exception))
         {
-            return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
         }
         catch (SqliteSchemaValidationException)
         {
-            return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
         }
         catch (InvalidOperationException exception)
             when (exception.InnerException is SqliteSchemaValidationException)
         {
-            return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+            return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
         }
 
         using (connection)
@@ -231,40 +245,40 @@ internal sealed class SqliteDatasetSnapshotStore : IDatasetSnapshotStore
 
                 if (snapshotRecord is null)
                 {
-                    return DatasetSnapshotRetrievalResult.NotFound();
+                    return Complete(DatasetSnapshotRetrievalResult.NotFound());
                 }
 
                 var observationRecords = ReadObservations(connection, null, snapshotIdentity.Fingerprint);
-                return DatasetSnapshotRetrievalResult.Found(
-                    SqliteDatasetMapper.ToSnapshotCandidate(snapshotRecord, observationRecords));
+                return Complete(DatasetSnapshotRetrievalResult.Found(
+                    SqliteDatasetMapper.ToSnapshotCandidate(snapshotRecord, observationRecords)));
             }
             catch (SqliteException exception) when (IsUnavailable(exception))
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.Unavailable);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.Unavailable));
             }
             catch (SqliteException exception) when (IsInvalidData(exception))
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (InvalidCastException)
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (OverflowException)
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (FormatException)
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (ArgumentException)
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
             catch (SqliteDatasetEvidenceException)
             {
-                return DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData);
+                return Complete(DatasetSnapshotRetrievalResult.Failed(DatasetStoreFailure.InvalidData));
             }
         }
     }

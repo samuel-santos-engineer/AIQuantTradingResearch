@@ -72,7 +72,7 @@ for contracts, failure mapping, security, and portability rules.
 Windows developers whose Smart App Control blocks locally built test binaries
 may need [local-development Authenticode signing](../development/WINDOWS_SMART_APP_CONTROL_LOCAL_SIGNING.md).
 
-## Release 1.9 presentation checks
+## Release 1.9 and 1.10 presentation checks
 
 Release 1.9 uses the same governed `.venv`. Streamlit 1.61.1 renders only the
 Worker-published local visualization read model; it does not read SQLite, call
@@ -89,8 +89,9 @@ Push-Location .\python\presentation
 Pop-Location
 ```
 
-The current suite is 17 tests. It includes parser, visualization-frame,
-factual-section, and permanent integration coverage. The Streamlit adapter is
+The current suite is 25 tests. It includes parser, visualization-frame,
+factual-section, permanent integration, and Release 1.10 no-bypass coverage.
+The Streamlit adapter is
 an independently launched read-only consumer; the finite WP08 harness and its
 probe are acceptance-only and are not a production supervisor or generic Python
 bridge. See [the interoperability boundary](../architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md)
@@ -102,10 +103,70 @@ documented local-development Authenticode signing setup above. It keeps App
 Control enabled, uses uncommitted `Directory.Build.local.props`, and is not
 production trust or a Smart App Control bypass.
 
+## Release 1.10 System Health and observability
+
+Release 1.10 adds bounded in-process observations to the existing .NET pipeline
+and its governed boundaries. It does not add live providers, trading, ML,
+backtesting, an external telemetry exporter, or a telemetry backend. The
+canonical handoff remains `aiq-visualization-read-model-v1` and SQLite schema
+remains v4. The optional nested `systemHealth` extension is .NET-owned; Python
+and Streamlit are read-only consumers and never inspect SQLite, providers,
+Worker processes, listeners, or exporter internals.
+
+Visualization state (`Ready`, `WarmUp`, `Empty`, `Stale`, `Failed`) is separate
+from System Health. System Health is exactly `ready`, `warmup`, `empty`,
+`failed`, `stale`, or `unavailable`; `degraded` is not a Release 1.10 health
+state. The finite reason vocabulary is `pipeline-failed`,
+`structural-staleness`, and `required-health-evidence-unavailable`, with no
+reason for ready, warmup, or empty. There is no health age or additional
+freshness threshold: `stale` retains the structural visualization meaning.
+
+In Streamlit, **System Health** appears immediately after the target/state
+subheader. `ready`, `warmup`, and `empty` use informational messages; `failed`
+uses an error; `stale` and `unavailable` use warnings. Missing health in a
+legacy v1 document deterministically becomes unavailable. Malformed health is
+an integrity warning that retains safe last-good presentation data rather than
+deriving health from unrelated fields.
+
+## Bounded local verification and troubleshooting
+
+From the repository root, use only the governed commands and do not introduce a
+second service, SQLite inspection path, or Streamlit-to-Worker supervision:
+
+```powershell
+dotnet build
+dotnet test tests\AIQuantTradingResearch.Application.Tests\AIQuantTradingResearch.Application.Tests.csproj --no-restore
+dotnet test tests\AIQuantTradingResearch.Infrastructure.Tests\AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore
+dotnet test tests\AIQuantTradingResearch.Architecture.Tests\AIQuantTradingResearch.Architecture.Tests.csproj --no-restore
+dotnet test tests\AIQuantTradingResearch.Domain.Tests\AIQuantTradingResearch.Domain.Tests.csproj --no-restore
+Push-Location .\python\presentation
+..\..\.venv\Scripts\python.exe -m unittest discover -p "test_*.py"
+Pop-Location
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m streamlit --version
+gitleaks git . --redact --verbose
+```
+
+The expected Streamlit version is 1.61.1. The dedicated Release 1.10 permanent
+coverage is in `Release110ObservabilityPermanentTests.cs` in the Application
+and Infrastructure test projects, `Release110ObservabilityNoBypassTests.cs` in
+the Architecture test project, and
+`python/presentation/test_release_1_10_observability_no_bypass.py`. Existing
+WP02–WP05 tests remain their predecessor owners.
+
+If the handoff is absent, confirm the Worker has published the governed file
+under its existing runtime configuration; do not substitute direct SQLite or
+provider access. If it is malformed, retain the last-good presentation and
+address the producing boundary. If Streamlit cannot start, verify the `.venv`,
+exact pins, Streamlit version, and `pip check`. If a built assembly is blocked
+by App Control, use only the local signing guide below; it is an environment
+remediation, not an observability or lifecycle repair. After local validation,
+stop only processes and remove only temporary artifacts owned by that run.
+
 ## Verify the repository
 
-The current governed .NET baseline is 339 passing tests: 11 Domain, 125
-Application, 182 Infrastructure, and 21 Architecture. Run the repository's
+The current governed .NET baseline is 365 passing tests: 11 Domain, 136
+Application, 191 Infrastructure, and 27 Architecture. Run the repository's
 canonical verification from the root:
 
 ```powershell
@@ -123,7 +184,10 @@ runtime data, `.venv`, and local interpreter paths out of commits.
 ## Release boundary
 
 Release 1.8 delivers runtime, dependency, validation, and interoperability
-foundation. Release 1.9 adds only the governed deterministic simulated/replay
-visualization presentation flow described above. Model training, prediction,
-real-provider streaming, persistent services, remote Python execution,
-OpenTelemetry, and Backtesting remain outside the delivered scope.
+foundation. Release 1.9 adds the governed deterministic simulated/replay
+visualization presentation flow. Release 1.10 adds bounded in-process pipeline
+and boundary observations plus the compatible System Health projection described
+above. All displayed market evidence remains deterministic/replay/simulated and
+non-live. Model training, prediction, real-provider streaming, persistent
+services, remote Python execution, external telemetry backends, and Backtesting
+remain outside the delivered scope.

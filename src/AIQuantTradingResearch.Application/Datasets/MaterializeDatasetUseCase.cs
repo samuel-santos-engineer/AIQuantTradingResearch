@@ -17,12 +17,31 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
     {
         ArgumentNullException.ThrowIfNull(definition);
 
-        var sourceResult = historicalObservationStore.Retrieve(definition.Target)
-            ?? throw new InvalidOperationException("The historical observation store returned no result.");
+        var retrievalActivity = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.StartStage(
+            AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.HistoricalObservationRetrieval);
+        long retrievalStarted = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.GetTimestamp();
+        HistoricalObservationResult sourceResult;
+
+        try
+        {
+            sourceResult = historicalObservationStore.Retrieve(definition.Target)
+                ?? throw new InvalidOperationException("The historical observation store returned no result.");
+        }
+        catch
+        {
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                retrievalActivity,
+                retrievalStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.HistoricalObservationRetrieval,
+                "failed");
+            retrievalActivity?.Dispose();
+            throw;
+        }
 
         if (!sourceResult.IsSuccess)
         {
-            return sourceResult.Failure switch
+            var result = sourceResult.Failure switch
             {
                 PersistenceFailure.Unavailable =>
                     DatasetMaterializationResult.Failed(DatasetMaterializationFailure.SourceHistoryUnavailable),
@@ -30,20 +49,64 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
                     DatasetMaterializationResult.Failed(DatasetMaterializationFailure.IntegrityConflict),
                 _ => throw new InvalidOperationException("The historical observation store returned an unknown failure."),
             };
+
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                retrievalActivity,
+                retrievalStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.HistoricalObservationRetrieval,
+                "failed",
+                result.Failure == DatasetMaterializationFailure.SourceHistoryUnavailable
+                    ? AIQuantTradingResearch.Application.Pipelines.PipelineFailureCategory.DependencyUnavailable
+                    : AIQuantTradingResearch.Application.Pipelines.PipelineFailureCategory.InvalidEvidence);
+            retrievalActivity?.Dispose();
+            return result;
         }
 
+        AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+            retrievalActivity,
+            retrievalStarted,
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+            AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.HistoricalObservationRetrieval,
+            "success");
+        retrievalActivity?.Dispose();
+
+        using var materializationActivity = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.StartStage(
+            AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization);
+        long materializationStarted = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.GetTimestamp();
         var history = sourceResult.Observations
             ?? throw new InvalidOperationException("A successful historical observation result contained no observations.");
 
-        var observations = history
-            .Where(observation => observation.Instant >= definition.From && observation.Instant < definition.To)
-            .OrderBy(static observation => observation.Instant.UtcTicks)
-            .ToArray();
+        try
+        {
+            var observations = history
+                .Where(observation => observation.Instant >= definition.From && observation.Instant < definition.To)
+                .OrderBy(static observation => observation.Instant.UtcTicks)
+                .ToArray();
 
-        return CreateSnapshot(
-            definition,
-            observations,
-            DatasetSourceAuthority.AcceptedRelease11HistoricalObservations);
+            DatasetMaterializationResult result = CreateSnapshot(
+                definition,
+                observations,
+                DatasetSourceAuthority.AcceptedRelease11HistoricalObservations);
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                materializationActivity,
+                materializationStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization,
+                "success",
+                sourceAuthority: DatasetSourceAuthority.AcceptedRelease11HistoricalObservations);
+            return result;
+        }
+        catch
+        {
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                materializationActivity,
+                materializationStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization,
+                "failed");
+            throw;
+        }
     }
 
     public DatasetMaterializationResult Execute(
@@ -53,7 +116,35 @@ internal sealed class MaterializeDatasetUseCase : IMaterializeDatasetUseCase
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(observations);
 
-        return CreateSnapshot(definition, observations, DatasetSourceAuthority.Release19SimulatedLiveReplay);
+        using var materializationActivity = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.StartStage(
+            AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization);
+        long materializationStarted = AIQuantTradingResearch.Application.Pipelines.PipelineObservability.GetTimestamp();
+
+        try
+        {
+            DatasetMaterializationResult result = CreateSnapshot(
+                definition,
+                observations,
+                DatasetSourceAuthority.Release19SimulatedLiveReplay);
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                materializationActivity,
+                materializationStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization,
+                "success",
+                sourceAuthority: DatasetSourceAuthority.Release19SimulatedLiveReplay);
+            return result;
+        }
+        catch
+        {
+            AIQuantTradingResearch.Application.Pipelines.PipelineObservability.Complete(
+                materializationActivity,
+                materializationStarted,
+                AIQuantTradingResearch.Application.Pipelines.PipelineObservability.PipelineStageActivityName,
+                AIQuantTradingResearch.Application.Pipelines.ResearchPipelineStage.DatasetMaterialization,
+                "failed");
+            throw;
+        }
     }
 
     private static DatasetMaterializationResult CreateSnapshot(

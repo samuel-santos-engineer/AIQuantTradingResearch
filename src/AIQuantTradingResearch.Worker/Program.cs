@@ -112,6 +112,8 @@ builder.Services.AddSingleton<IWorkerLifecycleLivenessGate>(_ => args.Contains("
 builder.Services.AddTransient<SimulatedLiveVisualizationExecution>();
 
 using var host = builder.Build();
+using var observability = new WorkerObservabilityLifecycle();
+observability.MarkReady();
 if (durableExperimentDiscoveryConfiguration is not null)
 {
     return host.Services.GetRequiredService<DurableExperimentDiscoveryExecution>()
@@ -135,6 +137,7 @@ if (isFeatureExecutionRequested)
     }
     catch (ArgumentException)
     {
+        observability.MarkFailed();
         Console.Error.WriteLine("Invalid mandatory feature configuration.");
         return 1;
     }
@@ -149,6 +152,7 @@ if (string.Equals(workerMode, "Replay", StringComparison.OrdinalIgnoreCase)
     {
         var workerConfiguration = SimulatedLiveVisualizationConfiguration.From(builder.Configuration);
         using var lifetime = new WorkerLifetimeCancellation();
+        observability.ObserveCancellation(lifetime.Token);
         host.Services.GetRequiredService<VisualizationReadModelFilePublisher>().StartSession();
         try
         {
@@ -174,6 +178,7 @@ try
 }
 catch (ArgumentException)
 {
+    observability.MarkFailed();
     Console.Error.WriteLine("Invalid mandatory dataset configuration.");
     return 1;
 }
