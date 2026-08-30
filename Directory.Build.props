@@ -7,6 +7,12 @@
 
   <PropertyGroup>
 
+    <!--
+      Local-only Windows App Control compatibility. The default remains off and
+      developers opt in through the ignored Directory.Build.local.props file.
+    -->
+    <AutoSignTestBinaries Condition="'$(AutoSignTestBinaries)' == ''">false</AutoSignTestBinaries>
+
     <!-- ===================================================== -->
     <!-- Target Framework                                       -->
     <!-- ===================================================== -->
@@ -99,6 +105,10 @@
     <InformationalVersion>0.1.0</InformationalVersion>
 
   </PropertyGroup>
+
+  <!-- Developer-machine overrides only; never commit certificate details. -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.local.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.local.props')" />
 
   <!-- ========================================================= -->
   <!-- Compiler Warnings                                         -->
