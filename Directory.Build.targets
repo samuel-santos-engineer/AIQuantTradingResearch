@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Signs each first-party project's Debug target only when a developer has
+    explicitly opted in through the ignored Directory.Build.local.props file.
+    Dependencies from third parties are never enumerated or signed.
+  -->
+  <Target Name="AutoSignFirstPartyDebugBinaries"
+          AfterTargets="Build"
+          Condition="'$(AutoSignTestBinaries)' == 'true' and '$(Configuration)' == 'Debug'">
+    <PropertyGroup>
+      <SignToolExecutable Condition="'$(SignToolExecutable)' == ''">C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe</SignToolExecutable>
+    </PropertyGroup>
+
+    <Error Condition="!Exists('$(SignToolExecutable)')"
+           Text="Local development signing requested, but SignTool was not found at $(SignToolExecutable). Configure SignToolExecutable in Directory.Build.local.props." />
+    <Error Condition="'$(LocalDevSigningCertificateThumbprint)' == ''"
+           Text="Local development signing requested, but LocalDevSigningCertificateThumbprint is not set in Directory.Build.local.props." />
+
+    <Message Text="Local development Authenticode signing for Windows App Control compatibility: signing $(TargetPath)..."
+             Importance="high" />
+    <Exec Command="&quot;$(SignToolExecutable)&quot; sign /sha1 $(LocalDevSigningCertificateThumbprint) /fd SHA256 &quot;$(TargetPath)&quot;" />
+  </Target>
+</Project>
