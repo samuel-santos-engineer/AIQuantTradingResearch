@@ -4,10 +4,12 @@
 
 > A production-oriented quantitative research and platform-engineering project built around deterministic market-data pipelines, durable evidence, governed .NET/Python interoperability, observability, and reproducible public-reference deployment.
 
-[![Release progression](https://img.shields.io/badge/Release%201.12-WP03%20accepted%20%7C%20WP04%20next-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/63)
-[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
-[![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
-[![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker)](Dockerfile)
+[![Release](https://img.shields.io/badge/release-1.12-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/63)
+[![Tests](https://img.shields.io/badge/tests-365%20passing-brightgreen)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Architecture Tests](https://img.shields.io/badge/architecture%20tests-27%20passing-brightgreen)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
+[![.NET / C#](https://img.shields.io/badge/.NET%20%2F%20C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
+[![Docker — containerized](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker)](Dockerfile)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 AIQuantTradingResearch demonstrates how quantitative research capability can evolve as a maintainable software platform. Architecture, executable quality gates, incremental delivery, transparent technical decisions, and disciplined AI-assisted engineering are treated as part of the product.
