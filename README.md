@@ -4,8 +4,10 @@
 
 > A production-oriented quantitative research and platform-engineering project built around deterministic market-data pipelines, durable evidence, governed .NET/Python interoperability, observability, and reproducible public-reference deployment.
 
-[![Release progression](https://img.shields.io/badge/Release%201.12-WP03%20accepted%20%7C%20WP04%20next-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/63)
-[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![Release](https://img.shields.io/badge/release-1.8-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-281%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
+[![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 [![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker)](Dockerfile)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -285,60 +287,6 @@ mandatory ACR, live trading, or architectural bypasses.
 **Initiative-1.11 is not Product Release 1.11.** Product Release 1.11 remains
 abandoned/nonexistent; the feasibility evidence from this initiative is consumed
 by Release 1.12 Public Reference Deployment Implementation & Stabilization.
-### [Release 1.10: OpenTelemetry & Pipeline Observability](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/59)
-
-Establish governed OpenTelemetry-based observability across the research pipeline and cross-language boundaries, with truthful System Health diagnostics exposed through the existing read-only Streamlit presentation surface.
-
-Release 1.10 adds structured observability without changing ownership of the
-research pipeline or creating a parallel execution path. .NET remains the
-canonical pipeline owner and emits governed telemetry across application,
-infrastructure, persistence, visualization, and Python interoperability
-boundaries. OpenTelemetry provides the instrumentation foundation while
-preserving deterministic execution semantics and existing architectural
-separation.
-
-The canonical visualization handoff is extended with truthful System Health
-evidence consumed by Python 3.13 and Streamlit. Health presentation distinguishes
-operational states without allowing Streamlit to supervise the Worker, access
-SQLite directly, invoke providers, or become an execution authority. Existing
-deterministic, replay, and simulated provenance remains explicitly disclosed and
-is never represented as live trading.
-
-Release 1.10 preserves SQLite schema v4, the one-shot JSON-over-stdio Python
-interoperability boundary, and the independent canonical JSON visualization
-handoff. It introduces no live trading, model training, backtesting, provider
-ownership changes, direct SQLite UI access, or parallel research pipeline.
-
-### [Initiative-1.11: Public Reference Deployment / Azure App Service F1 Feasibility Qualification](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/62)
-
-Qualify whether the existing governed application can operate as a publicly accessible reference deployment on Azure App Service Linux F1 while preserving its architecture, SQLite persistence model, provider boundaries, truthful provenance, and a strict zero-recurring-infrastructure-cost constraint.
-
-Initiative-1.11 validated Azure App Service Linux F1 in West Central US with a
-custom Docker container, public HTTPS/DNS, persistent `/home`, writable SQLite
-using DELETE journal mode, public/free GHCR image distribution, and bounded
-authenticated Twelve Data connectivity. Persistence, restart/redeployment
-behavior, CRUD integrity, contention handling, provider-secret isolation,
-failure behavior, and public deployment connectivity were exercised as part of
-the feasibility qualification.
-
-The initiative concluded:
-
-`AZURE APP SERVICE F1 REFERENCE DEPLOYMENT: FEASIBLE`
-
-with observed recurring infrastructure cost:
-
-`ACTUAL RECURRING INFRASTRUCTURE COST: $0.00`
-
-This qualification is explicitly a reference/demo deployment boundary rather
-than a production hosting claim. Azure remains an external deployment target,
-not an application dependency, and the result does not introduce a production
-SLA, paid Azure services, Azure SQL, Azure Container Apps, Azure Files,
-mandatory ACR, live trading, or architectural bypasses.
-
-**Initiative-1.11 is not Product Release 1.11.** Product Release 1.11 remains
-abandoned/nonexistent; the feasibility evidence from this initiative is consumed
-by Release 1.12 Public Reference Deployment Implementation & Stabilization.
-
 
 | Evidence                                    | Current baseline |
 | --------------------------------------------- | -----------------: |
