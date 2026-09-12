@@ -27,16 +27,59 @@ require_value() {
     [ -n "$variable_value" ] || fail "required environment variable $variable_name is not set"
 }
 
-require_value TwelveData__ApiKey
-require_value Dataset__Target
-require_value Dataset__From
-require_value Dataset__To
-require_value Worker__Replay__ReplayIdentity
-require_value Worker__Replay__Target
-require_value Worker__Replay__StartingTick
-require_value Worker__Replay__RequestedObservationCount
+configured_persistence_parent() {
+    dirname "$Persistence__DatabasePath"
+}
 
-mkdir -p "$(dirname "$Visualization__HandoffPath")" "$(dirname "$Persistence__DatabasePath")"
+validate_persistence_parent() {
+    persistence_parent="$1"
+    case "$persistence_parent" in
+        /home/*|/runtime|/runtime/*)
+            ;;
+        *)
+            fail "configured persistence parent is outside the approved runtime paths"
+            ;;
+    esac
+}
+
+prepare_persistence_parent_as_root() {
+    persistence_parent="$1"
+    mkdir -p "$persistence_parent"
+    chown 1000:1000 "$persistence_parent"
+    chmod 0750 "$persistence_parent"
+}
+
+require_writable_persistence_parent() {
+    persistence_parent="$1"
+    [ -d "$persistence_parent" ] || fail "configured persistence parent does not exist"
+    [ -w "$persistence_parent" ] || fail "configured persistence parent is not writable by aiq"
+}
+
+if [ "${Worker__Mode-}" = "PersistentSqliteQualification" ]; then
+    require_value Persistence__DatabasePath
+    require_value PersistentSqliteQualification__Phase
+else
+    require_value TwelveData__ApiKey
+    require_value Dataset__Target
+    require_value Dataset__From
+    require_value Dataset__To
+    require_value Worker__Replay__ReplayIdentity
+    require_value Worker__Replay__Target
+    require_value Worker__Replay__StartingTick
+    require_value Worker__Replay__RequestedObservationCount
+fi
+
+persistence_parent="$(configured_persistence_parent)"
+validate_persistence_parent "$persistence_parent"
+
+if [ "$(id -u)" -eq 0 ]; then
+    prepare_persistence_parent_as_root "$persistence_parent"
+    exec gosu aiq "$0" "$@"
+fi
+
+require_writable_persistence_parent "$persistence_parent"
+
+mkdir -p "$(dirname "$Visualization__HandoffPath")"
 
 on_signal() {
     printf '%s\n' 'aiq-entrypoint: termination signal received; stopping required children' >&2

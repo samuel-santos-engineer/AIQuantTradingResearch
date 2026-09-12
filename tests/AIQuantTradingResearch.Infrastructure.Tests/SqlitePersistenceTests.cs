@@ -96,6 +96,35 @@ public sealed class SqlitePersistenceTests
     }
 
     [Fact]
+    public void OpenConnectionCreatesMissingParentEnforcesDeleteJournalAndPreservesAcceptedHistoryAcrossReopen()
+    {
+        using var database = new TestDatabase(
+            createDirectory: false,
+            createParentDirectoryForInitialization: true);
+        string parent = Path.GetDirectoryName(database.Path)!;
+        var observation = Observation(0, 123.4567890123456789012345678m);
+
+        Assert.False(Directory.Exists(parent));
+        using (var connection = database.Factory.OpenConnection())
+        {
+            Assert.True(Directory.Exists(parent));
+            Assert.Equal("delete", Scalar<string>(connection, "PRAGMA journal_mode;"), ignoreCase: true);
+            Assert.Equal(4L, Scalar<long>(connection, "PRAGMA user_version;"));
+        }
+
+        Assert.Equal(ObservationPersistenceOutcome.NewlyAccepted, database.Store.Persist("WP04", [observation]).Outcome);
+        SqliteConnection.ClearAllPools();
+
+        using (var reopened = database.Factory.OpenConnection())
+        {
+            Assert.Equal("delete", Scalar<string>(reopened, "PRAGMA journal_mode;"), ignoreCase: true);
+            Assert.Equal(4L, Scalar<long>(reopened, "PRAGMA user_version;"));
+        }
+
+        Assert.Equal([observation], database.Store.Retrieve("WP04").Observations);
+    }
+
+    [Fact]
     public void OpenConnectionWhenUnsupportedVersionExistsRejectsWithoutReplacingState()
     {
         using var database = new TestDatabase();
@@ -352,7 +381,7 @@ public sealed class SqlitePersistenceTests
     {
         private readonly string directory;
 
-        public TestDatabase(bool createDirectory = true)
+        public TestDatabase(bool createDirectory = true, bool createParentDirectoryForInitialization = false)
         {
             directory = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(),
@@ -363,7 +392,7 @@ public sealed class SqlitePersistenceTests
             }
 
             Path = System.IO.Path.Combine(directory, "history.db");
-            Configuration = new SqliteStorageConfiguration(Path);
+            Configuration = new SqliteStorageConfiguration(Path, createParentDirectoryForInitialization);
             Factory = new SqliteConnectionFactory(Configuration);
             Store = new SqliteHistoricalObservationStore(Factory);
         }
