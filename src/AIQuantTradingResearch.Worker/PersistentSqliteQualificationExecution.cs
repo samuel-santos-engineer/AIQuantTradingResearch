@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Domain;
@@ -54,10 +55,54 @@ internal sealed class PersistentSqliteQualificationExecution(
             metadata.SchemaVersion == 4
                 && string.Equals(metadata.JournalMode, "delete", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(metadata.IntegrityCheck, "ok", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(metadata.QuickCheck, "ok", StringComparison.OrdinalIgnoreCase));
+                && string.Equals(metadata.QuickCheck, "ok", StringComparison.OrdinalIgnoreCase),
+            configuration.RunId);
 
-        Console.WriteLine(JsonSerializer.Serialize(record));
+        var serializedRecord = JsonSerializer.Serialize(record);
+        if (configuration.EvidenceOutputPath is not null)
+        {
+            try
+            {
+                WriteEvidenceArtifact(configuration.EvidenceOutputPath, serializedRecord);
+            }
+            catch (IOException)
+            {
+                return Fail("The application-owned qualification evidence artifact could not be written.");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Fail("The application-owned qualification evidence artifact could not be written.");
+            }
+        }
+
+        Console.WriteLine(serializedRecord);
         return 0;
+    }
+
+    private static void WriteEvidenceArtifact(string evidenceOutputPath, string serializedRecord)
+    {
+        var parent = Path.GetDirectoryName(evidenceOutputPath);
+        if (string.IsNullOrWhiteSpace(parent))
+        {
+            throw new IOException("The qualification evidence output path has no parent directory.");
+        }
+
+        Directory.CreateDirectory(parent);
+        var temporaryPath = Path.Combine(
+            parent,
+            $".{Path.GetFileName(evidenceOutputPath)}.{Guid.NewGuid():N}.tmp");
+        try
+        {
+            File.WriteAllText(temporaryPath, serializedRecord, new UTF8Encoding(false));
+            File.Move(temporaryPath, evidenceOutputPath, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
     }
 
     private static string QualificationEvidenceIdentity() =>
@@ -74,21 +119,48 @@ internal sealed class PersistentSqliteQualificationConfiguration
 {
     internal const string ModeName = "PersistentSqliteQualification";
     private const string PhasePath = "PersistentSqliteQualification:Phase";
+    private const string EvidenceOutputPathPath = "PersistentSqliteQualification:EvidenceOutputPath";
+    private const string RunIdPath = "PersistentSqliteQualification:RunId";
 
-    private PersistentSqliteQualificationConfiguration(PersistentSqliteQualificationPhase phase) => Phase = phase;
+    private PersistentSqliteQualificationConfiguration(
+        PersistentSqliteQualificationPhase phase,
+        string? evidenceOutputPath,
+        string runId)
+    {
+        Phase = phase;
+        EvidenceOutputPath = evidenceOutputPath;
+        RunId = runId;
+    }
 
     public PersistentSqliteQualificationPhase Phase { get; }
+
+    public string? EvidenceOutputPath { get; }
+
+    public string RunId { get; }
 
     public static PersistentSqliteQualificationConfiguration From(IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        var configured = configuration[PhasePath];
-        return configured?.ToLowerInvariant() switch
+        var phase = configuration[PhasePath]?.ToLowerInvariant() switch
         {
-            "initialize" => new PersistentSqliteQualificationConfiguration(PersistentSqliteQualificationPhase.Initialize),
-            "reopen" => new PersistentSqliteQualificationConfiguration(PersistentSqliteQualificationPhase.Reopen),
+            "initialize" => PersistentSqliteQualificationPhase.Initialize,
+            "reopen" => PersistentSqliteQualificationPhase.Reopen,
             _ => throw new ArgumentException($"Missing or invalid mandatory configuration: {PhasePath}."),
         };
+
+        var evidenceOutputPath = configuration[EvidenceOutputPathPath];
+        if (string.IsNullOrWhiteSpace(evidenceOutputPath))
+        {
+            return new PersistentSqliteQualificationConfiguration(phase, null, "stdout-only");
+        }
+
+        var runId = configuration[RunIdPath];
+        if (string.IsNullOrWhiteSpace(runId))
+        {
+            throw new ArgumentException($"Missing mandatory configuration: {RunIdPath}.");
+        }
+
+        return new PersistentSqliteQualificationConfiguration(phase, evidenceOutputPath, runId);
     }
 }
 
@@ -108,4 +180,5 @@ internal sealed record PersistentSqliteQualificationRecord(
     int AcceptedEvidenceCount,
     string IntegrityCheck,
     string QuickCheck,
-    bool PersistenceContinuity);
+    bool PersistenceContinuity,
+    string RunId);

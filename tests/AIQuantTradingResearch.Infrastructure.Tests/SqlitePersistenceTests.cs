@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
+using System.Text.Json;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Domain;
@@ -122,6 +123,71 @@ public sealed class SqlitePersistenceTests
         }
 
         Assert.Equal([observation], database.Store.Retrieve("WP04").Observations);
+    }
+
+    [Fact]
+    public void QualificationEvidenceArtifactMatchesStdoutAndAtomicallyReplacesPriorArtifact()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"aiq-wp04-evidence-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string database = Path.Combine(root, "data", "qualification.sqlite");
+        string evidence = Path.Combine(root, "evidence", "record.json");
+        try
+        {
+            var first = RunQualification(database, evidence, "initialize", "run-initialize");
+            Assert.Equal(0, first.ExitCode);
+            Assert.Equal(first.StandardOutput.Trim(), File.ReadAllText(evidence));
+            using var firstRecord = JsonDocument.Parse(first.StandardOutput);
+            Assert.Equal("run-initialize", firstRecord.RootElement.GetProperty("RunId").GetString());
+            Assert.Equal(4, firstRecord.RootElement.GetProperty("SchemaVersion").GetInt64());
+            Assert.Equal("delete", firstRecord.RootElement.GetProperty("JournalMode").GetString());
+            Assert.Equal("ok", firstRecord.RootElement.GetProperty("IntegrityCheck").GetString());
+            Assert.Equal("ok", firstRecord.RootElement.GetProperty("QuickCheck").GetString());
+
+            var second = RunQualification(database, evidence, "reopen", "run-reopen");
+            Assert.Equal(0, second.ExitCode);
+            Assert.Equal(second.StandardOutput.Trim(), File.ReadAllText(evidence));
+            Assert.DoesNotContain("run-initialize", File.ReadAllText(evidence), StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                Directory.EnumerateFiles(Path.GetDirectoryName(evidence)!),
+                static path => Path.GetFileName(path).EndsWith(".tmp", StringComparison.Ordinal));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void QualificationWithoutEvidenceOutputPreservesStdoutOnlyBehaviorAndInvalidArtifactParentFails()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"aiq-wp04-evidence-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var stdoutOnly = RunQualification(Path.Combine(root, "stdout.sqlite"), null, "initialize", null);
+            Assert.Equal(0, stdoutOnly.ExitCode);
+            using var record = JsonDocument.Parse(stdoutOnly.StandardOutput);
+            Assert.Equal("stdout-only", record.RootElement.GetProperty("RunId").GetString());
+
+            string parentFile = Path.Combine(root, "not-a-directory");
+            File.WriteAllText(parentFile, "x");
+            var invalid = RunQualification(Path.Combine(root, "invalid.sqlite"), Path.Combine(parentFile, "record.json"), "initialize", "run-invalid");
+            Assert.Equal(1, invalid.ExitCode);
+            Assert.Contains("evidence artifact could not be written", invalid.StandardError, StringComparison.Ordinal);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
     }
 
     [Fact]
@@ -370,6 +436,56 @@ public sealed class SqlitePersistenceTests
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         return (T)command.ExecuteScalar()!;
+    }
+
+    private static (int ExitCode, string StandardOutput, string StandardError) RunQualification(
+        string databasePath,
+        string? evidenceOutputPath,
+        string phase,
+        string? runId)
+    {
+        var start = new ProcessStartInfo("dotnet")
+        {
+            WorkingDirectory = FindRepositoryRoot(),
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        start.ArgumentList.Add("run");
+        start.ArgumentList.Add("--project");
+        start.ArgumentList.Add(Path.Combine(FindRepositoryRoot(), "src", "AIQuantTradingResearch.Worker", "AIQuantTradingResearch.Worker.csproj"));
+        start.ArgumentList.Add("--no-build");
+        start.ArgumentList.Add("--configuration");
+        start.ArgumentList.Add("Release");
+        start.Environment["Worker__Mode"] = "PersistentSqliteQualification";
+        start.Environment["PersistentSqliteQualification__Phase"] = phase;
+        start.Environment["Persistence__DatabasePath"] = databasePath;
+        start.Environment["Persistence__CreateParentDirectoryForInitialization"] = "true";
+        start.Environment["Visualization__HandoffPath"] = Path.Combine(Path.GetDirectoryName(databasePath)!, "read-model.json");
+        if (evidenceOutputPath is not null)
+        {
+            start.Environment["PersistentSqliteQualification__EvidenceOutputPath"] = evidenceOutputPath;
+            start.Environment["PersistentSqliteQualification__RunId"] = runId!;
+        }
+
+        using var process = Process.Start(start) ?? throw new InvalidOperationException("Qualification Worker did not start.");
+        string standardOutput = process.StandardOutput.ReadToEnd();
+        string standardError = process.StandardError.ReadToEnd();
+        Assert.True(process.WaitForExit(30_000), "Qualification Worker did not terminate.");
+        return (process.ExitCode, standardOutput, standardError);
+    }
+
+    private static string FindRepositoryRoot()
+    {
+        for (DirectoryInfo? directory = new(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "AIQuantTradingResearch.slnx")))
+            {
+                return directory.FullName;
+            }
+        }
+
+        throw new InvalidOperationException("Repository root was not found.");
     }
 
     private sealed class ThrowingConnectionFactory : ISqliteConnectionFactory

@@ -148,7 +148,7 @@ if (isPersistentSqliteQualificationRequested)
     }
     catch (ArgumentException)
     {
-        Console.Error.WriteLine("Invalid mandatory persistent SQLite qualification configuration.");
+        Console.Error.WriteLine("Invalid mandatory persistent SQLite qualification or durable evidence configuration.");
         return 1;
     }
 }
