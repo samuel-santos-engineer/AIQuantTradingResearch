@@ -143,8 +143,14 @@ if (isPersistentSqliteQualificationRequested)
     try
     {
         var qualificationConfiguration = PersistentSqliteQualificationConfiguration.From(builder.Configuration);
-        return host.Services.GetRequiredService<PersistentSqliteQualificationExecution>()
+        var qualificationExitCode = host.Services.GetRequiredService<PersistentSqliteQualificationExecution>()
             .Execute(qualificationConfiguration);
+        if (qualificationExitCode != 0 || !qualificationConfiguration.HttpEvidenceEnabled)
+        {
+            return qualificationExitCode;
+        }
+
+        return await PersistentSqliteQualificationEvidenceEndpoint.ServeAsync(qualificationConfiguration);
     }
     catch (ArgumentException)
     {

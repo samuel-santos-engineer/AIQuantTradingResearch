@@ -121,15 +121,21 @@ internal sealed class PersistentSqliteQualificationConfiguration
     private const string PhasePath = "PersistentSqliteQualification:Phase";
     private const string EvidenceOutputPathPath = "PersistentSqliteQualification:EvidenceOutputPath";
     private const string RunIdPath = "PersistentSqliteQualification:RunId";
+    private const string HttpEvidenceEnabledPath = "PersistentSqliteQualification:HttpEvidenceEnabled";
+    private const string HttpEvidenceTokenPath = "PersistentSqliteQualification:HttpEvidenceToken";
 
     private PersistentSqliteQualificationConfiguration(
         PersistentSqliteQualificationPhase phase,
         string? evidenceOutputPath,
-        string runId)
+        string runId,
+        bool httpEvidenceEnabled,
+        string? httpEvidenceToken)
     {
         Phase = phase;
         EvidenceOutputPath = evidenceOutputPath;
         RunId = runId;
+        HttpEvidenceEnabled = httpEvidenceEnabled;
+        HttpEvidenceToken = httpEvidenceToken;
     }
 
     public PersistentSqliteQualificationPhase Phase { get; }
@@ -137,6 +143,10 @@ internal sealed class PersistentSqliteQualificationConfiguration
     public string? EvidenceOutputPath { get; }
 
     public string RunId { get; }
+
+    public bool HttpEvidenceEnabled { get; }
+
+    public string? HttpEvidenceToken { get; }
 
     public static PersistentSqliteQualificationConfiguration From(IConfiguration configuration)
     {
@@ -151,7 +161,13 @@ internal sealed class PersistentSqliteQualificationConfiguration
         var evidenceOutputPath = configuration[EvidenceOutputPathPath];
         if (string.IsNullOrWhiteSpace(evidenceOutputPath))
         {
-            return new PersistentSqliteQualificationConfiguration(phase, null, "stdout-only");
+            if (bool.TryParse(configuration[HttpEvidenceEnabledPath], out var httpEvidenceEnabledWithoutArtifact)
+                && httpEvidenceEnabledWithoutArtifact)
+            {
+                throw new ArgumentException($"Missing mandatory configuration: {EvidenceOutputPathPath}.");
+            }
+
+            return new PersistentSqliteQualificationConfiguration(phase, null, "stdout-only", false, null);
         }
 
         var runId = configuration[RunIdPath];
@@ -160,7 +176,27 @@ internal sealed class PersistentSqliteQualificationConfiguration
             throw new ArgumentException($"Missing mandatory configuration: {RunIdPath}.");
         }
 
-        return new PersistentSqliteQualificationConfiguration(phase, evidenceOutputPath, runId);
+        var httpEvidenceEnabledValue = configuration[HttpEvidenceEnabledPath];
+        if (!string.IsNullOrWhiteSpace(httpEvidenceEnabledValue)
+            && !bool.TryParse(httpEvidenceEnabledValue, out _))
+        {
+            throw new ArgumentException($"Invalid Boolean configuration: {HttpEvidenceEnabledPath}.");
+        }
+
+        var httpEvidenceEnabled = bool.TryParse(httpEvidenceEnabledValue, out var parsedHttpEvidenceEnabled)
+            && parsedHttpEvidenceEnabled;
+        var httpEvidenceToken = configuration[HttpEvidenceTokenPath];
+        if (httpEvidenceEnabled && string.IsNullOrWhiteSpace(httpEvidenceToken))
+        {
+            throw new ArgumentException($"Missing mandatory configuration: {HttpEvidenceTokenPath}.");
+        }
+
+        return new PersistentSqliteQualificationConfiguration(
+            phase,
+            evidenceOutputPath,
+            runId,
+            httpEvidenceEnabled,
+            httpEvidenceToken);
     }
 }
 

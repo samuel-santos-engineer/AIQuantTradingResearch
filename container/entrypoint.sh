@@ -81,6 +81,12 @@ require_writable_persistence_parent "$persistence_parent"
 
 mkdir -p "$(dirname "$Visualization__HandoffPath")"
 
+qualification_http_mode=false
+if [ "${Worker__Mode-}" = "PersistentSqliteQualification" ] \
+    && [ "${PersistentSqliteQualification__HttpEvidenceEnabled-false}" = "true" ]; then
+    qualification_http_mode=true
+fi
+
 on_signal() {
     printf '%s\n' 'aiq-entrypoint: termination signal received; stopping required children' >&2
     stop_children
@@ -92,6 +98,15 @@ trap on_signal TERM INT
 printf '%s\n' 'aiq-entrypoint: starting Worker replay process' >&2
 dotnet /app/worker/AIQuantTradingResearch.Worker.dll &
 worker_pid=$!
+
+if [ "$qualification_http_mode" = true ]; then
+    printf '%s\n' 'aiq-entrypoint: qualification HTTP evidence mode; Streamlit suppressed' >&2
+    wait "$worker_pid" || worker_status=$?
+    worker_status=${worker_status:-0}
+    worker_pid=''
+    printf '%s\n' "aiq-entrypoint: Worker exited with status $worker_status" >&2
+    exit "$worker_status"
+fi
 
 printf '%s\n' 'aiq-entrypoint: starting Streamlit presentation process' >&2
 streamlit run /app/python/presentation/realtime_financial_visualization.py \

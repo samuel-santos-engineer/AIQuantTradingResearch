@@ -14,7 +14,7 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
-$temporarySettingNames = @('Worker__Mode', 'PersistentSqliteQualification__Phase', 'PersistentSqliteQualification__RunId', 'PersistentSqliteQualification__EvidenceOutputPath')
+$temporarySettingNames = @('Worker__Mode', 'PersistentSqliteQualification__Phase', 'PersistentSqliteQualification__RunId', 'PersistentSqliteQualification__EvidenceOutputPath', 'PersistentSqliteQualification__HttpEvidenceEnabled', 'PersistentSqliteQualification__HttpEvidenceToken')
 
 function Assert-EvidenceArtifact {
     param([Parameter(Mandatory)] [object] $Record, [Parameter(Mandatory)] [string] $ExpectedPhase, [Parameter(Mandatory)] [string] $ExpectedRunId)
@@ -33,27 +33,30 @@ function Assert-EvidenceArtifact {
 
 function ConvertFrom-EvidenceJson {
     param([Parameter(Mandatory)] [string] $Content)
-    if ([string]::IsNullOrWhiteSpace($Content)) { throw 'Kudu returned an empty evidence artifact.' }
-    try { return $Content | ConvertFrom-Json -ErrorAction Stop } catch { throw 'Kudu returned malformed evidence JSON.' }
+    if ([string]::IsNullOrWhiteSpace($Content)) { throw 'The application evidence endpoint returned an empty record.' }
+    try { return $Content | ConvertFrom-Json -ErrorAction Stop } catch { throw 'The application evidence endpoint returned malformed evidence JSON.' }
 }
 
-function Get-KuduArtifactUri {
-    param([Parameter(Mandatory)] [string] $AppName, [Parameter(Mandatory)] [string] $ArtifactPath)
-    if ($ArtifactPath -notmatch '^/home/[A-Za-z0-9._/-]+$' -or $ArtifactPath.Contains('..')) { throw 'Evidence output path must be a normalized persistent /home path.' }
-    return "https://$AppName.scm.azurewebsites.net/api/vfs$ArtifactPath"
-}
-
-function Get-KuduEvidenceArtifact {
-    param([Parameter(Mandatory)] [string] $Group, [Parameter(Mandatory)] [string] $AppName, [Parameter(Mandatory)] [string] $ArtifactPath)
-    $credentialsJson = & az webapp deployment list-publishing-credentials --resource-group $Group --name $AppName --output json
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to acquire local Kudu publishing credentials.' }
-    $credentials = $credentialsJson | ConvertFrom-Json -ErrorAction Stop
-    if ([string]::IsNullOrWhiteSpace($credentials.publishingUserName) -or [string]::IsNullOrWhiteSpace($credentials.publishingPassword)) { throw 'Kudu publishing credentials were unavailable.' }
-    $bytes = [Text.Encoding]::ASCII.GetBytes("$($credentials.publishingUserName):$($credentials.publishingPassword)")
-    $headers = @{ Authorization = "Basic $([Convert]::ToBase64String($bytes))" }
-    try { $response = Invoke-WebRequest -Uri (Get-KuduArtifactUri -AppName $AppName -ArtifactPath $ArtifactPath) -Headers $headers -UseBasicParsing -ErrorAction Stop } catch { throw 'Kudu evidence artifact retrieval failed.' }
-    if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 300) { throw 'Kudu returned an unsuccessful artifact response.' }
-    return [string]$response.Content
+function Get-ApplicationEvidenceArtifact {
+    param([Parameter(Mandatory)] [string] $Group, [Parameter(Mandatory)] [string] $AppName, [Parameter(Mandatory)] [string] $ExpectedRunId, [Parameter(Mandatory)] [string] $Token)
+    $hostName = & az webapp show --resource-group $Group --name $AppName --query defaultHostName --output tsv
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hostName)) { throw 'Unable to resolve the public Web App host name.' }
+    $uri = "https://$hostName/internal/wp04/persistence-qualification?runId=$([uri]::EscapeDataString($ExpectedRunId))"
+    $headers = @{ 'X-WP04-Evidence-Token' = $Token }
+    for ($attempt = 1; $attempt -le 36; $attempt++) {
+        try {
+            $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
+            if ($response.StatusCode -eq 200) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; return [string]$response.Content }
+            throw "The application evidence endpoint returned HTTP $($response.StatusCode)."
+        }
+        catch {
+            $statusCode = $null
+            if ($_.Exception.Response) { $statusCode = [int]$_.Exception.Response.StatusCode }
+            if ($statusCode -eq 404 -and $attempt -lt 36) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Start-Sleep -Seconds 5; continue }
+            throw 'Application-owned HTTP evidence retrieval failed.'
+        }
+    }
+    throw 'Application-owned HTTP evidence retrieval timed out.'
 }
 
 function Get-TemporarySettingSnapshot {
@@ -79,21 +82,24 @@ function Invoke-LocalValidation {
     Assert-EvidenceArtifact -Record (ConvertFrom-EvidenceJson -Content $valid) -ExpectedPhase 'initialize' -ExpectedRunId $runId
     $cases = @(@{ Name = 'stale-run-id'; Content = $valid; RunId = 'different-run' }, @{ Name = 'malformed-json'; Content = '{not-json'; RunId = $runId }, @{ Name = 'wrong-schema'; Content = ($valid -replace '"SchemaVersion":4', '"SchemaVersion":3'); RunId = $runId }, @{ Name = 'wrong-journal'; Content = ($valid -replace '"JournalMode":"delete"', '"JournalMode":"wal"'); RunId = $runId }, @{ Name = 'failed-integrity'; Content = ($valid -replace '"IntegrityCheck":"ok"', '"IntegrityCheck":"failed"'); RunId = $runId }, @{ Name = 'failed-quick-check'; Content = ($valid -replace '"QuickCheck":"ok"', '"QuickCheck":"failed"'); RunId = $runId }, @{ Name = 'false-continuity'; Content = ($valid -replace '"PersistenceContinuity":true', '"PersistenceContinuity":false'); RunId = $runId })
     foreach ($case in $cases) { $failed = $false; try { Assert-EvidenceArtifact -Record (ConvertFrom-EvidenceJson -Content $case.Content) -ExpectedPhase 'initialize' -ExpectedRunId $case.RunId } catch { $failed = $true }; if (-not $failed) { throw "Local validation did not reject $($case.Name)." } }
-    if ((Get-KuduArtifactUri -AppName 'example-app' -ArtifactPath '/home/data/wp04-qualification/evidence.json') -ne 'https://example-app.scm.azurewebsites.net/api/vfs/home/data/wp04-qualification/evidence.json') { throw 'Kudu URI construction was not deterministic.' }
-    Write-Host 'WP04_LOCAL_DURABLE_RETRIEVAL_VALIDATION_CASES=8'
+    Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_CASES=8'
 }
 
-if ($LocalValidation) { Invoke-LocalValidation; Write-Host 'WP04_LOCAL_DURABLE_RETRIEVAL_VALIDATION_PASS=True'; exit 0 }
+if ($LocalValidation) { Invoke-LocalValidation; Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_PASS=True'; exit 0 }
 if (-not $PSBoundParameters.ContainsKey('RunId') -or [string]::IsNullOrWhiteSpace($RunId)) { throw 'RunId must be explicitly supplied for Azure qualification.' }
 
 $snapshot = $null; $qualificationSucceeded = $false; $restorationSucceeded = $false
 try {
     $snapshot = Get-TemporarySettingSnapshot -Group $ResourceGroup -AppName $WebAppName
-    $temporaryValues = @('Worker__Mode=PersistentSqliteQualification', "PersistentSqliteQualification__Phase=$Phase", "PersistentSqliteQualification__RunId=$RunId", "PersistentSqliteQualification__EvidenceOutputPath=$EvidenceOutputPath")
+    $tokenBytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Fill($tokenBytes)
+    $evidenceToken = [Convert]::ToBase64String($tokenBytes)
+    $temporaryValues = @('Worker__Mode=PersistentSqliteQualification', "PersistentSqliteQualification__Phase=$Phase", "PersistentSqliteQualification__RunId=$RunId", "PersistentSqliteQualification__EvidenceOutputPath=$EvidenceOutputPath", 'PersistentSqliteQualification__HttpEvidenceEnabled=true', "PersistentSqliteQualification__HttpEvidenceToken=$evidenceToken")
     & az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings $temporaryValues --output none
     if ($LASTEXITCODE -ne 0) { throw 'Unable to apply temporary D3 settings.' }; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_APPLIED=True'
     if ($LifecycleAction -eq 'Restart') { & az webapp restart --resource-group $ResourceGroup --name $WebAppName --output none; if ($LASTEXITCODE -ne 0) { throw 'The governed Web App restart failed.' }; Write-Host 'WP04_D3_LIFECYCLE_ACTION=Restart' } else { Write-Host 'WP04_D3_LIFECYCLE_ACTION=None' }
-    $record = ConvertFrom-EvidenceJson -Content (Get-KuduEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ArtifactPath $EvidenceOutputPath)
+    Write-Host 'WP04_HTTP_EVIDENCE_TOKEN_DISCLOSED=False'
+    $record = ConvertFrom-EvidenceJson -Content (Get-ApplicationEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ExpectedRunId $RunId -Token $evidenceToken)
     Assert-EvidenceArtifact -Record $record -ExpectedPhase $Phase -ExpectedRunId $RunId
     [pscustomobject]@{ RecordVersion = $record.RecordVersion; Phase = $record.Phase; RunId = $record.RunId; DatabasePathIdentity = $record.DatabasePathIdentity; SchemaVersion = $record.SchemaVersion; JournalMode = $record.JournalMode; AcceptedEvidenceIdentity = $record.AcceptedEvidenceIdentity; AcceptedEvidenceCount = $record.AcceptedEvidenceCount; IntegrityCheck = $record.IntegrityCheck; QuickCheck = $record.QuickCheck; PersistenceContinuity = $record.PersistenceContinuity } | ConvertTo-Json -Compress
     $qualificationSucceeded = $true
