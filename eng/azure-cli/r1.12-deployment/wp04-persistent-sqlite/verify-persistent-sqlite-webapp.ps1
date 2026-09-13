@@ -92,7 +92,13 @@ $snapshot = $null; $qualificationSucceeded = $false; $restorationSucceeded = $fa
 try {
     $snapshot = Get-TemporarySettingSnapshot -Group $ResourceGroup -AppName $WebAppName
     $tokenBytes = New-Object byte[] 32
-    [System.Security.Cryptography.RandomNumberGenerator]::Fill($tokenBytes)
+    $tokenGenerator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $tokenGenerator.GetBytes($tokenBytes)
+    }
+    finally {
+        $tokenGenerator.Dispose()
+    }
     $evidenceToken = [Convert]::ToBase64String($tokenBytes)
     $temporaryValues = @('Worker__Mode=PersistentSqliteQualification', "PersistentSqliteQualification__Phase=$Phase", "PersistentSqliteQualification__RunId=$RunId", "PersistentSqliteQualification__EvidenceOutputPath=$EvidenceOutputPath", 'PersistentSqliteQualification__HttpEvidenceEnabled=true', "PersistentSqliteQualification__HttpEvidenceToken=$evidenceToken")
     & az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings $temporaryValues --output none
