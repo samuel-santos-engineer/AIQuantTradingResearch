@@ -77,14 +77,25 @@ function ConvertFrom-EvidenceJson {
 
 function Get-ApplicationEvidenceArtifact {
     param([Parameter(Mandatory)] [string] $Group, [Parameter(Mandatory)] [string] $AppName, [Parameter(Mandatory)] [string] $ExpectedRunId, [Parameter(Mandatory)] [string] $Token)
+    $pollBudgetSeconds = 180
+    $nominalRequestTimeoutSeconds = 20
+    $pollStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+    $attempt = 0
     $hostName = & az webapp show --resource-group $Group --name $AppName --query defaultHostName --output tsv
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hostName)) { throw 'Unable to resolve the public Web App host name.' }
     $uri = "https://$hostName/internal/wp04/persistence-qualification?runId=$([uri]::EscapeDataString($ExpectedRunId))"
     $headers = @{ 'X-WP04-Evidence-Token' = $Token }
-    for ($attempt = 1; $attempt -le 36; $attempt++) {
+    while ($true) {
+        $remainingSeconds = $pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds
+        if ($remainingSeconds -lt 1) {
+            Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass 'Timeout'
+            throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.'
+        }
+        $attempt++
         $script:WP04HttpEvidencePollAttempt = $attempt
+        $effectiveRequestTimeoutSeconds = [Math]::Min($nominalRequestTimeoutSeconds, [int][Math]::Floor($remainingSeconds))
         try {
-            $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
+            $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec $effectiveRequestTimeoutSeconds -ErrorAction Stop
             if ($response.StatusCode -eq 200) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode 200; return [string]$response.Content }
             throw "The application evidence endpoint returned HTTP $($response.StatusCode)."
         }
@@ -97,11 +108,15 @@ function Get-ApplicationEvidenceArtifact {
             }
             if ($null -eq $statusCode) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass (Get-SanitizedTransportFailureClass -Exception $_.Exception); throw 'Application-owned HTTP evidence retrieval failed.' }
             Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $statusCode
-            if (($statusCode -eq 404 -or $statusCode -eq 503) -and $attempt -lt 36) { Start-Sleep -Seconds 5; continue }
+            if ($statusCode -eq 404 -or $statusCode -eq 503) {
+                $remainingMilliseconds = [int][Math]::Floor(($pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds) * 1000)
+                if ($remainingMilliseconds -lt 1) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass 'Timeout'; throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.' }
+                Start-Sleep -Milliseconds ([Math]::Min(5000, $remainingMilliseconds))
+                continue
+            }
             throw 'Application-owned HTTP evidence retrieval failed.'
         }
     }
-    throw 'Application-owned HTTP evidence retrieval timed out.'
 }
 
 function Get-TemporarySettingSnapshot {
