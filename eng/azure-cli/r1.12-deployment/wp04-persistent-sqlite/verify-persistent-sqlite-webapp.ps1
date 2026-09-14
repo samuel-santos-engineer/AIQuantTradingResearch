@@ -46,13 +46,13 @@ function Get-ApplicationEvidenceArtifact {
     for ($attempt = 1; $attempt -le 36; $attempt++) {
         try {
             $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
-            if ($response.StatusCode -eq 200) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; return [string]$response.Content }
+            if ($response.StatusCode -eq 200) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Write-Host 'WP04_HTTP_EVIDENCE_STATUS=200'; return [string]$response.Content }
             throw "The application evidence endpoint returned HTTP $($response.StatusCode)."
         }
         catch {
             $statusCode = $null
             if ($_.Exception.Response) { $statusCode = [int]$_.Exception.Response.StatusCode }
-            if ($statusCode -eq 404 -and $attempt -lt 36) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Start-Sleep -Seconds 5; continue }
+            if (($statusCode -eq 404 -or $statusCode -eq 503) -and $attempt -lt 36) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Write-Host "WP04_HTTP_EVIDENCE_STATUS=$statusCode"; Start-Sleep -Seconds 5; continue }
             throw 'Application-owned HTTP evidence retrieval failed.'
         }
     }
