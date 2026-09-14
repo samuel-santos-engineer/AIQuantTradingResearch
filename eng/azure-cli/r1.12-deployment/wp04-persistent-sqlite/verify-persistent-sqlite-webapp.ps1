@@ -2,12 +2,9 @@
 param(
     [string] $ResourceGroup = 'rg-aiq-r112-wp03-wcus-5ec325382770',
     [string] $WebAppName = 'aiqr112wp035ec325382770',
-    [ValidateSet('initialize', 'reopen')]
     [string] $Phase = 'initialize',
     [string] $RunId,
-    [ValidatePattern('^/home/[A-Za-z0-9._/-]+$')]
     [string] $EvidenceOutputPath = '/home/data/wp04-qualification/evidence.json',
-    [ValidateSet('Restart', 'None')]
     [string] $LifecycleAction = 'Restart',
     [switch] $LocalValidation
 )
@@ -16,6 +13,40 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $temporarySettingNames = @('Worker__Mode', 'PersistentSqliteQualification__Phase', 'PersistentSqliteQualification__RunId', 'PersistentSqliteQualification__EvidenceOutputPath', 'PersistentSqliteQualification__HttpEvidenceEnabled', 'PersistentSqliteQualification__HttpEvidenceToken')
 $script:WP04HttpEvidencePollAttempt = 0
+$script:WP04EvidenceTerminalClass = 'UnhandledHelperFailure'
+
+function Write-HelperTerminalResult {
+    param(
+        [Parameter(Mandatory)] [bool] $Succeeded,
+        [Parameter(Mandatory)] [string] $FailureClass,
+        [Parameter(Mandatory)] [string] $TerminalPhase,
+        [Parameter(Mandatory)] [string] $TerminalRunId,
+        [Parameter(Mandatory)] [string] $SettingsRestoration,
+        [Parameter(Mandatory)] [long] $ElapsedMilliseconds
+    )
+
+    $result = if ($Succeeded) { 'SUCCESS' } else { 'FAILURE' }
+    $exitCode = if ($Succeeded) { 0 } else { 1 }
+    Write-Host "WP04_HELPER_TERMINAL_RESULT=$result"
+    Write-Host "WP04_HELPER_TERMINAL_CLASS=$FailureClass"
+    Write-Host "WP04_HELPER_TERMINAL_PHASE=$TerminalPhase"
+    Write-Host "WP04_HELPER_TERMINAL_RUN_ID=$TerminalRunId"
+    Write-Host "WP04_HELPER_TERMINAL_EXIT_CODE=$exitCode"
+    Write-Host "WP04_HELPER_TERMINAL_SETTINGS_RESTORATION=$SettingsRestoration"
+    Write-Host "WP04_HELPER_TERMINAL_ELAPSED_MS=$ElapsedMilliseconds"
+}
+
+function Get-HelperTerminalFailureClass {
+    param([Parameter(Mandatory)] [string] $Stage)
+    switch ($Stage) {
+        'Snapshot' { return 'AzCommandFailure' }
+        'SettingsApplication' { return 'SettingsApplicationFailure' }
+        'Restart' { return 'RestartFailure' }
+        'Evidence' { return $script:WP04EvidenceTerminalClass }
+        'Semantic' { return 'SemanticFailure' }
+        default { return 'UnhandledHelperFailure' }
+    }
+}
 
 function Write-HttpEvidencePollDiagnostic {
     param([Parameter(Mandatory)] [int] $Attempt, [AllowNull()] [object] $StatusCode, [AllowNull()] [string] $FailureClass)
@@ -89,6 +120,7 @@ function Get-ApplicationEvidenceArtifact {
         $remainingSeconds = $pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds
         if ($remainingSeconds -lt 1) {
             Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass 'Timeout'
+            $script:WP04EvidenceTerminalClass = 'Timeout'
             throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.'
         }
         $attempt++
@@ -106,14 +138,20 @@ function Get-ApplicationEvidenceArtifact {
                 $statusProperty = $responseProperty.Value.PSObject.Properties['StatusCode']
                 if ($null -ne $statusProperty) { $statusCode = [int]$statusProperty.Value }
             }
-            if ($null -eq $statusCode) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass (Get-SanitizedTransportFailureClass -Exception $_.Exception); throw 'Application-owned HTTP evidence retrieval failed.' }
+            if ($null -eq $statusCode) {
+                $transportClass = Get-SanitizedTransportFailureClass -Exception $_.Exception
+                Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass $transportClass
+                $script:WP04EvidenceTerminalClass = if ($transportClass -eq 'Timeout') { 'Timeout' } else { 'TransportFailure' }
+                throw 'Application-owned HTTP evidence retrieval failed.'
+            }
             Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $statusCode
             if ($statusCode -eq 404 -or $statusCode -eq 503) {
                 $remainingMilliseconds = [int][Math]::Floor(($pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds) * 1000)
-                if ($remainingMilliseconds -lt 1) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass 'Timeout'; throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.' }
+                if ($remainingMilliseconds -lt 1) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass 'Timeout'; $script:WP04EvidenceTerminalClass = 'Timeout'; throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.' }
                 Start-Sleep -Milliseconds ([Math]::Min(5000, $remainingMilliseconds))
                 continue
             }
+            $script:WP04EvidenceTerminalClass = 'HttpFailure'
             throw 'Application-owned HTTP evidence retrieval failed.'
         }
     }
@@ -142,42 +180,87 @@ function Invoke-LocalValidation {
     Assert-EvidenceArtifact -Record (ConvertFrom-EvidenceJson -Content $valid) -ExpectedPhase 'initialize' -ExpectedRunId $runId
     $cases = @(@{ Name = 'stale-run-id'; Content = $valid; RunId = 'different-run' }, @{ Name = 'malformed-json'; Content = '{not-json'; RunId = $runId }, @{ Name = 'wrong-schema'; Content = ($valid -replace '"SchemaVersion":4', '"SchemaVersion":3'); RunId = $runId }, @{ Name = 'wrong-journal'; Content = ($valid -replace '"JournalMode":"delete"', '"JournalMode":"wal"'); RunId = $runId }, @{ Name = 'failed-integrity'; Content = ($valid -replace '"IntegrityCheck":"ok"', '"IntegrityCheck":"failed"'); RunId = $runId }, @{ Name = 'failed-quick-check'; Content = ($valid -replace '"QuickCheck":"ok"', '"QuickCheck":"failed"'); RunId = $runId }, @{ Name = 'false-continuity'; Content = ($valid -replace '"PersistenceContinuity":true', '"PersistenceContinuity":false'); RunId = $runId })
     foreach ($case in $cases) { $failed = $false; try { Assert-EvidenceArtifact -Record (ConvertFrom-EvidenceJson -Content $case.Content) -ExpectedPhase 'initialize' -ExpectedRunId $case.RunId } catch { $failed = $true }; if (-not $failed) { throw "Local validation did not reject $($case.Name)." } }
-    Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_CASES=8'
+    $terminalFixtures = @(
+        @{ Name = 'V1-success'; Result = 'SUCCESS'; Class = 'Success'; Restoration = 'PASS'; ExitCode = 0 },
+        @{ Name = 'V2-throw'; Result = 'FAILURE'; Class = 'UnhandledHelperFailure'; Restoration = 'NOT_ATTEMPTED'; ExitCode = 1 },
+        @{ Name = 'V3-az'; Result = 'FAILURE'; Class = 'AzCommandFailure'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V4-timeout'; Result = 'FAILURE'; Class = 'Timeout'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V5-http404-retry'; Result = 'FAILURE'; Class = 'Timeout'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V6-http503-retry'; Result = 'FAILURE'; Class = 'Timeout'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V7-http400'; Result = 'FAILURE'; Class = 'HttpFailure'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V8-semantic'; Result = 'FAILURE'; Class = 'SemanticFailure'; Restoration = 'PASS'; ExitCode = 1 },
+        @{ Name = 'V9-restoration'; Result = 'FAILURE'; Class = 'RestorationFailure'; Restoration = 'FAIL'; ExitCode = 1 },
+        @{ Name = 'V10-deadline'; Result = 'FAILURE'; Class = 'Timeout'; Restoration = 'PASS'; ExitCode = 1 }
+    )
+    foreach ($fixture in $terminalFixtures) {
+        $lines = @(
+            "WP04_HELPER_TERMINAL_RESULT=$($fixture.Result)",
+            "WP04_HELPER_TERMINAL_CLASS=$($fixture.Class)",
+            'WP04_HELPER_TERMINAL_PHASE=initialize',
+            'WP04_HELPER_TERMINAL_RUN_ID=local-run-001',
+            "WP04_HELPER_TERMINAL_EXIT_CODE=$($fixture.ExitCode)",
+            "WP04_HELPER_TERMINAL_SETTINGS_RESTORATION=$($fixture.Restoration)",
+            'WP04_HELPER_TERMINAL_ELAPSED_MS=1'
+        )
+        if (@($lines | Where-Object { $_ -like 'WP04_HELPER_TERMINAL_RESULT=*' }).Count -ne 1 -or
+            @($lines | Where-Object { $_ -match 'token|header|\?|Exception|StackTrace' }).Count -ne 0) {
+            throw "Local terminal telemetry fixture failed: $($fixture.Name)."
+        }
+    }
+    Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_CASES=18'
 }
 
-if ($LocalValidation) { Invoke-LocalValidation; Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_PASS=True'; exit 0 }
-if (-not $PSBoundParameters.ContainsKey('RunId') -or [string]::IsNullOrWhiteSpace($RunId)) { throw 'RunId must be explicitly supplied for Azure qualification.' }
-
-$snapshot = $null; $qualificationSucceeded = $false; $restorationSucceeded = $false
+$workflowStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+$snapshot = $null; $qualificationSucceeded = $false; $workflowStage = 'Validation'; $terminalClass = 'UnhandledHelperFailure'; $restorationStatus = 'NOT_ATTEMPTED'
+$terminalPhase = if ($Phase -eq 'initialize' -or $Phase -eq 'reopen') { $Phase } else { 'unknown' }
+$terminalRunId = if ([string]::IsNullOrWhiteSpace($RunId)) { 'NONE' } else { $RunId }
 try {
-    $snapshot = Get-TemporarySettingSnapshot -Group $ResourceGroup -AppName $WebAppName
-    $tokenBytes = New-Object byte[] 32
-    $tokenGenerator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
-    try {
-        $tokenGenerator.GetBytes($tokenBytes)
+    if ($LocalValidation) {
+        Invoke-LocalValidation
+        Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_PASS=True'
+        $qualificationSucceeded = $true
+        $terminalClass = 'Success'
+        $restorationStatus = 'NOT_REQUIRED'
     }
-    finally {
-        $tokenGenerator.Dispose()
+    else {
+        if ($Phase -ne 'initialize' -and $Phase -ne 'reopen') { throw 'Phase must be initialize or reopen.' }
+        if ($EvidenceOutputPath -notmatch '^/home/[A-Za-z0-9._/-]+$') { throw 'Evidence output path is invalid.' }
+        if ($LifecycleAction -ne 'Restart' -and $LifecycleAction -ne 'None') { throw 'Lifecycle action is invalid.' }
+        if (-not $PSBoundParameters.ContainsKey('RunId') -or [string]::IsNullOrWhiteSpace($RunId)) { throw 'RunId must be explicitly supplied for Azure qualification.' }
+        $workflowStage = 'Snapshot'
+        $snapshot = Get-TemporarySettingSnapshot -Group $ResourceGroup -AppName $WebAppName
+        $tokenBytes = New-Object byte[] 32
+        $tokenGenerator = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        try { $tokenGenerator.GetBytes($tokenBytes) } finally { $tokenGenerator.Dispose() }
+        $evidenceToken = [Convert]::ToBase64String($tokenBytes)
+        $temporaryValues = @('Worker__Mode=PersistentSqliteQualification', "PersistentSqliteQualification__Phase=$Phase", "PersistentSqliteQualification__RunId=$RunId", "PersistentSqliteQualification__EvidenceOutputPath=$EvidenceOutputPath", 'PersistentSqliteQualification__HttpEvidenceEnabled=true', "PersistentSqliteQualification__HttpEvidenceToken=$evidenceToken")
+        $workflowStage = 'SettingsApplication'
+        & az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings $temporaryValues --output none
+        if ($LASTEXITCODE -ne 0) { throw 'Unable to apply temporary D3 settings.' }; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_APPLIED=True'
+        $workflowStage = 'Restart'
+        if ($LifecycleAction -eq 'Restart') { & az webapp restart --resource-group $ResourceGroup --name $WebAppName --output none; if ($LASTEXITCODE -ne 0) { throw 'The governed Web App restart failed.' }; Write-Host 'WP04_D3_LIFECYCLE_ACTION=Restart' } else { Write-Host 'WP04_D3_LIFECYCLE_ACTION=None' }
+        Write-Host 'WP04_HTTP_EVIDENCE_TOKEN_DISCLOSED=False'
+        $workflowStage = 'Evidence'
+        $evidenceContent = Get-ApplicationEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ExpectedRunId $RunId -Token $evidenceToken
+        $workflowStage = 'Semantic'
+        try { $record = ConvertFrom-EvidenceJson -Content $evidenceContent; Assert-EvidenceArtifact -Record $record -ExpectedPhase $Phase -ExpectedRunId $RunId }
+        catch { Write-HttpEvidencePollDiagnostic -Attempt $script:WP04HttpEvidencePollAttempt -StatusCode 200 -FailureClass (Get-SanitizedSemanticFailureClass -Exception $_.Exception); throw }
+        [pscustomobject]@{ RecordVersion = $record.RecordVersion; Phase = $record.Phase; RunId = $record.RunId; DatabasePathIdentity = $record.DatabasePathIdentity; SchemaVersion = $record.SchemaVersion; JournalMode = $record.JournalMode; AcceptedEvidenceIdentity = $record.AcceptedEvidenceIdentity; AcceptedEvidenceCount = $record.AcceptedEvidenceCount; IntegrityCheck = $record.IntegrityCheck; QuickCheck = $record.QuickCheck; PersistenceContinuity = $record.PersistenceContinuity } | ConvertTo-Json -Compress
+        $qualificationSucceeded = $true
+        $terminalClass = 'Success'
     }
-    $evidenceToken = [Convert]::ToBase64String($tokenBytes)
-    $temporaryValues = @('Worker__Mode=PersistentSqliteQualification', "PersistentSqliteQualification__Phase=$Phase", "PersistentSqliteQualification__RunId=$RunId", "PersistentSqliteQualification__EvidenceOutputPath=$EvidenceOutputPath", 'PersistentSqliteQualification__HttpEvidenceEnabled=true', "PersistentSqliteQualification__HttpEvidenceToken=$evidenceToken")
-    & az webapp config appsettings set --resource-group $ResourceGroup --name $WebAppName --settings $temporaryValues --output none
-    if ($LASTEXITCODE -ne 0) { throw 'Unable to apply temporary D3 settings.' }; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_APPLIED=True'
-    if ($LifecycleAction -eq 'Restart') { & az webapp restart --resource-group $ResourceGroup --name $WebAppName --output none; if ($LASTEXITCODE -ne 0) { throw 'The governed Web App restart failed.' }; Write-Host 'WP04_D3_LIFECYCLE_ACTION=Restart' } else { Write-Host 'WP04_D3_LIFECYCLE_ACTION=None' }
-    Write-Host 'WP04_HTTP_EVIDENCE_TOKEN_DISCLOSED=False'
-    $evidenceContent = Get-ApplicationEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ExpectedRunId $RunId -Token $evidenceToken
-    try {
-        $record = ConvertFrom-EvidenceJson -Content $evidenceContent
-        Assert-EvidenceArtifact -Record $record -ExpectedPhase $Phase -ExpectedRunId $RunId
-    }
-    catch {
-        Write-HttpEvidencePollDiagnostic -Attempt $script:WP04HttpEvidencePollAttempt -StatusCode 200 -FailureClass (Get-SanitizedSemanticFailureClass -Exception $_.Exception)
-        throw
-    }
-    [pscustomobject]@{ RecordVersion = $record.RecordVersion; Phase = $record.Phase; RunId = $record.RunId; DatabasePathIdentity = $record.DatabasePathIdentity; SchemaVersion = $record.SchemaVersion; JournalMode = $record.JournalMode; AcceptedEvidenceIdentity = $record.AcceptedEvidenceIdentity; AcceptedEvidenceCount = $record.AcceptedEvidenceCount; IntegrityCheck = $record.IntegrityCheck; QuickCheck = $record.QuickCheck; PersistenceContinuity = $record.PersistenceContinuity } | ConvertTo-Json -Compress
-    $qualificationSucceeded = $true
+}
+catch {
+    $qualificationSucceeded = $false
+    $terminalClass = Get-HelperTerminalFailureClass -Stage $workflowStage
 }
 finally {
-    if ($null -ne $snapshot) { try { Restore-TemporarySettings -Group $ResourceGroup -AppName $WebAppName -Snapshot $snapshot; $restorationSucceeded = $true; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=True' } catch { Write-Error 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=False'; throw } }
+    if ($null -ne $snapshot) {
+        try { Restore-TemporarySettings -Group $ResourceGroup -AppName $WebAppName -Snapshot $snapshot; $restorationStatus = 'PASS'; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=True' }
+        catch { $qualificationSucceeded = $false; $terminalClass = 'RestorationFailure'; $restorationStatus = 'FAIL'; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=False' }
+    }
+    $workflowStopwatch.Stop()
+    Write-HelperTerminalResult -Succeeded $qualificationSucceeded -FailureClass $terminalClass -TerminalPhase $terminalPhase -TerminalRunId $terminalRunId -SettingsRestoration $restorationStatus -ElapsedMilliseconds ([long]$workflowStopwatch.ElapsedMilliseconds)
 }
-if (-not $qualificationSucceeded -or -not $restorationSucceeded) { throw 'D3 qualification or restoration did not complete.' }
+if ($qualificationSucceeded) { exit 0 }
+exit 1
