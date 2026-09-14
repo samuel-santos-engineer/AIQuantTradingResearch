@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
@@ -25,6 +27,7 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        var lifecycle = Stopwatch.StartNew();
         if (!configuration.HttpEvidenceEnabled
             || string.IsNullOrWhiteSpace(configuration.HttpEvidenceToken)
             || string.IsNullOrWhiteSpace(configuration.EvidenceOutputPath))
@@ -39,14 +42,18 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
 
         app.MapGet(Route, async context =>
         {
+            PersistentSqliteQualificationDiagnostics.Emit("REQUEST_ARRIVED", configuration, lifecycle);
+            PersistentSqliteQualificationDiagnostics.Emit("HANDLER_ENTERED", configuration, lifecycle);
             if (!string.Equals(context.Request.Headers[EvidenceTokenHeader], configuration.HttpEvidenceToken, StringComparison.Ordinal))
             {
+                PersistentSqliteQualificationDiagnostics.Emit("HANDLER_ENTERED", configuration, lifecycle, "UnauthorizedRequest");
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
 
             if (!string.Equals(context.Request.Query["runId"], configuration.RunId, StringComparison.Ordinal))
             {
+                PersistentSqliteQualificationDiagnostics.Emit("HANDLER_ENTERED", configuration, lifecycle, "RunIdMismatch");
                 context.Response.StatusCode = StatusCodes.Status409Conflict;
                 return;
             }
@@ -60,6 +67,7 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(result.Content, context.RequestAborted);
+            PersistentSqliteQualificationDiagnostics.Emit("EVIDENCE_RETRIEVAL_SUCCEEDED", configuration, lifecycle);
             context.Response.OnCompleted(() =>
             {
                 retrieved.TrySetResult();
@@ -67,18 +75,57 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
             });
         });
 
-        await app.StartAsync(cancellationToken);
+        PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STARTING", configuration, lifecycle, "Started", includeListenerMetadata: true);
+        var resultCode = 1;
+        Exception? shutdownFailure = null;
         try
         {
+            await app.StartAsync(cancellationToken);
+            PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STARTED", configuration, lifecycle, "Succeeded", includeListenerMetadata: true);
             var timeout = Task.Delay(TimeSpan.FromSeconds(180), cancellationToken);
             var completed = await Task.WhenAny(retrieved.Task, timeout);
-            return completed == retrieved.Task ? 0 : 1;
+            if (completed != retrieved.Task)
+            {
+                PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STOPPING", configuration, lifecycle, "RetrievalTimeout");
+            }
+            resultCode = completed == retrieved.Task ? 0 : 1;
+        }
+        catch
+        {
+            PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STOPPING", configuration, lifecycle, "ListenerStartFailure");
+            throw;
         }
         finally
         {
-            await app.StopAsync(CancellationToken.None);
-            await app.DisposeAsync();
+            PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STOPPING", configuration, lifecycle);
+            try
+            {
+                await app.StopAsync(CancellationToken.None);
+                PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STOPPED", configuration, lifecycle);
+            }
+            catch (Exception failure)
+            {
+                PersistentSqliteQualificationDiagnostics.Emit("LISTENER_STOPPED", configuration, lifecycle, "ListenerShutdownFailure");
+                shutdownFailure = failure;
+            }
+            finally
+            {
+                await app.DisposeAsync();
+            }
         }
+
+        if (shutdownFailure is not null)
+        {
+            ExceptionDispatchInfo.Capture(shutdownFailure).Throw();
+        }
+
+        PersistentSqliteQualificationDiagnostics.Emit(
+            "WORKER_EXITING",
+            configuration,
+            lifecycle,
+            resultCode == 0 ? "Succeeded" : "RetrievalTimeout");
+
+        return resultCode;
     }
 
     public static PersistentSqliteQualificationEvidenceReadResult ValidateEvidenceJson(
@@ -146,6 +193,48 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
             return new PersistentSqliteQualificationEvidenceReadResult(StatusCodes.Status500InternalServerError, null);
         }
     }
+}
+
+public static class PersistentSqliteQualificationDiagnostics
+{
+    private static readonly HashSet<string> EventNames =
+    [
+        "QUALIFICATION_ENTERED", "SQLITE_QUALIFICATION_STARTED", "ARTIFACT_WRITE_SUCCEEDED",
+        "LISTENER_STARTING", "LISTENER_STARTED", "REQUEST_ARRIVED", "HANDLER_ENTERED",
+        "EVIDENCE_RETRIEVAL_SUCCEEDED", "LISTENER_STOPPING", "LISTENER_STOPPED", "WORKER_EXITING",
+    ];
+
+    public static string Format(
+        string eventName,
+        string runId,
+        string phase,
+        long elapsedMilliseconds,
+        string outcome = "Succeeded",
+        bool includeListenerMetadata = false)
+    {
+        if (!EventNames.Contains(eventName))
+        {
+            throw new ArgumentOutOfRangeException(nameof(eventName));
+        }
+
+        return includeListenerMetadata
+            ? $"WP04_DIAG_EVENT={eventName} WP04_DIAG_RUN_ID={runId} WP04_DIAG_PHASE={phase} WP04_DIAG_ELAPSED_MS={elapsedMilliseconds} WP04_DIAG_OUTCOME={outcome} WP04_DIAG_LISTENER_HOST=0.0.0.0 WP04_DIAG_LISTENER_PORT=8501 WP04_DIAG_ROUTE={PersistentSqliteQualificationEvidenceEndpoint.Route} WP04_DIAG_HTTP_METHOD=GET"
+            : $"WP04_DIAG_EVENT={eventName} WP04_DIAG_RUN_ID={runId} WP04_DIAG_PHASE={phase} WP04_DIAG_ELAPSED_MS={elapsedMilliseconds} WP04_DIAG_OUTCOME={outcome}";
+    }
+
+    internal static void Emit(
+        string eventName,
+        PersistentSqliteQualificationConfiguration configuration,
+        Stopwatch stopwatch,
+        string outcome = "Succeeded",
+        bool includeListenerMetadata = false) =>
+        Console.Error.WriteLine(Format(
+            eventName,
+            configuration.RunId,
+            configuration.Phase.ToString().ToLowerInvariant(),
+            stopwatch.ElapsedMilliseconds,
+            outcome,
+            includeListenerMetadata));
 }
 
 public sealed record PersistentSqliteQualificationEvidenceReadResult(int StatusCode, string? Content);

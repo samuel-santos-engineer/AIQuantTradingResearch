@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Diagnostics;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Domain;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
@@ -20,63 +21,82 @@ internal sealed class PersistentSqliteQualificationExecution(
     public int Execute(PersistentSqliteQualificationConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        var lifecycle = Stopwatch.StartNew();
+        var outcome = "Succeeded";
+        PersistentSqliteQualificationDiagnostics.Emit("QUALIFICATION_ENTERED", configuration, lifecycle);
 
-        if (configuration.Phase == PersistentSqliteQualificationPhase.Initialize)
+        try
         {
-            var persisted = persistenceUseCase.Execute(new PersistHistoricalObservationsRequest(
-                Target,
-                [QualificationObservation]));
-            if (persisted.PersistenceResult?.Outcome is not (
-                ObservationPersistenceOutcome.NewlyAccepted or ObservationPersistenceOutcome.Idempotent))
+            if (configuration.Phase == PersistentSqliteQualificationPhase.Initialize)
             {
-                return Fail("The application-owned qualification write failed.");
+                PersistentSqliteQualificationDiagnostics.Emit("SQLITE_QUALIFICATION_STARTED", configuration, lifecycle);
+                var persisted = persistenceUseCase.Execute(new PersistHistoricalObservationsRequest(
+                    Target,
+                    [QualificationObservation]));
+                if (persisted.PersistenceResult?.Outcome is not (
+                    ObservationPersistenceOutcome.NewlyAccepted or ObservationPersistenceOutcome.Idempotent))
+                {
+                    outcome = "UnhandledQualificationFailure";
+                    return Fail("The application-owned qualification write failed.");
+                }
+            }
+
+            var retrieved = observationStore.Retrieve(Target);
+            if (!retrieved.IsSuccess
+                || retrieved.Observations is not [var observation]
+                || observation != QualificationObservation)
+            {
+                outcome = "UnhandledQualificationFailure";
+                return Fail("The application-owned qualification read did not return the expected accepted observation.");
+            }
+
+            var metadata = diagnostics.Collect();
+            var record = new PersistentSqliteQualificationRecord(
+                1,
+                configuration.Phase.ToString().ToLowerInvariant(),
+                metadata.DatabasePathIdentity,
+                metadata.SchemaVersion,
+                metadata.JournalMode,
+                QualificationEvidenceIdentity(),
+                retrieved.Observations.Count,
+                metadata.IntegrityCheck,
+                metadata.QuickCheck,
+                metadata.SchemaVersion == 4
+                    && string.Equals(metadata.JournalMode, "delete", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(metadata.IntegrityCheck, "ok", StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(metadata.QuickCheck, "ok", StringComparison.OrdinalIgnoreCase),
+                configuration.RunId);
+
+            var serializedRecord = JsonSerializer.Serialize(record);
+            if (configuration.EvidenceOutputPath is not null)
+            {
+                try
+                {
+                    WriteEvidenceArtifact(configuration.EvidenceOutputPath, serializedRecord);
+                    PersistentSqliteQualificationDiagnostics.Emit("ARTIFACT_WRITE_SUCCEEDED", configuration, lifecycle);
+                }
+                catch (IOException)
+                {
+                    outcome = "ArtifactWriteFailure";
+                    return Fail("The application-owned qualification evidence artifact could not be written.");
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    outcome = "ArtifactWriteFailure";
+                    return Fail("The application-owned qualification evidence artifact could not be written.");
+                }
+            }
+
+            Console.WriteLine(serializedRecord);
+            return 0;
+        }
+        finally
+        {
+            if (!configuration.HttpEvidenceEnabled)
+            {
+                PersistentSqliteQualificationDiagnostics.Emit("WORKER_EXITING", configuration, lifecycle, outcome);
             }
         }
-
-        var retrieved = observationStore.Retrieve(Target);
-        if (!retrieved.IsSuccess
-            || retrieved.Observations is not [var observation]
-            || observation != QualificationObservation)
-        {
-            return Fail("The application-owned qualification read did not return the expected accepted observation.");
-        }
-
-        var metadata = diagnostics.Collect();
-        var record = new PersistentSqliteQualificationRecord(
-            1,
-            configuration.Phase.ToString().ToLowerInvariant(),
-            metadata.DatabasePathIdentity,
-            metadata.SchemaVersion,
-            metadata.JournalMode,
-            QualificationEvidenceIdentity(),
-            retrieved.Observations.Count,
-            metadata.IntegrityCheck,
-            metadata.QuickCheck,
-            metadata.SchemaVersion == 4
-                && string.Equals(metadata.JournalMode, "delete", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(metadata.IntegrityCheck, "ok", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(metadata.QuickCheck, "ok", StringComparison.OrdinalIgnoreCase),
-            configuration.RunId);
-
-        var serializedRecord = JsonSerializer.Serialize(record);
-        if (configuration.EvidenceOutputPath is not null)
-        {
-            try
-            {
-                WriteEvidenceArtifact(configuration.EvidenceOutputPath, serializedRecord);
-            }
-            catch (IOException)
-            {
-                return Fail("The application-owned qualification evidence artifact could not be written.");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return Fail("The application-owned qualification evidence artifact could not be written.");
-            }
-        }
-
-        Console.WriteLine(serializedRecord);
-        return 0;
     }
 
     private static void WriteEvidenceArtifact(string evidenceOutputPath, string serializedRecord)

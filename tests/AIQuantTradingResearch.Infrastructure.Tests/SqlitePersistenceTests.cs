@@ -137,6 +137,14 @@ public sealed class SqlitePersistenceTests
             var first = RunQualification(database, evidence, "initialize", "run-initialize");
             Assert.Equal(0, first.ExitCode);
             Assert.Equal(first.StandardOutput.Trim(), File.ReadAllText(evidence));
+            AssertDiagnosticSequence(
+                first.StandardError,
+                "QUALIFICATION_ENTERED",
+                "SQLITE_QUALIFICATION_STARTED",
+                "ARTIFACT_WRITE_SUCCEEDED",
+                "WORKER_EXITING");
+            Assert.DoesNotContain("X-WP04-Evidence-Token", first.StandardError, StringComparison.Ordinal);
+            Assert.DoesNotContain("runId=", first.StandardError, StringComparison.OrdinalIgnoreCase);
             using var firstRecord = JsonDocument.Parse(first.StandardOutput);
             Assert.Equal("run-initialize", firstRecord.RootElement.GetProperty("RunId").GetString());
             Assert.Equal(4, firstRecord.RootElement.GetProperty("SchemaVersion").GetInt64());
@@ -187,6 +195,129 @@ public sealed class SqlitePersistenceTests
             {
                 Directory.Delete(root, recursive: true);
             }
+        }
+    }
+
+    [Fact]
+    public async Task QualificationHttpEvidencePreservesEndpointStatusesAndEmitsSanitizedLifecycleDiagnostics()
+    {
+        string root = Path.Combine(Path.GetTempPath(), $"aiq-wp04-http-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        string runId = $"run-http-{Guid.NewGuid():N}";
+        string token = $"test-capability-token-{Guid.NewGuid():N}";
+        Process? process = null;
+        try
+        {
+            string database = Path.Combine(root, "data", "qualification.sqlite");
+            string evidence = Path.Combine(root, "evidence", "record.json");
+            var start = new ProcessStartInfo("dotnet")
+            {
+                WorkingDirectory = FindRepositoryRoot(),
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            };
+            start.ArgumentList.Add("run");
+            start.ArgumentList.Add("--project");
+            start.ArgumentList.Add(Path.Combine(FindRepositoryRoot(), "src", "AIQuantTradingResearch.Worker", "AIQuantTradingResearch.Worker.csproj"));
+            start.ArgumentList.Add("--no-build");
+            start.ArgumentList.Add("--configuration");
+            start.ArgumentList.Add("Release");
+            start.Environment["Worker__Mode"] = "PersistentSqliteQualification";
+            start.Environment["PersistentSqliteQualification__Phase"] = "initialize";
+            start.Environment["PersistentSqliteQualification__EvidenceOutputPath"] = evidence;
+            start.Environment["PersistentSqliteQualification__RunId"] = runId;
+            start.Environment["PersistentSqliteQualification__HttpEvidenceEnabled"] = "true";
+            start.Environment["PersistentSqliteQualification__HttpEvidenceToken"] = token;
+            start.Environment["Persistence__DatabasePath"] = database;
+            start.Environment["Persistence__CreateParentDirectoryForInitialization"] = "true";
+            start.Environment["Visualization__HandoffPath"] = Path.Combine(root, "read-model.json");
+
+            process = Process.Start(start) ?? throw new InvalidOperationException("Qualification Worker did not start.");
+            Task<string> stdoutTask = process.StandardOutput.ReadToEndAsync();
+            Task<string> stderrTask = process.StandardError.ReadToEndAsync();
+            using var client = new HttpClient(new SocketsHttpHandler { UseProxy = false }) { Timeout = TimeSpan.FromMilliseconds(500) };
+            var missingTokenObserved = false;
+            var listenerReady = false;
+            for (var attempt = 0; attempt < 50; attempt++)
+            {
+                try
+                {
+                    using var response = await client.GetAsync("http://127.0.0.1:8501/internal/wp04/persistence-qualification");
+                    if ((int)response.StatusCode == 401)
+                    {
+                        missingTokenObserved = true;
+                    }
+
+                    using var readinessRequest = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:8501/internal/wp04/persistence-qualification?runId=wrong-{runId}");
+                    readinessRequest.Headers.Add("X-WP04-Evidence-Token", token);
+                    using var readinessResponse = await client.SendAsync(readinessRequest);
+                    if ((int)readinessResponse.StatusCode == 409)
+                    {
+                        listenerReady = true;
+                        break;
+                    }
+                }
+                catch (HttpRequestException)
+                {
+                }
+                catch (TaskCanceledException)
+                {
+                }
+
+                await Task.Delay(100);
+            }
+
+            Assert.True(listenerReady, "Qualification listener did not become reachable.");
+            Assert.True(missingTokenObserved, "Missing-token request did not receive a 401 response.");
+            using var wrongRunRequest = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:8501/internal/wp04/persistence-qualification?runId=wrong-{runId}");
+            wrongRunRequest.Headers.Add("X-WP04-Evidence-Token", token);
+            using var wrongRunResponse = await client.SendAsync(wrongRunRequest);
+            Assert.Equal(409, (int)wrongRunResponse.StatusCode);
+
+            using var acceptedRequest = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:8501/internal/wp04/persistence-qualification?runId={runId}");
+            acceptedRequest.Headers.Add("X-WP04-Evidence-Token", token);
+            using var acceptedResponse = await client.SendAsync(acceptedRequest);
+            Assert.Equal(200, (int)acceptedResponse.StatusCode);
+            Assert.Equal(File.ReadAllText(evidence), await acceptedResponse.Content.ReadAsStringAsync());
+
+            await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.True(process.HasExited, "Qualification listener did not stop after retrieval.");
+            Assert.Equal(0, process.ExitCode);
+            string stdout = await stdoutTask;
+            string stderr = await stderrTask;
+            string recordJson = stdout.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Last(static line => line.StartsWith('{'));
+            using var record = JsonDocument.Parse(recordJson);
+            Assert.Equal(runId, record.RootElement.GetProperty("RunId").GetString());
+            AssertDiagnosticSequence(
+                stderr,
+                "QUALIFICATION_ENTERED",
+                "SQLITE_QUALIFICATION_STARTED",
+                "ARTIFACT_WRITE_SUCCEEDED",
+                "LISTENER_STARTING",
+                "LISTENER_STARTED",
+                "REQUEST_ARRIVED",
+                "HANDLER_ENTERED",
+                "EVIDENCE_RETRIEVAL_SUCCEEDED",
+                "LISTENER_STOPPING",
+                "LISTENER_STOPPED",
+                "WORKER_EXITING");
+            Assert.DoesNotContain(token, stderr, StringComparison.Ordinal);
+            Assert.DoesNotContain("wrong-run", stderr, StringComparison.Ordinal);
+            Assert.DoesNotContain("?runId=", stderr, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            if (process is { HasExited: false })
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+            }
+
+            process?.Dispose();
+            SqliteConnection.ClearAllPools();
+            await DeleteTemporaryDirectoryAsync(root);
         }
     }
 
@@ -473,6 +604,45 @@ public sealed class SqlitePersistenceTests
         string standardError = process.StandardError.ReadToEnd();
         Assert.True(process.WaitForExit(30_000), "Qualification Worker did not terminate.");
         return (process.ExitCode, standardOutput, standardError);
+    }
+
+    private static void AssertDiagnosticSequence(string standardError, params string[] events)
+    {
+        var positions = events.Select(eventName => standardError.IndexOf(
+            $"WP04_DIAG_EVENT={eventName}",
+            StringComparison.Ordinal)).ToArray();
+
+        Assert.DoesNotContain(positions, static position => position < 0);
+        Assert.True(positions.SequenceEqual(positions.Order()), "Diagnostic events were not emitted in order.");
+        Assert.All(
+            standardError.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+                .Where(static line => line.StartsWith("WP04_DIAG_", StringComparison.Ordinal)),
+            static line => Assert.Matches(
+                "^WP04_DIAG_EVENT=[A-Z_]+ WP04_DIAG_RUN_ID=[A-Za-z0-9-]+ WP04_DIAG_PHASE=(initialize|reopen) WP04_DIAG_ELAPSED_MS=[0-9]+ WP04_DIAG_OUTCOME=[A-Za-z]+(?: WP04_DIAG_LISTENER_HOST=0\\.0\\.0\\.0 WP04_DIAG_LISTENER_PORT=8501 WP04_DIAG_ROUTE=/internal/wp04/persistence-qualification WP04_DIAG_HTTP_METHOD=GET)?$",
+                line));
+    }
+
+    private static async Task DeleteTemporaryDirectoryAsync(string root)
+    {
+        IOException? lastFailure = null;
+        for (var attempt = 0; attempt < 20 && Directory.Exists(root); attempt++)
+        {
+            try
+            {
+                Directory.Delete(root, recursive: true);
+                return;
+            }
+            catch (IOException failure)
+            {
+                lastFailure = failure;
+                await Task.Delay(100);
+            }
+        }
+
+        if (Directory.Exists(root))
+        {
+            throw new IOException($"Temporary qualification directory could not be deleted: {root}", lastFailure);
+        }
     }
 
     private static string FindRepositoryRoot()
