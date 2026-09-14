@@ -15,6 +15,44 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $temporarySettingNames = @('Worker__Mode', 'PersistentSqliteQualification__Phase', 'PersistentSqliteQualification__RunId', 'PersistentSqliteQualification__EvidenceOutputPath', 'PersistentSqliteQualification__HttpEvidenceEnabled', 'PersistentSqliteQualification__HttpEvidenceToken')
+$script:WP04HttpEvidencePollAttempt = 0
+
+function Write-HttpEvidencePollDiagnostic {
+    param([Parameter(Mandatory)] [int] $Attempt, [AllowNull()] [object] $StatusCode, [AllowNull()] [string] $FailureClass)
+    Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$Attempt"
+    if ($null -eq $StatusCode) { Write-Host 'WP04_HTTP_EVIDENCE_STATUS=NONE' } else { Write-Host "WP04_HTTP_EVIDENCE_STATUS=$StatusCode" }
+    if (-not [string]::IsNullOrWhiteSpace($FailureClass)) { Write-Host "WP04_HTTP_EVIDENCE_FAILURE_CLASS=$FailureClass" }
+}
+
+function Get-SanitizedTransportFailureClass {
+    param([Parameter(Mandatory)] [System.Exception] $Exception)
+    if ($Exception -is [System.Net.WebException]) {
+        switch ([string]$Exception.Status) {
+            'NameResolutionFailure' { return 'NameResolutionFailure' }
+            'ConnectFailure' { return 'ConnectFailure' }
+            'ConnectionClosed' { return 'ConnectionClosed' }
+            'KeepAliveFailure' { return 'KeepAliveFailure' }
+            'PipelineFailure' { return 'PipelineFailure' }
+            'ProxyNameResolutionFailure' { return 'ProxyNameResolutionFailure' }
+            'ReceiveFailure' { return 'ReceiveFailure' }
+            'RequestCanceled' { return 'RequestCanceled' }
+            'SecureChannelFailure' { return 'SecureChannelFailure' }
+            'SendFailure' { return 'SendFailure' }
+            'Timeout' { return 'Timeout' }
+            'TrustFailure' { return 'TrustFailure' }
+            'ProtocolError' { return 'ProtocolError' }
+        }
+    }
+    return 'UnknownError'
+}
+
+function Get-SanitizedSemanticFailureClass {
+    param([Parameter(Mandatory)] [System.Exception] $Exception)
+    $message = [string]$Exception.Message
+    if ($message -eq 'The application evidence endpoint returned malformed evidence JSON.' -or $message -eq 'The application evidence endpoint returned an empty record.') { return 'MalformedPayload' }
+    if ($message -eq 'Evidence RunId did not match the governed run.') { return 'WrongRunId' }
+    return 'InvalidEvidenceRecord'
+}
 
 function Assert-EvidenceArtifact {
     param([Parameter(Mandatory)] [object] $Record, [Parameter(Mandatory)] [string] $ExpectedPhase, [Parameter(Mandatory)] [string] $ExpectedRunId)
@@ -44,15 +82,22 @@ function Get-ApplicationEvidenceArtifact {
     $uri = "https://$hostName/internal/wp04/persistence-qualification?runId=$([uri]::EscapeDataString($ExpectedRunId))"
     $headers = @{ 'X-WP04-Evidence-Token' = $Token }
     for ($attempt = 1; $attempt -le 36; $attempt++) {
+        $script:WP04HttpEvidencePollAttempt = $attempt
         try {
             $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec 20 -ErrorAction Stop
-            if ($response.StatusCode -eq 200) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Write-Host 'WP04_HTTP_EVIDENCE_STATUS=200'; return [string]$response.Content }
+            if ($response.StatusCode -eq 200) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode 200; return [string]$response.Content }
             throw "The application evidence endpoint returned HTTP $($response.StatusCode)."
         }
         catch {
             $statusCode = $null
-            if ($_.Exception.Response) { $statusCode = [int]$_.Exception.Response.StatusCode }
-            if (($statusCode -eq 404 -or $statusCode -eq 503) -and $attempt -lt 36) { Write-Host "WP04_HTTP_EVIDENCE_POLL_ATTEMPT=$attempt"; Write-Host "WP04_HTTP_EVIDENCE_STATUS=$statusCode"; Start-Sleep -Seconds 5; continue }
+            $responseProperty = $_.Exception.PSObject.Properties['Response']
+            if ($null -ne $responseProperty -and $null -ne $responseProperty.Value) {
+                $statusProperty = $responseProperty.Value.PSObject.Properties['StatusCode']
+                if ($null -ne $statusProperty) { $statusCode = [int]$statusProperty.Value }
+            }
+            if ($null -eq $statusCode) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass (Get-SanitizedTransportFailureClass -Exception $_.Exception); throw 'Application-owned HTTP evidence retrieval failed.' }
+            Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $statusCode
+            if (($statusCode -eq 404 -or $statusCode -eq 503) -and $attempt -lt 36) { Start-Sleep -Seconds 5; continue }
             throw 'Application-owned HTTP evidence retrieval failed.'
         }
     }
@@ -105,8 +150,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Unable to apply temporary D3 settings.' }; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_APPLIED=True'
     if ($LifecycleAction -eq 'Restart') { & az webapp restart --resource-group $ResourceGroup --name $WebAppName --output none; if ($LASTEXITCODE -ne 0) { throw 'The governed Web App restart failed.' }; Write-Host 'WP04_D3_LIFECYCLE_ACTION=Restart' } else { Write-Host 'WP04_D3_LIFECYCLE_ACTION=None' }
     Write-Host 'WP04_HTTP_EVIDENCE_TOKEN_DISCLOSED=False'
-    $record = ConvertFrom-EvidenceJson -Content (Get-ApplicationEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ExpectedRunId $RunId -Token $evidenceToken)
-    Assert-EvidenceArtifact -Record $record -ExpectedPhase $Phase -ExpectedRunId $RunId
+    $evidenceContent = Get-ApplicationEvidenceArtifact -Group $ResourceGroup -AppName $WebAppName -ExpectedRunId $RunId -Token $evidenceToken
+    try {
+        $record = ConvertFrom-EvidenceJson -Content $evidenceContent
+        Assert-EvidenceArtifact -Record $record -ExpectedPhase $Phase -ExpectedRunId $RunId
+    }
+    catch {
+        Write-HttpEvidencePollDiagnostic -Attempt $script:WP04HttpEvidencePollAttempt -StatusCode 200 -FailureClass (Get-SanitizedSemanticFailureClass -Exception $_.Exception)
+        throw
+    }
     [pscustomobject]@{ RecordVersion = $record.RecordVersion; Phase = $record.Phase; RunId = $record.RunId; DatabasePathIdentity = $record.DatabasePathIdentity; SchemaVersion = $record.SchemaVersion; JournalMode = $record.JournalMode; AcceptedEvidenceIdentity = $record.AcceptedEvidenceIdentity; AcceptedEvidenceCount = $record.AcceptedEvidenceCount; IntegrityCheck = $record.IntegrityCheck; QuickCheck = $record.QuickCheck; PersistenceContinuity = $record.PersistenceContinuity } | ConvertTo-Json -Compress
     $qualificationSucceeded = $true
 }
