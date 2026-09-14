@@ -6,11 +6,30 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
-$expectedCommit = '047e2ce8e3c614495f8c05cbe01d0b75617d56a7'
+$governedBaseline = '4822f9847a90a7d86c6bf771603defe9d7abf258'
 $expectedDigest = 'sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc51978d1f'
 $resourceGroup = 'rg-aiq-r112-wp03-wcus-5ec325382770'
 $webAppName = 'aiqr112wp035ec325382770'
 $helper = 'eng\azure-cli\r1.12-deployment\wp04-persistent-sqlite\verify-persistent-sqlite-webapp.ps1'
+$wrapperRepositoryPath = 'eng/azure-cli/r1.12-deployment/wp04-persistent-sqlite/initialize-qualification.ps1'
+
+function Test-Wp04SourceProvenance {
+    param(
+        [AllowNull()] [string] $Head,
+        [Parameter(Mandatory)] [int] $HeadExitCode,
+        [Parameter(Mandatory)] [int] $BaselineAncestorExitCode,
+        [Parameter(Mandatory)] [int] $WrapperTrackedExitCode,
+        [Parameter(Mandatory)] [int] $WrapperCleanExitCode
+    )
+
+    if ($HeadExitCode -ne 0) { return [pscustomobject]@{ Pass = $false; FailureClass = 'SourceCommitUnavailable' } }
+    if ([string]::IsNullOrWhiteSpace($Head)) { return [pscustomobject]@{ Pass = $false; FailureClass = 'SourceCommitUnavailable' } }
+    if ($Head -notmatch '^[0-9a-f]{40}$') { return [pscustomobject]@{ Pass = $false; FailureClass = 'SourceCommitMalformed' } }
+    if ($BaselineAncestorExitCode -ne 0) { return [pscustomobject]@{ Pass = $false; FailureClass = 'SourceBaselineNotAncestor' } }
+    if ($WrapperTrackedExitCode -ne 0) { return [pscustomobject]@{ Pass = $false; FailureClass = 'WrapperNotCommittedAtHead' } }
+    if ($WrapperCleanExitCode -ne 0) { return [pscustomobject]@{ Pass = $false; FailureClass = 'WrapperNotCommittedAtHead' } }
+    return [pscustomobject]@{ Pass = $true; FailureClass = $null }
+}
 
 function Test-Wp04ImageIdentity {
     param(
@@ -52,6 +71,20 @@ function Write-Wp04ImagePreflightTelemetry {
 
 function Invoke-LocalValidation {
     $exactIdentity = 'DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc51978d1f'
+    $provenanceFixtures = @(
+        @{ Name = 'V1-valid-governed-source'; Head = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; HeadExit = 0; AncestorExit = 0; TrackedExit = 0; CleanExit = 0; Pass = $true; Class = $null },
+        @{ Name = 'V2-git-command-failure'; Head = $null; HeadExit = 1; AncestorExit = 1; TrackedExit = 1; CleanExit = 1; Pass = $false; Class = 'SourceCommitUnavailable' },
+        @{ Name = 'V3-blank-source'; Head = ''; HeadExit = 0; AncestorExit = 0; TrackedExit = 0; CleanExit = 0; Pass = $false; Class = 'SourceCommitUnavailable' },
+        @{ Name = 'V4-malformed-source'; Head = 'not-a-commit'; HeadExit = 0; AncestorExit = 0; TrackedExit = 0; CleanExit = 0; Pass = $false; Class = 'SourceCommitMalformed' },
+        @{ Name = 'V5-baseline-not-ancestor'; Head = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; HeadExit = 0; AncestorExit = 1; TrackedExit = 0; CleanExit = 0; Pass = $false; Class = 'SourceBaselineNotAncestor' },
+        @{ Name = 'V6-wrapper-not-at-head'; Head = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; HeadExit = 0; AncestorExit = 0; TrackedExit = 0; CleanExit = 1; Pass = $false; Class = 'WrapperNotCommittedAtHead' }
+    )
+    foreach ($fixture in $provenanceFixtures) {
+        $result = Test-Wp04SourceProvenance -Head $fixture.Head -HeadExitCode $fixture.HeadExit -BaselineAncestorExitCode $fixture.AncestorExit -WrapperTrackedExitCode $fixture.TrackedExit -WrapperCleanExitCode $fixture.CleanExit
+        $downstreamCalls = if ($result.Pass) { 1 } else { 0 }
+        if ($result.Pass -ne $fixture.Pass -or $result.FailureClass -ne $fixture.Class) { throw "Local source-provenance fixture failed: $($fixture.Name)." }
+        if (-not $result.Pass -and $downstreamCalls -ne 0) { throw "Source-provenance barrier failed: $($fixture.Name)." }
+    }
     $fixtures = @(
         @{ Name = 'V1-exact'; Output = @($exactIdentity); ExitCode = 0; Match = $true; Class = $null },
         @{ Name = 'V2-blank'; Output = @(''); ExitCode = 0; Match = $false; Class = 'ImageIdentityMissing' },
@@ -75,6 +108,7 @@ function Invoke-LocalValidation {
     $safeOutput = @('WP04_PREFLIGHT_IMAGE_IDENTITY', 'WP04_PREFLIGHT_IMAGE_DIGEST', 'WP04_PREFLIGHT_IMAGE_EXPECTED_DIGEST', 'WP04_PREFLIGHT_IMAGE_MATCH', 'WP04_PREFLIGHT_IMAGE_FAILURE_CLASS')
     if (@($safeOutput | Where-Object { $_ -match '(?i)(token|header|query|string|credential|exception|stack)' }).Count -ne 0) { throw 'Unsafe preflight telemetry field detected.' }
     Write-Host 'WP04_PREFLIGHT_LOCAL_VALIDATION_CASES=10'
+    Write-Host 'WP04_PREFLIGHT_LOCAL_SOURCE_PROVENANCE_PASS=True'
     Write-Host 'WP04_PREFLIGHT_LOCAL_V9_MUTATION_BARRIER_PASS=True'
     Write-Host 'WP04_PREFLIGHT_LOCAL_V10_SAFE_OUTPUT_PASS=True'
     Write-Host 'WP04_PREFLIGHT_LOCAL_FAILURE_MUTATION_CALLS=0'
@@ -88,9 +122,16 @@ if ($LocalValidation) {
 }
 
 if ($PSVersionTable.PSVersion.ToString() -ne '5.1.26100.9444') { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=PowerShellVersionMismatch'; exit 1 }
-if ((git rev-parse HEAD).Trim() -ne $expectedCommit) { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=HelperSourceCommitMismatch'; exit 1 }
-if ((git ls-remote --heads origin refs/heads/release/1.12-wp04-persistent-sqlite).Split("`t")[0] -ne $expectedCommit) { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=RemoteSourceCommitMismatch'; exit 1 }
-if (@(git diff --name-only).Count -ne 0 -or @(git diff --cached --name-only).Count -ne 0) { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=RepositoryDrift'; exit 1 }
+$actualHead = (& git rev-parse HEAD).Trim()
+$actualHeadExitCode = $LASTEXITCODE
+& git merge-base --is-ancestor $governedBaseline $actualHead
+$baselineAncestorExitCode = $LASTEXITCODE
+& git ls-files --error-unmatch -- $wrapperRepositoryPath *> $null
+$wrapperTrackedExitCode = $LASTEXITCODE
+& git diff --quiet HEAD -- $wrapperRepositoryPath
+$wrapperCleanExitCode = $LASTEXITCODE
+$sourceProvenance = Test-Wp04SourceProvenance -Head $actualHead -HeadExitCode $actualHeadExitCode -BaselineAncestorExitCode $baselineAncestorExitCode -WrapperTrackedExitCode $wrapperTrackedExitCode -WrapperCleanExitCode $wrapperCleanExitCode
+if (-not $sourceProvenance.Pass) { Write-Host "WP04_PREFLIGHT_FAILURE_CLASS=$($sourceProvenance.FailureClass)"; exit 1 }
 
 $imageOutput = @(& az webapp show --resource-group $resourceGroup --name $webAppName --query 'siteConfig.linuxFxVersion' --output tsv)
 $imageExitCode = $LASTEXITCODE
