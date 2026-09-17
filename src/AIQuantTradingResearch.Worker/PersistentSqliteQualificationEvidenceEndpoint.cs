@@ -15,6 +15,7 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
 {
     public const string Route = "/internal/wp04/persistence-qualification";
     public const string EvidenceTokenHeader = "X-WP04-Evidence-Token";
+    public const string AuthorizationHeader = "Authorization";
     private static readonly HashSet<string> RequiredProperties =
     [
         "RecordVersion", "Phase", "RunId", "DatabasePathIdentity", "SchemaVersion",
@@ -44,7 +45,13 @@ public static class PersistentSqliteQualificationEvidenceEndpoint
         {
             PersistentSqliteQualificationDiagnostics.Emit("REQUEST_ARRIVED", configuration, lifecycle);
             PersistentSqliteQualificationDiagnostics.Emit("HANDLER_ENTERED", configuration, lifecycle);
-            if (!string.Equals(context.Request.Headers[EvidenceTokenHeader], configuration.HttpEvidenceToken, StringComparison.Ordinal))
+            var customToken = context.Request.Headers[EvidenceTokenHeader].ToString();
+            var authorization = context.Request.Headers[AuthorizationHeader].ToString();
+            var bearerToken = authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                ? authorization["Bearer ".Length..]
+                : string.Empty;
+            if (!string.Equals(customToken, configuration.HttpEvidenceToken, StringComparison.Ordinal)
+                && !string.Equals(bearerToken, configuration.HttpEvidenceToken, StringComparison.Ordinal))
             {
                 PersistentSqliteQualificationDiagnostics.Emit("HANDLER_ENTERED", configuration, lifecycle, "UnauthorizedRequest");
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;

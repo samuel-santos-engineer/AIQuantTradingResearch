@@ -118,7 +118,12 @@ function Get-ApplicationEvidenceArtifact {
     $hostName = & az webapp show --resource-group $Group --name $AppName --query defaultHostName --output tsv
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($hostName)) { throw 'Unable to resolve the public Web App host name.' }
     $uri = "https://$hostName/internal/wp04/persistence-qualification?runId=$([uri]::EscapeDataString($ExpectedRunId))"
-    $headers = @{ 'X-WP04-Evidence-Token' = $Token }
+    # Authorization is preserved by App Service front-door proxying; retain the
+    # WP04 header as a direct/local compatibility path.
+    $headers = @{
+        'Authorization' = "Bearer $Token"
+        'X-WP04-Evidence-Token' = $Token
+    }
     while ($true) {
         $remainingSeconds = $pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds
         if ($remainingSeconds -lt 1) {
