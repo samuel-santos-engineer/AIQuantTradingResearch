@@ -356,7 +356,10 @@ $actualRunId = 'NOT_PROVEN'
 $restorationDescriptor = $null
 $restoreAttempted = $false
 try {
-    $helperOutput = @(& ".\$helper" -ResourceGroup $resourceGroup -WebAppName $webAppName -Phase initialize -LifecycleAction None -RestorationMode Deferred 2>&1 | ForEach-Object { [string]$_ })
+    # The helper emits its governed machine markers with Write-Host.  Under
+    # Windows PowerShell 5.1 those records use the Information stream, so
+    # capture it alongside errors before deriving the helper-owned RunId.
+    $helperOutput = @(& ".\$helper" -ResourceGroup $resourceGroup -WebAppName $webAppName -Phase initialize -LifecycleAction None -RestorationMode Deferred 2>&1 6>&1 | ForEach-Object { [string]$_ })
     $helperExitCode = $LASTEXITCODE
     $helperOutput | Set-Content -LiteralPath $transcript -Encoding utf8
     $actualRunId = (($helperOutput | Where-Object { $_ -match '^WP04_HELPER_TERMINAL_RUN_ID=' } | Select-Object -Last 1) -replace '^WP04_HELPER_TERMINAL_RUN_ID=', '')
