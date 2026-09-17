@@ -8,7 +8,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $governedBaseline = '4822f9847a90a7d86c6bf771603defe9d7abf258'
-$expectedDigest = 'sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc51978d1f'
+$expectedDigest = 'sha256:aad23c8bc65529ad6500aaa5fde36969df239268b992e85f50211b814fe07f00'
 $resourceGroup = 'rg-aiq-r112-wp03-wcus-5ec325382770'
 $webAppName = 'aiqr112wp035ec325382770'
 $helper = 'eng\azure-cli\r1.12-deployment\wp04-persistent-sqlite\verify-persistent-sqlite-webapp.ps1'
@@ -202,7 +202,7 @@ function Invoke-Wp04ArchiveCheckpoint {
 }
 
 function Invoke-LocalValidation {
-    $exactIdentity = 'DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc51978d1f'
+    $exactIdentity = 'DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:aad23c8bc65529ad6500aaa5fde36969df239268b992e85f50211b814fe07f00'
     $provenanceFixtures = @(
         @{ Name = 'V1-valid-governed-source'; Head = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'; HeadExit = 0; AncestorExit = 0; TrackedExit = 0; CleanExit = 0; Pass = $true; Class = $null },
         @{ Name = 'V2-git-command-failure'; Head = $null; HeadExit = 1; AncestorExit = 1; TrackedExit = 1; CleanExit = 1; Pass = $false; Class = 'SourceCommitUnavailable' },
@@ -223,7 +223,7 @@ function Invoke-LocalValidation {
         @{ Name = 'V3-query-failure'; Output = @(); ExitCode = 1; Match = $false; Class = 'AzureImageQueryFailure' },
         @{ Name = 'V4-tag-only'; Output = @('DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp04'); ExitCode = 0; Match = $false; Class = 'ImageDigestMissing' },
         @{ Name = 'V5-wrong-digest'; Output = @('DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'); ExitCode = 0; Match = $false; Class = 'ImageDigestMismatch' },
-        @{ Name = 'V6-partial-digest'; Output = @('DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc5197'); ExitCode = 0; Match = $false; Class = 'ImageIdentityMalformed' },
+        @{ Name = 'V6-partial-digest'; Output = @('DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:aad23c8bc65529ad6500aaa5fde36969df239268b992e85f50211b814fe07f0'); ExitCode = 0; Match = $false; Class = 'ImageIdentityMalformed' },
         @{ Name = 'V7-null-whitespace'; Output = @($null, '   '); ExitCode = 0; Match = $false; Class = 'ImageIdentityMissing' },
         @{ Name = 'V8-multiple'; Output = @($exactIdentity, $exactIdentity); ExitCode = 0; Match = $false; Class = 'ImageIdentityMalformed' }
     )
