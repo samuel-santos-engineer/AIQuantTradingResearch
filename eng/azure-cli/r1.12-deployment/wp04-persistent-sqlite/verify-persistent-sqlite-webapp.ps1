@@ -149,7 +149,13 @@ function Get-ApplicationEvidenceArtifact {
             if ($null -eq $statusCode) {
                 $transportClass = Get-SanitizedTransportFailureClass -Exception $_.Exception
                 Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $null -FailureClass $transportClass
-                $script:WP04EvidenceTerminalClass = if ($transportClass -eq 'Timeout') { 'Timeout' } else { 'TransportFailure' }
+                if ($transportClass -in @('Timeout', 'ConnectFailure', 'ConnectionClosed', 'KeepAliveFailure', 'PipelineFailure', 'ReceiveFailure', 'RequestCanceled', 'SendFailure', 'UnknownError')) {
+                    $remainingMilliseconds = [int][Math]::Floor(($pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds) * 1000)
+                    if ($remainingMilliseconds -lt 1) { $script:WP04EvidenceTerminalClass = 'Timeout'; throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.' }
+                    Start-Sleep -Milliseconds ([Math]::Min(5000, $remainingMilliseconds))
+                    continue
+                }
+                $script:WP04EvidenceTerminalClass = 'TransportFailure'
                 throw 'Application-owned HTTP evidence retrieval failed.'
             }
             Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode $statusCode
