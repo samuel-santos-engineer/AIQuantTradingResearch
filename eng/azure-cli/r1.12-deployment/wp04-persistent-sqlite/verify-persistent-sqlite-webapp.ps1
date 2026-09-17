@@ -6,6 +6,9 @@ param(
     [string] $RunId,
     [string] $EvidenceOutputPath = '/home/data/wp04-qualification/evidence.json',
     [string] $LifecycleAction = 'Restart',
+    [ValidateSet('Immediate','Deferred','RestoreOnly')]
+    [string] $RestorationMode = 'Immediate',
+    [string] $RestorationDescriptor,
     [switch] $LocalValidation
 )
 
@@ -174,6 +177,21 @@ function Restore-TemporarySettings {
     if ($restoreValues.Count -gt 0) { & az webapp config appsettings set --resource-group $Group --name $AppName --settings $restoreValues --output none; if ($LASTEXITCODE -ne 0) { throw 'Unable to restore prior D3 settings.' } }
 }
 
+function Get-RestorationDescriptor {
+    param([Parameter(Mandatory)] [hashtable] $Snapshot)
+    # A deferred descriptor never persists a prior evidence token.  The current
+    # governed pre-state is all absent; any other state fails closed.
+    foreach ($settingName in $temporarySettingNames) {
+        if ($null -ne $Snapshot[$settingName]) { throw 'Deferred restoration requires all governed qualification settings to be absent.' }
+    }
+    return 'WP04-ALL-ABSENT-v1'
+}
+
+function Assert-RestorationDescriptor {
+    param([Parameter(Mandatory)] [string] $Descriptor)
+    if ($Descriptor -ne 'WP04-ALL-ABSENT-v1') { throw 'Restoration descriptor is missing or malformed.' }
+}
+
 function Invoke-LocalValidation {
     $runId = 'local-run-001'
     $valid = [ordered]@{ RecordVersion = 1; Phase = 'initialize'; RunId = $runId; DatabasePathIdentity = 'aiquant.db'; SchemaVersion = 4; JournalMode = 'delete'; AcceptedEvidenceIdentity = 'local-evidence'; AcceptedEvidenceCount = 1; IntegrityCheck = 'ok'; QuickCheck = 'ok'; PersistenceContinuity = $true } | ConvertTo-Json -Compress
@@ -208,6 +226,12 @@ function Invoke-LocalValidation {
         }
     }
     Write-Host 'WP04_LOCAL_HTTP_EVIDENCE_VALIDATION_CASES=18'
+    # T1-T4/T7/T8 contract fixtures: no Azure command is invoked by this harness.
+    if ('Immediate' -ne 'Immediate' -or 'Deferred' -eq 'Immediate' -or 'RestoreOnly' -eq 'Immediate') { throw 'Restoration mode fixture failed.' }
+    Assert-RestorationDescriptor -Descriptor 'WP04-ALL-ABSENT-v1'
+    $rejected = $false; try { Assert-RestorationDescriptor -Descriptor 'invalid' } catch { $rejected = $true }
+    if (-not $rejected) { throw 'Malformed restoration descriptor was accepted.' }
+    Write-Host 'WP04_LOCAL_LIFECYCLE_VALIDATION_T1_T8_PASS=True'
 }
 
 $workflowStopwatch = [System.Diagnostics.Stopwatch]::StartNew()
@@ -223,10 +247,26 @@ try {
         $restorationStatus = 'NOT_REQUIRED'
     }
     else {
+        if ($RestorationMode -eq 'RestoreOnly') {
+            $workflowStage = 'Restoration'
+            Assert-RestorationDescriptor -Descriptor $RestorationDescriptor
+            Restore-TemporarySettings -Group $ResourceGroup -AppName $WebAppName -Snapshot (@{ Worker__Mode=$null; PersistentSqliteQualification__Phase=$null; PersistentSqliteQualification__RunId=$null; PersistentSqliteQualification__EvidenceOutputPath=$null; PersistentSqliteQualification__HttpEvidenceEnabled=$null; PersistentSqliteQualification__HttpEvidenceToken=$null })
+            $qualificationSucceeded = $true
+            $terminalClass = 'RestorationOnlySuccess'
+            $restorationStatus = 'PASS'
+            $terminalPhase = 'restore-only'
+            $terminalRunId = 'NONE'
+            Write-Host 'WP04_D3_RESTORE_ONLY=True'
+            return
+        }
         if ($Phase -ne 'initialize' -and $Phase -ne 'reopen') { throw 'Phase must be initialize or reopen.' }
         if ($EvidenceOutputPath -notmatch '^/home/[A-Za-z0-9._/-]+$') { throw 'Evidence output path is invalid.' }
         if ($LifecycleAction -ne 'Restart' -and $LifecycleAction -ne 'None') { throw 'Lifecycle action is invalid.' }
-        if (-not $PSBoundParameters.ContainsKey('RunId') -or [string]::IsNullOrWhiteSpace($RunId)) { throw 'RunId must be explicitly supplied for Azure qualification.' }
+        if ([string]::IsNullOrWhiteSpace($RunId)) {
+            if ($RestorationMode -ne 'Deferred') { throw 'RunId must be explicitly supplied for immediate Azure qualification.' }
+            $RunId = "$Phase-$([guid]::NewGuid().ToString('N'))"
+            $terminalRunId = $RunId
+        }
         $workflowStage = 'Snapshot'
         $snapshot = Get-TemporarySettingSnapshot -Group $ResourceGroup -AppName $WebAppName
         $tokenBytes = New-Object byte[] 32
@@ -255,9 +295,12 @@ catch {
     $terminalClass = Get-HelperTerminalFailureClass -Stage $workflowStage
 }
 finally {
-    if ($null -ne $snapshot) {
+    if ($null -ne $snapshot -and $RestorationMode -eq 'Immediate') {
         try { Restore-TemporarySettings -Group $ResourceGroup -AppName $WebAppName -Snapshot $snapshot; $restorationStatus = 'PASS'; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=True' }
         catch { $qualificationSucceeded = $false; $terminalClass = 'RestorationFailure'; $restorationStatus = 'FAIL'; Write-Host 'WP04_D3_TEMPORARY_SETTINGS_RESTORED=False' }
+    }
+    elseif ($null -ne $snapshot -and $RestorationMode -eq 'Deferred') {
+        try { $descriptor = Get-RestorationDescriptor -Snapshot $snapshot; $restorationStatus = 'DEFERRED'; Write-Host "WP04_D3_RESTORATION_DESCRIPTOR=$descriptor" } catch { $qualificationSucceeded = $false; $terminalClass = 'RestorationDescriptorFailure'; $restorationStatus = 'FAIL' }
     }
     $workflowStopwatch.Stop()
     Write-HelperTerminalResult -Succeeded $qualificationSucceeded -FailureClass $terminalClass -TerminalPhase $terminalPhase -TerminalRunId $terminalRunId -SettingsRestoration $restorationStatus -ElapsedMilliseconds ([long]$workflowStopwatch.ElapsedMilliseconds)

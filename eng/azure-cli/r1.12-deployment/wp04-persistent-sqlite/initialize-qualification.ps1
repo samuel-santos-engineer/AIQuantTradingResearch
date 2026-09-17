@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch] $LocalValidation
+    [switch] $LocalValidation,
+    [scriptblock] $PersistEvidenceCheckpointCallback
 )
 
 Set-StrictMode -Version Latest
@@ -69,6 +70,137 @@ function Write-Wp04ImagePreflightTelemetry {
     if (-not $Result.Match) { Write-Host "WP04_PREFLIGHT_IMAGE_FAILURE_CLASS=$($Result.FailureClass)" }
 }
 
+function Write-Wp04EvidenceRecord {
+    param([Parameter(Mandatory)] [string] $Path, [Parameter(Mandatory)] [hashtable] $Record)
+    $Record | ConvertTo-Json -Compress | Set-Content -LiteralPath $Path -Encoding utf8
+}
+
+function Write-Wp04EvidenceCheckpoint {
+    param(
+        [Parameter(Mandatory)] [string] $Path,
+        [Parameter(Mandatory)] [hashtable] $Record,
+        [scriptblock] $Callback
+    )
+    if ($null -ne $Callback) { & $Callback $Path $Record; return }
+    Write-Wp04EvidenceRecord -Path $Path -Record $Record
+}
+
+function Get-Wp04DeepestBoundary {
+    param([Parameter(Mandatory)] [string[]] $Lines)
+    $rules = @(
+        @{ Boundary = 'B9'; Pattern = 'EVIDENCE_RETRIEVAL_SUCCEEDED|WP04_HTTP_EVIDENCE.*SUCCESS' },
+        @{ Boundary = 'B8'; Pattern = 'HANDLER_ENTERED' },
+        @{ Boundary = 'B7'; Pattern = 'REQUEST_ARRIVED' },
+        @{ Boundary = 'B6'; Pattern = 'LISTENER_STARTED' },
+        @{ Boundary = 'B5'; Pattern = 'LISTENER_STARTING' },
+        @{ Boundary = 'B4'; Pattern = 'ARTIFACT_WRITE_SUCCEEDED' },
+        @{ Boundary = 'B3'; Pattern = 'SQLITE_QUALIFICATION_STARTED' },
+        @{ Boundary = 'B2'; Pattern = 'QUALIFICATION_ENTERED' },
+        @{ Boundary = 'B1'; Pattern = 'CONTAINER_STARTED|aiq-entrypoint' }
+    )
+    $all = $Lines -join "`n"
+    foreach ($rule in $rules) { if ($all -match $rule.Pattern) { return $rule.Boundary } }
+    if ($Lines.Count -gt 0) { return 'B0' }
+    return 'BX'
+}
+
+function Get-Wp04PollObservations {
+    param([Parameter(Mandatory)] [string[]] $Lines, [AllowNull()] [string] $RunId)
+    $observations = New-Object System.Collections.Generic.List[object]
+    $attempt = $null
+    foreach ($line in $Lines) {
+        if ($line -match '^WP04_HTTP_EVIDENCE_POLL_ATTEMPT=(\d+)$') { $attempt = [int]$Matches[1]; continue }
+        if ($line -match '^WP04_HTTP_EVIDENCE_STATUS=(.+)$') {
+            $observations.Add([ordered]@{ TimestampUtc = [DateTime]::UtcNow.ToString('o'); RunId = $RunId; Attempt = $attempt; Status = $Matches[1]; Classification = 'Observed' })
+            continue
+        }
+        if ($line -match '^WP04_HTTP_EVIDENCE_FAILURE_CLASS=(.+)$') {
+            $observations.Add([ordered]@{ TimestampUtc = [DateTime]::UtcNow.ToString('o'); RunId = $RunId; Attempt = $attempt; Status = 'NONE'; Classification = $Matches[1] })
+        }
+    }
+    return $observations.ToArray()
+}
+
+function Test-Wp04ArchiveExtractionState {
+    param([Parameter(Mandatory)] [string] $RawArchiveState, [Parameter(Mandatory)] [string] $FreshExtractionState)
+    if ($RawArchiveState -eq 'RETAINED') {
+        if ($FreshExtractionState -in @('PASS','EMPTY')) { return [pscustomobject]@{ Eligible = $true; Classification = 'CONSISTENT' } }
+        if ($FreshExtractionState -eq 'FAIL') { return [pscustomobject]@{ Eligible = $false; Classification = 'EXTRACTION_FAILED' } }
+        return [pscustomobject]@{ Eligible = $false; Classification = 'EVIDENCE_STATE_INCONSISTENT' }
+    }
+    if ($RawArchiveState -eq 'RETRIEVAL_FAILED') {
+        if ($FreshExtractionState -eq 'NOT_APPLICABLE') { return [pscustomobject]@{ Eligible = $true; Classification = 'CONSISTENT' } }
+        return [pscustomobject]@{ Eligible = $false; Classification = 'EVIDENCE_STATE_INCONSISTENT' }
+    }
+    return [pscustomobject]@{ Eligible = $false; Classification = 'EVIDENCE_STATE_INCONSISTENT' }
+}
+
+function Invoke-Wp04MockLifecycle {
+    param([Parameter(Mandatory)] [hashtable] $Fixture)
+    $qualificationResult = 'NOT_PROVEN'; $evidenceCheckpointResult = 'FAIL'; $restorationResult = 'NOT_ATTEMPTED'; $restoreCount = 0; $actualRunId = 'NOT_PROVEN'; $classification = $null
+    try {
+        if ($Fixture.ContainsKey('DeferredThrows') -and $Fixture.DeferredThrows) { throw 'DeferredMockFailure' }
+        $actualRunId = $Fixture.RunId
+        if ([string]::IsNullOrWhiteSpace($actualRunId)) { throw 'RunIdMissing' }
+        $qualificationResult = if ($Fixture.QualificationSuccess) { 'SUCCESS' } else { 'FAILURE' }
+        $archiveState = Test-Wp04ArchiveExtractionState -RawArchiveState $Fixture.RawArchiveState -FreshExtractionState $Fixture.FreshExtractionState
+        $classification = $archiveState.Classification
+        if ($Fixture.ContainsKey('CheckpointThrows') -and $Fixture.CheckpointThrows) { throw 'CheckpointWriteFailure' }
+        $evidenceCheckpointResult = if ($archiveState.Eligible) { 'PASS' } else { 'FAIL' }
+    }
+    catch { $evidenceCheckpointResult = 'FAIL'; if ($null -eq $classification) { $classification = 'EVIDENCE_PRESERVATION_FAILED' } }
+    finally {
+        $restoreCount++
+        $restorationResult = if ($Fixture.RestoreSucceeds) { 'PASS' } else { 'FAIL' }
+    }
+    $final = if ($restorationResult -eq 'FAIL') { 'RESTORATION_FAILED' } elseif ($evidenceCheckpointResult -eq 'FAIL') { 'EVIDENCE_PRESERVATION_FAILED' } else { $qualificationResult }
+    return [pscustomobject]@{ QualificationResult = $qualificationResult; EvidenceCheckpointResult = $evidenceCheckpointResult; RestorationResult = $restorationResult; FinalLifecycleResult = $final; RestoreCount = $restoreCount; Classification = $classification; ActualRunId = $actualRunId }
+}
+
+function Invoke-Wp04ArchiveCheckpoint {
+    param(
+        [Parameter(Mandatory)] [string] $EvidenceRoot,
+        [Parameter(Mandatory)] [datetime] $CaptureStartUtc,
+        [Parameter(Mandatory)] [string] $ResourceGroup,
+        [Parameter(Mandatory)] [string] $WebAppName,
+        [Parameter(Mandatory)] [string] $RunId,
+        [scriptblock] $ArchiveDownload
+    )
+    $archivePath = Join-Path $EvidenceRoot 'raw-app-service-logs.zip'
+    $archiveRecord = [ordered]@{ ArchiveRetrieval = 'RETRIEVAL_FAILED'; ArchiveMetadata = 'NOT_APPLICABLE'; FreshExtraction = 'NOT_APPLICABLE'; ArchivePath = $null; ArchiveBytes = $null; ArchiveSha256 = $null; RetrievalUtc = [DateTime]::UtcNow.ToString('o'); ErrorClass = $null; SafeErrorSummary = $null }
+    try {
+        if ($null -ne $ArchiveDownload) {
+            & $ArchiveDownload $archivePath | Out-Null
+            $downloadSucceeded = Test-Path -LiteralPath $archivePath
+        }
+        else {
+            & az webapp log download --resource-group $ResourceGroup --name $WebAppName --log-file $archivePath *> $null
+            $downloadSucceeded = ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $archivePath))
+        }
+        if (-not $downloadSucceeded) { throw 'ArchiveDownloadFailure' }
+        $item = Get-Item -LiteralPath $archivePath
+        $hash = Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+        Add-Type -AssemblyName System.IO.Compression
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
+        try { $entries = @($zip.Entries) } finally { $zip.Dispose() }
+        $archiveRecord.ArchiveRetrieval = 'RETAINED'; $archiveRecord.ArchiveMetadata = 'PASS'; $archiveRecord.ArchivePath = $archivePath; $archiveRecord.ArchiveBytes = [long]$item.Length; $archiveRecord.ArchiveSha256 = $hash.Hash
+        $extractRoot = Join-Path $EvidenceRoot 'fresh-window-extract'
+        Expand-Archive -LiteralPath $archivePath -DestinationPath $extractRoot -Force -ErrorAction Stop
+        $relevant = @($entries | Where-Object { $_.LastWriteTime.UtcDateTime -ge $CaptureStartUtc.AddMinutes(-1) -and $_.FullName -match '(?i)(docker|container|default|wp04|log)' } | ForEach-Object FullName)
+        $extractionPath = Join-Path $EvidenceRoot 'fresh-window-files.txt'
+        $relevant | Set-Content -LiteralPath $extractionPath -Encoding utf8
+        $archiveRecord.FreshExtraction = if ($relevant.Count -eq 0) { 'EMPTY' } else { 'PASS' }
+    }
+    catch {
+        if ($archiveRecord.ArchiveRetrieval -eq 'RETAINED') { $archiveRecord.FreshExtraction = 'FAIL' }
+        $archiveRecord.ErrorClass = if ($_.Exception.Message -eq 'ArchiveUnreadable') { 'ArchiveUnreadable' } else { 'ArchiveRetrievalFailure' }
+        $archiveRecord.SafeErrorSummary = $archiveRecord.ErrorClass
+    }
+    Write-Wp04EvidenceRecord -Path (Join-Path $EvidenceRoot 'archive-checkpoint.json') -Record $archiveRecord
+    return [pscustomobject]$archiveRecord
+}
+
 function Invoke-LocalValidation {
     $exactIdentity = 'DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:892d246e6c5e0665edc26d4cbbfc187a4f0a7ffb03cd2dffcd802efc51978d1f'
     $provenanceFixtures = @(
@@ -114,6 +246,70 @@ function Invoke-LocalValidation {
     Write-Host 'WP04_PREFLIGHT_LOCAL_FAILURE_MUTATION_CALLS=0'
     Write-Host "WP04_PREFLIGHT_LOCAL_FAILED_FIXTURE_COUNT=$failedFixtureCount"
     Write-Host 'WP04_PREFLIGHT_LOCAL_VALIDATION_PASS=True'
+
+    $fixtureRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('aiq-wp04-lifecycle-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $fixtureRoot | Out-Null
+    try {
+        $checkpointPath = Join-Path $fixtureRoot 'checkpoint.json'
+        $checkpointRecord = @{ EvidenceCheckpoint = 'PASS'; ActualRunId = 'initialize-fixture' }
+        Write-Wp04EvidenceCheckpoint -Path $checkpointPath -Record $checkpointRecord
+        if (-not (Test-Path -LiteralPath $checkpointPath)) { throw 'Default checkpoint writer fixture failed.' }
+        $script:callbackCount = 0
+        $successCallback = { param($path, $record) $script:callbackCount++; $record | ConvertTo-Json -Compress | Set-Content -LiteralPath $path -Encoding utf8 }
+        Write-Wp04EvidenceCheckpoint -Path $checkpointPath -Record $checkpointRecord -Callback $successCallback
+        if ($script:callbackCount -ne 1) { throw 'Checkpoint success callback fixture failed.' }
+        $failed = $false; try { Write-Wp04EvidenceCheckpoint -Path $checkpointPath -Record $checkpointRecord -Callback { param($path, $record) throw 'SyntheticCheckpointFailure' } } catch { $failed = $true }
+        if (-not $failed) { throw 'Checkpoint failure callback fixture failed.' }
+        $fixtureZip = Join-Path $fixtureRoot 'fixture.zip'
+        $fixtureSource = Join-Path $fixtureRoot 'container-wp04.log'
+        Set-Content -LiteralPath $fixtureSource -Value 'CONTAINER_STARTED' -Encoding utf8
+        Add-Type -AssemblyName System.IO.Compression
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        $zip = [System.IO.Compression.ZipFile]::Open($fixtureZip, [System.IO.Compression.ZipArchiveMode]::Create)
+        try { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $fixtureSource, 'container-wp04.log') | Out-Null } finally { $zip.Dispose() }
+        $copyArchive = { param($destination) Copy-Item -LiteralPath $fixtureZip -Destination $destination }
+        $successArchive = Invoke-Wp04ArchiveCheckpoint -EvidenceRoot $fixtureRoot -CaptureStartUtc ([DateTime]::UtcNow.AddMinutes(-1)) -ResourceGroup 'fixture' -WebAppName 'fixture' -RunId 'initialize-fixture' -ArchiveDownload $copyArchive
+        if ($successArchive.ArchiveRetrieval -ne 'RETAINED' -or $successArchive.ArchiveMetadata -ne 'PASS' -or $successArchive.FreshExtraction -notin @('PASS','EMPTY')) { throw 'Archive success fixture failed.' }
+        $failureRoot = Join-Path $fixtureRoot 'failure'; New-Item -ItemType Directory -Path $failureRoot | Out-Null
+        $failureArchive = Invoke-Wp04ArchiveCheckpoint -EvidenceRoot $failureRoot -CaptureStartUtc ([DateTime]::UtcNow) -ResourceGroup 'fixture' -WebAppName 'fixture' -RunId 'initialize-fixture' -ArchiveDownload { param($destination) throw 'fixture failure' }
+        if ($failureArchive.ArchiveRetrieval -ne 'RETRIEVAL_FAILED' -or -not (Test-Path -LiteralPath (Join-Path $failureRoot 'archive-checkpoint.json'))) { throw 'Archive failure fixture failed.' }
+        $precedenceFixtures = @(
+            @{ Name = 'L1'; Q = 'SUCCESS'; E = 'PASS'; R = 'PASS'; Expected = 'SUCCESS' },
+            @{ Name = 'L2'; Q = 'SUCCESS'; E = 'PASS'; R = 'PASS'; Expected = 'SUCCESS' },
+            @{ Name = 'L3'; Q = 'SUCCESS'; E = 'FAIL'; R = 'PASS'; Expected = 'EVIDENCE_PRESERVATION_FAILED' },
+            @{ Name = 'L4'; Q = 'FAILURE'; E = 'PASS'; R = 'PASS'; Expected = 'FAILURE' },
+            @{ Name = 'L5'; Q = 'SUCCESS'; E = 'PASS'; R = 'FAIL'; Expected = 'RESTORATION_FAILED' },
+            @{ Name = 'L6'; Q = 'NOT_PROVEN'; E = 'FAIL'; R = 'PASS'; Expected = 'EVIDENCE_PRESERVATION_FAILED' }
+        )
+        foreach ($fixture in $precedenceFixtures) {
+            $final = if ($fixture.R -eq 'FAIL') { 'RESTORATION_FAILED' } elseif ($fixture.E -eq 'FAIL') { 'EVIDENCE_PRESERVATION_FAILED' } else { $fixture.Q }
+            if ($final -ne $fixture.Expected) { throw "Lifecycle precedence fixture failed: $($fixture.Name)." }
+        }
+        $wrapperFixtures = @(
+            @{ Name='W1'; RunId='initialize-w1'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='PASS'; RestoreSucceeds=$true; Expected='SUCCESS' },
+            @{ Name='W2'; RunId='initialize-w2'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='EMPTY'; RestoreSucceeds=$true; Expected='SUCCESS' },
+            @{ Name='W3'; RunId='initialize-w3'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='FAIL'; RestoreSucceeds=$true; Expected='EVIDENCE_PRESERVATION_FAILED' },
+            @{ Name='W4'; RunId='initialize-w4'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='NOT_APPLICABLE'; RestoreSucceeds=$true; Expected='EVIDENCE_PRESERVATION_FAILED'; Classification='EVIDENCE_STATE_INCONSISTENT' },
+            @{ Name='W5'; RunId='initialize-w5'; QualificationSuccess=$true; RawArchiveState='RETRIEVAL_FAILED'; FreshExtractionState='NOT_APPLICABLE'; RestoreSucceeds=$true; Expected='SUCCESS' },
+            @{ Name='W6'; RunId='initialize-w6'; QualificationSuccess=$false; RawArchiveState='RETRIEVAL_FAILED'; FreshExtractionState='NOT_APPLICABLE'; RestoreSucceeds=$true; Expected='FAILURE' },
+            @{ Name='W7'; RunId='initialize-w7'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='PASS'; CheckpointThrows=$true; RestoreSucceeds=$true; Expected='EVIDENCE_PRESERVATION_FAILED' },
+            @{ Name='W8'; RunId='initialize-w8'; QualificationSuccess=$true; RawArchiveState='RETAINED'; FreshExtractionState='PASS'; RestoreSucceeds=$false; Expected='RESTORATION_FAILED' }
+        )
+        foreach ($fixture in $wrapperFixtures) {
+            $result = Invoke-Wp04MockLifecycle -Fixture $fixture
+            if ($result.FinalLifecycleResult -ne $fixture.Expected -or $result.RestoreCount -ne 1 -or $result.ActualRunId -ne $fixture.RunId) { throw "Mocked wrapper lifecycle fixture failed: $($fixture.Name)." }
+            if ($fixture.ContainsKey('Classification') -and $result.Classification -ne $fixture.Classification) { throw "Mocked wrapper classification fixture failed: $($fixture.Name)." }
+        }
+        $truthTable = @(
+            @{ Raw='RETAINED'; Extraction='PASS'; Eligible=$true }, @{ Raw='RETAINED'; Extraction='EMPTY'; Eligible=$true }, @{ Raw='RETAINED'; Extraction='FAIL'; Eligible=$false }, @{ Raw='RETAINED'; Extraction='NOT_APPLICABLE'; Eligible=$false }, @{ Raw='RETRIEVAL_FAILED'; Extraction='NOT_APPLICABLE'; Eligible=$true }, @{ Raw='RETRIEVAL_FAILED'; Extraction='PASS'; Eligible=$false }
+        )
+        foreach ($row in $truthTable) { if ((Test-Wp04ArchiveExtractionState -RawArchiveState $row.Raw -FreshExtractionState $row.Extraction).Eligible -ne $row.Eligible) { throw 'Archive truth-table fixture failed.' } }
+    }
+    finally {
+        if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }
+    }
+    Write-Host 'WP04_LOCAL_FULL_LIFECYCLE_VALIDATION_L1_L6_PASS=True'
+    Write-Host 'WP04_LOCAL_FULL_WRAPPER_LIFECYCLE_W1_W8_PASS=True'
 }
 
 if ($LocalValidation) {
@@ -146,8 +342,59 @@ if ($LASTEXITCODE -ne 0) { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=AzureSetting
 $temporaryNames = @('Worker__Mode', 'PersistentSqliteQualification__Phase', 'PersistentSqliteQualification__RunId', 'PersistentSqliteQualification__EvidenceOutputPath', 'PersistentSqliteQualification__HttpEvidenceEnabled', 'PersistentSqliteQualification__HttpEvidenceToken')
 if (@($settings | Where-Object { $_.name -in $temporaryNames }).Count -ne 0) { Write-Host 'WP04_PREFLIGHT_FAILURE_CLASS=TemporarySettingDrift'; exit 1 }
 
-$runId = 'initialize-' + [guid]::NewGuid().ToString('N')
-Write-Host "WP04_D3_INITIALIZE_RUN_ID=$runId"
-& ".\$helper" -ResourceGroup $resourceGroup -WebAppName $webAppName -Phase initialize -RunId $runId -LifecycleAction Restart
-Write-Host "WP04_D3_INITIALIZE_HELPER_EXIT_CODE=$LASTEXITCODE"
-exit $LASTEXITCODE
+$correlationId = 'initialize-correlation-' + [guid]::NewGuid().ToString('N')
+$evidenceRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('AIQuantTradingResearch\wp04\' + $correlationId)
+New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
+$transcript = Join-Path $evidenceRoot 'helper-transcript.txt'
+$pollObservationPath = Join-Path $evidenceRoot 'poll-observations.json'
+$checkpointPath = Join-Path $evidenceRoot 'evidence-checkpoint.json'
+$captureStartUtc = [DateTime]::UtcNow
+$qualificationResult = 'NOT_PROVEN'
+$evidenceCheckpointResult = 'FAIL'
+$restorationResult = 'NOT_ATTEMPTED'
+$actualRunId = 'NOT_PROVEN'
+$restorationDescriptor = $null
+$restoreAttempted = $false
+try {
+    $helperOutput = @(& ".\$helper" -ResourceGroup $resourceGroup -WebAppName $webAppName -Phase initialize -LifecycleAction None -RestorationMode Deferred 2>&1 | ForEach-Object { [string]$_ })
+    $helperExitCode = $LASTEXITCODE
+    $helperOutput | Set-Content -LiteralPath $transcript -Encoding utf8
+    $actualRunId = (($helperOutput | Where-Object { $_ -match '^WP04_HELPER_TERMINAL_RUN_ID=' } | Select-Object -Last 1) -replace '^WP04_HELPER_TERMINAL_RUN_ID=', '')
+    $restorationDescriptor = (($helperOutput | Where-Object { $_ -match '^WP04_D3_RESTORATION_DESCRIPTOR=' } | Select-Object -Last 1) -replace '^WP04_D3_RESTORATION_DESCRIPTOR=', '')
+    if ([string]::IsNullOrWhiteSpace($actualRunId)) { throw 'The deferred helper did not emit an actual qualification RunId.' }
+    if ([string]::IsNullOrWhiteSpace($restorationDescriptor)) { throw 'The deferred helper did not emit a restoration descriptor.' }
+    Set-Content -LiteralPath (Join-Path $evidenceRoot 'run-metadata.txt') -Value "CorrelationId=$correlationId`r`nActualRunId=$actualRunId`r`nCaptureStartUtc=$($captureStartUtc.ToString('o'))" -Encoding utf8
+    $qualificationResult = if ($helperExitCode -eq 0) { 'SUCCESS' } else { 'FAILURE' }
+    $pollObservations = Get-Wp04PollObservations -Lines $helperOutput -RunId $actualRunId
+    ConvertTo-Json -InputObject @($pollObservations) -Depth 3 | Set-Content -LiteralPath $pollObservationPath -Encoding utf8
+    $d3PayloadState = if (@($helperOutput | Where-Object { $_ -match 'WP04_D3_|WP04_HTTP_EVIDENCE_' }).Count -gt 0) { 'RETAINED' } else { 'NOT_OBSERVED' }
+    $archive = Invoke-Wp04ArchiveCheckpoint -EvidenceRoot $evidenceRoot -CaptureStartUtc $captureStartUtc -ResourceGroup $resourceGroup -WebAppName $webAppName -RunId $actualRunId
+    $deepestBoundary = Get-Wp04DeepestBoundary -Lines $helperOutput
+    $archiveState = Test-Wp04ArchiveExtractionState -RawArchiveState $archive.ArchiveRetrieval -FreshExtractionState $archive.FreshExtraction
+    $checkpointRecord = [ordered]@{
+        ActualRunId = $actualRunId; HelperTerminalRetained = if (Test-Path -LiteralPath $transcript) { 'PASS' } else { 'FAIL' }; HelperTranscriptRetained = if (Test-Path -LiteralPath $transcript) { 'PASS' } else { 'FAIL' }; PollObservationsRetained = if (Test-Path -LiteralPath $pollObservationPath) { 'PASS' } else { 'FAIL' }; D3PayloadState = $d3PayloadState; RawArchiveState = $archive.ArchiveRetrieval; ArchiveMetadataState = $archive.ArchiveMetadata; FreshExtractionState = $archive.FreshExtraction; DeepestBoundary = $deepestBoundary
+    }
+    $checkpointRecord.EvidenceClassification = $archiveState.Classification
+    $checkpointRecord.EvidenceCheckpoint = if ($checkpointRecord.ActualRunId -ne 'NOT_PROVEN' -and $checkpointRecord.HelperTerminalRetained -eq 'PASS' -and $checkpointRecord.PollObservationsRetained -eq 'PASS' -and $archiveState.Eligible -and $checkpointRecord.ArchiveMetadataState -in @('PASS','NOT_APPLICABLE') -and $checkpointRecord.DeepestBoundary -ne 'BX') { 'PASS' } else { 'FAIL' }
+    Write-Wp04EvidenceCheckpoint -Path $checkpointPath -Record $checkpointRecord -Callback $PersistEvidenceCheckpointCallback
+    $evidenceCheckpointResult = $checkpointRecord.EvidenceCheckpoint
+    Write-Host "WP04_EVIDENCE_ROOT=$evidenceRoot"
+    Write-Host "WP04_EVIDENCE_CHECKPOINT=$evidenceCheckpointResult"
+    Write-Host "WP04_D3_INITIALIZE_HELPER_EXIT_CODE=$helperExitCode"
+}
+catch {
+    $failureRecord = [ordered]@{ ActualRunId = $actualRunId; EvidenceCheckpoint = 'FAIL'; FailureClass = 'EvidencePreservationFailure'; TimestampUtc = [DateTime]::UtcNow.ToString('o'); SafeErrorSummary = 'EvidencePreservationFailure' }
+    Write-Wp04EvidenceRecord -Path $checkpointPath -Record $failureRecord
+    $evidenceCheckpointResult = 'FAIL'
+}
+finally {
+    $restoreAttempted = $true
+    if ([string]::IsNullOrWhiteSpace($restorationDescriptor)) { $restorationDescriptor = 'WP04-ALL-ABSENT-v1' }
+    & ".\$helper" -ResourceGroup $resourceGroup -WebAppName $webAppName -RestorationMode RestoreOnly -RestorationDescriptor $restorationDescriptor
+    $restorationResult = if ($LASTEXITCODE -eq 0) { 'PASS' } else { 'FAIL' }
+    Write-Host "WP04_OUTER_FINALLY_RESTORE_ATTEMPTED=$restoreAttempted"
+}
+$finalLifecycleResult = if ($restorationResult -eq 'FAIL') { 'RESTORATION_FAILED' } elseif ($evidenceCheckpointResult -eq 'FAIL') { 'EVIDENCE_PRESERVATION_FAILED' } else { $qualificationResult }
+Write-Wp04EvidenceRecord -Path (Join-Path $evidenceRoot 'final-lifecycle-result.json') -Record ([ordered]@{ QualificationResult = $qualificationResult; EvidenceCheckpointResult = $evidenceCheckpointResult; RestorationResult = $restorationResult; FinalLifecycleResult = $finalLifecycleResult })
+Write-Host "WP04_FINAL_LIFECYCLE_RESULT=$finalLifecycleResult"
+if ($finalLifecycleResult -ne 'SUCCESS') { exit 1 }
