@@ -1,0 +1,1 @@
+.\configure-persistent-sqlite.ps1 -ResourceGroup 'rg-aiq-r112-wp03-wcus-5ec325382770' -WebAppName 'aiqr112wp035ec325382770'
