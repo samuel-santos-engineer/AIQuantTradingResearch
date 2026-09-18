@@ -1,0 +1,730 @@
+# GPT-5.6 Terra — Release 1.12 WP04 Qualification Runtime HTTP Evidence Implementation Authority
+
+**Authority state:** `READY`  
+**Selected execution model:** **GPT-5.6 Terra**
+
+## Model authority map
+
+- **GPT-5.6 Luna** — contract, architecture, policy, reconciliation, acceptance criteria, governance.
+- **GPT-5.6 Terra** — PRIMARY: implement and locally validate the R1 qualification-mode single-listener substitution and application-owned HTTP evidence endpoint.
+- **GPT-5.6 Sol** — supporting analysis/synthesis only; never silently replaces Luna or Terra.
+
+## 1. Governed starting state
+
+Release:
+
+**Phase 4 — Release 1.12 WP04: Persistent SQLite Initialization, Data Update & Recovery**
+
+Issue:
+
+`#263`
+
+Accepted evidence architecture:
+
+```text
+E1 — H1_APPLICATION_HTTP_EVIDENCE
+```
+
+Accepted runtime-composition decision:
+
+```text
+R1 — Q1_QUALIFICATION_SINGLE_LISTENER_SUBSTITUTION
+```
+
+Normal runtime contract:
+
+```text
+Worker starts with existing behavior
+Streamlit starts
+Streamlit owns 0.0.0.0:8501
+qualification endpoint unavailable
+```
+
+Qualification HTTP mode requires both:
+
+```text
+Worker__Mode=PersistentSqliteQualification
+PersistentSqliteQualification__HttpEvidenceEnabled=true
+```
+
+Then:
+
+```text
+Worker alone owns 0.0.0.0:8501
+Streamlit is not started
+Worker serves only the governed qualification evidence endpoint
+Worker exits after successful exact-run retrieval or bounded timeout
+container exit status equals Worker exit status
+```
+
+Subsequent ordinary restart/redeploy must restore normal Worker + Streamlit composition.
+
+Accepted platform decisions:
+
+```text
+Dockerfile change required: NO
+Azure port configuration change required: NO
+Schema change required: NO
+README change required: NO
+```
+
+Superseded historical candidate provenance:
+
+```text
+Source commit:
+2add79d2063292687d9813f9022206e84b664627
+
+Image digest:
+sha256:d4a6f51f0762b3ca500e6858510f9b042a3be0dc812cc0ad50815bc1ff733378
+```
+
+These identifiers remain historical provenance only.
+
+## 2. Exact implementation allowlist
+
+Exactly these **8 literal tracked paths** are authorized:
+
+```text
+MODIFY src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj
+MODIFY src/AIQuantTradingResearch.Worker/Program.cs
+MODIFY src/AIQuantTradingResearch.Worker/PersistentSqliteQualificationExecution.cs
+CREATE src/AIQuantTradingResearch.Worker/PersistentSqliteQualificationEvidenceEndpoint.cs
+MODIFY tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj
+CREATE tests/AIQuantTradingResearch.Infrastructure.Tests/PersistentSqliteQualificationEvidenceEndpointTests.cs
+MODIFY eng/azure-cli/r1.12-deployment/wp04-persistent-sqlite/verify-persistent-sqlite-webapp.ps1
+MODIFY container/entrypoint.sh
+```
+
+Exact count:
+
+```text
+8 paths
+6 MODIFY
+2 CREATE
+```
+
+No ninth tracked path is authorized.
+
+Explicitly forbidden:
+
+```text
+Dockerfile
+README*
+schema files/migrations
+Streamlit/Python persistence code
+unrelated deployment tooling
+```
+
+## 3. Application-owned endpoint contract
+
+Implement exactly:
+
+```text
+GET /internal/wp04/persistence-qualification
+```
+
+Required query:
+
+```text
+runId=<exact-run-id>
+```
+
+Required header:
+
+```text
+X-WP04-Evidence-Token
+```
+
+Activation:
+
+```text
+PersistentSqliteQualification__HttpEvidenceEnabled=true
+```
+
+Use a narrowly scoped token setting:
+
+```text
+PersistentSqliteQualification__HttpEvidenceToken
+```
+
+or an exactly equivalent qualification-only configuration key consistent with repository conventions.
+
+The endpoint must be unavailable unless qualification HTTP mode is explicitly active.
+
+## 4. Evidence payload contract
+
+Return only the eleven governed fields:
+
+```text
+RecordVersion
+Phase
+RunId
+DatabasePathIdentity
+SchemaVersion
+JournalMode
+AcceptedEvidenceIdentity
+AcceptedEvidenceCount
+IntegrityCheck
+QuickCheck
+PersistenceContinuity
+```
+
+No response may include:
+
+- capability token;
+- secrets;
+- environment dumps;
+- connection strings;
+- publishing credentials;
+- authorization headers;
+- arbitrary filesystem paths;
+- arbitrary file contents;
+- SQLite query results.
+
+No arbitrary file/path/database query parameter is permitted.
+
+## 5. Durable source-of-truth contract
+
+Implement:
+
+```text
+H1-S2
+```
+
+The endpoint reads the .NET application's own atomic durable qualification JSON artifact.
+
+The application may read its own artifact.
+
+The PowerShell helper must not read `/home` directly.
+
+The helper must not inspect SQLite directly.
+
+Preserve existing durable-write semantics:
+
+- canonical JSON payload;
+- atomic write;
+- write failure => qualification failure;
+- no second persistence implementation.
+
+## 6. Exact-run attribution
+
+Require:
+
+```text
+request runId == artifact RunId
+```
+
+A stale or wrong-run artifact must not be accepted.
+
+Do not return a "latest" record implicitly.
+
+Wrong-run behavior must be deterministic and tested.
+
+## 7. Capability-token contract
+
+The verification workflow must use a high-entropy temporary per-run token.
+
+Rules:
+
+- generated by helper/caller;
+- supplied only through temporary qualification app setting;
+- required in `X-WP04-Evidence-Token`;
+- never persisted in evidence JSON;
+- never logged;
+- never printed;
+- never returned in HTTP response;
+- never committed;
+- removed/restored after qualification.
+
+Missing/incorrect token must fail deterministically.
+
+Do not introduce a general-purpose authentication subsystem.
+
+## 8. Qualification Worker HTTP host
+
+In qualification HTTP mode only, add the minimum .NET HTTP hosting needed to bind:
+
+```text
+0.0.0.0:8501
+```
+
+Requirements:
+
+- only the governed endpoint is exposed;
+- no general controller/API surface;
+- no unrelated middleware;
+- no separate persistence ownership;
+- process runs as the existing non-root `aiq` user after governed filesystem preparation;
+- host remains alive only for bounded evidence-serving lifetime.
+
+The Worker must not attempt to bind port 8501 outside qualification HTTP mode.
+
+## 9. Bounded serving lifetime
+
+After qualification succeeds and the durable artifact is written:
+
+1. start/continue the evidence-serving host;
+2. accept only exact token + exact run;
+3. exit successfully after exact evidence retrieval;
+4. exit/fail after bounded timeout.
+
+Maximum serving window:
+
+```text
+180 seconds
+```
+
+Do not remain alive indefinitely.
+
+Container exit status must equal Worker exit status.
+
+## 10. Readiness semantics
+
+The helper polls every:
+
+```text
+5 seconds
+```
+
+for at most:
+
+```text
+180 seconds
+```
+
+Select one semantically correct retryable "not ready" status from:
+
+```text
+404
+409
+425
+```
+
+and use it consistently.
+
+Required behavior:
+
+```text
+exact valid record -> 200
+not ready -> selected retryable non-200
+wrong run -> terminal
+invalid token -> terminal
+malformed artifact -> terminal
+internal qualification failure -> terminal
+timeout -> terminal
+```
+
+Do not use App Service `Running` as evidence completion.
+
+Do not use fixed sleep as the only readiness mechanism.
+
+## 11. Entrypoint single-listener substitution
+
+Modify:
+
+```text
+container/entrypoint.sh
+```
+
+to preserve normal mode and add the exact qualification-mode composition.
+
+### Normal mode
+
+If the two required qualification signals are not both present:
+
+```text
+Worker starts exactly as before
+Streamlit starts exactly as before
+Streamlit binds 0.0.0.0:8501
+```
+
+No behavioral drift is permitted.
+
+### Qualification HTTP mode
+
+Only when both are true:
+
+```text
+Worker__Mode=PersistentSqliteQualification
+PersistentSqliteQualification__HttpEvidenceEnabled=true
+```
+
+then:
+
+```text
+start Worker only
+do not start Streamlit
+Worker binds 0.0.0.0:8501
+wait for Worker
+propagate Worker exit status as container exit status
+```
+
+Do not use image tag, generic environment state, or Azure-specific inference to enter this mode.
+
+## 12. Existing non-root container contract
+
+Preserve the accepted E2-A behavior:
+
+- root may prepare only the configured SQLite parent;
+- owner remains `aiq:aiq`;
+- mode remains `0750`;
+- privileges permanently drop to `aiq`;
+- qualification HTTP Worker runs non-root;
+- Streamlit remains non-root in normal mode.
+
+Do not weaken this contract.
+
+## 13. Docker/App Service port contract
+
+Do **not** modify Dockerfile.
+
+Existing:
+
+```text
+EXPOSE 8501
+```
+
+must serve both:
+
+- Streamlit in normal mode;
+- Worker evidence host in qualification mode.
+
+Do **not** modify Azure port configuration under this authority.
+
+## 14. Verification helper remediation
+
+Modify:
+
+```text
+eng/azure-cli/r1.12-deployment/wp04-persistent-sqlite/verify-persistent-sqlite-webapp.ps1
+```
+
+to use the public App Service endpoint instead of Kudu VFS.
+
+Required flow:
+
+1. generate or accept fresh exact RunId;
+2. generate high-entropy temporary evidence token;
+3. snapshot existing temporary D3 settings;
+4. apply:
+   - Worker qualification mode;
+   - phase;
+   - RunId;
+   - durable evidence output path;
+   - HTTP evidence enabled;
+   - HTTP evidence token;
+5. perform only the caller-authorized lifecycle action;
+6. poll:
+
+```text
+https://<app-host>/internal/wp04/persistence-qualification?runId=<exact-run-id>
+```
+
+with:
+
+```text
+X-WP04-Evidence-Token: <temporary token>
+```
+
+7. poll every 5 seconds;
+8. stop by 180 seconds;
+9. retry only the selected not-ready status;
+10. validate exact eleven-field payload;
+11. require exact RunId equality;
+12. restore temporary settings;
+13. fail nonzero on timeout, wrong run, malformed payload, invalid field, terminal HTTP status, or restore failure.
+
+The helper must:
+
+- never print the token;
+- never use Kudu VFS for evidence;
+- never inspect SQLite directly.
+
+## 15. Required tests
+
+Create targeted tests covering at minimum:
+
+- endpoint disabled by default;
+- qualification activation required;
+- missing token rejected;
+- incorrect token rejected;
+- correct token accepted;
+- exact RunId accepted;
+- stale/wrong RunId rejected;
+- malformed durable artifact rejected;
+- exact eleven-field payload only;
+- no secret/token leakage;
+- not-ready status is retryable and non-200;
+- success causes bounded completion;
+- timeout causes bounded failure;
+- arbitrary file access impossible;
+- no SQLite endpoint/query capability;
+- qualification host binds expected port;
+- normal mode does not start qualification host.
+
+Add test-project references/packages only through the two already-authorized project files.
+
+## 16. Entrypoint/container local validation
+
+Perform local container/process validation for both modes.
+
+### Normal mode must prove
+
+```text
+Worker starts
+Streamlit starts
+Streamlit owns 8501
+qualification endpoint unavailable
+```
+
+### Qualification HTTP mode must prove
+
+```text
+Worker starts
+Streamlit does not start
+Worker owns 8501
+exact endpoint reachable
+wrong token fails
+wrong run fails
+exact token + run succeeds
+Worker exits after retrieval
+container exits with Worker status
+```
+
+Also prove timeout behavior without leaving orphan processes.
+
+No Dockerfile mutation is allowed.
+
+A local Docker build/run may be used strictly for validation if needed, but this authority does **not** authorize image publication or GHCR mutation.
+
+## 17. Build/test gates
+
+Require:
+
+```text
+dotnet build -c Release
+```
+
+with:
+
+```text
+0 warnings
+0 errors
+```
+
+Run and pass:
+
+- Domain tests;
+- Application tests;
+- Architecture tests;
+- Infrastructure tests;
+- targeted qualification endpoint tests.
+
+Use established repository commands where available.
+
+## 18. Signing contract
+
+Preserve the corrected contract:
+
+```text
+Release build: required
+Release Authenticode: not required
+Debug local signing: required
+Expected signer: CN=AIQuantTradingDev
+```
+
+Do not manually sign Release binaries.
+
+Do not modify tracked signing policy.
+
+Required marker:
+
+`RELEASE 1.12 WP04 — CORRECTED SIGNING GATE: PASS`
+
+## 19. Static/security validation
+
+Require:
+
+- PowerShell AST parse: 0 errors;
+- shell syntax validation for `container/entrypoint.sh`;
+- `git diff --check`: pass;
+- Gitleaks: pass on all eight authorized paths;
+- direct SQLite access scan in helper: 0;
+- active Kudu VFS evidence retrieval scan: 0;
+- Streamlit/Python persistence ownership additions: 0;
+- exact tracked diff equals the eight-path allowlist.
+
+No README mutation.
+
+No schema mutation.
+
+## 20. Git mutation boundary
+
+This authority permits:
+
+```text
+working-tree edits on exactly the eight authorized paths
+local build/test/static validation
+local container/process validation
+```
+
+It does **not** authorize:
+
+- staging;
+- commit;
+- push;
+- tag;
+- GHCR publication;
+- Azure mutation;
+- SCM policy mutation;
+- App Service restart/redeploy;
+- PR creation;
+- issue closure;
+- Project #2 mutation;
+- milestone mutation.
+
+A separate Terra candidate-publication authority is required after local success.
+
+## 21. SCM basic-auth state
+
+Current Azure SCM basic-auth remains historically:
+
+```text
+allow=true
+```
+
+Do not mutate Azure here.
+
+Because R1/E1 does not require Kudu, a later Azure authority must restore:
+
+```text
+allow=false
+```
+
+before final WP04 acceptance.
+
+FTP remains:
+
+```text
+allow=false
+```
+
+## 22. Stop conditions
+
+STOP if any of the following occurs:
+
+- a ninth tracked path is required;
+- Dockerfile change becomes necessary;
+- Azure port configuration change becomes necessary;
+- schema change becomes necessary;
+- README change becomes necessary;
+- Streamlit/Python persistence ownership is introduced;
+- qualification mode cannot be detected solely from the two governed signals;
+- Worker cannot own port 8501 exclusively in qualification mode;
+- normal Worker + Streamlit composition regresses;
+- container exit code cannot match Worker exit status;
+- token secrecy cannot be preserved;
+- exact-run attribution cannot be enforced;
+- bounded lifetime cannot be proven;
+- direct SQLite inspection becomes necessary;
+- tracked signing policy would need modification;
+- paid infrastructure would be required.
+
+Do not widen scope. Return blocked evidence for Luna reconciliation.
+
+## 23. Exact mutation accounting
+
+Authorized mutation:
+
+```text
+Repository working tree:
+  exactly 8 governed paths
+```
+
+Expected zero:
+
+```text
+Git staging mutations: 0
+Git commit mutations: 0
+Git push mutations: 0
+Git tag mutations: 0
+GHCR publication mutations: 0
+Azure mutations: 0
+Provider mutations: 0
+PR mutations: 0
+Issue mutations: 0
+Project #2 mutations: 0
+Milestone mutations: 0
+```
+
+If local Docker build/run is used for validation, report those local Docker mutations separately and clean temporary containers/images/volumes created solely by the validation unless an existing governed candidate image is intentionally reused.
+
+## 24. Required return evidence
+
+Return:
+
+- exact eight changed paths and operations;
+- implementation summary;
+- selected not-ready HTTP status;
+- exact port-binding behavior;
+- exact entrypoint mode detection behavior;
+- normal-mode local validation;
+- qualification-mode local validation;
+- endpoint token/run attribution proof;
+- bounded retrieval/timeout proof;
+- Release build result;
+- all test counts;
+- PowerShell AST result;
+- shell syntax result;
+- Gitleaks result;
+- direct-SQLite scan result;
+- active-Kudu-VFS scan result;
+- Debug signing result;
+- `git diff --check`;
+- Git status showing no staged changes;
+- local Docker mutation/cleanup accounting if used;
+- exact overall mutation audit.
+
+Do not return any evidence token.
+
+## 25. Terminal markers
+
+Full success requires:
+
+`RELEASE 1.12 WP04 — QUALIFICATION SINGLE-LISTENER IMPLEMENTATION: PASS`
+
+`RELEASE 1.12 WP04 — NORMAL RUNTIME COMPOSITION PRESERVATION: PASS`
+
+`RELEASE 1.12 WP04 — QUALIFICATION PORT-8501 OWNERSHIP: PASS`
+
+`RELEASE 1.12 WP04 — STREAMLIT SUPPRESSION IN QUALIFICATION MODE: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE ENDPOINT IMPLEMENTATION: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE ENDPOINT DISABLED-BY-DEFAULT: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE EXACT-RUN ATTRIBUTION: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE CAPABILITY-TOKEN CONTRACT: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE BOUNDED LIFETIME: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE DETERMINISTIC READINESS: PASS`
+
+`RELEASE 1.12 WP04 — HTTP EVIDENCE HELPER REMEDIATION: PASS`
+
+`RELEASE 1.12 WP04 — CORRECTED SIGNING GATE: PASS`
+
+`RELEASE 1.12 WP04 — EIGHT-PATH IMPLEMENTATION PAYLOAD: PASS`
+
+`RELEASE 1.12 WP04 — QUALIFICATION RUNTIME IMPLEMENTATION MUTATION AUDIT: PASS`
+
+`RELEASE 1.12 WP04 — TERRA QUALIFICATION RUNTIME IMPLEMENTATION COMPLETE`
+
+`RELEASE 1.12 WP04 — TERRA CANDIDATE PUBLICATION AUTHORITY: READY`
+
+Blocked execution:
+
+`RELEASE 1.12 WP04 — QUALIFICATION RUNTIME IMPLEMENTATION: BLOCKED`
+
+`RELEASE 1.12 WP04 — EXECUTION AUTHORITY BLOCKED`
