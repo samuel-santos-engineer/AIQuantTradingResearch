@@ -136,7 +136,24 @@ function Get-ApplicationEvidenceArtifact {
         $effectiveRequestTimeoutSeconds = [Math]::Min($nominalRequestTimeoutSeconds, [int][Math]::Floor($remainingSeconds))
         try {
             $response = Invoke-WebRequest -Uri $uri -Headers $headers -UseBasicParsing -TimeoutSec $effectiveRequestTimeoutSeconds -ErrorAction Stop
-            if ($response.StatusCode -eq 200) { Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode 200; return [string]$response.Content }
+            if ($response.StatusCode -eq 200) {
+                # During an App Service configuration/restart handoff, the
+                # front door can briefly serve the previous Streamlit HTML
+                # listener before routing to the qualification listener. A
+                # JSON response still proceeds to the exact semantic checks;
+                # only this known transitional HTML response is retried
+                # inside the existing bounded poll budget.
+                $contentType = [string]$response.Headers['Content-Type']
+                if ($contentType -match '^(?i:text/html)') {
+                    Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode 200 -FailureClass 'FrontDoorTransition'
+                    $remainingMilliseconds = [int][Math]::Floor(($pollBudgetSeconds - $pollStopwatch.Elapsed.TotalSeconds) * 1000)
+                    if ($remainingMilliseconds -lt 1) { $script:WP04EvidenceTerminalClass = 'Timeout'; throw 'Application-owned HTTP evidence retrieval timed out within the governed poll budget.' }
+                    Start-Sleep -Milliseconds ([Math]::Min(5000, $remainingMilliseconds))
+                    continue
+                }
+                Write-HttpEvidencePollDiagnostic -Attempt $attempt -StatusCode 200
+                return [string]$response.Content
+            }
             throw "The application evidence endpoint returned HTTP $($response.StatusCode)."
         }
         catch {
