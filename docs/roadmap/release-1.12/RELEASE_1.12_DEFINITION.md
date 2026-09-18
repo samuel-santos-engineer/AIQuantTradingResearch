@@ -18,6 +18,8 @@ Release 1.12 makes the already-qualified bounded reference deployment reproducib
 
 The result is a bounded recruiter/reference/demo environment, not production hosting. F1 limitations remain 60 CPU minutes/day, 1 GB storage, shared capacity, throttling, cold starts, and no SLA.
 
+West Central US remains the historical primary target for accepted feasibility and WP03/WP04 evidence. Confirmed F1 quota exhaustion may use the bounded recovery order `West Central US → West US 2 → Central US → South Central India` under the constrained-infrastructure quota-recovery governance. Regional recovery reuses the accepted image without a source change or rebuild, requires fresh F1 capacity proof before provisioning, and does not invalidate accepted historical evidence. Each recovered target requires independently user-configured runtime secrets; recovery is neither production HA nor WP07 restart/recycle/redeploy acceptance.
+
 ## Scope
 
 In scope: deterministic container composition; free image publication; reproducible F1 provisioning; `/home` SQLite initialization/update/recovery; secret-safe bounded Twelve Data refresh; public Streamlit/System Health; restart/recycle/redeploy recovery; low-cost diagnostics; deployment, rollback, secret rotation, cost, teardown, and acceptance runbooks.
