@@ -27,7 +27,7 @@ Every WP must name Luna/Terra/Sol, its exact paths, dependencies, mutation bound
 | Build/tests | relevant .NET build/tests, Python tests, Streamlit 1.61.1 and dependency health |
 | Security | Gitleaks 8.30.1 policy, no credentials/API keys/secrets in Git, image, logs, or output |
 | Container | reproducible build, digest and provenance, Linux runtime and health |
-| Azure F1 | West Central US, F1/Free plan, HTTPS, required settings, complete inventory |
+| Azure F1 | West Central US historical primary target; governed quota recovery order West US 2, Central US, then South Central India; Linux F1/Free plan, HTTPS, required settings, fresh capacity proof before alternate provisioning, complete inventory |
 | Persistence | `/home` SQLite integrity, DELETE journal, restart/recycle/redeploy recovery |
 | Provider | bounded Twelve Data success, missing/invalid/network failure isolation, recovery |
 | Presentation | canonical read-model chain, truthful System Health, no Streamlit bypass |
@@ -38,6 +38,8 @@ Every WP must name Luna/Terra/Sol, its exact paths, dependencies, mutation bound
 No Azure SQL, Azure Files, Container Apps, mandatory ACR, paid tier/networking/monitoring, live trading, ML/backtesting, schema migration, production SLA, or Release 2.0 scope. Azure remains deployment-only. The inherited strict cost marker is:
 
 `ACTUAL RECURRING INFRASTRUCTURE COST: $0.00`
+
+Regional F1 recovery preserves accepted WP03/WP04 historical evidence, reuses the accepted image without a rebuild, and requires user-controlled secret configuration independently on every new target. It is bounded recovery topology only and does not grant WP07 deployment-stability acceptance or introduce a production HA/SLA claim.
 
 ## Lifecycle and mutation audit
 
