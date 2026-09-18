@@ -7,6 +7,14 @@
 
 ---
 
+## Current Release Status
+
+**Release 1.12 — Public Reference Deployment Implementation & Stabilization** is the current Phase 4 milestone. WP01-WP07 are accepted and lifecycle-complete; WP08 documentation, operational runbook, and final release acceptance are in progress. The accepted reference deployment is West US 2 on Azure App Service Linux F1/Free using a public GHCR immutable image and persistent `/home` SQLite. This status does not claim Release 1.12 publication, production readiness, an SLA, or high availability.
+
+Initiative-1.11 remains historical feasibility evidence, not Product Release 1.11. The historical West Central US target is retained as evidence; constrained-infrastructure recovery follows the governed order West Central US → West US 2 → Central US → South Central India.
+
+---
+
 # Vision
 
 AIQuantTradingResearch advances through small, verifiable releases that add

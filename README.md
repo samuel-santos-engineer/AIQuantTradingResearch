@@ -4,7 +4,7 @@
 
 > A production-oriented quantitative research and platform-engineering project built around deterministic market-data pipelines, durable evidence, governed .NET/Python interoperability, observability, and reproducible public-reference deployment.
 
-[![Release](https://img.shields.io/badge/release-1.8-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Release](https://img.shields.io/badge/release-1.12-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
 [![Tests](<https://img.shields.io/badge/tests-281%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
@@ -26,6 +26,8 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 
 ## What Works Today
 
+**Release 1.12 status:** WP01-WP07 are accepted and lifecycle-complete. WP08 documentation and final release acceptance are in progress. This is not a Release 1.12 publication, production-readiness, SLA, or high-availability claim.
+
 - **Acquisition & Persistence (v1.1):** High-fidelity Twelve Data ingestion to SQLite.
 - **Dataset Snapshots (v1.2):** Bounded `[from, to)` datasets tied to deterministic SHA-256 identities.
 - **Research Pipeline (v1.3):** Structured 5-stage orchestration from retrieval to registration.
@@ -37,6 +39,8 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 - **Governed Real-Time-Style Visualization (v1.9):** Canonical .NET visualization read model with atomic JSON handoff to Python/Streamlit, deterministic/replay/simulated provenance disclosure, and truthful `Ready` / `WarmUp` / `Empty` / `Failed` presentation states.
 - **OpenTelemetry & Pipeline Observability (v1.10):** OpenTelemetry-based pipeline and boundary observability with truthful Streamlit System Health diagnostics while preserving existing .NET, Python, persistence, and visualization ownership boundaries.
 - **Public Reference Deployment Feasibility (Initiative-1.11):** Azure App Service Linux F1 feasibility qualification completed as **FEASIBLE**, validating a public Docker/GHCR reference-deployment path with HTTPS, persistent `/home`, writable SQLite using DELETE journal mode, and a strict `$0.00` recurring-infrastructure-cost boundary.
+
+**Release 1.12 public reference deployment:** WP01-WP07 are accepted and lifecycle-complete. The accepted West US 2 reference target uses Linux F1/Free, a public GHCR immutable image, persistent `/home`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and public Streamlit/System Health. WP08 remains in progress.
 
 Historical data flows from Twelve Data into durable SQLite and transformed through an Application-owned pipeline into immutable datasets, deterministic features, experiments, provenance, lineage, and bounded discovery. .NET governs Python 3.13/JSON interoperability, Streamlit visualization, and OpenTelemetry health. A supervised non-root Docker runtime supports public GHCR images and automated Azure App Service F1 deployment with HTTPS, persistent /home, and SQLite compatibility.
 
