@@ -2,5 +2,7 @@ namespace AIQuantTradingResearch.Application.Research;
 
 public interface IResearchUseCase
 {
-    ResearchOutcome Execute(ResearchRequest request);
+    Task<ResearchOutcome> ExecuteAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default);
 }

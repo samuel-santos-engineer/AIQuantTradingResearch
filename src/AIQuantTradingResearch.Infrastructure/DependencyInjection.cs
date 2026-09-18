@@ -34,11 +34,13 @@ public static class DependencyInjection
             static _ => new HttpClient
             {
                 BaseAddress = new Uri("https://api.twelvedata.com/"),
+                Timeout = Timeout.InfiniteTimeSpan,
             });
         services.AddSingleton(
             serviceProvider => new TwelveDataClient(
                 serviceProvider.GetRequiredService<HttpClient>(),
-                configuration.ApiKey));
+                configuration.ApiKey,
+                configuration.RequestTimeout));
         services.AddSingleton<IObservationSource, TwelveDataObservationSource>();
         services.AddSingleton<SimulatedLiveReplayConfiguration>();
         services.AddSingleton<SimulatedLiveObservationSource>();

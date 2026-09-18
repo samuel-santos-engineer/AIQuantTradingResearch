@@ -10,14 +10,21 @@ internal sealed class TwelveDataClient
 
     private readonly HttpClient httpClient;
     private readonly string apiKey;
+    private readonly TimeSpan requestTimeout;
 
-    public TwelveDataClient(HttpClient httpClient, string apiKey)
+    public TwelveDataClient(HttpClient httpClient, string apiKey, TimeSpan? requestTimeout = null)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         ArgumentException.ThrowIfNullOrWhiteSpace(apiKey);
+        var effectiveRequestTimeout = requestTimeout ?? TimeSpan.FromSeconds(TwelveDataConfiguration.DefaultRequestTimeoutSeconds);
+        if (effectiveRequestTimeout <= TimeSpan.Zero)
+        {
+            throw new ArgumentOutOfRangeException(nameof(requestTimeout));
+        }
 
         this.httpClient = httpClient;
         this.apiKey = apiKey;
+        this.requestTimeout = effectiveRequestTimeout;
     }
 
     public async Task<TwelveDataTransportResult> GetTimeSeriesAsync(
@@ -32,13 +39,18 @@ internal sealed class TwelveDataClient
             BuildRequestUri(symbol, outputSize));
         request.Headers.Authorization = new AuthenticationHeaderValue("apikey", apiKey);
 
+        using var deadline = new CancellationTokenSource(requestTimeout);
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            deadline.Token);
+
         try
         {
             using var response = await httpClient.SendAsync(
                 request,
                 HttpCompletionOption.ResponseHeadersRead,
-                cancellationToken);
-            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+                linkedCancellation.Token);
+            var content = await response.Content.ReadAsStringAsync(linkedCancellation.Token);
 
             try
             {
@@ -72,6 +84,20 @@ internal sealed class TwelveDataClient
                     true,
                     null);
             }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException) when (deadline.IsCancellationRequested)
+        {
+            return new TwelveDataTransportResult(
+                null,
+                null,
+                null,
+                false,
+                null,
+                IsDeadlineExceeded: true);
         }
         catch (HttpRequestException exception)
         {

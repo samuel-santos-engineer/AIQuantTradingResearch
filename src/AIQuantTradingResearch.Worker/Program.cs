@@ -1,3 +1,4 @@
+using System.Globalization;
 using AIQuantTradingResearch.Application;
 using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Features;
@@ -12,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 var builder = Host.CreateApplicationBuilder(args);
 var apiKeyPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.ApiKeyName}";
+var requestTimeoutSecondsPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.RequestTimeoutSecondsName}";
 var databasePath = $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConfiguration.DatabasePathName}";
 var createParentDirectoryForInitializationPath =
     $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConfiguration.CreateParentDirectoryForInitializationName}";
@@ -74,12 +76,17 @@ if (isPersistentSqliteQualificationRequested)
 }
 else try
 {
+    var configuredRequestTimeoutSeconds = builder.Configuration[requestTimeoutSecondsPath];
+    var requestTimeoutSeconds = string.IsNullOrWhiteSpace(configuredRequestTimeoutSeconds)
+        ? TwelveDataConfiguration.DefaultRequestTimeoutSeconds
+        : int.Parse(configuredRequestTimeoutSeconds, CultureInfo.InvariantCulture);
     twelveDataConfiguration = new TwelveDataConfiguration(
-        builder.Configuration[apiKeyPath] ?? string.Empty);
+        builder.Configuration[apiKeyPath] ?? string.Empty,
+        requestTimeoutSeconds);
 }
-catch (ArgumentException)
+catch (Exception exception) when (exception is ArgumentException or FormatException or OverflowException)
 {
-    Console.Error.WriteLine($"Missing mandatory configuration: {apiKeyPath}.");
+    Console.Error.WriteLine($"Invalid mandatory configuration: {apiKeyPath} or {requestTimeoutSecondsPath}.");
     return 1;
 }
 

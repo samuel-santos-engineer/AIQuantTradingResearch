@@ -197,11 +197,13 @@ public sealed class ResearchUseCaseTests
 
         public ResearchRequest? LastRequest { get; private set; }
 
-        public ObservationSourceResult GetObservations(ResearchRequest request)
+        public Task<ObservationSourceResult> GetObservationsAsync(
+            ResearchRequest request,
+            CancellationToken cancellationToken = default)
         {
             CallCount++;
             LastRequest = request;
-            return configuredResult;
+            return Task.FromResult(configuredResult);
         }
     }
 }

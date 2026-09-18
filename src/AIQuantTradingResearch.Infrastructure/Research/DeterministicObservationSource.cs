@@ -26,22 +26,25 @@ internal sealed class DeterministicObservationSource : IObservationSource
     {
     }
 
-    public ObservationSourceResult GetObservations(ResearchRequest request)
+    public Task<ObservationSourceResult> GetObservationsAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
         if (!string.Equals(request.Target, SupportedTarget, StringComparison.Ordinal))
         {
-            return ObservationSourceResult.Failed(ObservationSourceFailure.UnsupportedTarget);
+            return Task.FromResult(ObservationSourceResult.Failed(ObservationSourceFailure.UnsupportedTarget));
         }
 
         if (request.RequestedObservationCount <= 0
             || request.RequestedObservationCount > AvailableObservations.Count)
         {
-            return ObservationSourceResult.Failed(ObservationSourceFailure.InsufficientObservations);
+            return Task.FromResult(ObservationSourceResult.Failed(ObservationSourceFailure.InsufficientObservations));
         }
 
-        return ObservationSourceResult.ObservationsAvailable(
-            AvailableObservations.Take(request.RequestedObservationCount));
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(ObservationSourceResult.ObservationsAvailable(
+            AvailableObservations.Take(request.RequestedObservationCount)));
     }
 }
