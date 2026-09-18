@@ -12,7 +12,9 @@ internal sealed class ResearchUseCase : IResearchUseCase
         this.observationSource = observationSource;
     }
 
-    public ResearchOutcome Execute(ResearchRequest request)
+    public async Task<ResearchOutcome> ExecuteAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -21,7 +23,7 @@ internal sealed class ResearchUseCase : IResearchUseCase
             return ResearchOutcome.Failed(ResearchFailure.InvalidRequest);
         }
 
-        var sourceResult = observationSource.GetObservations(request)
+        var sourceResult = await observationSource.GetObservationsAsync(request, cancellationToken)
             ?? throw new InvalidOperationException("The observation source returned no result.");
 
         if (!sourceResult.IsSuccess)

@@ -26,8 +26,14 @@ internal sealed class SimulatedLiveObservationSource : IObservationSource, ISimu
         this.configuration.Validate();
     }
 
-    public ObservationSourceResult GetObservations(ResearchRequest request) =>
-        ObservationSourceResult.Failed(ObservationSourceFailure.UnsupportedTarget);
+    public Task<ObservationSourceResult> GetObservationsAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(ObservationSourceResult.Failed(ObservationSourceFailure.UnsupportedTarget));
+    }
 
     public ReplayObservationResult Replay(ReplayRequest request, CancellationToken cancellationToken = default)
     {

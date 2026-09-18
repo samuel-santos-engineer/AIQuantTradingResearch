@@ -146,6 +146,29 @@ public sealed class TwelveDataClientTests
             () => client.GetTimeSeriesAsync("SYNTHETIC", 3, cancellationSource.Token));
     }
 
+    [Fact]
+    public async Task GetTimeSeriesAsyncReturnsDeadlineEvidenceAfterOneCancelledAttempt()
+    {
+        using var handler = new TwelveDataTestHttpMessageHandler(
+            static (_, cancellationToken) =>
+            {
+                var completion = new TaskCompletionSource<HttpResponseMessage>(
+                    TaskCreationOptions.RunContinuationsAsynchronously);
+                cancellationToken.Register(
+                    static state => ((TaskCompletionSource<HttpResponseMessage>)state!).TrySetCanceled(),
+                    completion);
+                return completion.Task;
+            });
+        using var httpClient = CreateHttpClient(handler);
+        var client = new TwelveDataClient(httpClient, PlaceholderApiKey, TimeSpan.FromMilliseconds(100));
+
+        var result = await client.GetTimeSeriesAsync("SYNTHETIC", 3);
+
+        Assert.True(result.IsDeadlineExceeded);
+        Assert.Equal(1, handler.CallCount);
+        Assert.Null(result.TransportException);
+    }
+
     internal static HttpClient CreateHttpClient(HttpMessageHandler handler) =>
         new(handler)
         {

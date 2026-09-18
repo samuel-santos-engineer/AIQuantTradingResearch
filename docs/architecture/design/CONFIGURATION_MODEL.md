@@ -246,6 +246,13 @@ The current Worker validates external `TwelveData:ApiKey` and
 values, preserve their supplied offsets, and must form a valid `[from,to)`
 interval. Target text is preserved exactly.
 
+WP05 bounds each Twelve Data request with the optional
+`TwelveData:RequestTimeoutSeconds` setting. Its default is 10 seconds and its
+maximum is 30 seconds; values outside `1..30` fail configuration validation.
+The single provider attempt covers both response headers and content retrieval.
+Caller cancellation remains distinct from provider-deadline expiry, and the
+provider has no automatic retry policy.
+
 Release 1.3 adds no `Pipeline:*` configuration. The fixed topology, identity
 scheme, stage order, and fail-stop policy are Application semantics rather than
 operational switches. No implicit dataset default, in-memory fallback,

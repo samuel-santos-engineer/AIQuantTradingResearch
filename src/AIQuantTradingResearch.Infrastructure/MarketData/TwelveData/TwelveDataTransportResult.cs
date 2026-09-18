@@ -7,4 +7,5 @@ internal sealed record TwelveDataTransportResult(
     TwelveDataTimeSeriesResponse? Response,
     TwelveDataErrorResponse? Error,
     bool IsPayloadUnreadable,
-    HttpRequestException? TransportException);
+    HttpRequestException? TransportException,
+    bool IsDeadlineExceeded = false);

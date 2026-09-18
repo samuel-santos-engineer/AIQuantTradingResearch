@@ -2,7 +2,9 @@ namespace AIQuantTradingResearch.Application.Research;
 
 public interface IObservationSource
 {
-    ObservationSourceResult GetObservations(ResearchRequest request);
+    Task<ObservationSourceResult> GetObservationsAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default);
 
     ReplayObservationResult Replay(
         ReplayRequest request,

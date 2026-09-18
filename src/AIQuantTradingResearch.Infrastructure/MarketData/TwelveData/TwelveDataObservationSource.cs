@@ -13,7 +13,9 @@ internal sealed class TwelveDataObservationSource : IObservationSource
         this.client = client;
     }
 
-    public ObservationSourceResult GetObservations(ResearchRequest request)
+    public async Task<ObservationSourceResult> GetObservationsAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -27,13 +29,12 @@ internal sealed class TwelveDataObservationSource : IObservationSource
             return Failed(ObservationSourceFailure.InsufficientObservations);
         }
 
-        var transportResult = client.GetTimeSeriesAsync(
-                request.Target,
-                request.RequestedObservationCount)
-            .GetAwaiter()
-            .GetResult();
+        var transportResult = await client.GetTimeSeriesAsync(
+            request.Target,
+            request.RequestedObservationCount,
+            cancellationToken);
 
-        if (transportResult.TransportException is not null)
+        if (transportResult.IsDeadlineExceeded || transportResult.TransportException is not null)
         {
             return Failed(ObservationSourceFailure.SourceUnavailable);
         }

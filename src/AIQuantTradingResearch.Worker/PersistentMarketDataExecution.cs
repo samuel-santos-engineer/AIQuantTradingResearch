@@ -19,11 +19,13 @@ internal sealed class PersistentMarketDataExecution
         this.persistenceUseCase = persistenceUseCase;
     }
 
-    public int Execute(ResearchRequest request)
+    public async Task<int> ExecuteAsync(
+        ResearchRequest request,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var sourceResult = observationSource.GetObservations(request)
+        var sourceResult = await observationSource.GetObservationsAsync(request, cancellationToken)
             ?? throw new InvalidOperationException("The observation source returned no result.");
 
         if (!sourceResult.IsSuccess)
