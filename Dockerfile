@@ -27,7 +27,7 @@ COPY --from=dotnet-runtime /usr/share/dotnet /usr/share/dotnet
 WORKDIR /app
 
 RUN apt-get update \
-    && apt-get install --no-install-recommends --yes libicu76 \
+    && apt-get install --no-install-recommends --yes gosu libicu76 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
@@ -43,6 +43,8 @@ RUN chmod 0555 /usr/local/bin/aiq-entrypoint \
     && useradd --create-home --shell /usr/sbin/nologin aiq \
     && chown -R aiq:aiq /app /runtime
 
-USER aiq
+# The entrypoint prepares only the configured persistence parent, then drops
+# permanently to this account before starting the Worker or Streamlit.
+USER root
 EXPOSE 8501
 ENTRYPOINT ["/usr/local/bin/aiq-entrypoint"]

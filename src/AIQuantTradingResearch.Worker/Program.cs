@@ -1,6 +1,7 @@
 using AIQuantTradingResearch.Application;
 using AIQuantTradingResearch.Application.Experiments;
 using AIQuantTradingResearch.Application.Features;
+using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Infrastructure;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
@@ -12,6 +13,13 @@ using Microsoft.Extensions.DependencyInjection;
 var builder = Host.CreateApplicationBuilder(args);
 var apiKeyPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.ApiKeyName}";
 var databasePath = $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConfiguration.DatabasePathName}";
+var createParentDirectoryForInitializationPath =
+    $"{SqliteStorageConfiguration.SectionName}:{SqliteStorageConfiguration.CreateParentDirectoryForInitializationName}";
+var workerMode = builder.Configuration["Worker:Mode"];
+var isPersistentSqliteQualificationRequested = string.Equals(
+    workerMode,
+    PersistentSqliteQualificationConfiguration.ModeName,
+    StringComparison.OrdinalIgnoreCase);
 
 TwelveDataConfiguration twelveDataConfiguration;
 SqliteStorageConfiguration sqliteStorageConfiguration;
@@ -60,7 +68,11 @@ if (!isDurableExperimentDiscoveryRequested && isExperimentExecutionRequested)
     }
 }
 
-try
+if (isPersistentSqliteQualificationRequested)
+{
+    twelveDataConfiguration = new TwelveDataConfiguration("wp04-qualification-no-provider");
+}
+else try
 {
     twelveDataConfiguration = new TwelveDataConfiguration(
         builder.Configuration[apiKeyPath] ?? string.Empty);
@@ -73,12 +85,22 @@ catch (ArgumentException)
 
 try
 {
+    var configuredCreateParentDirectoryForInitialization =
+        builder.Configuration[createParentDirectoryForInitializationPath];
+    if (!string.IsNullOrWhiteSpace(configuredCreateParentDirectoryForInitialization)
+        && !bool.TryParse(configuredCreateParentDirectoryForInitialization, out _))
+    {
+        throw new ArgumentException("The SQLite parent-directory initialization setting must be a Boolean value.");
+    }
+
     sqliteStorageConfiguration = new SqliteStorageConfiguration(
-        builder.Configuration[databasePath] ?? string.Empty);
+        builder.Configuration[databasePath] ?? string.Empty,
+        bool.TryParse(configuredCreateParentDirectoryForInitialization, out var createParentDirectoryForInitialization)
+            && createParentDirectoryForInitialization);
 }
 catch (ArgumentException)
 {
-    Console.Error.WriteLine($"Missing mandatory configuration: {databasePath}.");
+    Console.Error.WriteLine($"Invalid mandatory persistence configuration: {databasePath} or {createParentDirectoryForInitializationPath}.");
     return 1;
 }
 
@@ -95,6 +117,7 @@ catch (ArgumentException)
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(twelveDataConfiguration, sqliteStorageConfiguration);
+builder.Services.AddSingleton(new SqlitePersistenceDiagnostics(sqliteStorageConfiguration));
 builder.Services.AddSingleton(new VisualizationReadModelFilePublisher(visualizationHandoffOptions.HandoffPath));
 builder.Services.AddSingleton<AtomicVisualizationReadModelStore>();
 builder.Services.AddSingleton<IVisualizationReadModelStore>(serviceProvider =>
@@ -106,6 +129,7 @@ builder.Services.AddTransient<FeatureExecution>();
 builder.Services.AddTransient<ExperimentExecution>();
 builder.Services.AddTransient<DurableExperimentExecution>();
 builder.Services.AddTransient<DurableExperimentDiscoveryExecution>();
+builder.Services.AddTransient<PersistentSqliteQualificationExecution>();
 builder.Services.AddSingleton<IWorkerLifecycleLivenessGate>(_ => args.Contains("--wp08-test-liveness", StringComparer.Ordinal)
     ? new TestWorkerLifecycleLivenessGate()
     : new NoOpWorkerLifecycleLivenessGate());
@@ -114,6 +138,26 @@ builder.Services.AddTransient<SimulatedLiveVisualizationExecution>();
 using var host = builder.Build();
 using var observability = new WorkerObservabilityLifecycle();
 observability.MarkReady();
+if (isPersistentSqliteQualificationRequested)
+{
+    try
+    {
+        var qualificationConfiguration = PersistentSqliteQualificationConfiguration.From(builder.Configuration);
+        var qualificationExitCode = host.Services.GetRequiredService<PersistentSqliteQualificationExecution>()
+            .Execute(qualificationConfiguration);
+        if (qualificationExitCode != 0 || !qualificationConfiguration.HttpEvidenceEnabled)
+        {
+            return qualificationExitCode;
+        }
+
+        return await PersistentSqliteQualificationEvidenceEndpoint.ServeAsync(qualificationConfiguration);
+    }
+    catch (ArgumentException)
+    {
+        Console.Error.WriteLine("Invalid mandatory persistent SQLite qualification or durable evidence configuration.");
+        return 1;
+    }
+}
 if (durableExperimentDiscoveryConfiguration is not null)
 {
     return host.Services.GetRequiredService<DurableExperimentDiscoveryExecution>()
@@ -143,7 +187,6 @@ if (isFeatureExecutionRequested)
     }
 }
 
-var workerMode = builder.Configuration["Worker:Mode"];
 if (string.Equals(workerMode, "Replay", StringComparison.OrdinalIgnoreCase)
     || (!string.IsNullOrWhiteSpace(workerMode)
         && !string.Equals(workerMode, "Historical", StringComparison.OrdinalIgnoreCase)))
