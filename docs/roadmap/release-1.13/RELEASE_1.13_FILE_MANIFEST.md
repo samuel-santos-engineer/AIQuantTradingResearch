@@ -8,13 +8,14 @@ This authority may add or modify only these governance records:
 - `docs/roadmap/release-1.13/RELEASE_1.13_DEFINITION.md`
 - `docs/roadmap/release-1.13/RELEASE_1.13_EXECUTION_PLAN.md`
 - `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/RELEASE_1.13_WP01_CONTRACT.md`
 - `docs/roadmap/release-1.13/prompters/release-1.13-historical-market-visualization-provider-abstraction-governance-authority-luna.md`
 
 `README.md` is forbidden and must remain unchanged. Historical Release 1.12 records are excluded because they are historical authority records, not current-roadmap surfaces.
 
 ## Future ownership
 
-No source, test, dependency, configuration, deployment, or UI path is authorized now. Each Release 1.13 WP must supply its own exact literal path allowlist before implementation. Expected ownership is WP01 contract/selection/test-plan records; WP02-WP04 provider/adapter/cache/read-model paths; WP05-WP06 presentation/read-model consumer paths; WP07 validation/deployment-evidence paths; and WP08 documentation/runbook/acceptance records.
+No source, test, dependency, configuration, deployment, or UI path is authorized now. Each Release 1.13 WP must supply its own exact literal path allowlist before implementation. WP01 owns the contract/selection record listed above and its `release-1.13-` authority record; WP02-WP04 must later enumerate literal provider/adapter/cache/read-model paths; WP05-WP06 must later enumerate literal presentation/read-model consumer paths; WP07 must later enumerate literal validation/deployment-evidence paths; and WP08 must later enumerate literal documentation/runbook/acceptance paths.
 
 ## Forbidden paths and artifacts
 
