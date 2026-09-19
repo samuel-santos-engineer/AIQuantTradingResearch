@@ -6,6 +6,7 @@ namespace AIQuantTradingResearch.Infrastructure.MarketData.Cache;
 /// <summary>Bounded, schema-free coordination for one historical cache key.</summary>
 public sealed class AtomicFileHistoricalMarketDataQueryLock
 {
+    private static readonly TimeSpan LeaseDuration = TimeSpan.FromSeconds(35);
     private readonly string directory;
 
     public AtomicFileHistoricalMarketDataQueryLock(string directory)
@@ -20,8 +21,9 @@ public sealed class AtomicFileHistoricalMarketDataQueryLock
         Directory.CreateDirectory(directory);
         var path = Path.Combine(directory, $".{key.Fingerprint}.query.lock");
         var owner = Guid.NewGuid().ToString("N");
-        var expires = DateTimeOffset.UtcNow + deadline + TimeSpan.FromSeconds(5);
-        while (!cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < expires)
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(deadline, TimeSpan.Zero);
+        var acquisitionDeadline = DateTimeOffset.UtcNow + deadline;
+        while (!cancellationToken.IsCancellationRequested && DateTimeOffset.UtcNow < acquisitionDeadline)
         {
             try
             {
@@ -33,7 +35,7 @@ public sealed class AtomicFileHistoricalMarketDataQueryLock
             }
             catch (IOException)
             {
-                TryRecoverExpired(path, deadline + TimeSpan.FromSeconds(5));
+                TryRecoverExpired(path, LeaseDuration);
                 await Task.Delay(TimeSpan.FromMilliseconds(25), cancellationToken);
             }
         }

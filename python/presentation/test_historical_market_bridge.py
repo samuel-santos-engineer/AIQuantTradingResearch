@@ -6,7 +6,7 @@ from historical_market_bridge import *
 
 
 def response(state="Fresh", candles=None):
-    return json.dumps({"contractVersion": CONTRACT_VERSION, "state": state, "symbol": "BTC/USD" if state != "Unavailable" else None, "interval": "1h" if state != "Unavailable" else None, "range": "30D" if state != "Unavailable" else None, "candles": candles if candles is not None else [{"openTimeUtc":"2026-01-01T00:00:00+00:00","open":"10","high":"12","low":"9","close":"11","volume":"20"}], "provider":"Vike", "lastUpdatedUtc":"2026-01-01T00:00:00+00:00", "lastValidatedUtc":"2026-01-01T00:00:00+00:00", "isStale":state == "Stale", "failure":None})
+    return json.dumps({"contractVersion": CONTRACT_VERSION, "state": state, "symbol": "BTC/USD" if state != "Unavailable" else None, "interval": "1h" if state != "Unavailable" else None, "range": "30D" if state != "Unavailable" else None, "candles": candles if candles is not None else ([] if state == "Unavailable" else [{"openTimeUtc":"2026-01-01T00:00:00+00:00","open":"10","high":"12","low":"9","close":"11","volume":"20"}]), "provider":None if state == "Unavailable" else "Vike", "lastUpdatedUtc":None if state == "Unavailable" else "2026-01-01T00:00:00+00:00", "lastValidatedUtc":None if state == "Unavailable" else "2026-01-01T00:00:00+00:00", "isStale":state == "Stale", "failure":"Unavailable" if state == "Unavailable" else None})
 
 
 class HistoricalBridgeTests(unittest.TestCase):
@@ -25,6 +25,15 @@ class HistoricalBridgeTests(unittest.TestCase):
     def test_rejects_malformed_protocol(self):
         with self.assertRaises(BridgeError): parse_response("not-json")
         with self.assertRaises(BridgeError): parse_response(json.dumps({"contractVersion":"wrong"}))
+
+    def test_rejects_inconsistent_order_timestamps_and_state(self):
+        payload = json.loads(response())
+        payload["candles"].append(payload["candles"][0])
+        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
+        payload = json.loads(response("Stale")); payload["isStale"] = False
+        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
+        payload = json.loads(response()); payload["lastUpdatedUtc"] = "2026-01-01T00:00:00"
+        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
 
     def test_invocation_is_fixed_and_shell_free(self):
         calls = []

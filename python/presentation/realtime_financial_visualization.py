@@ -292,6 +292,9 @@ def render_market_research() -> None:
     response = st.session_state.get("wp05_market_response")
     if response is None or response.state == "Unavailable":
         st.warning(PUBLIC_UNAVAILABLE)
+        if st.button("Retry historical data", key="wp05_market_retry"):
+            st.session_state.pop("wp05_market_selection", None)
+            st.rerun()
         return
     if not response.candles:
         st.info("No historical market data is available for this selection.")
