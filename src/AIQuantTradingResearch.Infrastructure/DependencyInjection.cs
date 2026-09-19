@@ -5,6 +5,9 @@ using AIQuantTradingResearch.Application.Research;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Application.Pipelines;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
+using AIQuantTradingResearch.Infrastructure.MarketData.Vike;
+using AIQuantTradingResearch.Infrastructure.MarketData.Cache;
+using AIQuantTradingResearch.Application.MarketData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 using AIQuantTradingResearch.Infrastructure.Research;
 using AIQuantTradingResearch.Infrastructure.Visualization;
@@ -15,6 +18,19 @@ namespace AIQuantTradingResearch.Infrastructure;
 
 public static class DependencyInjection
 {
+    public static IServiceCollection AddHistoricalMarketDataQuery(
+        this IServiceCollection services,
+        VikeConfiguration configuration,
+        string cacheDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(services); ArgumentNullException.ThrowIfNull(configuration);
+        services.AddSingleton(configuration);
+        services.AddSingleton<IHistoricalMarketDataCache>(_ => new AtomicFileHistoricalMarketDataCache(cacheDirectory));
+        services.AddSingleton(new AtomicFileHistoricalMarketDataQueryLock(cacheDirectory));
+        services.AddSingleton<IHistoricalMarketDataProvider>(provider => new VikeHistoricalMarketDataProvider(new HttpClient { BaseAddress = configuration.BaseAddress, Timeout = Timeout.InfiniteTimeSpan }, configuration));
+        services.AddSingleton(provider => new HistoricalMarketDataReadService(provider.GetRequiredService<IHistoricalMarketDataProvider>(), provider.GetRequiredService<IHistoricalMarketDataCache>(), "Vike"));
+        return services;
+    }
     public static IServiceCollection AddInfrastructure(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);

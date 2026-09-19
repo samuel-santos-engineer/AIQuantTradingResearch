@@ -6,6 +6,7 @@ numpy==2.5.1
 pandas==3.0.5
 scikit-learn==1.9.0
 streamlit==1.61.1
+plotly==7.1.0
 #
 # Install only with the repository environment's qualified interpreter:
 #   .venv\Scripts\python.exe -m pip install -r requirements.txt
