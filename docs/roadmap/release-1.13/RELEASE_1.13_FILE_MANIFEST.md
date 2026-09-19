@@ -28,6 +28,18 @@ WP02 may add or modify only these exact paths for the provider-independent histo
 
 This set excludes existing Twelve Data implementation paths, provider adapters, cache/read-model/persistence paths, Streamlit/UI paths, dependency manifests, and deployment configuration.
 
+## WP03 frozen implementation mutation set
+
+WP03 may add or modify only these exact paths for the Vike historical-OHLCV adapter:
+
+- `src/AIQuantTradingResearch.Infrastructure/MarketData/Vike/VikeConfiguration.cs`
+- `src/AIQuantTradingResearch.Infrastructure/MarketData/Vike/VikeHistoricalMarketDataProvider.cs`
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/VikeHistoricalMarketDataProviderTests.cs`
+- `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/prompters/release-1.13-wp03-terra-vike-historical-ohlcv-adapter-implementation-validation.md`
+
+This set excludes Twelve Data changes, application-contract changes, dependency manifests, cache/read-model/persistence, Streamlit/UI, and deployment configuration.
+
 ## Forbidden paths and artifacts
 
 Forbidden: root `README.md`; historical Release 1.12 records; credentials, API keys, certificates, machine-local configuration, caches/build outputs; Azure profile material; unrelated packages; database migrations; Docker/GHCR publication artifacts; tags/releases; Release 1.14 implementation; and Release 2.0 implementation.
