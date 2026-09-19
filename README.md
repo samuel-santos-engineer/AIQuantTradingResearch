@@ -5,7 +5,7 @@
 > A production-oriented quantitative research and platform-engineering project built around deterministic market-data pipelines, durable evidence, governed .NET/Python interoperability, observability, and reproducible public-reference deployment.
 
 [![Release](https://img.shields.io/badge/release-1.12-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-281%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Tests](<https://img.shields.io/badge/tests-379%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
 [![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
@@ -26,7 +26,7 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 
 ## What Works Today
 
-**Release 1.12 status:** WP01-WP07 are accepted and lifecycle-complete. WP08 documentation and final release acceptance are in progress. This is not a Release 1.12 publication, production-readiness, SLA, or high-availability claim.
+**Release 1.12 status:** WP01-WP08 are accepted and lifecycle-complete. Release 1.12 is published as `v1.12.0`, and milestone #63 is closed. It remains a bounded public reference/demo deployment, not a production-readiness, SLA, or high-availability claim.
 
 - **Acquisition & Persistence (v1.1):** High-fidelity Twelve Data ingestion to SQLite.
 - **Dataset Snapshots (v1.2):** Bounded `[from, to)` datasets tied to deterministic SHA-256 identities.
@@ -40,7 +40,7 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 - **OpenTelemetry & Pipeline Observability (v1.10):** OpenTelemetry-based pipeline and boundary observability with truthful Streamlit System Health diagnostics while preserving existing .NET, Python, persistence, and visualization ownership boundaries.
 - **Public Reference Deployment Feasibility (Initiative-1.11):** Azure App Service Linux F1 feasibility qualification completed as **FEASIBLE**, validating a public Docker/GHCR reference-deployment path with HTTPS, persistent `/home`, writable SQLite using DELETE journal mode, and a strict `$0.00` recurring-infrastructure-cost boundary.
 
-**Release 1.12 public reference deployment:** WP01-WP07 are accepted and lifecycle-complete. The accepted West US 2 reference target uses Linux F1/Free, a public GHCR immutable image, persistent `/home`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and public Streamlit/System Health. WP08 remains in progress.
+- **Public Reference Deployment & Stabilization (v1.12):** WP01-WP08 are accepted and lifecycle-complete. Published as `v1.12.0`, the accepted West US 2 reference target uses Linux F1/Free, a public GHCR immutable image, persistent `/home`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and public Streamlit/System Health. Resilience and recovery follow the governed regional order West Central US (historical evidence) → West US 2 → Central US → South Central India, with fresh capacity proof and independently configured runtime secrets for any recovered target.
 
 Historical data flows from Twelve Data into durable SQLite and transformed through an Application-owned pipeline into immutable datasets, deterministic features, experiments, provenance, lineage, and bounded discovery. .NET governs Python 3.13/JSON interoperability, Streamlit visualization, and OpenTelemetry health. A supervised non-root Docker runtime supports public GHCR images and automated Azure App Service F1 deployment with HTTPS, persistent /home, and SQLite compatibility.
 
@@ -292,15 +292,26 @@ mandatory ACR, live trading, or architectural bypasses.
 abandoned/nonexistent; the feasibility evidence from this initiative is consumed
 by Release 1.12 Public Reference Deployment Implementation & Stabilization.
 
-| Evidence                                    | Current baseline |
-| --------------------------------------------- | -----------------: |
-| Permanent automated tests                   |  **281 passing** |
-| Architecture tests                          |   **13 passing** |
-| Build warnings                              |            **0** |
-| Build errors                                |            **0** |
-| Canonical repository verification           |         **PASS** |
-| Provider/network calls in persistence tests |            **0** |
-| Production dependency cycles                |            **0** |
+### [Release 1.12: Public Reference Deployment Implementation & Stabilization](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/63)
+
+Release 1.12 completes the reproducible, bounded public reference/demo deployment lifecycle. It preserves the .NET-owned pipeline, canonical JSON handoff, read-only Streamlit presentation boundary, SQLite persistence model, and runtime-only provider-secret handling established by earlier releases.
+
+The accepted West US 2 Azure App Service Linux F1/Free reference target uses a public GHCR immutable image, public HTTPS/DNS, persistent `/home/data/aiquant.db`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and truthful Streamlit/System Health presentation. WP01-WP08 are accepted and lifecycle-complete; Release 1.12 is published as `v1.12.0`.
+
+Release 1.12 also governs constrained-infrastructure resilience and recovery through the regional order West Central US (historical evidence) → West US 2 → Central US → South Central India. Each recovered target requires fresh capacity proof and independently configured runtime secrets; this is bounded recovery governance, not automatic failover, production HA, or an SLA claim.
+
+| Evidence                                    | Release 1.12 accepted baseline |
+| --------------------------------------------- | ------------------------------: |
+| Automated tests                             |                   **379 passing** |
+| Domain tests                                |                     **11 passing** |
+| Application tests                           |                    **136 passing** |
+| Architecture tests                          |                     **27 passing** |
+| Infrastructure tests                        |                    **205 passing** |
+| Build warnings                              |                             **0** |
+| Build errors                                |                             **0** |
+| Canonical repository verification           |                          **PASS** |
+| Provider/network calls in persistence tests |                             **0** |
+| Production dependency cycles                |                             **0** |
 
 ### Release 1.1 showcase
 
@@ -437,27 +448,31 @@ The repository validates Domain, Application, Infrastructure, Architecture, and 
 
 ### Current execution flow
 
-At Release 1.3, the Worker performs one bounded pipeline invocation and exits:
+Release 1.12 runs the bounded public-reference deployment flow:
 
 ```text
-External dataset and storage configuration
-        │
-        ▼
-      Worker
-        │
-        ▼
-Application-owned fixed Research Pipeline
-        │
-        ▼
-Persisted historical observations → immutable dataset evidence
-        │
-        ▼
-SQLite schema v2 snapshot/catalog evidence
+Public HTTPS/DNS
+        |
+        v
+Azure App Service Linux F1 / public GHCR container
+        |
+        v
+Container entrypoint
+        |
+        +-- .NET Worker: bounded provider, application pipeline, SQLite, JSON handoff
+        |       |
+        |       +-- /home/data/aiquant.db: SQLite schema v4, DELETE journal mode
+        |       `-- canonical read-model JSON
+        |
+        `-- Streamlit: read-only presentation and System Health
 ```
 
-The Worker presents bounded semantic evidence and terminates. There is no
-pipeline-managed provider acquisition, scheduler, retry, refresh loop, DAG,
-checkpoint/resume path, or durable pipeline-run history.
+The Worker owns bounded provider access, application orchestration, persistence,
+and canonical JSON production. Streamlit consumes the handoff without direct
+SQLite/provider/Worker-supervision access. The Worker can complete its bounded
+invocation while the container retains Streamlit for public presentation; there
+is no scheduler, unbounded retry loop, automatic failover, or production HA
+claim.
 
 Release 1.4 adds a separate bounded feature mode selected by exact
 `Feature:SnapshotIdentity` and `Feature:SnapshotVersion`. It resolves the
@@ -476,6 +491,22 @@ ordered bounded durable evidence (including successful empty results), and
 exits. Its precedence is Discovery → Durable Experiment → Experiment →
 Feature → pipeline; it does not write SQLite, regenerate evidence, or call a
 provider.
+
+Release 1.12 adds the bounded public-reference deployment composition while
+preserving those ownership boundaries:
+
+```text
+Public HTTPS/DNS -> Azure App Service Linux F1 -> container entrypoint
+                                               |- .NET Worker: provider, pipeline, SQLite, JSON handoff
+                                               `- Streamlit: read-only presentation and System Health
+```
+
+The Worker owns provider access, the application pipeline, persistent
+`/home/data/aiquant.db`, and the canonical JSON handoff. Streamlit does not
+read SQLite, call providers, or supervise the Worker; after the Worker exits
+successfully, the container retains the Streamlit presentation process. This
+is a bounded public reference/demo flow, not a production HA or automatic
+failover design.
 
 ---
 
@@ -598,13 +629,16 @@ Implemented deployment capability does not include Azure SQL, Azure Files, Conta
 
 ## Planned Technology & Platform Direction
 
-Release 1.12 remaining stabilization covers:
+Release 1.12 is complete and published as `v1.12.0`. Its accepted platform
+baseline includes:
 
 - persistent `/home` SQLite initialization, data update, integrity, and recovery;
 - Twelve Data runtime configuration, secret handling, and bounded automation;
 - deployed public Streamlit/System Health behavior;
 - restart, recycle, redeployment, recovery, cost, and no-bypass validation;
-- operational runbooks and final release acceptance.
+- operational runbooks, final release acceptance, and governed regional recovery
+  across West Central US (historical evidence), West US 2, Central US, and South
+  Central India.
 
 Later governed direction includes:
 
@@ -642,13 +676,13 @@ Each release is intended to add a concrete platform capability while strengtheni
 | **1.9** | Governed real-time-style visualization and canonical JSON handoff |
 | **1.10** | OpenTelemetry pipeline/boundary observability and truthful System Health |
 | **Initiative-1.11** | Azure App Service F1 public-reference feasibility qualification — **FEASIBLE** |
-| **1.12** | Public Reference Deployment Implementation & Stabilization — **IN PROGRESS; WP01–WP03 accepted, WP04 next** |
+| **1.12** | Public Reference Deployment Implementation & Stabilization |
 | **2.0** | Lightweight Machine Learning Evaluation — planned |
 | **2.1** | Machine Learning — planned |
 | **2.2** | Explainable AI — planned |
 | **2.3** | Backtesting — planned |
 
-The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The canonical future sequence is 1.9 Visualization → 1.10 Observability → 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
+The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The completed path through Release 1.12 is 1.9 Visualization → 1.10 Observability → Initiative-1.11 feasibility qualification → 1.12 Public Reference Deployment Implementation & Stabilization. The canonical planned sequence is 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
 
 ### Public engineering roadmap
 
