@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Mapping
 
@@ -19,6 +19,15 @@ RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execut
 STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
 EMPTY_HISTORICAL_MESSAGE = "No historical market data is available for this selection."
 SYSTEM_HEALTH_UNAVAILABLE_MESSAGE = "System Health data is temporarily unavailable."
+NAVIGATION_OPTIONS = ("Market Research", "ML & Automation Studies", "System Health")
+ML_AUTOMATION_STUDIES_CONTENT = (
+    "AI Quant Trading Research is evolving from historical market-data visualization toward reproducible quantitative research and machine-learning evaluation.",
+    "Historical Market Data \u2192 Feature Engineering \u2192 Machine Learning Evaluation \u2014 Release 2.0+ \u2192 Strategy / Signal Research \u2192 Governed Automation Studies",
+    "Historical visualization \u2014 Release 1.13",
+    "ML evaluation \u2014 Begins Release 2.0",
+    "Automated trading \u2014 Not enabled",
+    "This environment does not execute trades.",
+)
 
 WINDOW_CAPACITY = 64
 _REVISION_KINDS = ("HistoricalPresentation", "ReplayLogicalTick")
@@ -283,9 +292,15 @@ def market_selection_changed(previous: tuple[str, str, str] | None, current: tup
 
 
 def market_provenance_caption(response: MarketResponse) -> str | None:
-    if response.provider == "Vike" and response.last_updated_utc:
-        return f"Data source: Vike \u2022 Historical OHLCV \u2022 Last updated: {response.last_updated_utc} (UTC)"
-    return None
+    if response.provider != "Vike" or not response.last_updated_utc:
+        return None
+    try:
+        timestamp = datetime.fromisoformat(response.last_updated_utc.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if timestamp.tzinfo is None or timestamp.utcoffset() != timedelta(0):
+        return None
+    return f"Data source: Vike \u2022 Historical OHLCV \u2022 Last updated: {response.last_updated_utc} (UTC)"
 
 
 def render_research_footer() -> None:
@@ -332,19 +347,17 @@ def render_market_research() -> None:
 
 def render_ml_automation_studies() -> None:
     st.title("ML & Automation Studies")
-    st.info("AI Quant Trading Research is evolving from historical market-data visualization toward reproducible quantitative research and machine-learning evaluation.")
+    st.info(ML_AUTOMATION_STUDIES_CONTENT[0])
     st.subheader("Research roadmap")
-    st.write("Historical Market Data \u2192 Feature Engineering \u2192 Machine Learning Evaluation \u2014 Release 2.0+ \u2192 Strategy / Signal Research \u2192 Governed Automation Studies")
+    st.write(ML_AUTOMATION_STUDIES_CONTENT[1])
     st.subheader("Current status")
-    st.write("Historical visualization \u2014 Release 1.13")
-    st.write("ML evaluation \u2014 Begins Release 2.0")
-    st.write("Automated trading \u2014 Not enabled")
-    st.info("This environment does not execute trades.")
+    for message in ML_AUTOMATION_STUDIES_CONTENT[2:]:
+        (st.info if message.endswith("trades.") else st.write)(message)
     render_research_footer()
 
 
 def render() -> None:
-    navigation = st.radio("Navigation", ("Market Research", "ML & Automation Studies", "System Health"), horizontal=True)
+    navigation = st.radio("Navigation", NAVIGATION_OPTIONS, horizontal=True)
     if navigation == "Market Research":
         render_market_research()
         return
