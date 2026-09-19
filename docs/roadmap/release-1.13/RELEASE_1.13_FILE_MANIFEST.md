@@ -32,6 +32,26 @@ and legacy handoff. It does not authorize implementation; the later Terra
 authority must enumerate the exact Worker, presentation, test, and
 dependency paths before editing.
 
+## WP05 historical bridge and Market Research implementation set
+
+- `src/AIQuantTradingResearch.Infrastructure/DependencyInjection.cs`
+- `src/AIQuantTradingResearch.Infrastructure/MarketData/Cache/AtomicFileHistoricalMarketDataQueryLock.cs`
+- `src/AIQuantTradingResearch.Worker/Program.cs`
+- `src/AIQuantTradingResearch.Worker/HistoricalMarketDataQueryExecution.cs`
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/AtomicFileHistoricalMarketDataQueryLockTests.cs`
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/HistoricalMarketDataQueryExecutionTests.cs`
+- `python/presentation/historical_market_bridge.py`
+- `python/presentation/test_historical_market_bridge.py`
+- `python/presentation/realtime_financial_visualization.py`
+- `python/presentation/test_market_research_ui.py`
+- `requirements.txt`
+- `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/prompters/release-1.13-wp05-terra-historical-bridge-public-market-research-ui-implementation.md`
+
+This bounded set implements the accepted one-shot Worker/stdio bridge and
+public Market Research projection. It excludes Docker, deployment,
+adapters, schema, root README, and all later WP06 work.
+
 ## WP02 frozen implementation mutation set
 
 WP02 may add or modify only these exact paths for the provider-independent historical market-data abstraction:

@@ -5,6 +5,8 @@ using AIQuantTradingResearch.Application.Features;
 using AIQuantTradingResearch.Application.Persistence;
 using AIQuantTradingResearch.Infrastructure;
 using AIQuantTradingResearch.Infrastructure.MarketData.TwelveData;
+using AIQuantTradingResearch.Infrastructure.MarketData.Vike;
+using AIQuantTradingResearch.Infrastructure.MarketData.Cache;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 using AIQuantTradingResearch.Infrastructure.Visualization;
 using AIQuantTradingResearch.Application.Visualization;
@@ -22,6 +24,27 @@ var isPersistentSqliteQualificationRequested = string.Equals(
     workerMode,
     PersistentSqliteQualificationConfiguration.ModeName,
     StringComparison.OrdinalIgnoreCase);
+var isHistoricalQueryRequested = string.Equals(workerMode, HistoricalMarketDataQueryExecution.ModeName, StringComparison.Ordinal);
+
+if (isHistoricalQueryRequested)
+{
+    try
+    {
+        var cacheDirectory = builder.Configuration["HistoricalMarketQuery:CacheDirectory"] ?? "/home/aiq-market-cache";
+        var vike = new VikeConfiguration(builder.Configuration["Vike:ApiKey"] ?? string.Empty);
+        builder.Services.AddApplication();
+        builder.Services.AddHistoricalMarketDataQuery(vike, cacheDirectory);
+        builder.Services.AddTransient<HistoricalMarketDataQueryExecution>();
+        using var queryHost = builder.Build();
+        return await queryHost.Services.GetRequiredService<HistoricalMarketDataQueryExecution>()
+            .ExecuteAsync(Console.In, Console.Out, Console.Error);
+    }
+    catch (ArgumentException)
+    {
+        await Console.Out.WriteAsync("{\"contractVersion\":\"aiq-historical-query-v1\",\"state\":\"Unavailable\",\"symbol\":null,\"interval\":null,\"range\":null,\"candles\":null,\"provider\":null,\"lastUpdatedUtc\":null,\"lastValidatedUtc\":null,\"isStale\":false,\"failure\":\"Configuration\"}");
+        return 0;
+    }
+}
 
 TwelveDataConfiguration twelveDataConfiguration;
 SqliteStorageConfiguration sqliteStorageConfiguration;

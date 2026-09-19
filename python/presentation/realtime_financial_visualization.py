@@ -7,8 +7,11 @@ from decimal import Decimal
 from typing import Any, Mapping
 
 import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
+from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke
 
 WINDOW_CAPACITY = 64
 _REVISION_KINDS = ("HistoricalPresentation", "ReplayLogicalTick")
@@ -257,7 +260,61 @@ def render_visualization_frame(frame: VisualizationFrame) -> None:
             st.write({label: value})
 
 
+def build_market_figure(response: MarketResponse) -> go.Figure:
+    """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
+    candles = response.candles
+    figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
+    figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate="Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
+    figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate="Volume: %{y}<extra></extra>"), row=2, col=1)
+    figure.update_layout(height=620, margin=dict(l=16, r=16, t=44, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
+    figure.update_yaxes(title_text="Price", row=1, col=1); figure.update_yaxes(title_text="Volume", row=2, col=1)
+    return figure
+
+
+def market_selection_changed(previous: tuple[str, str, str] | None, current: tuple[str, str, str]) -> bool:
+    return previous != current
+
+
+def render_market_research() -> None:
+    st.title("Historical Market Research")
+    symbol = st.selectbox("Market", ("BTC/USD", "ETH/USD"), index=0)
+    interval = st.selectbox("Interval", ("1h", "4h", "1d"), index=0)
+    range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
+    selection = (symbol, interval, range_value)
+    previous = st.session_state.get("wp05_market_selection")
+    if market_selection_changed(previous, selection):
+        try:
+            st.session_state["wp05_market_response"] = invoke(*selection)
+            st.session_state["wp05_market_selection"] = selection
+        except BridgeError:
+            st.session_state["wp05_market_response"] = None
+            st.session_state["wp05_market_selection"] = selection
+    response = st.session_state.get("wp05_market_response")
+    if response is None or response.state == "Unavailable":
+        st.warning(PUBLIC_UNAVAILABLE)
+        if st.button("Retry historical data", key="wp05_market_retry"):
+            st.session_state.pop("wp05_market_selection", None)
+            st.rerun()
+        return
+    if not response.candles:
+        st.info("No historical market data is available for this selection.")
+        return
+    if response.state == "Stale":
+        st.info("Showing the most recently validated historical data.")
+    st.plotly_chart(build_market_figure(response), use_container_width=True, config={"scrollZoom": True, "displaylogo": False})
+    if response.provider and response.last_updated_utc:
+        st.caption(f"Data source: {response.provider} • Historical OHLCV • Last updated: {response.last_updated_utc}")
+
+
 def render() -> None:
+    navigation = st.radio("Navigation", ("Market Research", "ML & Automation Studies", "System Health"), horizontal=True)
+    if navigation == "Market Research":
+        render_market_research()
+        return
+    if navigation == "ML & Automation Studies":
+        st.title("ML & Automation Studies")
+        st.info("This research area is being prepared for a later release.")
+        return
     path, interval = resolve_handoff_path(), refresh_interval_seconds()
     cache = st.session_state.setdefault("wp05_cache", ReadModelCache())
     warning = cache.refresh(path)
