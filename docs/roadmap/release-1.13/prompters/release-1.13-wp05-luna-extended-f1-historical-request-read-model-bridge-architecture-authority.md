@@ -12,8 +12,11 @@ The bridge path is:
 It preserves the existing Worker modes, legacy visualization handoff,
 System Health, Twelve Data boundary, WP04 cache/freshness policy, F1
 zero-cost topology, and `/home` persistence. It rejects file polling,
-loopback HTTP, Python/provider acquisition, schema locks, managed
-services, and new dependencies.
+loopback HTTP, Python/provider acquisition, schema-backed locks, managed
+services, and new dependencies. It requires a bounded schema-free
+exclusive-create filesystem lock per cache key to serialize
+cross-process miss/stale acquisition, with cache recheck and
+abandoned-lock recovery.
 
 The request contract is exactly versioned canonical symbol, interval,
 range, and bounded deadline. The response is bounded UTF-8 JSON carrying

@@ -26,9 +26,11 @@ architecture is frozen in:
 - `docs/roadmap/release-1.13/prompters/release-1.13-wp05-luna-extended-f1-historical-request-read-model-bridge-architecture-authority.md`
 
 The selected mechanism is an additive bounded one-shot local Worker/stdio
-invocation. It preserves the existing Worker and legacy handoff. It does
-not authorize implementation; the later Terra authority must enumerate
-the exact Worker, presentation, test, and dependency paths before editing.
+invocation with a required schema-free per-cache-key filesystem lock for
+cross-process miss/stale coordination. It preserves the existing Worker
+and legacy handoff. It does not authorize implementation; the later Terra
+authority must enumerate the exact Worker, presentation, test, and
+dependency paths before editing.
 
 ## WP02 frozen implementation mutation set
 
