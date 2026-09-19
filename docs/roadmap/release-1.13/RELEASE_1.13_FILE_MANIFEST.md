@@ -40,6 +40,18 @@ WP03 may add or modify only these exact paths for the Vike historical-OHLCV adap
 
 This set excludes Twelve Data changes, application-contract changes, dependency manifests, cache/read-model/persistence, Streamlit/UI, and deployment configuration.
 
+## WP04 frozen implementation mutation set
+
+- `src/AIQuantTradingResearch.Application/MarketData/HistoricalMarketDataCacheContracts.cs`
+- `src/AIQuantTradingResearch.Application/MarketData/HistoricalMarketDataReadService.cs`
+- `src/AIQuantTradingResearch.Infrastructure/MarketData/Cache/AtomicFileHistoricalMarketDataCache.cs`
+- `tests/AIQuantTradingResearch.Application.Tests/HistoricalMarketDataReadServiceTests.cs`
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/AtomicFileHistoricalMarketDataCacheTests.cs`
+- `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/prompters/release-1.13-wp04-terra-cache-first-historical-data-read-model-implementation.md`
+
+This set excludes Vike adapter changes, Twelve Data, SQLite schema, Worker composition, Python presentation, Streamlit/UI, packages, and deployment configuration.
+
 ## Forbidden paths and artifacts
 
 Forbidden: root `README.md`; historical Release 1.12 records; credentials, API keys, certificates, machine-local configuration, caches/build outputs; Azure profile material; unrelated packages; database migrations; Docker/GHCR publication artifacts; tags/releases; Release 1.14 implementation; and Release 2.0 implementation.
