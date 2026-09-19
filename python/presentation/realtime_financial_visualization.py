@@ -13,6 +13,13 @@ from plotly.subplots import make_subplots
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
 from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke
 
+VIKE_PUBLIC_MESSAGE = "Public historical visualization uses Vike market data."
+TWELVE_DATA_BOUNDARY_MESSAGE = "Twelve Data is retained for private/internal research, including real-time market-data studies. Twelve Data values from that research are not exposed through this public interface under the project's current data-access/licensing boundary."
+RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execution"
+STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
+EMPTY_HISTORICAL_MESSAGE = "No historical market data is available for this selection."
+SYSTEM_HEALTH_UNAVAILABLE_MESSAGE = "System Health data is temporarily unavailable."
+
 WINDOW_CAPACITY = 64
 _REVISION_KINDS = ("HistoricalPresentation", "ReplayLogicalTick")
 _STATES = ("Ready", "WarmUp", "Empty", "Stale", "Failed")
@@ -275,8 +282,21 @@ def market_selection_changed(previous: tuple[str, str, str] | None, current: tup
     return previous != current
 
 
+def market_provenance_caption(response: MarketResponse) -> str | None:
+    if response.provider == "Vike" and response.last_updated_utc:
+        return f"Data source: Vike \u2022 Historical OHLCV \u2022 Last updated: {response.last_updated_utc} (UTC)"
+    return None
+
+
+def render_research_footer() -> None:
+    st.caption(RESEARCH_FOOTER)
+
+
 def render_market_research() -> None:
-    st.title("Historical Market Research")
+    st.title("AI Quant Trading Research")
+    st.subheader("Historical Market Research")
+    st.caption(VIKE_PUBLIC_MESSAGE)
+    st.info(TWELVE_DATA_BOUNDARY_MESSAGE)
     symbol = st.selectbox("Market", ("BTC/USD", "ETH/USD"), index=0)
     interval = st.selectbox("Interval", ("1h", "4h", "1d"), index=0)
     range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
@@ -295,15 +315,32 @@ def render_market_research() -> None:
         if st.button("Retry historical data", key="wp05_market_retry"):
             st.session_state.pop("wp05_market_selection", None)
             st.rerun()
+        render_research_footer()
         return
     if not response.candles:
-        st.info("No historical market data is available for this selection.")
+        st.info(EMPTY_HISTORICAL_MESSAGE)
+        render_research_footer()
         return
     if response.state == "Stale":
-        st.info("Showing the most recently validated historical data.")
+        st.info(STALE_HISTORICAL_MESSAGE)
     st.plotly_chart(build_market_figure(response), use_container_width=True, config={"scrollZoom": True, "displaylogo": False})
-    if response.provider and response.last_updated_utc:
-        st.caption(f"Data source: {response.provider} • Historical OHLCV • Last updated: {response.last_updated_utc}")
+    provenance = market_provenance_caption(response)
+    if provenance:
+        st.caption(provenance)
+    render_research_footer()
+
+
+def render_ml_automation_studies() -> None:
+    st.title("ML & Automation Studies")
+    st.info("AI Quant Trading Research is evolving from historical market-data visualization toward reproducible quantitative research and machine-learning evaluation.")
+    st.subheader("Research roadmap")
+    st.write("Historical Market Data \u2192 Feature Engineering \u2192 Machine Learning Evaluation \u2014 Release 2.0+ \u2192 Strategy / Signal Research \u2192 Governed Automation Studies")
+    st.subheader("Current status")
+    st.write("Historical visualization \u2014 Release 1.13")
+    st.write("ML evaluation \u2014 Begins Release 2.0")
+    st.write("Automated trading \u2014 Not enabled")
+    st.info("This environment does not execute trades.")
+    render_research_footer()
 
 
 def render() -> None:
@@ -312,8 +349,7 @@ def render() -> None:
         render_market_research()
         return
     if navigation == "ML & Automation Studies":
-        st.title("ML & Automation Studies")
-        st.info("This research area is being prepared for a later release.")
+        render_ml_automation_studies()
         return
     path, interval = resolve_handoff_path(), refresh_interval_seconds()
     cache = st.session_state.setdefault("wp05_cache", ReadModelCache())
@@ -327,13 +363,15 @@ def render() -> None:
         if warning:
             st.warning(warning)
         st.info("ProducerUnavailable - awaiting the first Worker publication.")
+        render_research_footer()
         return
     try:
         render_visualization_frame(project_visualization_frame(cache.last_good, warning))
-    except FrameIntegrityError as exc:
+    except FrameIntegrityError:
         if warning:
             st.warning(warning)
-        st.error(f"FrameIntegrity: {exc}")
+        st.error(SYSTEM_HEALTH_UNAVAILABLE_MESSAGE)
+    render_research_footer()
 
 
 if __name__ == "__main__":

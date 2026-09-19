@@ -52,6 +52,17 @@ This bounded set implements the accepted one-shot Worker/stdio bridge and
 public Market Research projection. It excludes Docker, deployment,
 adapters, schema, root README, and all later WP06 work.
 
+## WP06 public research messaging implementation set
+
+- `python/presentation/realtime_financial_visualization.py`
+- `python/presentation/test_market_research_ui.py`
+- `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/prompters/release-1.13-wp06-terra-public-research-messaging-informational-surfaces-controlled-states-implementation.md`
+
+This set adds only public research messaging, informational surfaces, and
+controlled presentation states. It excludes acquisition, providers, cache,
+Worker, packages, deployment, schema, root README, and later work packages.
+
 ## WP02 frozen implementation mutation set
 
 WP02 may add or modify only these exact paths for the provider-independent historical market-data abstraction:
