@@ -73,7 +73,7 @@ internal sealed class VikeHistoricalMarketDataProvider : IHistoricalMarketDataPr
         var start = now - GetRangeDuration(request.Range);
         var path = string.Create(
             CultureInfo.InvariantCulture,
-            $"/api/ohlcv?symbol={GetVikeSymbol(request.Symbol)}&interval={GetVikeInterval(request.Interval)}&start={start:yyyy-MM-dd}&end={now:yyyy-MM-dd}&include_partial=false");
+            $"/api/ohlcv?symbol={GetVikeSymbol(request.Symbol)}&interval={GetVikeInterval(request.Interval)}&start={start:yyyy-MM-dd}&end={now:yyyy-MM-dd}&limit=5000");
 
         var message = new HttpRequestMessage(HttpMethod.Get, new Uri(configuration.BaseAddress, path));
         message.Headers.TryAddWithoutValidation("X-API-Key", configuration.ApiKey);
@@ -130,6 +130,20 @@ internal sealed class VikeHistoricalMarketDataProvider : IHistoricalMarketDataPr
         HistoricalMarketDataRequest request,
         JsonElement item)
     {
+        if (item.ValueKind == JsonValueKind.Object)
+        {
+            var usesNamedFields = item.TryGetProperty("open", out _);
+            return new HistoricalCandle(
+                request.Symbol,
+                request.Interval,
+                DateTimeOffset.FromUnixTimeMilliseconds(ReadInt64(RequiredProperty(item, "ts"))),
+                ReadDecimal(RequiredProperty(item, usesNamedFields ? "open" : "o")),
+                ReadDecimal(RequiredProperty(item, usesNamedFields ? "high" : "h")),
+                ReadDecimal(RequiredProperty(item, usesNamedFields ? "low" : "l")),
+                ReadDecimal(RequiredProperty(item, usesNamedFields ? "close" : "c")),
+                ReadDecimal(RequiredProperty(item, usesNamedFields ? "volume" : "v")));
+        }
+
         if (item.ValueKind != JsonValueKind.Array || item.GetArrayLength() != 6)
         {
             throw new ArgumentException("A Vike candle must contain exactly six values.");
@@ -146,6 +160,16 @@ internal sealed class VikeHistoricalMarketDataProvider : IHistoricalMarketDataPr
             ReadDecimal(values[3]),
             ReadDecimal(values[4]),
             ReadDecimal(values[5]));
+    }
+
+    private static JsonElement RequiredProperty(JsonElement item, string propertyName)
+    {
+        if (!item.TryGetProperty(propertyName, out var value))
+        {
+            throw new ArgumentException($"A Vike candle is missing required property {propertyName}.");
+        }
+
+        return value;
     }
 
     private static decimal ReadDecimal(JsonElement value) =>
