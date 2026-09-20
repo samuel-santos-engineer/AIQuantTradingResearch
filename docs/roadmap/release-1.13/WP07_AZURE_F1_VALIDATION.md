@@ -16,4 +16,4 @@ The focused container validator proves the published Worker DLL path, `dotnet` a
 
 ## Live boundary
 
-The existing West US 2 App Service remains Linux F1/Free, HTTPS-only, and running. Live Vike-success smoke requires an already governed server-side `Vike__ApiKey`; its value is never read or recorded. No deployment is performed by this document.
+The existing West Central US App Service remains Linux F1/Free, HTTPS-only, and running. Live Vike-success smoke requires an already governed server-side `Vike__ApiKey`; its value is never read or recorded. No deployment is performed by this document.
