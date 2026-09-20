@@ -63,6 +63,19 @@ This set adds only public research messaging, informational surfaces, and
 controlled presentation states. It excludes acquisition, providers, cache,
 Worker, packages, deployment, schema, root README, and later work packages.
 
+## WP07 Azure F1 integration validation set
+
+- `container/entrypoint.sh`
+- `eng/azure-cli/r1.13-deployment/wp07-azure-f1/validate-wp07-container.ps1`
+- `docs/roadmap/release-1.13/WP07_AZURE_F1_VALIDATION.md`
+- `docs/roadmap/release-1.13/RELEASE_1.13_FILE_MANIFEST.md`
+- `docs/roadmap/release-1.13/prompters/release-1.13-wp07-terra-azure-f1-integration-stability-security-zero-cost-validation.md`
+
+This set prepares the Worker-owned `/home/aiq-market-cache` for the non-root
+container account and records bounded F1 validation evidence. It excludes
+application/provider/schema/dependency changes, deployment mutation, root README,
+and later work packages.
+
 ## WP02 frozen implementation mutation set
 
 WP02 may add or modify only these exact paths for the provider-independent historical market-data abstraction:

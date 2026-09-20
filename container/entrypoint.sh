@@ -31,6 +31,10 @@ configured_persistence_parent() {
     dirname "$Persistence__DatabasePath"
 }
 
+configured_historical_cache_directory() {
+    printf '%s\n' "${HistoricalMarketQuery__CacheDirectory-/home/aiq-market-cache}"
+}
+
 validate_persistence_parent() {
     persistence_parent="$1"
     case "$persistence_parent" in
@@ -42,6 +46,17 @@ validate_persistence_parent() {
     esac
 }
 
+validate_historical_cache_directory() {
+    historical_cache_directory="$1"
+    case "$historical_cache_directory" in
+        /home/*)
+            ;;
+        *)
+            fail "historical cache directory is outside the approved persistent home path"
+            ;;
+    esac
+}
+
 prepare_persistence_parent_as_root() {
     persistence_parent="$1"
     mkdir -p "$persistence_parent"
@@ -49,10 +64,23 @@ prepare_persistence_parent_as_root() {
     chmod 0750 "$persistence_parent"
 }
 
+prepare_historical_cache_directory_as_root() {
+    historical_cache_directory="$1"
+    mkdir -p "$historical_cache_directory"
+    chown 1000:1000 "$historical_cache_directory"
+    chmod 0750 "$historical_cache_directory"
+}
+
 require_writable_persistence_parent() {
     persistence_parent="$1"
     [ -d "$persistence_parent" ] || fail "configured persistence parent does not exist"
     [ -w "$persistence_parent" ] || fail "configured persistence parent is not writable by aiq"
+}
+
+require_writable_historical_cache_directory() {
+    historical_cache_directory="$1"
+    [ -d "$historical_cache_directory" ] || fail "historical cache directory does not exist"
+    [ -w "$historical_cache_directory" ] || fail "historical cache directory is not writable by aiq"
 }
 
 if [ "${Worker__Mode-}" = "PersistentSqliteQualification" ]; then
@@ -71,13 +99,17 @@ fi
 
 persistence_parent="$(configured_persistence_parent)"
 validate_persistence_parent "$persistence_parent"
+historical_cache_directory="$(configured_historical_cache_directory)"
+validate_historical_cache_directory "$historical_cache_directory"
 
 if [ "$(id -u)" -eq 0 ]; then
     prepare_persistence_parent_as_root "$persistence_parent"
+    prepare_historical_cache_directory_as_root "$historical_cache_directory"
     exec gosu aiq "$0" "$@"
 fi
 
 require_writable_persistence_parent "$persistence_parent"
+require_writable_historical_cache_directory "$historical_cache_directory"
 
 mkdir -p "$(dirname "$Visualization__HandoffPath")"
 

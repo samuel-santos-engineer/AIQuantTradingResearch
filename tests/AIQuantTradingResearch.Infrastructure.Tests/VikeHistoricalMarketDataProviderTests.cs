@@ -60,7 +60,8 @@ public sealed class VikeHistoricalMarketDataProviderTests
         var result = await provider.GetHistoricalCandlesAsync(CreateRequest(range: range));
 
         Assert.True(result.IsSuccess);
-        Assert.Contains($"start={expectedStart}&end=2026-09-19&include_partial=false", handler.RequestUri, StringComparison.Ordinal);
+        Assert.Contains($"start={expectedStart}&end=2026-09-19&limit=5000", handler.RequestUri, StringComparison.Ordinal);
+        Assert.DoesNotContain("include_partial", handler.RequestUri, StringComparison.Ordinal);
         Assert.Equal(1, handler.CallCount);
     }
 
@@ -83,6 +84,37 @@ public sealed class VikeHistoricalMarketDataProviderTests
         Assert.Equal(1.1234567890123456789012345678m, candles[0].Open);
         Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1767225600000), candles[0].OpenTimeUtc);
         Assert.True(candles[0].OpenTimeUtc.Offset == TimeSpan.Zero);
+    }
+
+    [Fact]
+    public async Task GetHistoricalCandlesAsyncAcceptsDocumentedCompactObjectCandles()
+    {
+        using var handler = RespondWith(HttpStatusCode.OK, CompactObjectPayload());
+        var provider = CreateProvider(handler);
+
+        var result = await provider.GetHistoricalCandlesAsync(CreateRequest(CanonicalMarketSymbol.EthUsd));
+
+        Assert.True(result.IsSuccess);
+        var candles = Assert.IsAssignableFrom<IReadOnlyList<HistoricalCandle>>(result.Candles);
+        Assert.Equal(2, candles.Count);
+        Assert.All(candles, candle => Assert.Equal(CanonicalMarketSymbol.EthUsd, candle.Symbol));
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1767225600000), candles[0].OpenTimeUtc);
+        Assert.Equal(1.1234567890123456789012345678m, candles[0].Open);
+    }
+
+    [Fact]
+    public async Task GetHistoricalCandlesAsyncAcceptsVikeNamedObjectCandles()
+    {
+        using var handler = RespondWith(HttpStatusCode.OK, NamedObjectPayload());
+        var provider = CreateProvider(handler);
+
+        var result = await provider.GetHistoricalCandlesAsync(CreateRequest());
+
+        Assert.True(result.IsSuccess);
+        var candles = Assert.IsAssignableFrom<IReadOnlyList<HistoricalCandle>>(result.Candles);
+        Assert.Equal(2, candles.Count);
+        Assert.Equal(DateTimeOffset.FromUnixTimeMilliseconds(1767225600000), candles[0].OpenTimeUtc);
+        Assert.Equal(1.1234567890123456789012345678m, candles[0].Open);
     }
 
     [Theory]
@@ -111,6 +143,7 @@ public sealed class VikeHistoricalMarketDataProviderTests
     [InlineData("{ \"candles\": [[1767225600000, \"10\", \"9\", \"11\", \"11\", \"100\"]] }")]
     [InlineData("{ \"candles\": [[1767229200000, \"10\", \"12\", \"9\", \"11\", \"100\"], [1767225600000, \"10\", \"12\", \"9\", \"11\", \"100\"]] }")]
     [InlineData("{ \"candles\": [[1767225600000, \"10\", \"12\", \"9\", \"11\", \"100\"], [1767225600000, \"10\", \"12\", \"9\", \"11\", \"100\"]] }")]
+    [InlineData("{ \"candles\": [{ \"ts\": 1767225600000, \"open\": \"10\", \"high\": \"12\", \"low\": \"9\", \"close\": \"11\" }] }")]
     public async Task GetHistoricalCandlesAsyncRejectsMalformedOrNonCanonicalPayload(string payload)
     {
         using var handler = RespondWith(HttpStatusCode.OK, payload);
@@ -192,6 +225,28 @@ public sealed class VikeHistoricalMarketDataProviderTests
           "candles": [
             [1767225600000, "1.1234567890123456789012345678", "1.3", "1.0", "1.2", "100"],
             [1767229200000, "1.2", "1.4", "1.1", "1.3", "120"]
+          ]
+        }
+        """;
+
+    private static string CompactObjectPayload() =>
+        """
+        {
+          "exchange": "merged",
+          "candles": [
+            { "ts": 1767225600000, "o": "1.1234567890123456789012345678", "h": "1.3", "l": "1.0", "c": "1.2", "v": "100" },
+            { "ts": 1767229200000, "o": "1.2", "h": "1.4", "l": "1.1", "c": "1.3", "v": "120" }
+          ]
+        }
+        """;
+
+    private static string NamedObjectPayload() =>
+        """
+        {
+          "exchange": "merged",
+          "candles": [
+            { "ts": 1767225600000, "open": "1.1234567890123456789012345678", "high": "1.3", "low": "1.0", "close": "1.2", "volume": "100" },
+            { "ts": 1767229200000, "open": "1.2", "high": "1.4", "low": "1.1", "close": "1.3", "volume": "120" }
           ]
         }
         """;
