@@ -14,6 +14,20 @@
 
 AIQuantTradingResearch demonstrates how quantitative research capability can evolve as a maintainable software platform. Architecture, executable quality gates, incremental delivery, transparent technical decisions, and disciplined AI-assisted engineering are treated as part of the product.
 
+### Platform
+
+The public application is deployed to two Azure App Service regions running the same application version. This dual-region setup provides a practical resilience strategy within the constraints of the Azure F1 free tier.
+
+The **Production Environment** is the primary public endpoint. The **Staging Environment** runs the same application version in a separate Azure region and provides an alternate endpoint when the primary environment is being updated, is temporarily unavailable, or reaches resource limits associated with the F1 tier.
+
+- **Production Environment — West Central US:**  
+  https://aiqr112wp035ec325382770.azurewebsites.net/
+
+- **Staging Environment — West US 2:**  
+  https://aiqr112wp05wus27f5eabb5.azurewebsites.net/
+
+Both environments are deployed from the same immutable application artifact so that the public experience remains consistent across regions. The staging endpoint may also be used to validate a new deployment before it is promoted to the primary environment.
+
 	The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
 **Current closed milestone:** **[Phase 4 - Release 1.13: Historical Market Visualization & Provider Abstraction](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/64)**
