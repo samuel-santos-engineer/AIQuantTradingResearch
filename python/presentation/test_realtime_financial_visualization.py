@@ -78,6 +78,26 @@ class PermanentVisualizationTests(unittest.TestCase):
             visualization.st = original
         self.assertEqual([("subheader", "BTC - Ready"), ("subheader", "System Health"), ("info", "System Health: Canonical evidence available.")], fake.calls[:3])
 
+    def test_system_health_uses_bounded_user_driven_refresh_without_autorefresh(self):
+        class FakeStreamlit:
+            def __init__(self): self.session_state = {}; self.calls = []
+            def radio(self, *args, **kwargs): return "System Health"
+            def button(self, *args, **kwargs): return False
+            def title(self, value): self.calls.append(("title", value))
+            def subheader(self, value): self.calls.append(("subheader", value))
+            def caption(self, value): self.calls.append(("caption", value))
+            def info(self, value): self.calls.append(("info", value))
+            def warning(self, value): self.calls.append(("warning", value))
+            def error(self, value): self.calls.append(("error", value))
+            def write(self, value): self.calls.append(("write", value))
+            def line_chart(self, *args, **kwargs): self.calls.append(("line_chart", None))
+        fake = FakeStreamlit(); original = visualization.st; visualization.st = fake
+        try:
+            visualization.render()
+        finally:
+            visualization.st = original
+        self.assertIn(("warning", "System Health: Health evidence is unavailable; visualization data may still be available."), fake.calls)
+
 
 if __name__ == "__main__":
     unittest.main()

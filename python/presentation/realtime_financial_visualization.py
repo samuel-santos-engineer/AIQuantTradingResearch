@@ -371,7 +371,8 @@ def render() -> None:
     st.caption("Read-only local presentation of the Worker-published bounded envelope; not live market data.")
     if st.button("Refresh now"):
         warning = cache.refresh(path)
-    st.autorefresh(interval=interval * 1000, key="wp05_refresh")
+    # Streamlit 1.61.1 does not provide ``st.autorefresh``. The existing
+    # user-driven refresh control above keeps this F1 surface bounded.
     if cache.last_good is None:
         if warning:
             st.warning(warning)
