@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Mapping
+from pathlib import Path
 
 import streamlit as st
 import plotly.graph_objects as go
@@ -12,6 +13,13 @@ from plotly.subplots import make_subplots
 
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
 from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke
+
+FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
+
+st.set_page_config(
+    page_title="AI Quant Trading Research",
+    page_icon=str(FAVICON_PATH),
+)
 
 VIKE_PUBLIC_MESSAGE = "Public historical visualization uses Vike market data."
 TWELVE_DATA_BOUNDARY_MESSAGE = "Twelve Data is retained for private/internal research, including real-time market-data studies. Twelve Data values from that research are not exposed through this public interface under the project's current data-access/licensing boundary."
