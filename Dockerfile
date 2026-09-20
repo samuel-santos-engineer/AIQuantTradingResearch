@@ -35,6 +35,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install --no-cache-dir --requirement requirements.txt
 
 COPY python/presentation/ /app/python/presentation/
+COPY favicon.ico imgs/icon.png /app/
 COPY --from=build /out/worker/ /app/worker/
 COPY container/entrypoint.sh /usr/local/bin/aiq-entrypoint
 
