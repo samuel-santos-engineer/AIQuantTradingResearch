@@ -4,9 +4,9 @@
 
 > A production-oriented quantitative research and platform-engineering project built around deterministic market-data pipelines, durable evidence, governed .NET/Python interoperability, observability, and reproducible public-reference deployment.
 
-[![Release](https://img.shields.io/badge/release-1.12-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
-[![Tests](<https://img.shields.io/badge/tests-379%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
-[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-13%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
+[![Release](https://img.shields.io/badge/release-1.13-blue)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestones)
+[![Tests](<https://img.shields.io/badge/tests-504%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests)
+[![Architecture Tests](<https://img.shields.io/badge/architecture%20tests-27%20passing-brightgreen>)](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/tree/main/tests/AIQuantTradingResearch.Architecture.Tests)
 [![.NET](https://img.shields.io/badge/.NET-C%23-512BD4?logo=dotnet)			](https://dotnet.microsoft.com/)
 [![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python)](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 [![Docker](https://img.shields.io/badge/Docker-containerized-2496ED?logo=docker)](Dockerfile)
@@ -16,9 +16,9 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 
 	The project is intentionally broader than a collection of trading algorithms or ML experiments. It demonstrates how market-data capabilities can be designed as a maintainable software platform while creating a foundation for later quantitative analytics, AI/ML research, observability, resilience, and cloud-native operation.
 
-**Current closed milestone:** **[Phase 4 - Initiative-1.11: Public Reference Deployment / Azure App Service F1 Feasibility Qualification — FEASIBLE](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/62)**
+**Current closed milestone:** **[Phase 4 - Release 1.13: Historical Market Visualization & Provider Abstraction](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/64)**
 
-**Current accepted milestone:** **[Phase 4 - Release 1.12: Public Reference Deployment Implementation & Stabilization — IN PROGRESS](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/63)**
+**Current accepted milestone:** **[Phase 4 - Release 1.14: Technical Analysis & Quantitative Feature Foundation — IN PROGRESS](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/65)**
 
 [What Works Today](#what-works-today) · [Architecture](#architecture) · [Run &amp; Verify](#run--verify) · [Engineering Evidence](#engineering-evidence) · [Implemented Technology](#implemented-technology) · [Roadmap](#engineering-capability-journey) · [Engineering Handbook](#engineering-handbook)
 
@@ -26,7 +26,7 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 
 ## What Works Today
 
-**Release 1.12 status:** WP01-WP08 are accepted and lifecycle-complete. Release 1.12 is published as `v1.12.0`, and milestone #63 is closed. It remains a bounded public reference/demo deployment, not a production-readiness, SLA, or high-availability claim.
+**Release 1.13 status:** WP01-WP08 are accepted and lifecycle-complete. Release 1.13 is published as `v1.13.0`, and milestone #64 is closed. It delivers provider-independent historical market-data architecture, public BTC/USD and ETH/USD visualization, cache-first reads, Vike provenance, and controlled public failure/disclosure behavior. Technical indicators remain Release 1.14 scope, while ML evaluation remains Release 2.0+ scope.
 
 - **Acquisition & Persistence (v1.1):** High-fidelity Twelve Data ingestion to SQLite.
 - **Dataset Snapshots (v1.2):** Bounded `[from, to)` datasets tied to deterministic SHA-256 identities.
@@ -39,8 +39,8 @@ AIQuantTradingResearch demonstrates how quantitative research capability can evo
 - **Governed Real-Time-Style Visualization (v1.9):** Canonical .NET visualization read model with atomic JSON handoff to Python/Streamlit, deterministic/replay/simulated provenance disclosure, and truthful `Ready` / `WarmUp` / `Empty` / `Failed` presentation states.
 - **OpenTelemetry & Pipeline Observability (v1.10):** OpenTelemetry-based pipeline and boundary observability with truthful Streamlit System Health diagnostics while preserving existing .NET, Python, persistence, and visualization ownership boundaries.
 - **Public Reference Deployment Feasibility (Initiative-1.11):** Azure App Service Linux F1 feasibility qualification completed as **FEASIBLE**, validating a public Docker/GHCR reference-deployment path with HTTPS, persistent `/home`, writable SQLite using DELETE journal mode, and a strict `$0.00` recurring-infrastructure-cost boundary.
-
-- **Public Reference Deployment & Stabilization (v1.12):** WP01-WP08 are accepted and lifecycle-complete. Published as `v1.12.0`, the accepted West US 2 reference target uses Linux F1/Free, a public GHCR immutable image, persistent `/home`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and public Streamlit/System Health. Resilience and recovery follow the governed regional order West Central US (historical evidence) → West US 2 → Central US → South Central India, with fresh capacity proof and independently configured runtime secrets for any recovered target.
+- **Public Reference Deployment & Stabilization (v1.12):** The accepted West US 2 reference target uses Linux F1/Free, a public GHCR immutable image, persistent `/home`, SQLite schema v4 with DELETE journal mode, bounded Twelve Data configuration, and public Streamlit/System Health. Resilience and recovery follow the governed regional order West Central US (historical evidence) → West US 2 → Central US → South Central India, with fresh capacity proof and independently configured runtime secrets for any recovered target.
+- **Historical Market Visualization & Provider Abstraction (v1.13):** Provides provider-independent historical market-data architecture, public BTC/USD and ETH/USD visualization, 1h/4h/1d intervals, 1D/7D/30D/90D ranges, candlesticks with distinct volume, cache-first reads, Vike provenance, and controlled public failure/disclosure behavior. Twelve Data remains private/internal research capability; technical indicators remain Release 1.14 scope and ML evaluation remains Release 2.0+ scope.
 
 Historical data flows from Twelve Data into durable SQLite and transformed through an Application-owned pipeline into immutable datasets, deterministic features, experiments, provenance, lineage, and bounded discovery. .NET governs Python 3.13/JSON interoperability, Streamlit visualization, and OpenTelemetry health. A supervised non-root Docker runtime supports public GHCR images and automated Azure App Service F1 deployment with HTTPS, persistent /home, and SQLite compatibility.
 
@@ -300,18 +300,25 @@ The accepted West US 2 Azure App Service Linux F1/Free reference target uses a p
 
 Release 1.12 also governs constrained-infrastructure resilience and recovery through the regional order West Central US (historical evidence) → West US 2 → Central US → South Central India. Each recovered target requires fresh capacity proof and independently configured runtime secrets; this is bounded recovery governance, not automatic failover, production HA, or an SLA claim.
 
-| Evidence                                    | Release 1.12 accepted baseline |
-| --------------------------------------------- | ------------------------------: |
-| Automated tests                             |                   **379 passing** |
-| Domain tests                                |                     **11 passing** |
-| Application tests                           |                    **136 passing** |
-| Architecture tests                          |                     **27 passing** |
-| Infrastructure tests                        |                    **205 passing** |
-| Build warnings                              |                             **0** |
-| Build errors                                |                             **0** |
-| Canonical repository verification           |                          **PASS** |
-| Provider/network calls in persistence tests |                             **0** |
-| Production dependency cycles                |                             **0** |
+### [Release 1.13: Historical Market Visualization & Provider Abstraction](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/milestone/64)
+
+Release 1.13 completes the provider-independent historical market-data and public research-visualization lifecycle. It preserves the .NET-owned pipeline and bounded local Worker/stdio bridge while adding cache-first historical reads, safe canonical OHLCV handoff, and controlled public states.
+
+The accepted public surface supports BTC/USD and ETH/USD historical research with 1h, 4h, and 1d intervals; 1D, 7D, 30D, and 90D ranges; candlesticks, distinct volume, hover inspection, and bounded zoom/pan. Vike is the server-side public historical-data path with visible provenance and UTC freshness; Twelve Data remains private/internal research capability. The Azure Linux F1/Free deployment remains bounded with controlled disclosure and no trade execution, while technical indicators and ML implementation remain deferred to Release 1.14 and Release 2.0+.
+
+
+| Evidence                          | Release 1.13 accepted baseline |
+| ----------------------------------- | -------------------------------: |
+| Automated tests                   |                **504 passing** |
+| Domain tests                      |                 **11 passing** |
+| Application tests                 |                **168 passing** |
+| Architecture tests                |                 **27 passing** |
+| Infrastructure tests              |                **238 passing** |
+| Focused Vike tests                |                 **24 passing** |
+| Python presentation tests         |                 **36 passing** |
+| Build warnings                    |                          **0** |
+| Build errors                      |                          **0** |
+| Canonical repository verification |                       **PASS** |
 
 ### Release 1.1 showcase
 
@@ -339,13 +346,13 @@ Worker          → Application, Infrastructure
 ### Layer responsibilities
 
 
-| Layer              | Responsibility                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Domain** | Quantitative concepts and invariants without provider, storage, deployment, or presentation dependencies. |
-| **Application** | Use cases, contracts, identities, orchestration, and semantic evidence. |
-| **Infrastructure** | Twelve Data, SQLite, telemetry adapters, and the governed local Python process boundary. |
-| **Worker** | Composition and bounded execution of the canonical .NET pipeline. |
-| **Python/Streamlit** | Read-only consumption and presentation of governed handoff evidence. |
+| Layer                | Responsibility                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
+| **Domain**           | Quantitative concepts and invariants without provider, storage, deployment, or presentation dependencies. |
+| **Application**      | Use cases, contracts, identities, orchestration, and semantic evidence.                                   |
+| **Infrastructure**   | Twelve Data, SQLite, telemetry adapters, and the governed local Python process boundary.                  |
+| **Worker**           | Composition and bounded execution of the canonical .NET pipeline.                                         |
+| **Python/Streamlit** | Read-only consumption and presentation of governed handoff evidence.                                      |
 
 .NET remains the canonical pipeline owner. Streamlit does not directly own provider access, SQLite access, or Worker supervision. The Release 1.8 JSON-over-stdio interoperability boundary and Release 1.9 visualization handoff remain distinct governed contracts. Azure is deployment-only and introduces no Domain or Application dependency.
 
@@ -397,16 +404,16 @@ The repository is built around the .NET SDK version pinned by `global.json`.
 
 Release 1.8 also uses machine CPython **3.13.15** as the base runtime and an
 ignored, disposable repository-local `.venv` for every project dependency.
-The four direct pins are NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0, and
-Streamlit 1.61.1. See the [Python developer environment guide](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
+The five direct pins are NumPy 2.5.1, pandas 3.0.5, scikit-learn 1.9.0,
+Streamlit 1.61.1, and Plotly 7.1.0.
+See the [Python developer environment guide](docs/guides/PYTHON_DEVELOPER_ENVIRONMENT.md)
 and the [interoperability boundary](docs/architecture/design/DOTNET_PYTHON_INTEROPERABILITY.md).
 The Python foundation supplies no product ML model, training workflow, or
-Streamlit product application. Release 1.9 is planned as real-time financial
-data visualization; lightweight ML evaluation is separately planned for
+Streamlit product application; lightweight ML evaluation is separately planned for
 Release 2.0.
 
 For the provider-backed execution path, configuration is supplied externally:
-
+- `Vike:ApiKey` — server-side Vike API key for public historical OHLCV reads.
 - `TwelveData:ApiKey` — Twelve Data API key.
 - `Persistence:DatabasePath` — local SQLite database path.
 - `Dataset:Target`, `Dataset:From`, and `Dataset:To` — explicit dataset input;
@@ -448,7 +455,7 @@ The repository validates Domain, Application, Infrastructure, Architecture, and 
 
 ### Current execution flow
 
-Release 1.12 runs the bounded public-reference deployment flow:
+Release 1.13 runs the bounded public-reference deployment flow:
 
 ```text
 Public HTTPS/DNS
@@ -464,7 +471,20 @@ Container entrypoint
         |       +-- /home/data/aiquant.db: SQLite schema v4, DELETE journal mode
         |       `-- canonical read-model JSON
         |
-        `-- Streamlit: read-only presentation and System Health
+        +-- Streamlit: read-only presentation and System Health
+        |
+        v
+Streamlit Market Research
+        |
+        v
+bounded local Worker/stdio bridge -> HistoricalQuery -> HistoricalMarketDataReadService
+                                                     |
+                                                     +-- fresh cache hit -> canonical JSON
+                                                     `-- Vike (server-side only) -> cache -> canonical JSON
+                                                                                         |
+                                                                                         v
+                                                                              Streamlit candlesticks, volume,
+                                                                              Vike provenance, and UTC freshness
 ```
 
 The Worker owns bounded provider access, application orchestration, persistence,
@@ -508,6 +528,11 @@ successfully, the container retains the Streamlit presentation process. This
 is a bounded public reference/demo flow, not a production HA or automatic
 failover design.
 
+Release 1.13 contributes provider-independent historical-read contracts,
+cache-first behavior, canonical OHLCV provenance/freshness evidence, Vike
+adapter and public-presentation validation, and controlled failure/disclosure
+coverage for the bounded Azure F1 reference deployment.
+
 ---
 
 ## Engineering Evidence
@@ -536,6 +561,7 @@ The current permanent test baseline covers:
 - Application persistence contracts.
 - Persistence use-case behavior.
 - Twelve Data provider behavior.
+- Vite Data provider behavior.
 - SQLite schema and bootstrap.
 - Connection lifecycle.
 - Persistence and retrieval semantics.
@@ -608,10 +634,13 @@ AI assists the engineering process; it does not replace architecture, testing, r
 ## Implemented Technology
 
 The current executable platform is centered on:
+
 - C# and .NET
 - Python 3.13 interoperability
 - Streamlit
 - Twelve Data historical acquisition
+- Vike server-side historical OHLCV integration
+- Plotly 7.1.0 candlestick and volume visualization
 - SQLite durable evidence
 - JSON-over-stdio interoperability
 - canonical JSON visualization handoff
@@ -629,7 +658,7 @@ Implemented deployment capability does not include Azure SQL, Azure Files, Conta
 
 ## Planned Technology & Platform Direction
 
-Release 1.12 is complete and published as `v1.12.0`. Its accepted platform
+Release 1.13 is complete and published as `v1.13.0`. Its accepted platform
 baseline includes:
 
 - persistent `/home` SQLite initialization, data update, integrity, and recovery;
@@ -639,10 +668,19 @@ baseline includes:
 - operational runbooks, final release acceptance, and governed regional recovery
   across West Central US (historical evidence), West US 2, Central US, and South
   Central India.
+- provider-independent historical market-data architecture with Vike as the
+  public server-side historical-data path and Twelve Data retained as private
+  internal research capability;
+- public BTC/USD and ETH/USD historical market visualization, with supported
+  1h, 4h, and 1d intervals; 1D, 7D, 30D, and 90D ranges; candlesticks,
+  distinct volume, hover inspection, and bounded zoom/pan;
+- cache-first historical reads, canonical OHLCV handoff, visible provenance and
+  UTC freshness, plus controlled public failure/disclosure behavior on the
+  Azure Linux F1/Free reference deployment.
 
 Later governed direction includes:
 
-- an independent Azure SQL Database Free Offer investigation and architecture decision—it is not adopted by Release 1.12;
+- an independent Azure SQL Database Free Offer investigation and architecture decision;
 - Phase 5 Release 2.0 lightweight machine-learning evaluation;
 - Release 2.1 Machine Learning;
 - Release 2.2 Explainable AI;
@@ -658,29 +696,31 @@ Python interoperability, Docker deployment, and OpenTelemetry observability are 
 Each release is intended to add a concrete platform capability while strengthening the engineering system around it.
 
 
-| Release      | Engineering capability                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------- |
-| **0.1–0.6** | Architecture, governance, design, resilience, and implementation foundations              |
-| **0.7**      | AI Engineering Toolkit                                                                    |
-| **0.8**      | Executable .NET solution skeleton                                                         |
-| **0.9**      | Build, CI, and platform bootstrap evolution                                               |
-| **1.0**      | Provider-backed historical market-data acquisition                                        |
-| **1.1** | Durable market-data persistence and deterministic retrieval |
-| **1.2** | Immutable datasets, snapshots, versions, and catalog evidence |
-| **1.3** | Fixed deterministic research pipeline |
-| **1.4** | Deterministic feature generation |
-| **1.5** | Deterministic research experiment evidence |
-| **1.6** | Durable experiment evidence |
-| **1.7** | Bounded durable experiment evidence discovery |
-| **1.8** | Python interoperability and governed JSON-over-stdio boundary |
-| **1.9** | Governed real-time-style visualization and canonical JSON handoff |
-| **1.10** | OpenTelemetry pipeline/boundary observability and truthful System Health |
-| **Initiative-1.11** | Azure App Service F1 public-reference feasibility qualification — **FEASIBLE** |
-| **1.12** | Public Reference Deployment Implementation & Stabilization |
-| **2.0** | Lightweight Machine Learning Evaluation — planned |
-| **2.1** | Machine Learning — planned |
-| **2.2** | Explainable AI — planned |
-| **2.3** | Backtesting — planned |
+| Release             | Engineering capability                                                         |
+| --------------------- | -------------------------------------------------------------------------------- |
+| **0.1–0.6**        | Architecture, governance, design, resilience, and implementation foundations   |
+| **0.7**             | AI Engineering Toolkit                                                         |
+| **0.8**             | Executable .NET solution skeleton                                              |
+| **0.9**             | Build, CI, and platform bootstrap evolution                                    |
+| **1.0**             | Provider-backed historical market-data acquisition                             |
+| **1.1**             | Durable market-data persistence and deterministic retrieval                    |
+| **1.2**             | Immutable datasets, snapshots, versions, and catalog evidence                  |
+| **1.3**             | Fixed deterministic research pipeline                                          |
+| **1.4**             | Deterministic feature generation                                               |
+| **1.5**             | Deterministic research experiment evidence                                     |
+| **1.6**             | Durable experiment evidence                                                    |
+| **1.7**             | Bounded durable experiment evidence discovery                                  |
+| **1.8**             | Python interoperability and governed JSON-over-stdio boundary                  |
+| **1.9**             | Governed real-time-style visualization and canonical JSON handoff              |
+| **1.10**            | OpenTelemetry pipeline/boundary observability and truthful System Health       |
+| **Initiative-1.11** | Azure App Service F1 public-reference feasibility qualification —**FEASIBLE** |
+| **1.12**            | Public Reference Deployment Implementation & Stabilization                     |
+| **1.13**            | Historical Market Visualization & Provider Abstraction                        |
+| **1.14**            | Technical Analysis & Quantitative Feature Foundation                          |
+| **2.0**             | Lightweight Machine Learning Evaluation — planned                             |
+| **2.1**             | Machine Learning — planned                                                    |
+| **2.2**             | Explainable AI — planned                                                      |
+| **2.3**             | Backtesting — planned                                                         |
 
 The roadmap evolves incrementally. Completed releases represent implemented evidence; future releases represent direction until formally defined and accepted. The completed path through Release 1.12 is 1.9 Visualization → 1.10 Observability → Initiative-1.11 feasibility qualification → 1.12 Public Reference Deployment Implementation & Stabilization. The canonical planned sequence is 2.0 Lightweight ML Evaluation → 2.1 Machine Learning → 2.2 Explainable AI → 2.3 Backtesting.
 
