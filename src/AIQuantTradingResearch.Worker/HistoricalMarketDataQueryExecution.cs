@@ -85,7 +85,7 @@ public sealed class HistoricalMarketDataQueryExecution
             // The read service performs the post-lock cache recheck and all freshness/provider decisions.
             var result = await service.ReadAsync(request, deadline.Token);
             if (result.State == HistoricalMarketDataReadState.Unavailable) return await WriteAsync(output, Response.Unavailable(result.Failure == HistoricalMarketDataFailure.Timeout ? "Timeout" : "Unavailable"));
-            return await WriteAsync(output, Response.From(request, result));
+            return await WriteAsync(output, Response.From(request, result, deadline.Token));
         }
         catch (EncoderFallbackException) { return await WriteAsync(output, Response.Invalid()); }
         catch (OperationCanceledException)
@@ -132,14 +132,51 @@ public sealed class HistoricalMarketDataQueryExecution
     private static readonly Dictionary<string, HistoricalCandleRange> Ranges = new(StringComparer.Ordinal) { ["1D"] = HistoricalCandleRange.OneDay, ["7D"] = HistoricalCandleRange.SevenDays, ["30D"] = HistoricalCandleRange.ThirtyDays, ["90D"] = HistoricalCandleRange.NinetyDays };
 
     private sealed record Candle(string OpenTimeUtc, string Open, string High, string Low, string Close, string Volume);
-    private sealed record Response(string ContractVersion, string State, string? Instrument, string? Interval, string? Range, IReadOnlyList<Candle>? Candles, SyntheticMarketDataIdentity? Provenance, string? GeneratedAtUtc, string? Failure)
+    private sealed record Indicator(string OpenTimeUtc, string? Sma20, string? Ema20, string? Rsi14,
+        string? Macd, string? MacdSignal, string? MacdHistogram, string? BollingerLower, string? BollingerMiddle, string? BollingerUpper);
+    private sealed record Analytics(string CalculationVersion, TechnicalIndicatorParameters Parameters, string Context,
+        string Source, string Instrument, string Interval, string Range, string CanonicalVersion,
+        string DatasetFingerprint, string WindowFingerprint, string CalculationStartUtc, string VisibleStartUtc,
+        int Warmup, int CalculationCount, IReadOnlyList<Indicator> Rows);
+    private sealed record Response(string ContractVersion, string State, string? Instrument, string? Interval, string? Range, IReadOnlyList<Candle>? Candles, SyntheticMarketDataIdentity? Provenance, string? GeneratedAtUtc, string? Failure, Analytics? Analytics)
     {
         public static Response Invalid() => Unavailable("InvalidRequest");
-        public static Response Unavailable(string failure) => new(HistoricalMarketDataQueryExecution.ContractVersion, "Unavailable", null, null, null, null, null, null, failure);
-        public static Response From(HistoricalMarketDataRequest request, HistoricalMarketDataReadResult result)
+        public static Response Unavailable(string failure) => new(HistoricalMarketDataQueryExecution.ContractVersion, "Unavailable", null, null, null, null, null, null, failure, null);
+        public static Response From(HistoricalMarketDataRequest request, HistoricalMarketDataReadResult result, CancellationToken cancellationToken)
         {
             SyntheticPublicationPolicy.ValidateWindow(request, result.Candles!, result.Provenance!);
-            return new(HistoricalMarketDataQueryExecution.ContractVersion, "Available", SyntheticPublicationPolicy.Instrument, ToInterval(request.Interval), ToRange(request.Range), result.Candles!.Skip(250).Select(c => new Candle(SyntheticPublicationPolicy.Timestamp(c.OpenTimeUtc), c.Open.ToString("F4", CultureInfo.InvariantCulture), c.High.ToString("F4", CultureInfo.InvariantCulture), c.Low.ToString("F4", CultureInfo.InvariantCulture), c.Close.ToString("F4", CultureInfo.InvariantCulture), c.Volume.ToString("F3", CultureInfo.InvariantCulture))).ToArray(), result.Provenance!.SyntheticIdentity, SyntheticPublicationPolicy.Timestamp(result.Provenance.AcquiredAtUtc), null);
+            var calculated = TechnicalIndicatorCalculator.CalculatePublic(request, result.Candles!, result.Provenance!, cancellationToken);
+            var visible = calculated.Rows.Skip(SyntheticPublicationPolicy.Warmup).ToArray();
+            var identity = result.Provenance!.SyntheticIdentity!;
+            // Final derived-publication gate. Never mutate the accepted candle/cache provenance.
+            if (calculated.Identity.Context != "public-synthetic" || calculated.Identity.Source != identity.Source ||
+                calculated.Identity.WindowFingerprint != identity.WindowFingerprint || calculated.Identity.DatasetFingerprint != identity.DatasetFingerprint ||
+                calculated.Parameters != TechnicalIndicatorParameters.Fixed || visible.Length != SyntheticPublicationPolicy.VisibleCount(request))
+                throw new ArgumentException("Invalid analytics publication identity.");
+            for (var i = 0; i < visible.Length; i++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var row = visible[i];
+                var values = new[] { row.Sma20, row.Ema20, row.Rsi14, row.Macd, row.MacdSignal, row.MacdHistogram,
+                    row.BollingerLower, row.BollingerMiddle, row.BollingerUpper };
+                if (row.OpenTimeUtc != result.Candles![i + 250].OpenTimeUtc ||
+                    values.Any(v => v is null || Math.Abs(v.Value) > 3_000_000_000m || decimal.Round(v.Value, 12) != v.Value) ||
+                    row.Rsi14 is < 0m or > 100m || row.Sma20 <= 0m || row.Ema20 <= 0m ||
+                    row.BollingerMiddle != row.Sma20 || row.BollingerLower > row.BollingerMiddle || row.BollingerUpper < row.BollingerMiddle ||
+                    row.BollingerUpper - row.BollingerMiddle != row.BollingerMiddle - row.BollingerLower ||
+                    row.MacdHistogram != row.Macd - row.MacdSignal)
+                    throw new ArgumentException("Invalid analytics publication rows.");
+            }
+            static string? Number(decimal? value) => value?.ToString("F12", CultureInfo.InvariantCulture);
+            var analytics = new Analytics("aiq-ta-v1", calculated.Parameters, calculated.Identity.Context, calculated.Identity.Source,
+                SyntheticPublicationPolicy.Instrument, ToInterval(request.Interval), ToRange(request.Range), calculated.Identity.CanonicalVersion,
+                identity.DatasetFingerprint, identity.WindowFingerprint, SyntheticPublicationPolicy.Timestamp(calculated.Identity.CalculationStartUtc),
+                SyntheticPublicationPolicy.Timestamp(visible[0].OpenTimeUtc), 250, calculated.Rows.Count,
+                visible.Select(r => new Indicator(SyntheticPublicationPolicy.Timestamp(r.OpenTimeUtc), Number(r.Sma20), Number(r.Ema20), Number(r.Rsi14),
+                    Number(r.Macd), Number(r.MacdSignal), Number(r.MacdHistogram), Number(r.BollingerLower), Number(r.BollingerMiddle), Number(r.BollingerUpper))).ToArray());
+            SyntheticPublicationPolicy.ValidateWindow(request, result.Candles!, result.Provenance!);
+            cancellationToken.ThrowIfCancellationRequested();
+            return new(HistoricalMarketDataQueryExecution.ContractVersion, "Available", SyntheticPublicationPolicy.Instrument, ToInterval(request.Interval), ToRange(request.Range), result.Candles!.Skip(250).Select(c => new Candle(SyntheticPublicationPolicy.Timestamp(c.OpenTimeUtc), c.Open.ToString("F4", CultureInfo.InvariantCulture), c.High.ToString("F4", CultureInfo.InvariantCulture), c.Low.ToString("F4", CultureInfo.InvariantCulture), c.Close.ToString("F4", CultureInfo.InvariantCulture), c.Volume.ToString("F3", CultureInfo.InvariantCulture))).ToArray(), identity with { CalculationVersion = "aiq-ta-v1" }, SyntheticPublicationPolicy.Timestamp(result.Provenance.AcquiredAtUtc), null, analytics);
         }
         private static string ToInterval(HistoricalCandleInterval value) => value switch { HistoricalCandleInterval.OneHour => "1h", HistoricalCandleInterval.FourHours => "4h", _ => "1d" };
         private static string ToRange(HistoricalCandleRange value) => value switch { HistoricalCandleRange.OneDay => "1D", HistoricalCandleRange.SevenDays => "7D", HistoricalCandleRange.ThirtyDays => "30D", _ => "90D" };

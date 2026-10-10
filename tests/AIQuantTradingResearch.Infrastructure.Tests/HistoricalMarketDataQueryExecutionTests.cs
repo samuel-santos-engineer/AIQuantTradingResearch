@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Diagnostics;
 using AIQuantTradingResearch.Application.MarketData;
 using AIQuantTradingResearch.Infrastructure.MarketData.Cache;
 using AIQuantTradingResearch.Worker;
@@ -95,6 +96,148 @@ public sealed class HistoricalMarketDataQueryExecutionTests
         using var response = JsonDocument.Parse(output.ToString()); Assert.Equal("Available", response.RootElement.GetProperty("state").GetString());
         Assert.Equal(visible, response.RootElement.GetProperty("candles").GetArrayLength()); Assert.DoesNotContain("Vike", output.ToString());
         Assert.Equal(SyntheticPublicationPolicy.Timestamp(SyntheticPublicationPolicy.CoverageEnd.AddDays(-SyntheticPublicationPolicy.Days(range))), response.RootElement.GetProperty("candles")[0].GetProperty("openTimeUtc").GetString());
+        var analytics = response.RootElement.GetProperty("analytics");
+        Assert.Equal("aiq-ta-v1", response.RootElement.GetProperty("provenance").GetProperty("calculationVersion").GetString());
+        Assert.Equal("public-synthetic", analytics.GetProperty("context").GetString());
+        Assert.Equal("independent-synthetic", analytics.GetProperty("source").GetString());
+        Assert.Equal(250, analytics.GetProperty("warmup").GetInt32());
+        Assert.Equal(visible + 250, analytics.GetProperty("calculationCount").GetInt32());
+        Assert.Equal(SyntheticPublicationPolicy.Timestamp(SyntheticPublicationPolicy.CalculationStart(request)), analytics.GetProperty("calculationStartUtc").GetString());
+        Assert.Equal(visible, analytics.GetProperty("rows").GetArrayLength());
+        foreach (var row in analytics.GetProperty("rows").EnumerateArray())
+        {
+            Assert.Equal("11.000000000000", row.GetProperty("sma20").GetString());
+            Assert.Equal("11.000000000000", row.GetProperty("ema20").GetString());
+            Assert.Equal("50.000000000000", row.GetProperty("rsi14").GetString());
+            Assert.Equal("0.000000000000", row.GetProperty("macdHistogram").GetString());
+        }
+        var cached = await fixture.Cache.RetrieveAsync(service.GetPublicKey(request));
+        Assert.NotNull(cached.Entry); Assert.Null(cached.Entry.Provenance.SyntheticIdentity!.CalculationVersion);
+        var secondOutput = new StringWriter();
+        await execution.ExecuteAsync(new StringReader(SyntheticTestFixture.RequestJson(SyntheticPublicationPolicy.IntervalLiteral(interval), SyntheticPublicationPolicy.RangeLiteral(range))), secondOutput, new StringWriter());
+        Assert.Equal(output.ToString(), secondOutput.ToString()); Assert.Equal(1, provider.Calls);
+    }
+
+    [Fact]
+    public async Task HiddenWarmupActuallySeedsAllVisibleAnalytics()
+    {
+        using var fixture = new SyntheticTestFixture(); var request = SyntheticTestFixture.Request();
+        var baseline = SyntheticTestFixture.Entry(request);
+        var candles = baseline.Candles.Select((c, i) => new HistoricalCandle(c.Symbol, c.Interval, c.OpenTimeUtc,
+            i < 250 ? 100m : 1m, i < 250 ? 100m : 1m, i < 250 ? 100m : 1m, i < 250 ? 100m : 1m, 0m)).ToArray();
+        var fingerprint = SyntheticPublicationPolicy.WindowFingerprint(request, candles);
+        var identity = baseline.Provenance.SyntheticIdentity! with { WindowFingerprint = fingerprint };
+        var provenance = baseline.Provenance with { SyntheticIdentity = identity };
+        var windows = Enum.GetValues<HistoricalCandleInterval>().SelectMany(i => Enum.GetValues<HistoricalCandleRange>().Select(r => (i, r)))
+            .ToDictionary(k => k, k => SyntheticTestFixture.Policy.QualifiedWindowFingerprint(SyntheticTestFixture.Request(k.i, k.r)));
+        windows[(request.Interval, request.Range)] = fingerprint;
+        var policy = new SyntheticPublicationPolicy(Enum.GetValues<HistoricalCandleInterval>().ToDictionary(i => i, i => new string('a', 64)), windows);
+        var provider = new FixedSyntheticProvider(candles, provenance);
+        using var service = HistoricalMarketDataReadService.PublicSynthetic(provider, fixture.Cache, policy);
+        var execution = new HistoricalMarketDataQueryExecution(service, new AtomicFileHistoricalMarketDataQueryLock(fixture.Directory));
+        var output = new StringWriter(); await execution.ExecuteAsync(new StringReader(SyntheticTestFixture.RequestJson("1d", "1D")), output, new StringWriter());
+        using var json = JsonDocument.Parse(output.ToString()); var rows = json.RootElement.GetProperty("analytics").GetProperty("rows");
+        Assert.Equal(1, rows.GetArrayLength()); var row = rows[0];
+        // Independently derived step after 250 constant-100 closes, followed by one close of 1.
+        Assert.Equal("95.050000000000", row.GetProperty("sma20").GetString());
+        Assert.Equal("90.571428571429", row.GetProperty("ema20").GetString());
+        Assert.Equal("0.000000000000", row.GetProperty("rsi14").GetString());
+        Assert.Equal("-7.897435897436", row.GetProperty("macd").GetString());
+        Assert.Equal("-1.579487179487", row.GetProperty("macdSignal").GetString());
+        Assert.Equal("-6.317948717949", row.GetProperty("macdHistogram").GetString());
+        Assert.Equal("51.896900458948", row.GetProperty("bollingerLower").GetString());
+        Assert.Equal("138.203099541052", row.GetProperty("bollingerUpper").GetString());
+        Assert.Equal(SyntheticPublicationPolicy.Timestamp(candles[^1].OpenTimeUtc), row.GetProperty("openTimeUtc").GetString());
+        Assert.Null(provenance.SyntheticIdentity!.CalculationVersion);
+    }
+
+    [Theory]
+    [InlineData("version")] [InlineData("source")] [InlineData("fingerprint")] [InlineData("instrument")]
+    public async Task ContaminatedSyntheticInputsNeverPublishAnalytics(string mutation)
+    {
+        using var fixture = new SyntheticTestFixture(); var entry = SyntheticTestFixture.Entry();
+        var identity = entry.Provenance.SyntheticIdentity!;
+        identity = mutation switch { "version" => identity with { CalculationVersion = "aiq-ta-v1" },
+            "source" => identity with { Source = "Vike" }, "fingerprint" => identity with { WindowFingerprint = new string('c', 64) },
+            _ => identity with { Instrument = "BTC/USD" } };
+        var provider = new FixedSyntheticProvider(entry.Candles, entry.Provenance with { SyntheticIdentity = identity });
+        using var service = HistoricalMarketDataReadService.PublicSynthetic(provider, fixture.Cache, SyntheticTestFixture.Policy);
+        var execution = new HistoricalMarketDataQueryExecution(service, new AtomicFileHistoricalMarketDataQueryLock(fixture.Directory));
+        var output = new StringWriter(); await execution.ExecuteAsync(new StringReader(SyntheticTestFixture.RequestJson("1d", "1D")), output, new StringWriter());
+        using var json = JsonDocument.Parse(output.ToString()); Assert.Equal("Unavailable", json.RootElement.GetProperty("state").GetString());
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("analytics").ValueKind);
+        Assert.Equal(JsonValueKind.Null, json.RootElement.GetProperty("provenance").ValueKind);
+        Assert.DoesNotContain("BTC/USD", output.ToString()); Assert.DoesNotContain("Vike", output.ToString());
+    }
+
+    private sealed class FixedSyntheticProvider(IReadOnlyList<HistoricalCandle> candles, HistoricalMarketDataProvenance provenance) : IIndependentSyntheticHistoricalMarketDataProvider
+    {
+        public Task<HistoricalMarketDataResponse> GetHistoricalCandlesAsync(HistoricalMarketDataRequest request, CancellationToken cancellationToken = default) =>
+            Task.FromResult(HistoricalMarketDataResponse.Available(request, candles, provenance));
+    }
+
+    [Fact]
+    public async Task QualifiedGeneratorWorkerAndPythonAgreeForAllTwelveSelections()
+    {
+        using var fixture = new SyntheticTestFixture();
+        var provider = new AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider();
+        using var service = HistoricalMarketDataReadService.PublicSynthetic(provider, fixture.Cache,
+            AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider.CreatePublicationPolicy());
+        var execution = new HistoricalMarketDataQueryExecution(service, new AtomicFileHistoricalMarketDataQueryLock(fixture.Directory));
+        var responses = new List<JsonElement>();
+        foreach (var interval in Enum.GetValues<HistoricalCandleInterval>()) foreach (var range in Enum.GetValues<HistoricalCandleRange>())
+        {
+            var output = new StringWriter();
+            await execution.ExecuteAsync(new StringReader(SyntheticTestFixture.RequestJson(SyntheticPublicationPolicy.IntervalLiteral(interval), SyntheticPublicationPolicy.RangeLiteral(range))), output, new StringWriter());
+            using var json = JsonDocument.Parse(output.ToString());
+            Assert.Equal("Available", json.RootElement.GetProperty("state").GetString());
+            Assert.True(System.Text.Encoding.UTF8.GetByteCount(output.ToString()) <= 2 * 1024 * 1024);
+            responses.Add(json.RootElement.Clone());
+        }
+        var datasets = AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider.DatasetFingerprints
+            .ToDictionary(p => SyntheticPublicationPolicy.IntervalLiteral(p.Key), p => p.Value);
+        var windows = AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider.WindowFingerprints
+            .Select(p => new { interval = SyntheticPublicationPolicy.IntervalLiteral(p.Key.Interval), range = SyntheticPublicationPolicy.RangeLiteral(p.Key.Range), fingerprint = p.Value });
+        var visible = AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider.VisibleRowFingerprints
+            .Select(p => new { interval = SyntheticPublicationPolicy.IntervalLiteral(p.Key.Interval), range = SyntheticPublicationPolicy.RangeLiteral(p.Key.Range), fingerprint = p.Value });
+        // Protocol compatibility check, not the independent numerical oracle: CPython invokes
+        // the actual bridge against .NET-generated responses using server-qualified WP02 values.
+        const string script = """
+            import sys,json
+            from decimal import Decimal
+            sys.path.insert(0,sys.argv[1])
+            from historical_market_bridge import parse_response
+            data=json.load(sys.stdin)
+            windows={(p['interval'],p['range']):p['fingerprint'] for p in data['windows']}
+            visible={(p['interval'],p['range']):p['fingerprint'] for p in data['visible']}
+            counts=[]
+            for payload in data['responses']:
+                parsed=parse_response(json.dumps(payload),qualified_dataset_fingerprints=data['datasets'],qualified_window_fingerprints=windows,qualified_visible_fingerprints=visible)
+                assert parsed.analytics.metadata['context']=='public-synthetic'
+                assert len(parsed.analytics.rows)==len(parsed.candles)
+                assert all(isinstance(r.sma20,Decimal) for r in parsed.analytics.rows)
+                counts.append(len(parsed.candles))
+            print(','.join(map(str,counts)))
+            """;
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName, "python", "presentation", "historical_market_bridge.py"))) root = root.Parent;
+        Assert.NotNull(root);
+        var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("AIQ_WP02_REFERENCE_PYTHON") ?? "python")
+        { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+        start.ArgumentList.Add("-I"); start.ArgumentList.Add("-B"); start.ArgumentList.Add("-c"); start.ArgumentList.Add(script);
+        start.ArgumentList.Add(Path.Combine(root.FullName, "python", "presentation"));
+        using var process = Process.Start(start)!;
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        try
+        {
+            var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
+            var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
+            await process.StandardInput.WriteAsync(JsonSerializer.Serialize(new { responses, datasets, windows, visible }).AsMemory(), timeout.Token);
+            process.StandardInput.Close(); await process.WaitForExitAsync(timeout.Token);
+            Assert.Equal(0, process.ExitCode); Assert.Equal("", await stderr);
+            Assert.Equal("24,168,720,2160,6,42,180,540,1,7,30,90", (await stdout).Trim());
+        }
+        finally { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); } }
     }
 
     private sealed class CountingStream(byte[] bytes, int fragment = 4097) : MemoryStream(bytes)
