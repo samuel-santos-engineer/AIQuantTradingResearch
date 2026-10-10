@@ -139,3 +139,54 @@ Show accurate attribution, venue, instrument type, and freshness alongside publi
 **Pending qualification:** Vike/Hyperliquid BTC perpetual public use, including technical and rights evidence; private ML use rights and any derived-output publication.
 
 **Not authorized by this document:** application code changes, new infrastructure, credentials, data ingestion, public feed activation, ML training, or deployment. Future milestones inherit these principles unless explicitly revised through architecture governance.
+
+
+---
+
+## 10. Release 1.14 amendment — synthetic public preview and retained secondary provider
+
+**Decision date:** 2026-10-10  
+**Status:** Proposed governance amendment, effective upon owner review and merge.  
+**Supersedes:** Earlier Release 1.14 public-preview assumptions identifying Vike / Hyperliquid BTC perpetual candles as the intended public chart feed. Sections 1–9 remain governing where compatible; this amendment takes precedence where they conflict.
+
+### Revised source-of-data decision
+
+- **Anonymous Public Preview:** Use **independently generated deterministic synthetic OHLCV** exclusively. No public Vike or Twelve Data market-data calls, snapshots, perturbed real candles, or private derived data. Label prominently **“BTC-like Market Simulation — Synthetic Historical OHLCV”** with a visible statement that prices and volumes are illustrative, not exchange observations or investment advice.
+- **Private Research:** Twelve Data is the **primary external market-data provider**, subject to its plan-specific access, retention, training and derived-output terms. Private data and results must never leak into public charts, caches, logs, artifacts or exports.
+- **Retained Vike adapter:** Preserve existing Vike integration and the completed conditional qualification evidence for future provider-agnostic research and potential **private** resilience. No automatic fallback, public activation or equivalence assumption is authorized. A future fallback requires separately approved rights, instrument/venue/denomination equivalence, provenance, data-quality, operational and security controls.
+- **Shared provider-independent architecture:** All sources must map through canonical candle contracts preserving source, market identity, UTC timestamps, interval, volume units, generation/version metadata and provenance. Shared indicator algorithms (SMA, EMA, RSI, MACD, Bollinger) must remain source-independent, while publication authorization remains context-specific.
+
+### Revised architecture — normative diagram
+
+The diagram below is the architecture reference for Release 1.14. The future public **Architecture & Data Governance** page **must display this architecture visually**, with an accessible text equivalent and accurate implemented-versus-planned labels. A standalone scalable SVG asset may be produced in a separately authorized UI work package; the Mermaid source here is the version-controlled diagram authority.
+
+```mermaid
+flowchart TB
+  P["Public Preview — Independent synthetic OHLCV"] --> C["Provider-independent canonical candle contracts / provenance"]
+  T["Private Research — Twelve Data primary"] --> C
+  V["Vike retained — future qualified private backup; no automatic fallback"] -.-> C
+  C --> A["Shared deterministic analytics — SMA / EMA / RSI / MACD / Bollinger"]
+  A --> G{"Publication authorization and public/private isolation"}
+  G -->|"Synthetic public outputs only"| U["Public candlestick UI / architecture showcase"]
+  G -->|"Restricted private outputs"| R["Private research results"]
+```
+
+**Accessible text equivalent:** Independently generated public simulation candles and separately authorized private provider data enter a shared canonical representation and analytics core. Publication controls allow only synthetic outputs into the anonymous public chart. Twelve Data supplies private research. Vike remains a retained but inactive secondary provider candidate; it cannot automatically replace Twelve Data or feed the public chart.
+
+### Traceability and acceptance amendments
+
+Retain **AC107–AC122** and **G-1–G-4** identifiers; interpret them under the revised decision:
+
+- **AC107–AC112, AC115–AC116:** Preserve the homepage governance keynote, real navigation to a dedicated accessible architecture page, public/private explanation, ML publication governance, and truthful implemented/planned distinctions. Replace any claim that Vike powers the public chart with the synthetic-preview decision.
+- **AC113:** Public charts must clearly say **synthetic BTC-like simulation**, never BTC/USD spot, live BTC, or Hyperliquid BTC perpetual observations.
+- **AC114, AC118, AC121:** Public/private isolation remains fail-closed; no Twelve Data or Vike fallback into public requests; no publication of private datasets, derived indicators, features, model artifacts or forecasts without separate authorization.
+- **AC117:** External-provider public activation remains blocked pending explicit rights and technical qualification; Release 1.14 synthetic public charts do not depend on Vike qualification.
+- **AC119–AC120:** Canonical market identity/provenance and provider-independent indicators remain required. Preserve Vike for future qualified private-provider substitution without promising market equivalence or automatic failover.
+- **AC122:** Show synthetic provenance, generator version/seed or dataset fingerprint as appropriate, UTC context and honest freshness; do not attribute synthetic candles to Vike or Twelve Data.
+- **G-1/G-2:** Governance acceptance and traceability must reflect this amendment before implementation authority.
+- **G-3:** Independently generated synthetic public data must have auditable generation provenance and no provider-data derivation. Any future real public feed separately requires first-party licensing/upstream rights and technical acceptance.
+- **G-4:** Before public deployment, test deterministic generation, OHLC invariants, UTC alignment, correct synthetic labels, accessibility, no private-data fallback, and absence of public provider secrets/calls.
+
+### Implementation and governance boundaries
+
+This amendment is **documentation-only**. It does not authorize application changes, new dependencies, provider activation, public deployment, automatic failover, paid services, ML training, changes to root README, or edits to existing adapter code. Preserve the zero-recurring-infrastructure-cost Azure F1 target. Reconcile older Release 1.13/1.14 public Vike assumptions through subsequent explicitly scoped governance and work packages; do not silently rewrite historical records.
