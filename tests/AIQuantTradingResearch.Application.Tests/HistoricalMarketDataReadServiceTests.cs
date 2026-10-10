@@ -5,6 +5,47 @@ namespace AIQuantTradingResearch.Application.Tests;
 
 public sealed class HistoricalMarketDataReadServiceTests
 {
+    [Fact]
+    public async Task PublicObservedRequestsAreRejectedBeforeCacheOrProvider()
+    {
+        var provider = new Provider(Success()); var cache = new Cache();
+        var result = await HistoricalMarketDataReadService.PublicSynthetic(provider, cache, PublicContractTestData.Policy).ReadAsync(Request());
+        Assert.Equal(HistoricalMarketDataReadState.Unavailable, result.State); Assert.Equal(0, provider.Calls); Assert.Null(cache.Entry);
+    }
+
+    [Fact]
+    public async Task PublicHitIsValidatedAndProviderFailureCannotReturnPrivateOrExpiredCache()
+    {
+        var entry = PublicContractTestData.Entry(); var provider = new Provider(HistoricalMarketDataResponse.Failed(HistoricalMarketDataFailure.Unavailable));
+        var publicService = HistoricalMarketDataReadService.PublicSynthetic(provider, new Cache(entry), PublicContractTestData.Policy);
+        Assert.Equal(HistoricalMarketDataReadState.Fresh, (await publicService.ReadAsync(entry.Request)).State); Assert.Equal(0, provider.Calls);
+        foreach (var candidate in new[] { Entry(), new HistoricalMarketDataCacheEntry(entry.Key, entry.Request, entry.Candles, entry.Provenance, DateTimeOffset.UtcNow.AddHours(-25)) })
+        {
+            var result = await HistoricalMarketDataReadService.PublicSynthetic(provider, new Cache(candidate), PublicContractTestData.Policy).ReadAsync(entry.Request);
+            Assert.Equal(HistoricalMarketDataReadState.Unavailable, result.State); Assert.Null(result.Candles); Assert.Null(result.Provenance);
+        }
+        Assert.Equal(2, provider.Calls);
+    }
+
+    [Fact]
+    public async Task UnqualifiedProviderDatasetCannotBePublishedOrStored()
+    {
+        var entry = PublicContractTestData.Entry(); var identity = entry.Provenance.SyntheticIdentity! with { DatasetFingerprint = new string('b', 64) };
+        var response = HistoricalMarketDataResponse.Available(entry.Request, entry.Candles, entry.Provenance with { SyntheticIdentity = identity });
+        var cache = new Cache(); var result = await HistoricalMarketDataReadService.PublicSynthetic(new Provider(response), cache, PublicContractTestData.Policy).ReadAsync(entry.Request);
+        Assert.Equal(HistoricalMarketDataReadState.Unavailable, result.State); Assert.Null(cache.Entry);
+    }
+
+    [Fact]
+    public async Task RehashedForeignWindowCannotSelfQualifyAgainstServerManifest()
+    {
+        var entry = PublicContractTestData.Entry(); var rows = entry.Candles.ToArray(); var first = rows[0];
+        rows[0] = new(first.Symbol, first.Interval, first.OpenTimeUtc, 10.5m, 12m, 9m, 11m, 20m);
+        var identity = entry.Provenance.SyntheticIdentity! with { WindowFingerprint = SyntheticPublicationPolicy.WindowFingerprint(entry.Request, rows) };
+        var response = HistoricalMarketDataResponse.Available(entry.Request, rows, entry.Provenance with { SyntheticIdentity = identity });
+        var cache = new Cache(); var result = await HistoricalMarketDataReadService.PublicSynthetic(new Provider(response), cache, PublicContractTestData.Policy).ReadAsync(entry.Request);
+        Assert.Equal(HistoricalMarketDataReadState.Unavailable, result.State); Assert.Null(result.Candles); Assert.Null(cache.Entry);
+    }
     private static readonly DateTimeOffset Now = new(2026, 9, 19, 12, 0, 0, TimeSpan.Zero);
     [Fact] public void KeyIncludesAllGovernedDimensions() { var key = Key(); Assert.NotEqual(key.Fingerprint, new HistoricalMarketDataCacheKey(CanonicalMarketSymbol.EthUsd, HistoricalCandleInterval.OneHour, HistoricalCandleRange.ThirtyDays, "Vike", HistoricalMarketDataReadService.CacheContractVersion).Fingerprint); Assert.NotEqual(key.Fingerprint, new HistoricalMarketDataCacheKey(CanonicalMarketSymbol.BtcUsd, HistoricalCandleInterval.FourHours, HistoricalCandleRange.ThirtyDays, "Vike", HistoricalMarketDataReadService.CacheContractVersion).Fingerprint); Assert.NotEqual(key.Fingerprint, new HistoricalMarketDataCacheKey(CanonicalMarketSymbol.BtcUsd, HistoricalCandleInterval.OneHour, HistoricalCandleRange.NinetyDays, "Vike", "v2").Fingerprint); }
     [Fact] public async Task FreshCacheHasZeroProviderCalls() { var cache = new Cache(Entry()); var provider = new Provider(Success()); var result = await Service(provider, cache).ReadAsync(Request()); Assert.Equal(HistoricalMarketDataReadState.Fresh, result.State); Assert.Equal(0, provider.Calls); }
@@ -16,5 +57,5 @@ public sealed class HistoricalMarketDataReadServiceTests
     [Theory] [InlineData(HistoricalCandleInterval.OneHour, 15)] [InlineData(HistoricalCandleInterval.FourHours, 30)] [InlineData(HistoricalCandleInterval.OneDay, 120)] public void PolicyIsIntervalAware(HistoricalCandleInterval interval, int minutes) => Assert.Equal(TimeSpan.FromMinutes(minutes), HistoricalMarketDataReadService.GetFreshnessWindow(interval));
     private static HistoricalMarketDataReadService Service(Provider p, Cache c) => new(p, c, "Vike", new Clock()); private static HistoricalMarketDataRequest Request() => new(CanonicalMarketSymbol.BtcUsd, HistoricalCandleInterval.OneHour, HistoricalCandleRange.ThirtyDays, TimeSpan.FromSeconds(10)); private static HistoricalMarketDataCacheKey Key() => new(CanonicalMarketSymbol.BtcUsd, HistoricalCandleInterval.OneHour, HistoricalCandleRange.ThirtyDays, "Vike", HistoricalMarketDataReadService.CacheContractVersion); private static HistoricalMarketDataCacheEntry Entry(DateTimeOffset? validated = null) { var time = validated ?? Now.AddMinutes(-5); return new(Key(), Request(), [new HistoricalCandle(CanonicalMarketSymbol.BtcUsd, HistoricalCandleInterval.OneHour, Now.AddHours(-1), 10m, 12m, 9m, 11m, 100m)], new HistoricalMarketDataProvenance("Vike", time, time, false, true), Now); } private static HistoricalMarketDataProvenance Provenance() => new("Vike", Now, Now, false, true); private static HistoricalMarketDataResponse Success() => HistoricalMarketDataResponse.Available(Request(), Entry().Candles, Provenance()); private sealed class Clock : TimeProvider { public override DateTimeOffset GetUtcNow() => Now; }
     private sealed class Cache(HistoricalMarketDataCacheEntry? entry = null) : IHistoricalMarketDataCache { public HistoricalMarketDataCacheEntry? Entry { get; private set; } = entry; public Task<HistoricalMarketDataCacheLookup> RetrieveAsync(HistoricalMarketDataCacheKey key, CancellationToken ct = default) => Task.FromResult(Entry is null ? HistoricalMarketDataCacheLookup.Missing() : HistoricalMarketDataCacheLookup.Found(Entry)); public Task StoreAsync(HistoricalMarketDataCacheEntry entry, CancellationToken ct = default) { Entry = entry; return Task.CompletedTask; } }
-    private sealed class Provider : IHistoricalMarketDataProvider { private readonly Task<HistoricalMarketDataResponse> response; public Provider(HistoricalMarketDataResponse response) : this(Task.FromResult(response)) { } public Provider(Task<HistoricalMarketDataResponse> response) => this.response = response; public int Calls { get; private set; } public Task<HistoricalMarketDataResponse> GetHistoricalCandlesAsync(HistoricalMarketDataRequest request, CancellationToken ct = default) { Calls++; return response; } }
+    private sealed class Provider : IIndependentSyntheticHistoricalMarketDataProvider { private readonly Task<HistoricalMarketDataResponse> response; public Provider(HistoricalMarketDataResponse response) : this(Task.FromResult(response)) { } public Provider(Task<HistoricalMarketDataResponse> response) => this.response = response; public int Calls { get; private set; } public Task<HistoricalMarketDataResponse> GetHistoricalCandlesAsync(HistoricalMarketDataRequest request, CancellationToken ct = default) { Calls++; return response; } }
 }

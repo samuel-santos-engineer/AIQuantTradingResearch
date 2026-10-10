@@ -1,29 +1,32 @@
-"""Bounded server-side consumer for the WP05 Worker historical-query protocol."""
+"""Synthetic v2 protocol validation. Runtime environment/capture/admission wiring belongs to WP07."""
 from __future__ import annotations
-
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 import json
+import hashlib
 import os
 from pathlib import Path
+import re
 import subprocess
 from typing import Callable, Mapping
 
-CONTRACT_VERSION = "aiq-historical-query-v1"
-SYMBOLS = ("BTC/USD", "ETH/USD")
+CONTRACT_VERSION = "aiq-historical-query-v2"
+SYMBOLS = ("btc-like-simulation",)
 INTERVALS = ("1h", "4h", "1d")
 RANGES = ("1D", "7D", "30D", "90D")
-DEFAULT_SELECTION = ("BTC/USD", "1h", "30D")
+DEFAULT_SELECTION = (SYMBOLS[0], "1h", "30D")
 PUBLIC_UNAVAILABLE = "Historical market data is temporarily unavailable. Please try again later."
-MAX_RESPONSE_BYTES = 2_000_000
-MAX_CANDLES = 10_000
-_RESPONSE_FIELDS = {"contractVersion", "state", "symbol", "interval", "range", "candles", "provider", "lastUpdatedUtc", "lastValidatedUtc", "isStale", "failure"}
-
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+MAX_REQUEST_BYTES = 4096
+MAX_CANDLES = 2160
+_START = datetime(2025, 10, 26, tzinfo=timezone.utc)
+_END = datetime(2026, 10, 1, tzinfo=timezone.utc)
+_RESPONSE_FIELDS = {"contractVersion", "state", "instrument", "interval", "range", "candles", "provenance", "generatedAtUtc", "failure"}
+_IDENTITY_FIELDS = {"canonicalVersion", "instrument", "marketType", "source", "status", "venue", "base", "quote", "settlement", "priceUnit", "volumeUnit", "generatorVersion", "seed", "coverageStartUtc", "coverageEndExclusiveUtc", "datasetFingerprint", "windowFingerprint", "calculationVersion"}
 
 class BridgeError(ValueError):
     pass
-
 
 @dataclass(frozen=True)
 class Candle:
@@ -33,7 +36,6 @@ class Candle:
     low: Decimal
     close: Decimal
     volume: Decimal
-
 
 @dataclass(frozen=True)
 class MarketResponse:
@@ -47,24 +49,52 @@ class MarketResponse:
     last_validated_utc: str | None
     is_stale: bool
     failure: str | None
-
+    provenance: Mapping[str, object] | None = None
 
 def build_request(symbol: str, interval: str, range_value: str, deadline_seconds: int = 10) -> str:
-    if symbol not in SYMBOLS or interval not in INTERVALS or range_value not in RANGES or not 1 <= deadline_seconds <= 30:
-        raise BridgeError("InvalidSelection")
-    return json.dumps({"contractVersion": CONTRACT_VERSION, "symbol": symbol, "interval": interval, "range": range_value, "deadlineSeconds": deadline_seconds}, separators=(",", ":"))
+    if symbol not in SYMBOLS or interval not in INTERVALS or range_value not in RANGES or type(deadline_seconds) is not int or not 1 <= deadline_seconds <= 30:
+        raise BridgeError("InvalidRequest")
+    return json.dumps({"contractVersion": CONTRACT_VERSION, "instrument": symbol, "interval": interval, "range": range_value, "deadlineSeconds": deadline_seconds}, separators=(",", ":"))
 
+def _object(pairs):
+    result = {}
+    for name, value in pairs:
+        if name in result:
+            raise BridgeError("InvalidRequest")
+        result[name] = value
+    return result
 
-def _decimal(value: object) -> Decimal:
-    if not isinstance(value, str):
+def _load(payload: str | bytes, maximum: int):
+    try:
+        encoded = payload.encode("utf-8", errors="strict") if isinstance(payload, str) else payload
+        if not isinstance(encoded, bytes) or len(encoded) > maximum:
+            raise BridgeError("PayloadTooLarge")
+        text = encoded.decode("utf-8", errors="strict")
+        if any(ord(c) > 127 for c in text):
+            raise BridgeError("MalformedResponse")
+        return json.loads(text, object_pairs_hook=_object, parse_constant=lambda _: (_ for _ in ()).throw(BridgeError("MalformedResponse")))
+    except (UnicodeError, ValueError, RecursionError) as exc:
+        raise BridgeError("MalformedResponse") from exc
+
+def validate_request(payload: str | bytes):
+    value = _load(payload, MAX_REQUEST_BYTES)
+    if not isinstance(value, dict) or set(value) != {"contractVersion", "instrument", "interval", "range", "deadlineSeconds"} or value["contractVersion"] != CONTRACT_VERSION:
+        raise BridgeError("InvalidRequest")
+    build_request(value["instrument"], value["interval"], value["range"], value["deadlineSeconds"])
+    return value
+
+def _decimal(value: object, scale: int) -> Decimal:
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{1,26}\.[0-9]{" + str(scale) + r"}", value):
         raise BridgeError("MalformedResponse")
     try:
-        return Decimal(value)
+        number = Decimal(value)
+        if not number.is_finite() or number > Decimal("79228162514264337593543950335"):
+            raise BridgeError("MalformedResponse")
+        return number
     except InvalidOperation as exc:
         raise BridgeError("MalformedResponse") from exc
 
-
-def _utc_timestamp(value: object) -> str:
+def _utc_timestamp(value: object) -> datetime:
     if not isinstance(value, str):
         raise BridgeError("MalformedResponse")
     try:
@@ -73,64 +103,70 @@ def _utc_timestamp(value: object) -> str:
         raise BridgeError("MalformedResponse") from exc
     if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
         raise BridgeError("MalformedResponse")
-    return value
+    return parsed
 
-
-def parse_response(text: str) -> MarketResponse:
-    if len(text.encode("utf-8")) > MAX_RESPONSE_BYTES:
-        raise BridgeError("ResponseTooLarge")
-    try:
-        value = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise BridgeError("MalformedResponse") from exc
-    if not isinstance(value, dict) or set(value) != _RESPONSE_FIELDS or value.get("contractVersion") != CONTRACT_VERSION or value.get("state") not in ("Fresh", "Stale", "Unavailable"):
+def parse_response(text: str | bytes, *, qualified_dataset_fingerprints: Mapping[str, str] | None = None, qualified_window_fingerprints: Mapping[tuple[str, str], str] | None = None, qualified_visible_fingerprints: Mapping[tuple[str, str], str] | None = None) -> MarketResponse:
+    value = _load(text, MAX_RESPONSE_BYTES)
+    if not isinstance(value, dict) or set(value) != _RESPONSE_FIELDS or value["contractVersion"] != CONTRACT_VERSION:
         raise BridgeError("MalformedResponse")
-    state = value["state"]
-    symbol, interval, range_value = value.get("symbol"), value.get("interval"), value.get("range")
-    if state != "Unavailable" and (symbol not in SYMBOLS or interval not in INTERVALS or range_value not in RANGES):
-        raise BridgeError("MalformedResponse")
-    candles_value = value.get("candles")
-    if state == "Unavailable":
-        candles_value = [] if candles_value is None else candles_value
-    if not isinstance(candles_value, list):
-        raise BridgeError("MalformedResponse")
-    if len(candles_value) > MAX_CANDLES:
-        raise BridgeError("MalformedResponse")
-    if state == "Unavailable":
-        if any(value.get(field) is not None for field in ("symbol", "interval", "range", "provider", "lastUpdatedUtc", "lastValidatedUtc")) or value.get("isStale") is not False or not isinstance(value.get("failure"), str) or not value["failure"] or candles_value:
+    if value["state"] == "Unavailable":
+        if any(value[field] is not None for field in ("instrument", "interval", "range", "candles", "provenance", "generatedAtUtc")) or value["failure"] not in ("InvalidRequest", "Unavailable", "Busy", "Timeout"):
             raise BridgeError("MalformedResponse")
-        return MarketResponse(state, None, None, None, (), None, None, None, False, value["failure"] if isinstance(value["failure"], str) else None)
-    if not isinstance(value.get("provider"), str) or not value["provider"] or not isinstance(value.get("failure"), type(None)):
+        return MarketResponse("Unavailable", None, None, None, (), None, None, None, False, value["failure"])
+    instrument, interval, range_value = value["instrument"], value["interval"], value["range"]
+    if value["state"] != "Available" or instrument not in SYMBOLS or interval not in INTERVALS or range_value not in RANGES or value["failure"] is not None:
         raise BridgeError("MalformedResponse")
-    if value.get("isStale") is not (state == "Stale"):
+    identity = value["provenance"]
+    if not isinstance(identity, dict) or set(identity) != _IDENTITY_FIELDS:
         raise BridgeError("MalformedResponse")
-    last_updated = _utc_timestamp(value.get("lastUpdatedUtc"))
-    last_validated = _utc_timestamp(value.get("lastValidatedUtc"))
-    candles: list[Candle] = []
-    for item in candles_value:
-        if not isinstance(item, dict) or not isinstance(item.get("openTimeUtc"), str):
+    expected = {"canonicalVersion": "aiq-candles-v2", "instrument": SYMBOLS[0], "marketType": "simulation", "source": "independent-synthetic", "status": "simulated", "venue": None, "base": None, "quote": None, "settlement": None, "priceUnit": "illustrative-price-unit", "volumeUnit": "illustrative-activity-unit", "generatorVersion": "aiq-synthetic-ohlcv-v1", "calculationVersion": None}
+    if any(identity[k] != v for k, v in expected.items()) or type(identity["seed"]) is not int or identity["seed"] != 114 or _utc_timestamp(identity["coverageStartUtc"]) != _START or _utc_timestamp(identity["coverageEndExclusiveUtc"]) != _END:
+        raise BridgeError("MalformedResponse")
+    if any(not isinstance(identity[k], str) or not re.fullmatch("[0-9a-f]{64}", identity[k]) for k in ("datasetFingerprint", "windowFingerprint")):
+        raise BridgeError("MalformedResponse")
+    # Server configuration supplies qualified identities. Never infer them from response/provider display strings.
+    if qualified_dataset_fingerprints is None or qualified_dataset_fingerprints.get(interval) != identity["datasetFingerprint"]:
+        raise BridgeError("UnqualifiedDataset")
+    if qualified_window_fingerprints is None or qualified_window_fingerprints.get((interval, range_value)) != identity["windowFingerprint"]:
+        raise BridgeError("UnqualifiedWindow")
+    _utc_timestamp(value["generatedAtUtc"])
+    hours = {"1h": 1, "4h": 4, "1d": 24}[interval]
+    days = int(range_value[:-1])
+    items = value["candles"]
+    if not isinstance(items, list) or len(items) != 24 * days // hours or len(items) > MAX_CANDLES:
+        raise BridgeError("MalformedResponse")
+    candles = []
+    for i, item in enumerate(items):
+        if not isinstance(item, dict) or set(item) != {"openTimeUtc", "open", "high", "low", "close", "volume"}:
             raise BridgeError("MalformedResponse")
-        candle = Candle(item["openTimeUtc"], _decimal(item.get("open")), _decimal(item.get("high")), _decimal(item.get("low")), _decimal(item.get("close")), _decimal(item.get("volume")))
-        if min(candle.open, candle.high, candle.low, candle.close) <= 0 or candle.volume < 0 or candle.low > min(candle.open, candle.close) or candle.high < max(candle.open, candle.close):
+        timestamp = item["openTimeUtc"]
+        if timestamp != (_END - timedelta(days=days) + timedelta(hours=i * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"):
             raise BridgeError("MalformedResponse")
-        _utc_timestamp(candle.open_time_utc)
-        if candles and candle.open_time_utc <= candles[-1].open_time_utc:
+        candle = Candle(timestamp, *(_decimal(item[k], 3 if k == "volume" else 4) for k in ("open", "high", "low", "close", "volume")))
+        if not 0 < candle.low <= min(candle.open, candle.close) <= max(candle.open, candle.close) <= candle.high <= Decimal("1000000000") or candle.volume < 0:
             raise BridgeError("MalformedResponse")
         candles.append(candle)
-    return MarketResponse(state, symbol, interval, range_value, tuple(candles), value["provider"], last_updated, last_validated, state == "Stale", None)
+    visible_bytes = ''.join(','.join((c.open_time_utc, format(c.open, '.4f'), format(c.high, '.4f'), format(c.low, '.4f'), format(c.close, '.4f'), format(c.volume, '.3f'))) + '\n' for c in candles).encode('ascii')
+    if qualified_visible_fingerprints is None or qualified_visible_fingerprints.get((interval, range_value)) != hashlib.sha256(visible_bytes).hexdigest():
+        raise BridgeError("UnqualifiedVisibleData")
+    return MarketResponse("Available", instrument, interval, range_value, tuple(candles), "independent-synthetic", value["generatedAtUtc"], None, False, None, identity)
 
-
-def invoke(symbol: str, interval: str, range_value: str, environ: Mapping[str, str] | None = None, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run) -> MarketResponse:
+def invoke(symbol: str, interval: str, range_value: str, environ: Mapping[str, str] | None = None, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run, *, qualified_dataset_fingerprints: Mapping[str, str] | None = None, qualified_window_fingerprints: Mapping[tuple[str, str], str] | None = None, qualified_visible_fingerprints: Mapping[tuple[str, str], str] | None = None) -> MarketResponse:
+    request = build_request(symbol, interval, range_value)
+    validate_request(request)  # before any subprocess selection
     env = dict(os.environ if environ is None else environ)
     worker = env.get("HistoricalMarketQuery__WorkerAssemblyPath", "/app/worker/AIQuantTradingResearch.Worker.dll")
     if not Path(worker).is_absolute() and not worker.startswith("/"):
         raise BridgeError("BridgeUnavailable")
     env["Worker__Mode"] = "HistoricalQuery"
-    request = build_request(symbol, interval, range_value)
+    # Environment allowlist, bounded live capture and global admission are explicitly WP07 work.
     try:
-        completed = runner(["dotnet", worker], input=request, text=True, capture_output=True, timeout=15, shell=False, env=env, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
+        completed = runner(["dotnet", worker], input=request, text=True, encoding="utf-8", errors="strict", capture_output=True, timeout=15, shell=False, env=env, check=False)
+    except (OSError, UnicodeError, subprocess.TimeoutExpired) as exc:
         raise BridgeError("BridgeUnavailable") from exc
     if completed.returncode != 0:
         raise BridgeError("BridgeUnavailable")
-    return parse_response(completed.stdout)
+    response = parse_response(completed.stdout, qualified_dataset_fingerprints=qualified_dataset_fingerprints, qualified_window_fingerprints=qualified_window_fingerprints, qualified_visible_fingerprints=qualified_visible_fingerprints)
+    if response.state == "Available" and (response.symbol, response.interval, response.range) != (symbol, interval, range_value):
+        raise BridgeError("MalformedResponse")
+    return response

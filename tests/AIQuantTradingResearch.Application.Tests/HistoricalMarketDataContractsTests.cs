@@ -5,6 +5,60 @@ namespace AIQuantTradingResearch.Application.Tests;
 
 public sealed class HistoricalMarketDataContractsTests
 {
+    [Fact]
+    public void SyntheticWindowsCoverAllTwelveSelectionsAndEarliestDailyWarmup()
+    {
+        var counts = new[] { 24, 168, 720, 2160, 6, 42, 180, 540, 1, 7, 30, 90 }; var position = 0;
+        foreach (var interval in Enum.GetValues<HistoricalCandleInterval>())
+        foreach (var range in Enum.GetValues<HistoricalCandleRange>())
+        {
+            var entry = PublicContractTestData.Entry(interval, range);
+            Assert.Equal(counts[position++] + 250, entry.Candles.Count);
+            PublicContractTestData.Policy.Validate(entry.Request, entry.Candles, entry.Provenance);
+        }
+        Assert.Equal(SyntheticPublicationPolicy.CoverageStart, PublicContractTestData.Entry(HistoricalCandleInterval.OneDay, HistoricalCandleRange.NinetyDays).Candles[0].OpenTimeUtc);
+    }
+
+    [Fact]
+    public void PublicPublicationRejectsMetadataOverridesAndWindowTampering()
+    {
+        var entry = PublicContractTestData.Entry(); var identity = entry.Provenance.SyntheticIdentity!;
+        var invalid = new[] { identity with { Source = "Vike" }, identity with { Status = "observed" }, identity with { Venue = "exchange" }, identity with { Base = "BTC" }, identity with { Quote = "USD" }, identity with { Settlement = "USD" }, identity with { MarketType = "spot" }, identity with { PriceUnit = "USD" }, identity with { VolumeUnit = "BTC" }, identity with { Instrument = "BTC/USD" }, identity with { CanonicalVersion = "aiq-candles-v1" }, identity with { Seed = 115 }, identity with { GeneratorVersion = "other" }, identity with { CalculationVersion = "aiq-ta-v1" }, identity with { DatasetFingerprint = "bad" }, identity with { WindowFingerprint = new string('b', 64) }, identity with { CoverageStartUtc = SyntheticPublicationPolicy.CoverageStart.AddDays(1) } };
+        foreach (var bad in invalid) Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, entry.Candles, entry.Provenance with { SyntheticIdentity = bad }));
+        Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, entry.Candles.Skip(1).ToArray(), entry.Provenance));
+        var rows = entry.Candles.ToArray(); rows[1] = rows[0];
+        Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, rows, entry.Provenance));
+        Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, entry.Candles, entry.Provenance with { SyntheticIdentity = identity with { DatasetFingerprint = new string('b', 64) } }));
+    }
+
+    [Fact]
+    public void PublicCacheIdentityCannotCollideWithPrivateOrAnotherDataset()
+    {
+        var entry = PublicContractTestData.Entry();
+        var otherPolicy = new SyntheticPublicationPolicy(Enum.GetValues<HistoricalCandleInterval>().ToDictionary(i => i, _ => new string('b', 64)), PublicContractTestData.Windows);
+        Assert.NotEqual(entry.Key.Fingerprint, HistoricalMarketDataCacheKey.Public(entry.Request, otherPolicy).Fingerprint);
+        Assert.NotEqual(entry.Key.Fingerprint, new HistoricalMarketDataCacheKey(CanonicalMarketSymbol.BtcUsd, entry.Request.Interval, entry.Request.Range, "Vike", HistoricalMarketDataReadService.CacheContractVersion).Fingerprint);
+        Assert.Throws<ArgumentException>(() => (entry.Key with { Context = "private-research" }).Fingerprint);
+    }
+
+    [Fact]
+    public void PublicGridRejectsMisalignmentAndExcessPrecision()
+    {
+        var entry = PublicContractTestData.Entry(); var rows = entry.Candles.ToArray(); var first = rows[0];
+        rows[0] = new(first.Symbol, first.Interval, first.OpenTimeUtc.AddSeconds(1), 10m, 12m, 9m, 11m, 20m);
+        Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, rows, entry.Provenance));
+        rows[0] = new(first.Symbol, first.Interval, first.OpenTimeUtc, 10.00001m, 12m, 9m, 11m, 20m);
+        Assert.Throws<ArgumentException>(() => PublicContractTestData.Policy.Validate(entry.Request, rows, entry.Provenance));
+    }
+
+    [Fact]
+    public void CanonicalSerializationMatchesIndependentPythonConstantFixtureHashes()
+    {
+        // Independent Python byte-layout oracle, arbitrary constant candles; not generator goldens.
+        var entry = PublicContractTestData.Entry(HistoricalCandleInterval.OneDay, HistoricalCandleRange.NinetyDays);
+        Assert.Equal("053da98a8cf82c278e46648833190098f551172f38ff51c2aecbc1201c446a49", SyntheticPublicationPolicy.DatasetFingerprint(entry.Request.Interval, entry.Candles));
+        Assert.Equal("50a3e2064b2b88fea04b5c3721d5a65a72a109c27d0535a4712712aa4521f84e", SyntheticPublicationPolicy.WindowFingerprint(entry.Request, entry.Candles));
+    }
     private static readonly DateTimeOffset AcquisitionTime =
         new(2026, 9, 19, 0, 0, 0, TimeSpan.Zero);
 
@@ -137,4 +191,29 @@ public sealed class HistoricalMarketDataContractsTests
         bool isStale = false,
         bool containsOnlyClosedCandles = true) =>
         new("Synthetic provider", AcquisitionTime, AcquisitionTime.AddMinutes(1), isStale, containsOnlyClosedCandles);
+}
+
+internal static class PublicContractTestData
+{
+    internal static readonly Dictionary<(HistoricalCandleInterval, HistoricalCandleRange), string> Windows = BuildWindows();
+    internal static readonly SyntheticPublicationPolicy Policy = new(Enum.GetValues<HistoricalCandleInterval>().ToDictionary(i => i, _ => new string('a', 64)), Windows);
+    private static Dictionary<(HistoricalCandleInterval, HistoricalCandleRange), string> BuildWindows()
+    {
+        var windows = new Dictionary<(HistoricalCandleInterval, HistoricalCandleRange), string>();
+        foreach (var interval in Enum.GetValues<HistoricalCandleInterval>()) foreach (var range in Enum.GetValues<HistoricalCandleRange>())
+        {
+            var request = new HistoricalMarketDataRequest(CanonicalMarketSymbol.BtcLikeSimulation, interval, range, TimeSpan.FromSeconds(10));
+            windows[(interval, range)] = SyntheticPublicationPolicy.WindowFingerprint(request, Rows(request));
+        }
+        return windows;
+    }
+    private static HistoricalCandle[] Rows(HistoricalMarketDataRequest request) => Enumerable.Range(0, SyntheticPublicationPolicy.VisibleCount(request) + 250).Select(i => new HistoricalCandle(request.Symbol, request.Interval, SyntheticPublicationPolicy.CalculationStart(request).AddHours(i * SyntheticPublicationPolicy.Hours(request.Interval)), 10m, 12m, 9m, 11m, 20m)).ToArray();
+    internal static HistoricalMarketDataCacheEntry Entry(HistoricalCandleInterval interval = HistoricalCandleInterval.OneDay, HistoricalCandleRange range = HistoricalCandleRange.OneDay)
+    {
+        var request = new HistoricalMarketDataRequest(CanonicalMarketSymbol.BtcLikeSimulation, interval, range, TimeSpan.FromSeconds(10));
+        var rows = Enumerable.Range(0, SyntheticPublicationPolicy.VisibleCount(request) + 250).Select(i => new HistoricalCandle(request.Symbol, interval, SyntheticPublicationPolicy.CalculationStart(request).AddHours(i * SyntheticPublicationPolicy.Hours(interval)), 10m, 12m, 9m, 11m, 20m)).ToArray();
+        var identity = new SyntheticMarketDataIdentity("aiq-candles-v2", "btc-like-simulation", "simulation", "independent-synthetic", "simulated", null, null, null, null, "illustrative-price-unit", "illustrative-activity-unit", "aiq-synthetic-ohlcv-v1", 114, SyntheticPublicationPolicy.CoverageStart, SyntheticPublicationPolicy.CoverageEnd, new string('a', 64), SyntheticPublicationPolicy.WindowFingerprint(request, rows));
+        var now = DateTimeOffset.UtcNow;
+        return new(HistoricalMarketDataCacheKey.Public(request, Policy), request, rows, new HistoricalMarketDataProvenance("independent-synthetic", now, now, false, true) { SyntheticIdentity = identity }, now);
+    }
 }
