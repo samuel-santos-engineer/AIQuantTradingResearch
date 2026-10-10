@@ -2,7 +2,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 import json
 import hashlib
 import os
@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 from typing import Callable, Mapping
+from types import MappingProxyType
 
 CONTRACT_VERSION = "aiq-historical-query-v2"
 SYMBOLS = ("btc-like-simulation",)
@@ -22,8 +23,14 @@ MAX_REQUEST_BYTES = 4096
 MAX_CANDLES = 2160
 _START = datetime(2025, 10, 26, tzinfo=timezone.utc)
 _END = datetime(2026, 10, 1, tzinfo=timezone.utc)
-_RESPONSE_FIELDS = {"contractVersion", "state", "instrument", "interval", "range", "candles", "provenance", "generatedAtUtc", "failure"}
+_RESPONSE_FIELDS = {"contractVersion", "state", "instrument", "interval", "range", "candles", "provenance", "generatedAtUtc", "failure", "analytics"}
 _IDENTITY_FIELDS = {"canonicalVersion", "instrument", "marketType", "source", "status", "venue", "base", "quote", "settlement", "priceUnit", "volumeUnit", "generatorVersion", "seed", "coverageStartUtc", "coverageEndExclusiveUtc", "datasetFingerprint", "windowFingerprint", "calculationVersion"}
+_PARAMETERS = {"version": "aiq-ta-v1", "scale": 12, "smaPeriod": 20, "emaPeriod": 20, "rsiPeriod": 14,
+               "macdFastPeriod": 12, "macdSlowPeriod": 26, "macdSignalPeriod": 9, "bollingerPeriod": 20, "bollingerMultiplier": 2}
+_ANALYTICS_FIELDS = {"calculationVersion", "parameters", "context", "source", "instrument", "interval", "range",
+                     "canonicalVersion", "datasetFingerprint", "windowFingerprint", "calculationStartUtc", "visibleStartUtc",
+                     "warmup", "calculationCount", "rows"}
+_INDICATOR_FIELDS = ("sma20", "ema20", "rsi14", "macd", "macdSignal", "macdHistogram", "bollingerLower", "bollingerMiddle", "bollingerUpper")
 
 class BridgeError(ValueError):
     pass
@@ -38,6 +45,24 @@ class Candle:
     volume: Decimal
 
 @dataclass(frozen=True)
+class IndicatorRow:
+    open_time_utc: str
+    sma20: Decimal | None
+    ema20: Decimal | None
+    rsi14: Decimal | None
+    macd: Decimal | None
+    macd_signal: Decimal | None
+    macd_histogram: Decimal | None
+    bollinger_lower: Decimal | None
+    bollinger_middle: Decimal | None
+    bollinger_upper: Decimal | None
+
+@dataclass(frozen=True)
+class Analytics:
+    metadata: Mapping[str, object]
+    rows: tuple[IndicatorRow, ...]
+
+@dataclass(frozen=True)
 class MarketResponse:
     state: str
     symbol: str | None
@@ -50,6 +75,52 @@ class MarketResponse:
     is_stale: bool
     failure: str | None
     provenance: Mapping[str, object] | None = None
+    analytics: Analytics | None = None
+
+def _parse_analytics(value, identity, instrument, interval, range_value, candles):
+    if not isinstance(value, dict) or set(value) != _ANALYTICS_FIELDS:
+        raise BridgeError("MalformedResponse")
+    parameters = value["parameters"]
+    if not isinstance(parameters, dict) or set(parameters) != set(_PARAMETERS) or any(
+            type(parameters[k]) is not type(expected) or parameters[k] != expected for k, expected in _PARAMETERS.items()):
+        raise BridgeError("MalformedResponse")
+    hours = {"1h": 1, "4h": 4, "1d": 24}[interval]
+    visible_start = _END - timedelta(days=int(range_value[:-1]))
+    expected = {"calculationVersion": "aiq-ta-v1", "context": "public-synthetic", "source": identity["source"],
+                "instrument": instrument, "interval": interval, "range": range_value, "canonicalVersion": identity["canonicalVersion"],
+                "datasetFingerprint": identity["datasetFingerprint"], "windowFingerprint": identity["windowFingerprint"],
+                "calculationStartUtc": (visible_start - timedelta(hours=250 * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "visibleStartUtc": visible_start.strftime("%Y-%m-%dT%H:%M:%SZ"), "warmup": 250, "calculationCount": len(candles) + 250}
+    if any(type(value[k]) is not type(v) or value[k] != v for k, v in expected.items()):
+        raise BridgeError("MalformedResponse")
+    items = value["rows"]
+    if not isinstance(items, list) or len(items) != len(candles):
+        raise BridgeError("MalformedResponse")
+    rows = []
+    for candle, item in zip(candles, items):
+        if not isinstance(item, dict) or set(item) != {"openTimeUtc", *_INDICATOR_FIELDS} or item["openTimeUtc"] != candle.open_time_utc:
+            raise BridgeError("MalformedResponse")
+        numbers = []
+        for field in _INDICATOR_FIELDS:
+            text = item[field]
+            # All visible positions follow 250 warmup rows and therefore every first-valid sample.
+            # Preserve Decimal/null types in the model, but reject null at these mature positions.
+            if not isinstance(text, str) or not re.fullmatch(r"-?(?:0|[1-9][0-9]{0,9})\.[0-9]{12}", text):
+                raise BridgeError("MalformedResponse")
+            number = Decimal(text)
+            if number.copy_abs() > Decimal("3000000000") or (number == 0 and text.startswith("-")):
+                raise BridgeError("MalformedResponse")
+            numbers.append(number)
+        sma, ema, rsi, macd, signal, histogram, lower, middle, upper = numbers
+        with localcontext() as context:
+            context.prec = 50
+            if not (0 < sma <= Decimal("1000000000") and 0 < ema <= Decimal("1000000000") and 0 <= rsi <= 100 and
+                    middle == sma and lower <= middle <= upper and upper - middle == middle - lower and histogram == macd - signal):
+                raise BridgeError("MalformedResponse")
+        rows.append(IndicatorRow(candle.open_time_utc, *numbers))
+    metadata = {k: v for k, v in value.items() if k != "rows"}
+    metadata["parameters"] = MappingProxyType(dict(parameters))
+    return Analytics(MappingProxyType(metadata), tuple(rows))
 
 def build_request(symbol: str, interval: str, range_value: str, deadline_seconds: int = 10) -> str:
     if symbol not in SYMBOLS or interval not in INTERVALS or range_value not in RANGES or type(deadline_seconds) is not int or not 1 <= deadline_seconds <= 30:
@@ -110,7 +181,7 @@ def parse_response(text: str | bytes, *, qualified_dataset_fingerprints: Mapping
     if not isinstance(value, dict) or set(value) != _RESPONSE_FIELDS or value["contractVersion"] != CONTRACT_VERSION:
         raise BridgeError("MalformedResponse")
     if value["state"] == "Unavailable":
-        if any(value[field] is not None for field in ("instrument", "interval", "range", "candles", "provenance", "generatedAtUtc")) or value["failure"] not in ("InvalidRequest", "Unavailable", "Busy", "Timeout"):
+        if any(value[field] is not None for field in ("instrument", "interval", "range", "candles", "provenance", "generatedAtUtc", "analytics")) or value["failure"] not in ("InvalidRequest", "Unavailable", "Busy", "Timeout"):
             raise BridgeError("MalformedResponse")
         return MarketResponse("Unavailable", None, None, None, (), None, None, None, False, value["failure"])
     instrument, interval, range_value = value["instrument"], value["interval"], value["range"]
@@ -119,7 +190,7 @@ def parse_response(text: str | bytes, *, qualified_dataset_fingerprints: Mapping
     identity = value["provenance"]
     if not isinstance(identity, dict) or set(identity) != _IDENTITY_FIELDS:
         raise BridgeError("MalformedResponse")
-    expected = {"canonicalVersion": "aiq-candles-v2", "instrument": SYMBOLS[0], "marketType": "simulation", "source": "independent-synthetic", "status": "simulated", "venue": None, "base": None, "quote": None, "settlement": None, "priceUnit": "illustrative-price-unit", "volumeUnit": "illustrative-activity-unit", "generatorVersion": "aiq-synthetic-ohlcv-v1", "calculationVersion": None}
+    expected = {"canonicalVersion": "aiq-candles-v2", "instrument": SYMBOLS[0], "marketType": "simulation", "source": "independent-synthetic", "status": "simulated", "venue": None, "base": None, "quote": None, "settlement": None, "priceUnit": "illustrative-price-unit", "volumeUnit": "illustrative-activity-unit", "generatorVersion": "aiq-synthetic-ohlcv-v1", "calculationVersion": "aiq-ta-v1"}
     if any(identity[k] != v for k, v in expected.items()) or type(identity["seed"]) is not int or identity["seed"] != 114 or _utc_timestamp(identity["coverageStartUtc"]) != _START or _utc_timestamp(identity["coverageEndExclusiveUtc"]) != _END:
         raise BridgeError("MalformedResponse")
     if any(not isinstance(identity[k], str) or not re.fullmatch("[0-9a-f]{64}", identity[k]) for k in ("datasetFingerprint", "windowFingerprint")):
@@ -149,7 +220,8 @@ def parse_response(text: str | bytes, *, qualified_dataset_fingerprints: Mapping
     visible_bytes = ''.join(','.join((c.open_time_utc, format(c.open, '.4f'), format(c.high, '.4f'), format(c.low, '.4f'), format(c.close, '.4f'), format(c.volume, '.3f'))) + '\n' for c in candles).encode('ascii')
     if qualified_visible_fingerprints is None or qualified_visible_fingerprints.get((interval, range_value)) != hashlib.sha256(visible_bytes).hexdigest():
         raise BridgeError("UnqualifiedVisibleData")
-    return MarketResponse("Available", instrument, interval, range_value, tuple(candles), "independent-synthetic", value["generatedAtUtc"], None, False, None, identity)
+    analytics = _parse_analytics(value["analytics"], identity, instrument, interval, range_value, candles)
+    return MarketResponse("Available", instrument, interval, range_value, tuple(candles), "independent-synthetic", value["generatedAtUtc"], None, False, None, MappingProxyType(identity), analytics)
 
 def invoke(symbol: str, interval: str, range_value: str, environ: Mapping[str, str] | None = None, runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run, *, qualified_dataset_fingerprints: Mapping[str, str] | None = None, qualified_window_fingerprints: Mapping[tuple[str, str], str] | None = None, qualified_visible_fingerprints: Mapping[tuple[str, str], str] | None = None) -> MarketResponse:
     request = build_request(symbol, interval, range_value)
