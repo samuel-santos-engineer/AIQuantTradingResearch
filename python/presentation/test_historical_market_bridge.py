@@ -1,46 +1,101 @@
 import json
 import subprocess
 import unittest
-
+import hashlib
+from datetime import datetime, timedelta, timezone
 from historical_market_bridge import *
 
+QUALIFIED = {i: "a" * 64 for i in INTERVALS}  # arbitrary test identity, not release goldens
 
-def response(state="Fresh", candles=None):
-    return json.dumps({"contractVersion": CONTRACT_VERSION, "state": state, "symbol": "BTC/USD" if state != "Unavailable" else None, "interval": "1h" if state != "Unavailable" else None, "range": "30D" if state != "Unavailable" else None, "candles": candles if candles is not None else ([] if state == "Unavailable" else [{"openTimeUtc":"2026-01-01T00:00:00+00:00","open":"10","high":"12","low":"9","close":"11","volume":"20"}]), "provider":None if state == "Unavailable" else "Vike", "lastUpdatedUtc":None if state == "Unavailable" else "2026-01-01T00:00:00+00:00", "lastValidatedUtc":None if state == "Unavailable" else "2026-01-01T00:00:00+00:00", "isStale":state == "Stale", "failure":"Unavailable" if state == "Unavailable" else None})
-
+def response(interval="1d", range_value="1D"):
+    hours = {"1h": 1, "4h": 4, "1d": 24}[interval]
+    start = datetime(2026, 10, 1, tzinfo=timezone.utc) - timedelta(days=int(range_value[:-1]))
+    identity = {"canonicalVersion": "aiq-candles-v2", "instrument": SYMBOLS[0], "marketType": "simulation", "source": "independent-synthetic", "status": "simulated", "venue": None, "base": None, "quote": None, "settlement": None, "priceUnit": "illustrative-price-unit", "volumeUnit": "illustrative-activity-unit", "generatorVersion": "aiq-synthetic-ohlcv-v1", "seed": 114, "coverageStartUtc": "2025-10-26T00:00:00Z", "coverageEndExclusiveUtc": "2026-10-01T00:00:00Z", "datasetFingerprint": "a" * 64, "windowFingerprint": "b" * 64, "calculationVersion": None}
+    candles = [{"openTimeUtc": (start + timedelta(hours=i * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"), "open": "10.0000", "high": "12.0000", "low": "9.0000", "close": "11.0000", "volume": "20.000"} for i in range(24 * int(range_value[:-1]) // hours)]
+    return {"contractVersion": CONTRACT_VERSION, "state": "Available", "instrument": SYMBOLS[0], "interval": interval, "range": range_value, "candles": candles, "provenance": identity, "generatedAtUtc": "2026-10-10T00:00:00Z", "failure": None}
 
 class HistoricalBridgeTests(unittest.TestCase):
-    def test_matrix_and_defaults_are_canonical(self):
-        self.assertEqual(("BTC/USD", "1h", "30D"), DEFAULT_SELECTION)
-        self.assertEqual(2, len(SYMBOLS)); self.assertEqual(3, len(INTERVALS)); self.assertEqual(4, len(RANGES))
-        self.assertIn('"symbol":"BTC/USD"', build_request(*DEFAULT_SELECTION))
-        with self.assertRaises(BridgeError): build_request("BTC", "1h", "30D")
+    def parse(self, payload):
+        return parse_response(json.dumps(payload), **qualification())
 
-    def test_parses_precision_stale_empty_and_unavailable(self):
-        fresh = parse_response(response()); self.assertEqual("11", str(fresh.candles[0].close))
-        stale = parse_response(response("Stale")); self.assertTrue(stale.is_stale)
-        empty = parse_response(response("Fresh", [])); self.assertEqual((), empty.candles)
-        unavailable = parse_response(response("Unavailable", [])); self.assertEqual("Unavailable", unavailable.state)
+    def test_all_twelve_windows_and_one_visible_daily_candle(self):
+        counts = (24, 168, 720, 2160, 6, 42, 180, 540, 1, 7, 30, 90)
+        index = 0
+        for interval in INTERVALS:
+            for range_value in RANGES:
+                with self.subTest(interval=interval, range=range_value):
+                    value = self.parse(response(interval, range_value))
+                    self.assertEqual(counts[index], len(value.candles)); index += 1
+                    self.assertFalse(value.is_stale)
+        self.assertEqual(("btc-like-simulation", "1h", "30D"), DEFAULT_SELECTION)
 
-    def test_rejects_malformed_protocol(self):
-        with self.assertRaises(BridgeError): parse_response("not-json")
-        with self.assertRaises(BridgeError): parse_response(json.dumps({"contractVersion":"wrong"}))
+    def test_requests_reject_private_unknown_duplicate_multiple_values_and_utf8(self):
+        valid = build_request(*DEFAULT_SELECTION)
+        self.assertEqual(SYMBOLS[0], validate_request(valid)["instrument"])
+        for bad in (valid[:-1] + ',"source":"Vike"}', valid[:-1] + ',"context":"private-research"}', valid[:-1] + ',"deadlineSeconds":10}', valid + '{}', b'\xc0\xaf', b'\xed\xa0\x80', valid.replace('btc-like-simulation', 'BTC/USD'), valid.replace('aiq-historical-query-v2', 'aiq-historical-query-v1')):
+            with self.subTest(bad=bad), self.assertRaises(BridgeError): validate_request(bad)
+        with self.assertRaises(BridgeError): build_request(SYMBOLS[0], '1h', '30D', True)
+        with self.assertRaises(BridgeError): build_request('BTC/USD', '1h', '30D')
 
-    def test_rejects_inconsistent_order_timestamps_and_state(self):
-        payload = json.loads(response())
-        payload["candles"].append(payload["candles"][0])
-        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
-        payload = json.loads(response("Stale")); payload["isStale"] = False
-        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
-        payload = json.loads(response()); payload["lastUpdatedUtc"] = "2026-01-01T00:00:00"
-        with self.assertRaises(BridgeError): parse_response(json.dumps(payload))
+    def test_request_exact_byte_boundary_and_flood(self):
+        valid = build_request(*DEFAULT_SELECTION)
+        validate_request(valid.ljust(4096))
+        with self.assertRaises(BridgeError): validate_request(valid.ljust(4097))
+        with self.assertRaises(BridgeError): validate_request(b' ' * 1000000)
 
-    def test_invocation_is_fixed_and_shell_free(self):
+    def test_metadata_and_fingerprints_fail_closed(self):
+        for field, bad in {'source': 'Vike', 'status': 'observed', 'marketType': 'spot', 'instrument': 'BTC/USD', 'venue': 'exchange', 'base': 'BTC', 'quote': 'USD', 'settlement': 'USD', 'priceUnit': 'USD', 'volumeUnit': 'BTC', 'seed': True, 'generatorVersion': 'other', 'canonicalVersion': 'v1', 'calculationVersion': 'aiq-ta-v1', 'datasetFingerprint': 'b' * 64, 'windowFingerprint': 'bad'}.items():
+            payload = response(); payload['provenance'][field] = bad
+            with self.subTest(field=field), self.assertRaises(BridgeError): self.parse(payload)
+        with self.assertRaises(BridgeError): parse_response(json.dumps(response()))
+
+    def test_decimal_nonfinite_overflow_precision_and_grid_fail_closed(self):
+        for bad in ('NaN', 'Infinity', '1e4', '-1.0000', '1.00001', '79228162514264337593543950336.0000'):
+            payload = response(); payload['candles'][0]['open'] = bad
+            with self.subTest(value=bad), self.assertRaises(BridgeError): self.parse(payload)
+        for mutate in (lambda p: p['candles'].append(p['candles'][0]), lambda p: p['candles'].clear(), lambda p: p['candles'][0].update(openTimeUtc='2026-09-30T01:00:00Z'), lambda p: p['candles'][0].update(low='13.0000'), lambda p: p['candles'][0].update(provider='Vike')):
+            payload = response(); mutate(payload)
+            with self.assertRaises(BridgeError): self.parse(payload)
+
+    def test_response_duplicate_unknown_multiple_values_and_legacy_rejected(self):
+        valid = json.dumps(response())
+        for bad in (valid[:-1] + ',"state":"Available"}', valid + '{}', valid.replace('aiq-historical-query-v2', 'aiq-historical-query-v1'), valid[:-1] + ',"provider":"Vike"}', b'\xf4\x90\x80\x80', json.dumps({'secret': 'private'})):
+            with self.assertRaises(BridgeError): parse_response(bad, qualified_dataset_fingerprints=QUALIFIED)
+
+    def test_controlled_failure_has_no_private_metadata(self):
+        payload = {key: None for key in ('instrument', 'interval', 'range', 'candles', 'provenance', 'generatedAtUtc')}
+        payload.update(contractVersion=CONTRACT_VERSION, state='Unavailable', failure='Timeout')
+        self.assertEqual('Timeout', self.parse(payload).failure)
+        payload['failure'] = '/private/provider/secret'
+        with self.assertRaises(BridgeError): self.parse(payload)
+
+    def test_invocation_rejects_selection_before_spawn_and_checks_response_binding(self):
         calls = []
         def runner(*args, **kwargs):
-            calls.append((args, kwargs)); return subprocess.CompletedProcess(args[0], 0, response(), "safe diagnostic")
-        result = invoke(*DEFAULT_SELECTION, {"HistoricalMarketQuery__WorkerAssemblyPath":"/app/worker/AIQuantTradingResearch.Worker.dll"}, runner)
-        self.assertEqual("Fresh", result.state); self.assertEqual(["dotnet", "/app/worker/AIQuantTradingResearch.Worker.dll"], calls[0][0][0]); self.assertFalse(calls[0][1]["shell"]); self.assertEqual(15, calls[0][1]["timeout"])
+            calls.append((args, kwargs)); return subprocess.CompletedProcess(args[0], 0, json.dumps(response()), '')
+        env = {'HistoricalMarketQuery__WorkerAssemblyPath': '/app/worker/AIQuantTradingResearch.Worker.dll'}
+        value = invoke(SYMBOLS[0], '1d', '1D', env, runner, **qualification())
+        self.assertEqual(1, len(value.candles)); self.assertFalse(calls[0][1]['shell'])
+        with self.assertRaises(BridgeError): invoke('BTC/USD', '1h', '30D', env, runner)
+        self.assertEqual(1, len(calls))
+        with self.assertRaises(BridgeError): invoke(SYMBOLS[0], '1h', '30D', env, runner, **qualification())
 
+    def test_rehashed_or_tampered_visible_data_cannot_self_qualify(self):
+        payload = response(); payload['candles'][0]['close'] = '11.5000'
+        with self.assertRaises(BridgeError): self.parse(payload)
+        payload = response(); payload['provenance']['windowFingerprint'] = 'c' * 64
+        with self.assertRaises(BridgeError): self.parse(payload)
 
-if __name__ == "__main__": unittest.main()
+def qualification():
+    # Independent expected constant-row transport bytes; no synthetic algorithm/goldens.
+    visible = {}
+    windows = {}
+    for interval in INTERVALS:
+        for range_value in RANGES:
+            data = response(interval, range_value)
+            rows = ''.join(row['openTimeUtc'] + ',10.0000,12.0000,9.0000,11.0000,20.000\n' for row in data['candles'])
+            visible[(interval, range_value)] = hashlib.sha256(rows.encode('ascii')).hexdigest()
+            windows[(interval, range_value)] = 'b' * 64
+    return dict(qualified_dataset_fingerprints=QUALIFIED, qualified_window_fingerprints=windows, qualified_visible_fingerprints=visible)
+
+if __name__ == '__main__': unittest.main()
