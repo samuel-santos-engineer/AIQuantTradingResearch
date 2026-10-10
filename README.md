@@ -334,6 +334,12 @@ The accepted public surface supports BTC/USD and ETH/USD historical research wit
 | Build errors                      |                          **0** |
 | Canonical repository verification |                       **PASS** |
 
+### Release 1.13 chart showcase
+
+The public Market Research experience presents historical OHLCV data with candlestick price action, a separate volume panel, and hover inspection.
+
+![Release 1.13 chart showcase](imgs/showcase/chart-print-screen.png)
+
 ### Release 1.1 showcase
 
 Release 1.1 is a foundation, not a claim that the full quantitative trading vision is complete. Streaming/live feeds, provider failover, trading execution, AI/ML models, APIs, scheduling, advanced resilience, and production deployment remain future capabilities.
