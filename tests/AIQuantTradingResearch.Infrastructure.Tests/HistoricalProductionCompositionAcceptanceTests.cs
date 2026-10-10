@@ -1,4 +1,7 @@
 using System.Reflection;
+using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 using AIQuantTradingResearch.Application;
 using AIQuantTradingResearch.Application.Datasets;
 using AIQuantTradingResearch.Application.Persistence;
@@ -16,6 +19,54 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 
 public sealed class HistoricalProductionCompositionAcceptanceTests
 {
+    [Theory]
+    [InlineData("valid", "Available")]
+    [InlineData("utf8", "Unavailable")]
+    [InlineData("overflow", "Unavailable")]
+    [InlineData("private-root", "Unavailable")]
+    public async Task ActualPublicWorkerIsSecretFreeAndUsesBoundedRawStdin(string scenario, string expected)
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "aiq-wp07-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var start = new ProcessStartInfo("dotnet") { UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = directory };
+            start.ArgumentList.Add(Path.Combine(AppContext.BaseDirectory, "AIQuantTradingResearch.Worker.dll"));
+            start.Environment.Clear();
+            if (OperatingSystem.IsWindows()) start.Environment["SystemRoot"] = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+            start.Environment["Worker__Mode"] = "HistoricalQuery";
+            start.Environment["DOTNET_PROCESSOR_COUNT"] = "1";
+            start.Environment["HistoricalMarketQuery__CacheDirectory"] = Path.Combine(directory,
+                scenario == "private-root" ? "aiq-private-research-cache" : "aiq-public-synthetic-cache");
+            using var process = Process.Start(start)!;
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            try
+            {
+                var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
+                var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
+                var request = scenario == "utf8" ? new byte[] { 0xc0, 0xaf } : Encoding.UTF8.GetBytes(
+                    scenario == "overflow" ? new string(' ', 4097) : SyntheticTestFixture.RequestJson("1d", "1D"));
+                await process.StandardInput.BaseStream.WriteAsync(request, timeout.Token); process.StandardInput.Close();
+                await process.WaitForExitAsync(timeout.Token);
+                var raw = await stdout;
+                Assert.Equal(0, process.ExitCode); Assert.True(raw.Length < 65536);
+                Assert.DoesNotContain("Twelve", raw); Assert.DoesNotContain("Vike", raw); Assert.DoesNotContain(directory, raw);
+                Assert.Equal("", await stderr);
+                using var json = JsonDocument.Parse(raw);
+                Assert.Equal("aiq-historical-query-v2", json.RootElement.GetProperty("contractVersion").GetString());
+                Assert.Equal(expected, json.RootElement.GetProperty("state").GetString());
+                if (scenario == "valid")
+                {
+                    Assert.Single(json.RootElement.GetProperty("candles").EnumerateArray());
+                    Assert.Single(json.RootElement.GetProperty("analytics").GetProperty("rows").EnumerateArray());
+                }
+            }
+            finally { if (!process.HasExited) { process.Kill(entireProcessTree: true); await process.WaitForExitAsync(); } }
+        }
+        finally { if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true); }
+    }
+
     private static readonly DateTimeOffset From = new(2024, 1, 1, 0, 0, 0, TimeSpan.Zero);
     private static readonly DateTimeOffset To = From.AddDays(1);
 

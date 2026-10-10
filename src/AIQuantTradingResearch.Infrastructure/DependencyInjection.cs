@@ -18,6 +18,24 @@ namespace AIQuantTradingResearch.Infrastructure;
 
 public static class DependencyInjection
 {
+    /// <summary>Public composition has no external clients, private acquisition or fallback.</summary>
+    public static IServiceCollection AddPublicSyntheticHistoricalMarketDataQuery(
+        this IServiceCollection services, string cacheDirectory)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        var cache = new AtomicFileHistoricalMarketDataCache(cacheDirectory, publicSynthetic: true);
+        services.AddSingleton<IHistoricalMarketDataCache>(cache);
+        services.AddSingleton(new AtomicFileHistoricalMarketDataQueryLock(cacheDirectory));
+        services.AddSingleton<MarketData.Synthetic.SyntheticHistoricalMarketDataProvider>();
+        services.AddSingleton<IIndependentSyntheticHistoricalMarketDataProvider>(provider =>
+            provider.GetRequiredService<MarketData.Synthetic.SyntheticHistoricalMarketDataProvider>());
+        services.AddSingleton(MarketData.Synthetic.SyntheticHistoricalMarketDataProvider.CreatePublicationPolicy());
+        services.AddSingleton(provider => HistoricalMarketDataReadService.PublicSynthetic(
+            provider.GetRequiredService<IIndependentSyntheticHistoricalMarketDataProvider>(),
+            provider.GetRequiredService<IHistoricalMarketDataCache>(), provider.GetRequiredService<SyntheticPublicationPolicy>()));
+        return services;
+    }
+
     public static IServiceCollection AddHistoricalMarketDataQuery(
         this IServiceCollection services,
         VikeConfiguration configuration,
