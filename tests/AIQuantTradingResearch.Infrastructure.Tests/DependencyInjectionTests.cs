@@ -8,6 +8,29 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 public sealed class DependencyInjectionTests
 {
     [Fact]
+    public void PublicSyntheticCompositionHasNoPrivateOrHttpRegistrations()
+    {
+        var services = new ServiceCollection();
+        services.AddPublicSyntheticHistoricalMarketDataQuery(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "aiq-public-synthetic-cache"));
+        Assert.DoesNotContain(services, d => d.ServiceType == typeof(HttpClient) || d.ServiceType == typeof(TwelveDataClient) ||
+            d.ServiceType == typeof(IObservationSource) || d.ServiceType == typeof(AIQuantTradingResearch.Application.MarketData.IHistoricalMarketDataProvider));
+        using var provider = services.BuildServiceProvider(CreateValidationOptions());
+        Assert.IsType<AIQuantTradingResearch.Infrastructure.MarketData.Synthetic.SyntheticHistoricalMarketDataProvider>(
+            provider.GetRequiredService<AIQuantTradingResearch.Application.MarketData.IIndependentSyntheticHistoricalMarketDataProvider>());
+        Assert.True(provider.GetRequiredService<AIQuantTradingResearch.Application.MarketData.HistoricalMarketDataReadService>().IsPublicSynthetic);
+    }
+
+    [Theory]
+    [InlineData("aiq-private-research-cache")]
+    [InlineData("aiq-market-cache")]
+    public void PublicCompositionRejectsPrivateAndLegacyCacheRoots(string root)
+    {
+        var services = new ServiceCollection();
+        Assert.Throws<ArgumentException>(() => services.AddPublicSyntheticHistoricalMarketDataQuery(Path.Combine(Path.GetTempPath(), root)));
+        Assert.Empty(services);
+    }
+
+    [Fact]
     public void AddInfrastructureWithConfigurationRegistersSingleProviderGraphWithoutNetworkCall()
     {
         var services = new ServiceCollection();

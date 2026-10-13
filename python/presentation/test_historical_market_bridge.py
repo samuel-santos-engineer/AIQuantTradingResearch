@@ -2,6 +2,7 @@ import json
 import subprocess
 import unittest
 import hashlib
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from historical_market_bridge import *
 
@@ -86,14 +87,14 @@ class HistoricalBridgeTests(unittest.TestCase):
 
     def test_invocation_rejects_selection_before_spawn_and_checks_response_binding(self):
         calls = []
-        def runner(*args, **kwargs):
-            calls.append((args, kwargs)); return subprocess.CompletedProcess(args[0], 0, json.dumps(response()), '')
-        env = {'HistoricalMarketQuery__WorkerAssemblyPath': '/app/worker/AIQuantTradingResearch.Worker.dll'}
-        value = invoke(SYMBOLS[0], '1d', '1D', env, runner, **qualification())
-        self.assertEqual(1, len(value.candles)); self.assertFalse(calls[0][1]['shell'])
-        with self.assertRaises(BridgeError): invoke('BTC/USD', '1h', '30D', env, runner)
-        self.assertEqual(1, len(calls))
-        with self.assertRaises(BridgeError): invoke(SYMBOLS[0], '1h', '30D', env, runner, **qualification())
+        def transport(*args, **kwargs):
+            calls.append((args, kwargs)); return json.dumps(response()).encode('ascii')
+        with patch('historical_market_bridge._run_public', side_effect=transport):
+            value = invoke(SYMBOLS[0], '1d', '1D', **qualification())
+            self.assertEqual(1, len(value.candles))
+            with self.assertRaises(BridgeError): invoke('BTC/USD', '1h', '30D')
+            self.assertEqual(1, len(calls))
+            with self.assertRaises(BridgeError): invoke(SYMBOLS[0], '1h', '30D', **qualification())
 
     def test_rehashed_or_tampered_visible_data_cannot_self_qualify(self):
         payload = response(); payload['candles'][0]['close'] = '11.5000'

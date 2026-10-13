@@ -1,6 +1,32 @@
 #!/bin/sh
 set -eu
 
+# Public is the safe default. Private acquisition requires a separate explicit deployment mode.
+case "${AIQ_RUNTIME_MODE-public}" in
+    public)
+        if [ "$(id -u)" -eq 0 ]; then
+            # Docker's legacy empty directory is harmless only when it is actually empty.
+            if [ -d /runtime ]; then rmdir /runtime || exit 64; fi
+            for private_root in /home/aiq-private-research-cache /home/aiq-market-cache; do
+                [ ! -e "$private_root" ] && [ ! -L "$private_root" ] || exit 64
+            done
+            mkdir -p /home/aiq-public-synthetic-cache /tmp/aiq-public
+            chown 1000:1000 /home/aiq-public-synthetic-cache /tmp/aiq-public
+            chmod 0700 /home/aiq-public-synthetic-cache /tmp/aiq-public
+            exec gosu aiq "$0" "$@"
+        fi
+        # No private Worker is launched; inherited credentials and exporters are discarded.
+        exec env -i PATH=/opt/venv/bin:/usr/share/dotnet:/usr/bin:/bin \
+            DOTNET_ROOT=/usr/share/dotnet HOME=/home/aiq TMPDIR=/tmp/aiq-public \
+            LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
+            DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_PROCESSOR_COUNT=1 \
+            streamlit run /app/python/presentation/realtime_financial_visualization.py \
+            --server.address 0.0.0.0 --server.port 8501 --server.headless true
+        ;;
+    private) ;;
+    *) printf '%s\n' 'aiq-entrypoint: invalid runtime mode' >&2; exit 64 ;;
+esac
+
 worker_pid=''
 streamlit_pid=''
 
@@ -131,8 +157,8 @@ printf '%s\n' 'aiq-entrypoint: starting Worker replay process' >&2
 dotnet /app/worker/AIQuantTradingResearch.Worker.dll &
 worker_pid=$!
 
-if [ "$qualification_http_mode" = true ]; then
-    printf '%s\n' 'aiq-entrypoint: qualification HTTP evidence mode; Streamlit suppressed' >&2
+if [ "$qualification_http_mode" = true ] || [ "${AIQ_RUNTIME_MODE-public}" = private ]; then
+    printf '%s\n' 'aiq-entrypoint: private Worker mode; public presentation suppressed' >&2
     wait "$worker_pid" || worker_status=$?
     worker_status=${worker_status:-0}
     worker_pid=''

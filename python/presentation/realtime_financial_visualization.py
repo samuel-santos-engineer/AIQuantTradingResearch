@@ -6,13 +6,14 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Mapping
 from pathlib import Path
+import time
 
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
-from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke
+from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke, QUALIFIED_DATASETS, QUALIFIED_WINDOWS
 
 FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
 
@@ -21,7 +22,7 @@ st.set_page_config(
     page_icon=str(FAVICON_PATH),
 )
 
-VIKE_PUBLIC_MESSAGE = "Public historical visualization uses Vike market data."
+VIKE_PUBLIC_MESSAGE = "BTC-like Market Simulation — Synthetic Historical OHLCV"
 TWELVE_DATA_BOUNDARY_MESSAGE = "Twelve Data is retained for private/internal research, including real-time market-data studies. Twelve Data values from that research are not exposed through this public interface under the project's current data-access/licensing boundary."
 RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execution"
 STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
@@ -314,18 +315,44 @@ def market_provenance_caption(response: MarketResponse) -> str | None:
 def render_research_footer() -> None:
     st.caption(RESEARCH_FOOTER)
 
+def market_session_request(state, selection, *, retry=False, now=None):
+    now = time.monotonic() if now is None else now
+    previous_time = state.get('wp07_last_interaction', now)
+    if now < previous_time or now - previous_time >= 1800:
+        state.pop('wp05_market_response', None)
+    state['wp07_last_interaction'] = now
+    changed = market_selection_changed(state.get('wp05_market_selection'), selection)
+    if retry:
+        previous_retry = state.get('wp07_last_retry')
+        if previous_retry is not None and (now < previous_retry or now - previous_retry < 10): return False
+        state['wp07_last_retry'] = now
+    if changed or retry:
+        state['wp05_market_selection'] = selection
+        state.pop('wp05_market_response', None)
+        return True
+    return False
+
+def is_public_market_response(response, selection):
+    if response is None or response.state != 'Available': return False
+    identity = response.provenance
+    return (response.symbol, response.interval, response.range) == selection and response.provider == 'independent-synthetic' and \
+        identity is not None and identity.get('source') == 'independent-synthetic' and identity.get('status') == 'simulated' and \
+        identity.get('calculationVersion') == 'aiq-ta-v1' and identity.get('datasetFingerprint') == QUALIFIED_DATASETS.get(selection[1]) and \
+        identity.get('windowFingerprint') == QUALIFIED_WINDOWS.get((selection[1], selection[2])) and response.analytics is not None and \
+        response.analytics.metadata.get('context') == 'public-synthetic'
+
 
 def render_market_research() -> None:
     st.title("AI Quant Trading Research")
     st.subheader("Historical Market Research")
     st.caption(VIKE_PUBLIC_MESSAGE)
+    st.caption("Prices and activity units are illustrative, not observed market prices or investment advice.")
     st.info(TWELVE_DATA_BOUNDARY_MESSAGE)
-    symbol = st.selectbox("Market", ("BTC/USD", "ETH/USD"), index=0)
+    symbol = st.selectbox("Market", (DEFAULT_SELECTION[0],), index=0)
     interval = st.selectbox("Interval", ("1h", "4h", "1d"), index=0)
     range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
     selection = (symbol, interval, range_value)
-    previous = st.session_state.get("wp05_market_selection")
-    if market_selection_changed(previous, selection):
+    if market_session_request(st.session_state, selection):
         try:
             st.session_state["wp05_market_response"] = invoke(*selection)
             st.session_state["wp05_market_selection"] = selection
@@ -333,10 +360,15 @@ def render_market_research() -> None:
             st.session_state["wp05_market_response"] = None
             st.session_state["wp05_market_selection"] = selection
     response = st.session_state.get("wp05_market_response")
+    if response is not None and response.state != 'Unavailable' and not is_public_market_response(response, selection):
+        st.session_state.pop('wp05_market_response', None)
+        response = None
     if response is None or response.state == "Unavailable":
         st.warning(PUBLIC_UNAVAILABLE)
         if st.button("Retry historical data", key="wp05_market_retry"):
-            st.session_state.pop("wp05_market_selection", None)
+            if market_session_request(st.session_state, selection, retry=True):
+                try: st.session_state['wp05_market_response'] = invoke(*selection)
+                except BridgeError: st.session_state['wp05_market_response'] = None
             st.rerun()
         render_research_footer()
         return
@@ -365,6 +397,10 @@ def render_ml_automation_studies() -> None:
 
 
 def render() -> None:
+    now = time.monotonic()
+    previous = st.session_state.get('wp07_last_interaction', now)
+    if now < previous or now - previous >= 1800: st.session_state.pop('wp05_market_response', None)
+    st.session_state['wp07_last_interaction'] = now
     navigation = st.radio("Navigation", NAVIGATION_OPTIONS, horizontal=True)
     if navigation == "Market Research":
         render_market_research()
@@ -372,27 +408,12 @@ def render() -> None:
     if navigation == "ML & Automation Studies":
         render_ml_automation_studies()
         return
-    path, interval = resolve_handoff_path(), refresh_interval_seconds()
-    cache = st.session_state.setdefault("wp05_cache", ReadModelCache())
-    warning = cache.refresh(path)
-    st.title("Simulated / replayed financial visualization")
-    st.caption("Read-only local presentation of the Worker-published bounded envelope; not live market data.")
-    if st.button("Refresh now"):
-        warning = cache.refresh(path)
-    # Streamlit 1.61.1 does not provide ``st.autorefresh``. The existing
-    # user-driven refresh control above keeps this F1 surface bounded.
-    if cache.last_good is None:
-        if warning:
-            st.warning(warning)
-        st.info("ProducerUnavailable - awaiting the first Worker publication.")
-        render_research_footer()
-        return
-    try:
-        render_visualization_frame(project_visualization_frame(cache.last_good, warning))
-    except FrameIntegrityError:
-        if warning:
-            st.warning(warning)
-        st.error(SYSTEM_HEALTH_UNAVAILABLE_MESSAGE)
+    # Public health has no independent operational handoff yet. Never consult the private
+    # historical/replay envelope; the truthful unavailable state contains no data or paths.
+    st.session_state.pop('wp05_cache', None)
+    st.title("System Health")
+    st.info(SYSTEM_HEALTH_UNAVAILABLE_MESSAGE)
+    st.warning("System Health: Health evidence is unavailable; visualization data may still be available.")
     render_research_footer()
 
 
