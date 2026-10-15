@@ -14,6 +14,8 @@ from plotly.subplots import make_subplots
 
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
 from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke, QUALIFIED_DATASETS, QUALIFIED_WINDOWS
+from historical_market_bridge import PUBLIC_RUNTIME_VERIFIED
+from public_preview_api import LABEL as SYNTHETIC_LABEL
 
 FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
 
@@ -28,7 +30,7 @@ RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execut
 STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
 EMPTY_HISTORICAL_MESSAGE = "No historical market data is available for this selection."
 SYSTEM_HEALTH_UNAVAILABLE_MESSAGE = "System Health data is temporarily unavailable."
-NAVIGATION_OPTIONS = ("Market Research", "ML & Automation Studies", "System Health")
+NAVIGATION_OPTIONS = ("Market Research", "Architecture & Data Governance", "ML & Automation Studies", "System Health")
 ML_AUTOMATION_STUDIES_CONTENT = (
     "AI Quant Trading Research is evolving from historical market-data visualization toward reproducible quantitative research and machine-learning evaluation.",
     "Historical Market Data \u2192 Feature Engineering \u2192 Machine Learning Evaluation \u2014 Release 2.0+ \u2192 Strategy / Signal Research \u2192 Governed Automation Studies",
@@ -348,6 +350,20 @@ def render_market_research() -> None:
     st.caption(VIKE_PUBLIC_MESSAGE)
     st.caption("Prices and activity units are illustrative, not observed market prices or investment advice.")
     st.info(TWELVE_DATA_BOUNDARY_MESSAGE)
+    st.caption("Research preview · Read-only · Independent synthetic data only")
+    st.info("Selections are limited to 90 completed UTC days. The qualified reference dataset covers "
+            "26 October 2025 through 30 September 2026. Rolling daily updates are not enabled.")
+    if not PUBLIC_RUNTIME_VERIFIED:
+        # Do not invoke even the disabled process bridge, retain an old chart, or
+        # read a private handoff while public execution remains unqualified.
+        st.session_state.pop("wp05_market_response", None)
+        st.selectbox("Market", (DEFAULT_SELECTION[0],), index=0, disabled=True)
+        st.selectbox("Interval", ("1h", "4h", "1d"), index=0, disabled=True)
+        st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2, disabled=True)
+        st.warning("Synthetic chart unavailable while runtime safety checks remain incomplete. No market data is being requested.")
+        st.caption("The application shell is available. Candles and indicators are not ready; no live or observed prices are shown.")
+        render_research_footer()
+        return
     symbol = st.selectbox("Market", (DEFAULT_SELECTION[0],), index=0)
     interval = st.selectbox("Interval", ("1h", "4h", "1d"), index=0)
     range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
@@ -385,6 +401,43 @@ def render_market_research() -> None:
     render_research_footer()
 
 
+ARCHITECTURE_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+<title id="title">Public synthetic preview and isolated private research</title>
+<desc id="desc">Independent synthetic candles enter canonical contracts and shared analytics. Publication checks allow synthetic public outputs only. Twelve Data private research and inactive Vike remain separate; shared contracts do not share data or publication rights.</desc>
+<g fill="#12243a" stroke="#58b7d5" stroke-width="2">
+<rect x="20" y="20" width="260" height="70" rx="12"/><rect x="320" y="20" width="260" height="70" rx="12"/>
+<rect x="620" y="20" width="260" height="70" rx="12"/><rect x="320" y="130" width="260" height="70" rx="12"/>
+<rect x="620" y="130" width="260" height="70" rx="12"/></g>
+<g fill="none" stroke="#58b7d5" stroke-width="3"><path d="M280 55H320M580 55H620M750 90V130M620 165H580"/></g>
+<g fill="#ffffff" font-family="sans-serif" font-size="17" text-anchor="middle">
+<text x="150" y="50">Independent synthetic OHLCV</text><text x="150" y="74">Public preview source</text>
+<text x="450" y="50">Canonical contracts</text><text x="450" y="74">Identity and provenance</text>
+<text x="750" y="50">Shared analytics</text><text x="750" y="74">SMA · EMA · RSI · MACD · BB</text>
+<text x="750" y="160">Publication checks</text><text x="750" y="184">Synthetic public outputs only</text>
+<text x="450" y="160">Read-only chart</text><text x="450" y="184">Runtime activation pending</text></g>
+<text x="450" y="245" fill="#55758d" font-family="sans-serif" font-size="17" text-anchor="middle">Separate private context: Twelve Data research · Vike inactive · No automatic fallback</text>
+<text x="450" y="277" fill="#55758d" font-family="sans-serif" font-size="15" text-anchor="middle">Logical design — shared algorithms do not imply shared datasets or publication rights</text></svg>"""
+
+
+def render_architecture() -> None:
+    st.title("Architecture & Data Governance")
+    st.caption(SYNTHETIC_LABEL)
+    st.markdown("### One analytical foundation, separate publication boundaries")
+    st.html(ARCHITECTURE_SVG)
+    st.write("Independent synthetic OHLCV maps into canonical candle contracts and provider-independent analytics. "
+             "Publication validation permits only qualified synthetic outputs in the public chart. "
+             "Private research shares contract and algorithm designs, never public access to private datasets.")
+    st.info("Twelve Data is private research only. Vike is retained but inactive. Neither is a public fallback; "
+            "free API access or authentication does not establish display or redistribution rights.")
+    st.subheader("Implemented and planned")
+    st.table([{"Capability": "Public shell and read-only unavailable API", "Status": "Implemented locally; Azure unverified"},
+              {"Capability": "Fixed-window generator and shared indicators", "Status": "Offline implementation; public execution disabled"},
+              {"Capability": "Rolling coverage, daily refresh and storage", "Status": "Deferred; not selected or activated"},
+              {"Capability": "Private features, models, forecasts and exports", "Status": "Not public; separate publication approval required"}])
+    st.caption("This application executes no trades. Operational isolation, resource qualification and deployment require independent evidence.")
+    render_research_footer()
+
+
 def render_ml_automation_studies() -> None:
     st.title("ML & Automation Studies")
     st.info(ML_AUTOMATION_STUDIES_CONTENT[0])
@@ -407,6 +460,9 @@ def render() -> None:
         return
     if navigation == "ML & Automation Studies":
         render_ml_automation_studies()
+        return
+    if navigation == "Architecture & Data Governance":
+        render_architecture()
         return
     # Public health has no independent operational handoff yet. Never consult the private
     # historical/replay envelope; the truthful unavailable state contains no data or paths.
