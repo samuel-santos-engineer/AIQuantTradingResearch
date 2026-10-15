@@ -33,7 +33,7 @@ class MarketResearchUiTests(unittest.TestCase):
         self.assertEqual("BTC-like Market Simulation — Synthetic Historical OHLCV", ui.VIKE_PUBLIC_MESSAGE)
         self.assertIn("Twelve Data is retained for private/internal research", ui.TWELVE_DATA_BOUNDARY_MESSAGE)
         self.assertEqual("Research and demonstration application \u2022 No trade execution", ui.RESEARCH_FOOTER)
-        self.assertEqual(("Market Research", "ML & Automation Studies", "System Health"), ui.NAVIGATION_OPTIONS)
+        self.assertEqual(("Market Research", "Architecture & Data Governance", "ML & Automation Studies", "System Health"), ui.NAVIGATION_OPTIONS)
         content = "\n".join(ui.ML_AUTOMATION_STUDIES_CONTENT)
         for text in ("AI Quant Trading Research", "Release 2.0+", "Begins Release 2.0", "Automated trading", "Not enabled", "This environment does not execute trades."):
             self.assertIn(text, content)

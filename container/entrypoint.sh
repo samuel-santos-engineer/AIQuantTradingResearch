@@ -20,8 +20,10 @@ case "${AIQ_RUNTIME_MODE-public}" in
             DOTNET_ROOT=/usr/share/dotnet HOME=/home/aiq TMPDIR=/tmp/aiq-public \
             LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
             DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_PROCESSOR_COUNT=1 \
-            streamlit run /app/python/presentation/realtime_financial_visualization.py \
-            --server.address 0.0.0.0 --server.port 8501 --server.headless true
+            streamlit run /app/python/presentation/public_preview_app.py \
+            --server.address 0.0.0.0 --server.port 8501 --server.headless true \
+            --browser.gatherUsageStats false --server.fileWatcherType none \
+            --client.showErrorDetails none --secrets.files '[]'
         ;;
     private) ;;
     *) printf '%s\n' 'aiq-entrypoint: invalid runtime mode' >&2; exit 64 ;;
