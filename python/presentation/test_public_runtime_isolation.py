@@ -84,7 +84,7 @@ class LinuxRuntimeTests(unittest.TestCase):
 
     def test_real_separate_processes_share_one_admission_slot_and_wait_is_bounded(self):
         script = '''
-import sys,time
+import sys,time,select
 sys.path.insert(0,sys.argv[1])
 from test_public_runtime_isolation import PolicyGroup
 from historical_market_bridge import _Admission,BridgeError
@@ -92,12 +92,15 @@ from pathlib import Path
 root=Path(sys.argv[2]);group=PolicyGroup(root)
 try:
  with _Admission(time.monotonic(),root=root,group=group):
-  print('admitted',flush=True);time.sleep(1.4)
+  print('admitted',flush=True)
+  # Keep ownership until the observer releases it, independently of the
+  # contender's interpreter/import startup. The fixture is still bounded.
+  if select.select([sys.stdin],[],[],4)[0]: sys.stdin.readline()
 except BridgeError: print('busy',flush=True)
 '''
         with tempfile.TemporaryDirectory() as root:
             args = [sys.executable, '-I', '-B', '-c', script, str(Path(__file__).parent), root]
-            first = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            first = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             second = None
             try:
                 self.assertEqual(b'admitted\n', first.stdout.readline())
@@ -106,11 +109,13 @@ except BridgeError: print('busy',flush=True)
                 out, err = second.communicate(timeout=3)
                 self.assertEqual(b'busy\n', out); self.assertEqual(b'', err)
                 self.assertLess(time.monotonic() - began, 1.3)
+                first.stdin.write(b'release\n'); first.stdin.flush(); first.stdin.close()
                 first.wait(timeout=3)
             finally:
                 for process in (first, second):
                     if process is not None:
                         if process.poll() is None: process.kill(); process.wait(timeout=2)
+                        if process.stdin is not None and not process.stdin.closed: process.stdin.close()
                         process.stdout.close(); process.stderr.close()
 
     def test_cpu_exhaustion_day_window_clock_rollback_and_corruption_fail_closed(self):

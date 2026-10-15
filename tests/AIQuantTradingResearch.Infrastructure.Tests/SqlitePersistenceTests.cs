@@ -270,14 +270,20 @@ public sealed class SqlitePersistenceTests
 
             Assert.True(listenerReady, "Qualification listener did not become reachable.");
             Assert.True(missingTokenObserved, "Missing-token request did not receive a 401 response.");
+            // Startup polling stays cheap; semantic HTTP assertions need a bounded
+            // allowance for contention from the full integration suite.
+            using var assertionClient = new HttpClient(new SocketsHttpHandler { UseProxy = false })
+            {
+                Timeout = TimeSpan.FromSeconds(5),
+            };
             using var wrongRunRequest = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:8501/internal/wp04/persistence-qualification?runId=wrong-{runId}");
             wrongRunRequest.Headers.Add("X-WP04-Evidence-Token", token);
-            using var wrongRunResponse = await client.SendAsync(wrongRunRequest);
+            using var wrongRunResponse = await assertionClient.SendAsync(wrongRunRequest);
             Assert.Equal(409, (int)wrongRunResponse.StatusCode);
 
             using var acceptedRequest = new HttpRequestMessage(HttpMethod.Get, $"http://127.0.0.1:8501/internal/wp04/persistence-qualification?runId={runId}");
             acceptedRequest.Headers.Add("X-WP04-Evidence-Token", token);
-            using var acceptedResponse = await client.SendAsync(acceptedRequest);
+            using var acceptedResponse = await assertionClient.SendAsync(acceptedRequest);
             Assert.Equal(200, (int)acceptedResponse.StatusCode);
             Assert.Equal(File.ReadAllText(evidence), await acceptedResponse.Content.ReadAsStringAsync());
 

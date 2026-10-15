@@ -45,9 +45,15 @@ public sealed class HistoricalProductionCompositionAcceptanceTests
             {
                 var stdout = process.StandardOutput.ReadToEndAsync(timeout.Token);
                 var stderr = process.StandardError.ReadToEndAsync(timeout.Token);
-                var request = scenario == "utf8" ? new byte[] { 0xc0, 0xaf } : Encoding.UTF8.GetBytes(
-                    scenario == "overflow" ? new string(' ', 4097) : SyntheticTestFixture.RequestJson("1d", "1D"));
-                await process.StandardInput.BaseStream.WriteAsync(request, timeout.Token); process.StandardInput.Close();
+                // An invalid cache root is rejected during startup, before stdin is read.
+                // Writing in that case races the expected early process exit.
+                if (scenario != "private-root")
+                {
+                    var request = scenario == "utf8" ? new byte[] { 0xc0, 0xaf } : Encoding.UTF8.GetBytes(
+                        scenario == "overflow" ? new string(' ', 4097) : SyntheticTestFixture.RequestJson("1d", "1D"));
+                    await process.StandardInput.BaseStream.WriteAsync(request, timeout.Token);
+                }
+                process.StandardInput.Close();
                 await process.WaitForExitAsync(timeout.Token);
                 var raw = await stdout;
                 Assert.Equal(0, process.ExitCode); Assert.True(raw.Length < 65536);
