@@ -1,5 +1,6 @@
 """Candidate-only finite local handoff. No network, subprocess or indicator arithmetic."""
 import hashlib
+import logging
 from itertools import islice
 import json
 import os
@@ -153,6 +154,9 @@ def load(symbol, interval, range_value, *, server_address):
     try:
         return _load_candidate(ROOT, MANIFEST_SHA256, interval, range_value, image_owned=os.name == "posix")
     except (OSError, ValueError, TypeError, KeyError, ArithmeticError, RecursionError) as exc:
+        # Log only fixed categories; never payloads, paths, environment or credentials.
+        reason = str(exc) if str(exc) in {"budget", "ownership", "linked ancestor", "inventory", "anchor", "manifest", "integrity", "selection"} else type(exc).__name__
+        logging.getLogger(__name__).warning("Immutable synthetic chart unavailable: %s", reason)
         raise BridgeError("ImmutableCandidateUnavailable") from exc
     finally:
         _LOCK.release()
