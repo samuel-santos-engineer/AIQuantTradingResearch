@@ -1,5 +1,13 @@
 # Release 1.14 File Manifest — Current Authority and Future Proposals
 
+## C2B-9 documentation authority mapping — pending canonical acceptance
+
+The owner has approved P1-P7/S/B1/T selections; the [Section 12 reconciliation proposal](../../architecture/business/PUBLIC_PREVIEW_AND_PRIVATE_RESEARCH_DATA_STRATEGY.md#12-c2b-9-immutable-release-governance-proposal) remains pending explicit owner review/acceptance of the C2B-9 PR. This current task permits text-only changes to exactly the definition, execution plan, this manifest and `docs/architecture/business/PUBLIC_PREVIEW_AND_PRIVATE_RESEARCH_DATA_STRATEGY.md`, plus new `release-1.14-chart-mvp-c2b-9-` Markdown evidence/authority files under `docs/roadmap/release-1.14/prompters/`. "Current" or "present" within earlier blocks below refers to their dated historical authority, not an expansion of this task.
+
+This is documentation/authority mapping only. All historical source/test ownership lists are preserved unchanged and confer no new implementation permission. No producer, verifier, reader, security-store, schema, artifact/output or test path is selected or added. Future work requires an explicit exhaustive literal-path allowlist and finite accepted budgets. The historical WP04 authority and C2B-5/6/7/8 records are not edited.
+
+Trust anchor/serialization/keys/principals/ownership/promotion, durable backend/instance domain, all twelve independent B1 outputs, ready response schemas/full-send budgets and retention/recovery remain unresolved engineering obligations. Narrow durable mutable security-control state is owner-approved conceptually; mutable public market/private state remains prohibited. No backend, UID/mount, paid resource or gate waiver follows. `PUBLIC_RUNTIME_VERIFIED=False`; no implementation, production/export/promotion, active qualification, Azure change, deployment or activation is authorized by this mapping.
+
 ## Current exhaustive mutation allowlist
 
 Under the owner-issued approved-contract documentation update, edit only these existing local untracked files in place; create no additional files:
