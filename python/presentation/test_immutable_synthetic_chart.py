@@ -52,6 +52,30 @@ class ImmutableChartTests(unittest.TestCase):
         for key in ("Vike__ApiKey", "TwelveData__ApiKey", "Persistence__DatabasePath", "Worker__Replay__Target", "Visualization__HandoffPath"):
             self.assertFalse(reader.enabled("127.0.0.1", environment=dict(env, **{key: "not-a-credential"})))
 
+    def test_image_qualification_is_explicit_and_rejects_inherited_markers(self):
+        env = dict(AIQ_RUNTIME_MODE="local-candidate", AIQ_LOCAL_IMAGE_QUALIFICATION="1")
+        with patch.object(reader.os, "name", "posix"):
+            self.assertTrue(reader.enabled("0.0.0.0", environment=env))
+            for extra in ({"WEBSITE_INSTANCE_ID": "test"}, {"DOTNET_ENVIRONMENT": "Production"},
+                          {"ASPNETCORE_ENVIRONMENT": "Staging"}, {"ENVIRONMENT": "production"},
+                          {"TwelveData__ApiKey": "not-a-credential"}, {"AIQ_LOCAL_CHART": "1"},
+                          {"AIQ_IMMUTABLE_CHART_CANDIDATE": "1"}, {"AIQ_LOCAL_IMAGE_QUALIFICATION": "0"}):
+                self.assertFalse(reader.enabled("0.0.0.0", environment=dict(env, **extra)))
+            self.assertFalse(reader.enabled("127.0.0.1", environment=env))
+            self.assertFalse(reader.enabled("0.0.0.0", environment={}))
+
+    def test_image_asset_trust_rejects_runtime_ownership_and_owner_write(self):
+        from types import SimpleNamespace
+        fake = SimpleNamespace(st_uid=1000, st_mode=0o100444)
+        with patch.object(Path, "lstat", return_value=fake):
+            with self.assertRaisesRegex(ValueError, "ownership"):
+                reader._check_path(self.root / "member", image_owned=True)
+            fake.st_uid = 0
+            reader._check_path(self.root / "member", image_owned=True)
+            fake.st_mode = 0o100644
+            with self.assertRaisesRegex(ValueError, "ownership"):
+                reader._check_path(self.root / "member", image_owned=True)
+
     def test_disabled_path_does_not_touch_files(self):
         with patch.object(reader, "enabled", return_value=False), patch.object(reader, "_load_candidate") as load:
             with self.assertRaises(BridgeError): reader.load("btc-like-simulation", "1h", "1D", server_address="127.0.0.1")
@@ -122,7 +146,7 @@ def qualify_generated_candidate(root):
     """Explicit offline integration proof against operator-generated C# files, no mock parse."""
     for name in reader.NAMES:
         interval, range_value = name[:-5].split("-")
-        response = reader._load_candidate(root, reader.MANIFEST_SHA256, interval, range_value)
+        response = reader._load_candidate(root, reader.MANIFEST_SHA256, interval, range_value, image_owned=root == reader.ROOT)
         expected_count = int(range_value[:-1]) * 24 // {"1h": 1, "4h": 4, "1d": 24}[interval]
         assert len(response.candles) == len(response.analytics.rows) == expected_count
         assert all(row.sma20 is not None for row in response.analytics.rows)

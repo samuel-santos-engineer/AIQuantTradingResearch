@@ -3,26 +3,24 @@ set -eu
 
 # Public is the safe default. Private acquisition requires a separate explicit deployment mode.
 case "${AIQ_RUNTIME_MODE-public}" in
-    public)
-        if [ "$(id -u)" -eq 0 ]; then
-            # Docker's legacy empty directory is harmless only when it is actually empty.
-            if [ -d /runtime ]; then rmdir /runtime || exit 64; fi
-            for private_root in /home/aiq-private-research-cache /home/aiq-market-cache; do
-                [ ! -e "$private_root" ] && [ ! -L "$private_root" ] || exit 64
-            done
-            mkdir -p /home/aiq-public-synthetic-cache /tmp/aiq-public
-            chown 1000:1000 /home/aiq-public-synthetic-cache /tmp/aiq-public
-            chmod 0700 /home/aiq-public-synthetic-cache /tmp/aiq-public
-            exec gosu aiq "$0" "$@"
+    public|local-candidate)
+        # Qualification eligibility is evaluated BEFORE environment sanitization.
+        candidate_mode="${AIQ_RUNTIME_MODE-public}"
+        if [ "$candidate_mode" = local-candidate ]; then
+            python -c 'import sys; sys.path.insert(0,"/app/python/presentation"); from immutable_synthetic_chart import enabled; sys.exit(0 if enabled("0.0.0.0") else 64)' || exit 64
         fi
-        # No private Worker is launched; inherited credentials and exporters are discarded.
-        exec env -i PATH=/opt/venv/bin:/usr/share/dotnet:/usr/bin:/bin \
-            DOTNET_ROOT=/usr/share/dotnet HOME=/home/aiq TMPDIR=/tmp/aiq-public \
+        [ "$(id -u)" -ne 0 ] || exit 64
+        for private_root in /runtime /home/aiq-private-research-cache /home/aiq-market-cache; do
+            [ ! -e "$private_root" ] && [ ! -L "$private_root" ] || exit 64
+        done
+        mkdir -p /tmp/aiq-public
+        chmod 0700 /tmp/aiq-public
+        exec env -i PATH=/opt/venv/bin:/usr/bin:/bin HOME=/home/aiq TMPDIR=/tmp/aiq-public \
+            AIQ_RUNTIME_MODE="$candidate_mode" AIQ_LOCAL_IMAGE_QUALIFICATION="${AIQ_LOCAL_IMAGE_QUALIFICATION-0}" \
             LANG=C.UTF-8 LC_ALL=C.UTF-8 TZ=UTC PYTHONDONTWRITEBYTECODE=1 \
-            DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_PROCESSOR_COUNT=1 \
             streamlit run /app/python/presentation/public_preview_app.py \
             --server.address 0.0.0.0 --server.port 8501 --server.headless true \
-            --browser.gatherUsageStats false --server.fileWatcherType none \
+            --browser.gatherUsageStats false --server.fileWatcherType none --logger.hideWelcomeMessage true \
             --client.showErrorDetails none --secrets.files '[]'
         ;;
     private) ;;

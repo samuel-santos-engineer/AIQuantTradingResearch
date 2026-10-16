@@ -21,6 +21,15 @@ _LOCK = threading.BoundedSemaphore(1)
 
 def enabled(server_address, *, environment=None):
     env = os.environ if environment is None else environment
+    forbidden = any(k.upper().startswith(("WEBSITE", "TWELVEDATA", "VIKE", "PERSISTENCE__", "WORKER__REPLAY__", "VISUALIZATION__")) for k in env)
+    if env.get("AIQ_RUNTIME_MODE") == "local-candidate":
+        return (os.name == "posix" and server_address == "0.0.0.0"
+                and env.get("AIQ_LOCAL_IMAGE_QUALIFICATION") == "1"
+                and env.get("AIQ_LOCAL_CHART") != "1"
+                and env.get("AIQ_IMMUTABLE_CHART_CANDIDATE") != "1"
+                and all(env.get(k, "").lower() not in ("production", "staging")
+                        for k in ("DOTNET_ENVIRONMENT", "ASPNETCORE_ENVIRONMENT", "ENVIRONMENT"))
+                and not forbidden)
     return (server_address == "127.0.0.1" and env.get("DOTNET_ENVIRONMENT") == "Development"
             and env.get("AIQ_IMMUTABLE_CHART_CANDIDATE") == "1" and env.get("AIQ_LOCAL_CHART") != "1"
             and not any(k.upper().startswith(("WEBSITE", "TWELVEDATA", "VIKE", "PERSISTENCE__", "WORKER__REPLAY__", "VISUALIZATION__")) for k in env))
@@ -43,19 +52,19 @@ def _json(raw):
     return json.loads(raw.decode("utf-8", errors="strict"), object_pairs_hook=_pairs, parse_constant=reject)
 
 
-def _check_path(path, directory=False):
+def _check_path(path, directory=False, *, image_owned=False):
     info = path.lstat()
     if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
         raise ValueError("link")
     if not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)):
         raise ValueError("type")
-    if os.name == "posix" and (info.st_uid != os.getuid() or info.st_mode & 0o022):
+    if os.name == "posix" and (info.st_uid != (0 if image_owned else os.getuid()) or info.st_mode & (0o022 if directory or not image_owned else 0o222)):
         raise ValueError("ownership")
     return info
 
 
-def _read(path, limit):
-    before = _check_path(path)
+def _read(path, limit, *, image_owned=False):
+    before = _check_path(path, image_owned=image_owned)
     if not 0 < before.st_size <= limit:
         raise ValueError("size")
     fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0))
@@ -72,21 +81,23 @@ def _read(path, limit):
     return raw
 
 
-def _load_candidate(root, pin, interval, range_value):
+def _load_candidate(root, pin, interval, range_value, *, image_owned=False):
     """Private proof seam; public acquisition never accepts a root or trust pin."""
     deadline = time.monotonic() + 2
     def budget():
         if time.monotonic() > deadline:
             raise ValueError("budget")
-    _check_path(root, directory=True)
+    _check_path(root, directory=True, image_owned=image_owned)
     # Reject links in ancestors; application directory ownership is checked separately.
     for parent in root.parents:
+        if image_owned:
+            _check_path(parent, directory=True, image_owned=True)
         if parent.is_symlink() or getattr(parent.lstat(), "st_file_attributes", 0) & 0x400:
             raise ValueError("linked ancestor")
-    _check_path(root.parent, directory=True)
+    _check_path(root.parent, directory=True, image_owned=image_owned)
     if {p.name for p in islice(root.iterdir(), 14)} != {"manifest.json", *NAMES}:
         raise ValueError("inventory")
-    raw = _read(root / "manifest.json", 8192)
+    raw = _read(root / "manifest.json", 8192, image_owned=image_owned)
     if hashlib.sha256(raw).hexdigest() != pin:
         raise ValueError("anchor")
     manifest = _json(raw)
@@ -103,7 +114,7 @@ def _load_candidate(root, pin, interval, range_value):
                 or type(entry["bytes"]) is not int or not 0 < entry["bytes"] <= 1048576
                 or not isinstance(entry["sha256"], str) or re.fullmatch(r"[a-f0-9]{64}", entry["sha256"]) is None):
             raise ValueError("member")
-        raw = _read(root / name, 1048576)
+        raw = _read(root / name, 1048576, image_owned=image_owned)
         total += len(raw)
         if total > 4194304 or len(raw) != entry["bytes"] or hashlib.sha256(raw).hexdigest() != entry["sha256"]:
             raise ValueError("integrity")
@@ -134,7 +145,7 @@ def load(symbol, interval, range_value, *, server_address):
     if not _LOCK.acquire(blocking=False):
         raise BridgeError("ImmutableCandidateUnavailable")
     try:
-        return _load_candidate(ROOT, MANIFEST_SHA256, interval, range_value)
+        return _load_candidate(ROOT, MANIFEST_SHA256, interval, range_value, image_owned=os.name == "posix")
     except (OSError, ValueError, TypeError, KeyError, ArithmeticError, RecursionError) as exc:
         raise BridgeError("ImmutableCandidateUnavailable") from exc
     finally:
