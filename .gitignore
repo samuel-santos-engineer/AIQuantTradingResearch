@@ -431,3 +431,6 @@ FodyWeavers.xsd
 
 # Developer-machine-only MSBuild overrides
 Directory.Build.local.props
+
+# C2B-25 temporary, unpromoted candidate data; never a public image asset.
+python/presentation/_immutable_chart_candidate/

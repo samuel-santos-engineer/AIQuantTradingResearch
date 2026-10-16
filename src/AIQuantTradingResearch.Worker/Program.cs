@@ -12,7 +12,10 @@ using AIQuantTradingResearch.Application.Visualization;
 using AIQuantTradingResearch.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
-// An explicit Windows development command, never selected by deployed configuration.
+// Explicit offline candidate / Windows local commands, never selected by deployed configuration.
+if (args.Contains("--write-immutable-chart-candidate", StringComparer.Ordinal))
+    return await ImmutableSyntheticChartHandoff.RunAsync(args, Console.Error);
+
 if (args.Contains("--local-synthetic-chart", StringComparer.Ordinal))
     return await LocalSyntheticChart.RunAsync(args, Console.Error);
 
