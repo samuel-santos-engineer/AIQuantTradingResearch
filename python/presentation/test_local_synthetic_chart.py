@@ -45,6 +45,16 @@ class LocalChartTests(unittest.TestCase):
         self.assertFalse(on.layout.xaxis.rangeslider.visible)
         self.assertIn("High", on.data[0].hovertemplate)
         self.assertEqual("Volume", on.layout.yaxis2.title.text)
+        # Figure-owned labels also survive Plotly's native PNG export, unlike page captions.
+        self.assertIn(ui.SYNTHETIC_DISCLOSURE, on.layout.title.text)
+        self.assertIn("BTC-like simulation", on.layout.title.text)
+        self.assertEqual(off.layout.title.text, on.layout.title.text)
+        for trace in on.data:
+            self.assertIn(ui.SYNTHETIC_DISCLOSURE, trace.hovertemplate)
+            self.assertIn("Simulation time (UTC)", trace.hovertemplate)
+        self.assertEqual([float(c.open) for c in candles], list(on.data[0].open))
+        self.assertEqual([float(c.volume) for c in candles], list(on.data[1].y))
+
 
 
 if __name__ == "__main__":
