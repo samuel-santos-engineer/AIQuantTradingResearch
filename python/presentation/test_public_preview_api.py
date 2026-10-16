@@ -254,6 +254,47 @@ class RealStreamlitHttpTests(unittest.TestCase):
         self.assertEqual(405, self.fetch("/api/v1/dataset", "POST", b"{}")[0])
         self.assertEqual(200, self.fetch("/_stcore/health")[0])
 
+    def test_each_real_endpoint_rejects_unknown_query_without_disclosing_input(self):
+        for route in ("health", "status", "dataset", "candles", "indicators", "diagnostics"):
+            with self.subTest(route=route):
+                time.sleep(0.55)
+                status, headers, raw = self.fetch("/api/v1/" + route + "?privatePath=%2Fprivate%2Fsecret")
+                self.assertEqual(400, status)
+                self.assertEqual("application/json; charset=utf-8", headers["content-type"])
+                self.assertEqual("no-store", headers["cache-control"])
+                self.assertEqual(api.failure("INVALID_QUERY"), json.loads(raw))
+                self.assertLessEqual(len(raw), api.MAX_RESPONSE_BYTES)
+                self.assertNotIn(b"secret", raw)
+                self.assertNotIn(b"privatePath", raw)
+        self.assertEqual(200, self.fetch("/_stcore/health")[0])
+
+    def test_clean_server_restart_does_not_promote_dataset_or_indicator_readiness(self):
+        # Ordinary localhost server restart only: no Worker, guardian, generation,
+        # snapshot publication, fault injection or admission recovery experiment.
+        type(self).tearDownClass()
+        type(self).setUpClass()
+        for route in ("health", "status", "dataset", "candles", "indicators", "diagnostics"):
+            with self.subTest(route=route):
+                time.sleep(0.55)
+                status, headers, raw = self.fetch("/api/v1/" + route)
+                body = json.loads(raw)
+                self.assertEqual("application/json; charset=utf-8", headers["content-type"])
+                self.assertEqual(503 if route in ("dataset", "candles", "indicators") else 200, status)
+                self.assertEqual("OK" if route == "health" else "DATASET_NOT_READY", body["code"])
+                if route == "status":
+                    self.assertEqual({"web": "ready", "dataset": "unavailable", "indicators": "unavailable",
+                                      "generationEnabled": False}, body["data"])
+                if route == "dataset":
+                    self.assertEqual("2025-10-26T00:00:00Z", body["contract"]["qualifiedReferenceStartUtc"])
+                    self.assertEqual("2026-10-01T00:00:00Z", body["contract"]["qualifiedReferenceEndExclusiveUtc"])
+                    self.assertIsNone(body["contract"]["actualCoverage"])
+                    self.assertIsNone(body["contract"]["datasetFingerprint"])
+                    self.assertFalse(body["contract"]["rollingRefreshEnabled"])
+                if route in ("dataset", "candles", "indicators"):
+                    self.assertIsNone(body["data"])
+        self.assertEqual(200, self.fetch("/")[0])
+        self.assertEqual(200, self.fetch("/_stcore/health")[0])
+
 
 if __name__ == "__main__":
     unittest.main()
