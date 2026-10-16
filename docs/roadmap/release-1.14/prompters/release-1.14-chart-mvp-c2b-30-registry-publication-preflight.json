@@ -1,0 +1,188 @@
+{
+  "recordedAtUtc": "2026-10-16T18:08:59.686456+00:00",
+  "verdict": "BLOCKED BEFORE PUBLICATION",
+  "stagingAuthorityReview": "NO-GO",
+  "sourcePr": 350,
+  "sourcePrHead": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+  "runtimeSourceCommit": "346841f6478d21d145b850272a5e0d3af3dcc1fb",
+  "mainBaseline": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+  "registryRepository": "ghcr.io/samuel-santos-engineer/aiquanttradingresearch",
+  "observedPackageVisibility": "public",
+  "publicVisibilityAndDataPublicationApproval": "NOT EXPLICITLY ESTABLISHED",
+  "registryTag": null,
+  "pushStartedAtUtc": null,
+  "pushFinishedAtUtc": null,
+  "registryReadbackAtUtc": null,
+  "anyImageBytesPublished": false,
+  "registryReadbackVerdict": "NOT RUN",
+  "registryDescriptorMatch": "UNKNOWN",
+  "archive": {
+    "path": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b29-d76483136fbf46e79029e45d38c83807\\qualified-image.tar",
+    "bytes": 250158592,
+    "sha256": "700b49d2f0bacb7db74b5520faabed3b94519355cd54daabc3f6be11bf0ea7a0",
+    "hashVerdict": "PASS",
+    "completeBlobDigestSizeVerification": "PASS"
+  },
+  "platform": {
+    "digest": "sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424ea91e0999d5",
+    "bytes": 2574,
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "os": "linux",
+    "architecture": "amd64"
+  },
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "sha256:27ec5f7297205ccc4d0ba5c7987effc2c8aa710904f6850ea63d16d51e69f56d",
+    "size": 8507,
+    "comparison": "PASS",
+    "user": "1000:1000",
+    "entrypoint": [
+      "/usr/local/bin/aiq-entrypoint"
+    ]
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e",
+      "size": 29843350,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:65a67aec859c5fafe6ca38c2ed07825c97acf3febdcf62b79441a1bfca4f3a4a",
+      "size": 1294038,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:3a5db7051419a594a866378c5d2c422e3d282d69e6792b3213772cb1349da446",
+      "size": 11923091,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:2f5b06adfd9138ef928aaf8b34f3fecf122b137a537133dfe421509dd57b4a47",
+      "size": 250,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:339a6880d01fa9aea11f4c30fe31f11d1f2c2d840ef821b59371d571e70a8842",
+      "size": 93,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:160bacecf7a44fcd8b753ef1d8f483b00bb62a26ac7f6529617820cda1804940",
+      "size": 902,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:d632e47ebcd5fe89f2e5d468c0819f905f7df3b82c87651b987244e18b4785b9",
+      "size": 206527386,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:7de1f9253283aaad74381b8a6b6d0d6bfbcd9a28012a80a3bcd555decf7ed289",
+      "size": 63578,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:43afc06075e26de4563ab5f540daff18d42c6b80135f1c21e85ec0d679fcdb83",
+      "size": 7691,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:ca98ee862b4d6e3645000e4803a481181427b99c4b74430cc08832ceabf83eef",
+      "size": 2242,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:0e17b7cb9edfe3363b73080b01629e3e126e51b99869ef0f8d829fd8818b5f90",
+      "size": 122804,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:2f0b2bcde2bf94bc119a79ce772c2a70e29561bd6f38901cc757c30b56c86e83",
+      "size": 345057,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true
+    }
+  ],
+  "localArchiveIndexSha256": "d26edd8c6b96b67326f4d87b1ecc3090c21c56a1d0971d4cddb61a11d38415ba",
+  "publishedIndexDigest": null,
+  "immutableBundlePriorEvidence": {
+    "files": 13,
+    "totalBytes": 656176,
+    "manifestSha256": "007b2c8a6ccec19ec54976b4baf735812b648d79294e6465df884c68537d3069",
+    "currentInspection": "Prior accepted C2B-29 inventory; archive/config/layers rehashed unchanged; fresh filesystem extraction not performed after stop"
+  },
+  "prDependencies": [
+    {
+      "number": 346,
+      "state": "OPEN",
+      "head": "0e568d208f2769037bf4a7265ea4ba6f4609aacc"
+    },
+    {
+      "number": 347,
+      "state": "OPEN",
+      "head": "8240d0878dea335c08ad3216600fc7e545446140"
+    },
+    {
+      "number": 349,
+      "state": "OPEN",
+      "head": "c40ba4e1ba751b5097061d95d76ce81bbd019c0e"
+    },
+    {
+      "number": 350,
+      "state": "OPEN",
+      "head": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d"
+    }
+  ],
+  "repoAutomation": {
+    "actionsWorkflows": 0,
+    "repositoryHooks": 0,
+    "azureExternalDeploymentHooks": "UNKNOWN; not inspected; no Azure access in C2B-30"
+  },
+  "writeAuthorization": "UNKNOWN; no credential retrieval or push probe",
+  "uniqueTagAvailability": "NOT CHECKED",
+  "contentPreservingTransferTool": "NOT QUALIFIED; no import/build/copy/push performed",
+  "futureDeploymentPullAuthorization": "UNKNOWN; no target published",
+  "publicRuntimeVerified": false,
+  "azureStagingModified": false,
+  "azureProductionModified": false,
+  "advancedWP07": "ON HOLD",
+  "deployment": "NO-GO",
+  "toolVersions": {
+    "gh": "2.97.0",
+    "python": "3.13.15",
+    "powershell": "Windows PowerShell 5.1"
+  },
+  "cleanup": "No Docker resources created; source archive retained unchanged; isolated documentation worktree retained for evidence PR",
+  "commands": [
+    "gh pr view 350 --json state,headRefOid,reviewDecision,baseRefOid",
+    "gh api users/samuel-santos-engineer/packages/container/aiquanttradingresearch --jq .visibility",
+    "gh api users/samuel-santos-engineer/packages/container/aiquanttradingresearch --jq .name",
+    "gh api repos/samuel-santos-engineer/AIQuantTradingResearch/actions/workflows --jq .total_count",
+    "gh api repos/samuel-santos-engineer/AIQuantTradingResearch/hooks --jq length",
+    "gh pr view <346|347|349> --json state,headRefOid",
+    "Python hashlib/tarfile read-only archive digest, descriptor size, config/platform verification"
+  ]
+}
