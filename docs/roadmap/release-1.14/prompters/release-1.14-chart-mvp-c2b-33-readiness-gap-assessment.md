@@ -1,3 +1,42 @@
+# C2B-33 - Synthetic figure disclosure fix and local screening
+
+Owner follow-up authorizes the narrow disclosure correction. Local Linux screening PASS; owner review required. PUBLIC_RUNTIME_VERIFIED=False; Azure/public activation NO-GO; advanced WP07 ON HOLD.
+
+The figure title now says **BTC-like simulation / SYNTHETIC / SIMULATED - NOT REAL MARKET DATA**. Candle, activity and SMA hover text repeats the disclosure and identifies simulation time as UTC. Activity hover says simulated activity. The disclosure belongs to the figure, so Plotly native PNG exports retain it. Only title spacing changed; datasets, indicators, selectors, gates and dependencies are unchanged.
+
+## Source and dependency handling
+
+The two-file label commit `33e94d1c45b0a5bf066f8506cfb132e927e5f1e2` is based on main `ce7afdde4febea8abe30cd2be4873fef29aeb18e`. The complete #350 patch passed `git apply --check` against that label branch. No #350 implementation is imported into this PR. A separate local qualification branch starts at unchanged #350 head `e909b3ef1ade83959f41dd15600937e3fdb4ed9d` and cherry-picks only the label commit, producing `476730d`. This composition is a local screening baseline, not acceptance of #350 or production readiness. #347 is not imported again.
+
+## Evidence
+
+| Check | Result |
+|---|---|
+| Focused Linux tests | 32 passed, exit 0: `python -B -m unittest test_local_synthetic_chart test_immutable_synthetic_chart test_public_preview_api -v` |
+| 1D / 30D browser | Candles, volume, selectors, native TA popover and SMA off/on/off PASS |
+| Hover / zoom / pan | Native interactions PASS on both views; actual candle hover contains disclosure and UTC label |
+| PNG | Downloaded using native Plotly modebar; visually verified complete disclosure in exported image |
+| Values | Focused assertions preserve candle/activity arrays and supplied C# SMA values; no indicator recomputation |
+| Public routes | `/api/v1/dataset`, `/api/v1/candles`, `/api/v1/indicators` remain 503; no readiness promotion |
+| Known limitation | Owner-accepted zoom reset on SMA toggle remains; no compatibility workaround |
+
+Actual repository Docker target `synthetic-candidate` built as a separate local image `aiq-c2b33:screening`, manifest `sha256:8f54e9744b168a80c9d99a72cc4d70b198126240aa079b45a07901832a483a7a`. Historical published image D was not modified or republished. The new image is not published. Root read-only, UID 1000, one CPU, 512 MiB, 64 PIDs and loopback-only port 8508 were used. Bare-mode Streamlit tests emitted the expected missing ScriptRunContext warning.
+
+Local screenshots, PNG, browser logs, route evidence and build metadata: `C:\Users\sabsf\AppData\Local\Temp\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2`. Native PNG: `downloads/newplot.png`; hover screenshots include `1D-on.png` and `30D-on.png`. Machine inventory records PNG hash and commands.
+
+## Exact changed paths
+
+- `python/presentation/realtime_financial_visualization.py`
+- `python/presentation/test_local_synthetic_chart.py`
+- `docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-33-readiness-gap-assessment.md`
+- `docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-33-readiness-inventory.json`
+
+No .NET tests repeated: generator/calculator/producer unchanged. Original checkout, five owner-untracked files, protected archive and other PR heads preserved. No Azure operation, provider call, deployment, merge or registry push. Public activation still requires separate authority and qualification.
+
+## Superseded initial inventory (historical)
+
+The initial dependency stop below predates the explicit owner follow-up and the isolated composition above; its BLOCKED/NOT RUN statements are historical, not the current result.
+
 # C2B-33 ? Synthetic chart readiness inventory and dependency decision
 
 **Read-only inventory complete; labeling implementation and new-image/browser qualification BLOCKED/INCOMPLETE pending dependency disposition.** This is a two-document review PR against current main, not chart acceptance. PUBLIC_RUNTIME_VERIFIED=False; Azure deployment/activation NO-GO; advanced WP07 ON HOLD. C2B-32 ABORTED; C2B-31 DEFERRED. No provider research, market-data calls, ETH-like series, source changes, image build/push, dataset promotion or Azure operation in C2B-33.

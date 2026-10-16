@@ -1,6 +1,6 @@
 {
-  "recordedAtUtc": "2026-10-16T22:04:34.124532+00:00",
-  "verdict": "READ-ONLY GAP ASSESSMENT COMPLETE; IMPLEMENTATION/NEW IMAGE QUALIFICATION BLOCKED ON DEPENDENCY DISPOSITION",
+  "recordedAtUtc": "2026-10-16T22:35:38.807493+00:00",
+  "verdict": "DISCLOSURE FIX AND LOCAL LINUX SCREENING PASS; OWNER REVIEW REQUIRED",
   "main": "ce7afdde4febea8abe30cd2be4873fef29aeb18e",
   "originalBranch": "feature/release-1.14-c2b-24-azure-feasibility",
   "originalHead": "0e568d208f2769037bf4a7265ea4ba6f4609aacc",
@@ -170,5 +170,27 @@
   "c2b31": "DEFERRED",
   "publicRuntimeVerified": false,
   "wp07": "ON HOLD",
-  "publicActivation": "NO-GO"
+  "publicActivation": "NO-GO",
+  "priorVerdict": "READ-ONLY GAP ASSESSMENT COMPLETE; IMPLEMENTATION/NEW IMAGE QUALIFICATION BLOCKED ON DEPENDENCY DISPOSITION",
+  "followUp": {
+    "labelCommit": "33e94d1c45b0a5bf066f8506cfb132e927e5f1e2",
+    "qualificationHead": "476730d",
+    "runtimeDependency": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+    "runtimePatchApplyCheck": "PASS",
+    "imageManifest": "sha256:8f54e9744b168a80c9d99a72cc4d70b198126240aa079b45a07901832a483a7a",
+    "tests": {
+      "command": "python -B -m unittest test_local_synthetic_chart test_immutable_synthetic_chart test_public_preview_api -v",
+      "count": 32,
+      "exit": 0
+    },
+    "browser": "1D/30D SMA off/on/off, selectors, hover, zoom and pan PASS",
+    "nativePng": {
+      "path": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2\\downloads\\newplot.png",
+      "sha256": "b778f973ef64a67f1f68583e6dce1a011023844ca936903fa4842b882e97f74a",
+      "disclosureVisuallyVerified": true
+    },
+    "evidenceDirectory": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2",
+    "publicRoutes": "dataset/candles/indicators 503",
+    "PUBLIC_RUNTIME_VERIFIED": false
+  }
 }
