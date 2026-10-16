@@ -20,7 +20,7 @@ Platform manifest: `sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424
 
 OCI config: `sha256:27ec5f7297205ccc4d0ba5c7987effc2c8aa710904f6850ea63d16d51e69f56d`. Twelve compressed layer descriptors in JSON. Build uses `--provenance=false`, single Linux/amd64 platform manifest; no published registry index/attestation. Saved archive index hash is separately labeled and is not a registry/platform digest.
 
-Local `qualified-image.tar`: 250,158,592 bytes; SHA-256 `700b49d2f0bacb7db74b5520faabed3b94519355cd54daabc3f6be11bf0ea7a0`. Exact platform manifest blob exists in the archive and independently rehashes correctly, as do config and all twelve layers. No rebuild after this image's acceptance tests. Docker 29.7.2 / Desktop 4.88.1 / buildx 0.36.1 / Linux kernel 6.18.33.2-microsoft-standard-WSL2.
+Local `qualified-image.tar`: 250,158,592 bytes; SHA-256 `700b49d2f0bacb7db74b5520faabed3b94519355cd54daabc3f6be11bf0ea7a0`. Exact platform manifest blob exists in the archive and independently rehashes correctly, as do config and all twelve layers. No rebuild after this image's acceptance tests. Runtime source commit is `346841f6478d21d145b850272a5e0d3af3dcc1fb`; subsequent changes are evidence-only. All 2,054 raw context files match the preserved source worktree. Git archive on this Windows checkout converts four LF files to CRLF (Dockerfile, reader, reader test, constraints); committed source content matches after line-ending reconciliation. Raw context inventory hashes and exact saved image remain authoritative for the tested bytes; do not equate a new archive/rebuild with this artifact. Docker 29.7.2 / Desktop 4.88.1 / buildx 0.36.1 / Linux kernel 6.18.33.2-microsoft-standard-WSL2.
 
 ## Acceptance matrix
 

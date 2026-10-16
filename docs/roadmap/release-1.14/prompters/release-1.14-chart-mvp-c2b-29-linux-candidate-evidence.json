@@ -662,5 +662,15 @@
   "resourceAfter": "usage_usec 13238138\r\nuser_usec 10533965\r\nsystem_usec 2704173\r\nnice_usec 0\r\nnr_periods 2675\r\nnr_throttled 44\r\nthrottled_usec 1567864\r\nnr_bursts 0\r\nburst_usec 0\r\n92729344\r\n96960512\r\n21\r\nlow 0\r\nhigh 0\r\nmax 0\r\noom 0\r\noom_kill 0\r\noom_group_kill 0\r\n",
   "defaultResource": "usage_usec 4544315\r\nuser_usec 3425850\r\nsystem_usec 1118465\r\nnice_usec 0\r\nnr_periods 52\r\nnr_throttled 25\r\nthrottled_usec 1917058\r\nnr_bursts 0\r\nburst_usec 0\r\n81539072\r\n11\r\nlow 0\r\nhigh 0\r\nmax 0\r\noom 0\r\noom_kill 0\r\noom_group_kill 0\r\n",
   "readerResource": "{\"rssBefore\": 37609472, \"rssAfter\": 37146624, \"peakRssKiB\": 38408, \"cpuSeconds\": 6.774755918}",
-  "ownerDocumentsVerified": 14
+  "ownerDocumentsVerified": 14,
+  "sourceLinkage": {
+    "rawWorktreeFilesVerified": 2054,
+    "gitArchiveCrlfOnlyDifferences": [
+      "Dockerfile",
+      "python/presentation/immutable_synthetic_chart.py",
+      "python/presentation/test_immutable_synthetic_chart.py",
+      "requirements-linux.lock"
+    ],
+    "sourceCommit": "346841f6478d21d145b850272a5e0d3af3dcc1fb"
+  }
 }
