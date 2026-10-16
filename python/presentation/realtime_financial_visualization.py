@@ -29,6 +29,8 @@ st.set_page_config(
 
 VIKE_PUBLIC_MESSAGE = "BTC-like Market Simulation — Synthetic Historical OHLCV"
 TWELVE_DATA_BOUNDARY_MESSAGE = "Twelve Data is retained for private/internal research, including real-time market-data studies. Twelve Data values from that research are not exposed through this public interface under the project's current data-access/licensing boundary."
+SYNTHETIC_DISCLOSURE = "SYNTHETIC / SIMULATED - NOT REAL MARKET DATA"
+
 RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execution"
 STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
 EMPTY_HISTORICAL_MESSAGE = "No historical market data is available for this selection."
@@ -294,9 +296,10 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
     figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
-    figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate="Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
-    figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate="Volume: %{y}<extra></extra>"), row=2, col=1)
-    figure.update_layout(height=620, margin=dict(l=16, r=16, t=44, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
+    figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
+    figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Simulated activity: %{y}<extra></extra>"), row=2, col=1)
+    figure.update_layout(title=dict(text="BTC-like simulation<br>" + SYNTHETIC_DISCLOSURE, x=0.5, xanchor="center", font=dict(size=12)),
+                         height=620, margin=dict(l=16, r=16, t=78, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
     figure.update_yaxes(title_text="Price", row=1, col=1); figure.update_yaxes(title_text="Volume", row=2, col=1)
     figure.data[0].uid = "ohlc"
     figure.data[1].uid = "volume"
@@ -304,7 +307,7 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.
         figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
                                    y=[None if r.sma20 is None else float(r.sma20) for r in response.analytics.rows],
                                    name="SMA (20)", uid="sma20", mode="lines", line=dict(color="#d9a400", width=2),
-                                   visible=show_sma, hovertemplate="SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
+                                   visible=show_sma, hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
     figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
     return figure
 
