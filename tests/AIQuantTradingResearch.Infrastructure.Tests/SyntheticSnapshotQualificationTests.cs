@@ -333,7 +333,7 @@ public sealed class SyntheticSnapshotQualificationTests
     [InlineData("{\"version\":")]
     [InlineData("{}{}")]
     public void StrictTransportRejectsMalformedTruncatedAndTrailingJson(string text) =>
-        Assert.Throws<JsonException>(() => { using var ignored = ParseOracle(StrictUtf8.GetBytes(text)); });
+        Assert.ThrowsAny<JsonException>(() => { using var ignored = ParseOracle(StrictUtf8.GetBytes(text)); });
 
     [Fact]
     public void StrictTransportRejectsMalformedUtf8() =>
