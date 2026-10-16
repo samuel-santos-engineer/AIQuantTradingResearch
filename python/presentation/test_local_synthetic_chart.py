@@ -1,0 +1,51 @@
+import unittest
+from decimal import Decimal
+from unittest.mock import patch
+
+import local_synthetic_chart as adapter
+import realtime_financial_visualization as ui
+from historical_market_bridge import Analytics, BridgeError, Candle, IndicatorRow, MarketResponse
+
+
+class LocalChartTests(unittest.TestCase):
+    def test_gate_requires_explicit_windows_loopback_development_and_rejects_azure(self):
+        env = {"AIQ_LOCAL_CHART": "1", "DOTNET_ENVIRONMENT": "Development"}
+        self.assertTrue(adapter.enabled("127.0.0.1", environment=env, platform="nt"))
+        self.assertFalse(adapter.enabled("0.0.0.0", environment=env, platform="nt"))
+        self.assertFalse(adapter.enabled("127.0.0.1", environment=env, platform="posix"))
+        for changed in ({}, dict(env, DOTNET_ENVIRONMENT="Production"), dict(env, WEBSITE_INSTANCE_ID="azure")):
+            self.assertFalse(adapter.enabled("127.0.0.1", environment=changed, platform="nt"))
+
+    def test_disabled_adapter_never_opens_a_connection(self):
+        with patch.object(adapter, "enabled", return_value=False), patch.object(adapter, "build_opener") as opener:
+            with self.assertRaises(BridgeError):
+                adapter.load("btc-like-simulation", "1h", "30D", server_address="127.0.0.1")
+            opener.assert_not_called()
+
+    def test_parser_rejects_missing_fields_and_malformed_json(self):
+        for payload in (b"{}", b'{"label":1,"label":2}', b"not-json"):
+            with self.subTest(payload=payload), self.assertRaises(BridgeError):
+                adapter.parse(payload, "1h", "30D")
+
+    def test_toggle_changes_only_supplied_sma_visibility_with_stable_chart_identity(self):
+        # UI-only contract test; actual C# values and complete selections are tested in .NET/HTTP.
+        times = ("2026-09-30T00:00:00Z", "2026-09-30T01:00:00Z")
+        candles = tuple(Candle(t, Decimal(10), Decimal(12), Decimal(9), Decimal(11), Decimal(100)) for t in times)
+        indicators = tuple(IndicatorRow(t, Decimal("10.123456789012"), *([None] * 8)) for t in times)
+        response = MarketResponse("Available", "btc-like-simulation", "1h", "30D", candles,
+                                  "independent-synthetic", None, None, False, None, {}, Analytics({}, indicators))
+        off, on = ui.build_market_figure(response, False), ui.build_market_figure(response, True)
+        self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
+        self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
+        self.assertEqual(("candlestick", "bar", "scatter"), tuple(t.type for t in on.data))
+        self.assertFalse(off.data[2].visible); self.assertTrue(on.data[2].visible)
+        self.assertEqual([float(r.sma20) for r in indicators], list(on.data[2].y))
+        self.assertEqual(off.layout.uirevision, on.layout.uirevision)
+        self.assertEqual("pan", on.layout.dragmode)
+        self.assertFalse(on.layout.xaxis.rangeslider.visible)
+        self.assertIn("High", on.data[0].hovertemplate)
+        self.assertEqual("Volume", on.layout.yaxis2.title.text)
+
+
+if __name__ == "__main__":
+    unittest.main()

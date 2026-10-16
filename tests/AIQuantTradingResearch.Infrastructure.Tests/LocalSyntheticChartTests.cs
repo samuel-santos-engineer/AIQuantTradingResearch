@@ -24,24 +24,38 @@ public sealed class LocalSyntheticChartTests
         Assert.False(LocalSyntheticChart.IsAllowed(command, env, true));
     }
 
-    [Fact]
-    public async Task PayloadHasOnly24VisibleCandlesAndVerifiedWarmedCSharpSma()
+    [Theory]
+    [InlineData("1h", "1D")]
+    [InlineData("1h", "7D")]
+    [InlineData("1h", "30D")]
+    [InlineData("1h", "90D")]
+    [InlineData("4h", "1D")]
+    [InlineData("4h", "7D")]
+    [InlineData("4h", "30D")]
+    [InlineData("4h", "90D")]
+    [InlineData("1d", "1D")]
+    [InlineData("1d", "7D")]
+    [InlineData("1d", "30D")]
+    [InlineData("1d", "90D")]
+    public async Task PayloadHasOnlyVisibleOhlcvAndVerifiedWarmedCSharpSma(string intervalText, string rangeText)
     {
-        var payload = await LocalSyntheticChart.CreatePayloadAsync();
+        Assert.True(LocalSyntheticChart.TrySelection(intervalText, rangeText, out var interval, out var range));
+        var payload = await LocalSyntheticChart.CreatePayloadAsync(interval, range);
         Assert.Equal(LocalSyntheticChart.Label, payload.Label);
-        Assert.False(payload.PublicRuntimeVerified); Assert.Equal("1h", payload.Interval); Assert.Equal("1D", payload.Range);
-        Assert.Equal(24, payload.Candles.Count);
-        Assert.Equal("2026-09-30T00:00:00Z", payload.Candles[0].TimeUtc);
-        Assert.Equal("2026-09-30T23:00:00Z", payload.Candles[^1].TimeUtc);
+        Assert.False(payload.PublicRuntimeVerified); Assert.Equal(intervalText, payload.Interval); Assert.Equal(rangeText, payload.Range);
         var request = new HistoricalMarketDataRequest(CanonicalMarketSymbol.BtcLikeSimulation,
-            HistoricalCandleInterval.OneHour, HistoricalCandleRange.OneDay, TimeSpan.FromSeconds(10));
+            interval, range, TimeSpan.FromSeconds(10));
+        Assert.Equal(SyntheticPublicationPolicy.VisibleCount(request), payload.Candles.Count);
+        Assert.Equal(250, payload.Warmup); Assert.Equal(payload.Candles.Count + 250, payload.CalculationCount);
+        Assert.Equal(SyntheticPublicationPolicy.Timestamp(SyntheticPublicationPolicy.CoverageEnd.AddDays(-SyntheticPublicationPolicy.Days(range))), payload.Candles[0].TimeUtc);
         var response = await new SyntheticHistoricalMarketDataProvider().GetHistoricalCandlesAsync(request);
         var expected = TechnicalIndicatorCalculator.CalculatePublic(request, response.Candles!, response.Provenance!);
-        for (var i = 0; i < 24; i++)
+        for (var i = 0; i < payload.Candles.Count; i++)
+        {
             Assert.Equal(expected.Rows[i + 250].Sma20, decimal.Parse(payload.Candles[i].Sma20, CultureInfo.InvariantCulture));
-        var page = LocalSyntheticChart.Render(payload);
-        Assert.Equal(24, page.Split("class='candle ").Length - 1);
-        Assert.Contains("class=\"sma\"", page); Assert.Contains("UTC", page); Assert.Contains(LocalSyntheticChart.Label, page);
-        Assert.DoesNotContain("<script", page); Assert.DoesNotContain("cdn.", page);
+            Assert.Equal(response.Candles![i + 250].Volume, decimal.Parse(payload.Candles[i].Volume, CultureInfo.InvariantCulture));
+        }
+        Assert.False(LocalSyntheticChart.TrySelection("1m", "1D", out _, out _));
+        Assert.False(LocalSyntheticChart.TrySelection("1h", "live", out _, out _));
     }
 }

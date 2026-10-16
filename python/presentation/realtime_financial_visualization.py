@@ -15,6 +15,7 @@ from plotly.subplots import make_subplots
 from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_path, refresh_interval_seconds
 from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke, QUALIFIED_DATASETS, QUALIFIED_WINDOWS
 from historical_market_bridge import PUBLIC_RUNTIME_VERIFIED
+from local_synthetic_chart import enabled as local_chart_enabled, load as load_local_chart
 from public_preview_api import LABEL as SYNTHETIC_LABEL
 
 FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
@@ -287,7 +288,7 @@ def render_visualization_frame(frame: VisualizationFrame) -> None:
             st.write({label: value})
 
 
-def build_market_figure(response: MarketResponse) -> go.Figure:
+def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.Figure:
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
     figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
@@ -295,6 +296,14 @@ def build_market_figure(response: MarketResponse) -> go.Figure:
     figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate="Volume: %{y}<extra></extra>"), row=2, col=1)
     figure.update_layout(height=620, margin=dict(l=16, r=16, t=44, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
     figure.update_yaxes(title_text="Price", row=1, col=1); figure.update_yaxes(title_text="Volume", row=2, col=1)
+    figure.data[0].uid = "ohlc"
+    figure.data[1].uid = "volume"
+    if response.analytics is not None:
+        figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
+                                   y=[None if r.sma20 is None else float(r.sma20) for r in response.analytics.rows],
+                                   name="SMA (20)", uid="sma20", mode="lines", line=dict(color="#d9a400", width=2),
+                                   visible=show_sma, hovertemplate="SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
+    figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
     return figure
 
 
@@ -353,7 +362,8 @@ def render_market_research() -> None:
     st.caption("Research preview · Read-only · Independent synthetic data only")
     st.info("Selections are limited to 90 completed UTC days. The qualified reference dataset covers "
             "26 October 2025 through 30 September 2026. Rolling daily updates are not enabled.")
-    if not PUBLIC_RUNTIME_VERIFIED:
+    local_mode = local_chart_enabled(st.get_option("server.address"))
+    if not PUBLIC_RUNTIME_VERIFIED and not local_mode:
         # Do not invoke even the disabled process bridge, retain an old chart, or
         # read a private handoff while public execution remains unqualified.
         st.session_state.pop("wp05_market_response", None)
@@ -368,9 +378,11 @@ def render_market_research() -> None:
     interval = st.selectbox("Interval", ("1h", "4h", "1d"), index=0)
     range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
     selection = (symbol, interval, range_value)
+    def acquire():
+        return load_local_chart(*selection, server_address=st.get_option("server.address")) if local_mode else invoke(*selection)
     if market_session_request(st.session_state, selection):
         try:
-            st.session_state["wp05_market_response"] = invoke(*selection)
+            st.session_state["wp05_market_response"] = acquire()
             st.session_state["wp05_market_selection"] = selection
         except BridgeError:
             st.session_state["wp05_market_response"] = None
@@ -383,7 +395,7 @@ def render_market_research() -> None:
         st.warning(PUBLIC_UNAVAILABLE)
         if st.button("Retry historical data", key="wp05_market_retry"):
             if market_session_request(st.session_state, selection, retry=True):
-                try: st.session_state['wp05_market_response'] = invoke(*selection)
+                try: st.session_state['wp05_market_response'] = acquire()
                 except BridgeError: st.session_state['wp05_market_response'] = None
             st.rerun()
         render_research_footer()
@@ -394,7 +406,13 @@ def render_market_research() -> None:
         return
     if response.state == "Stale":
         st.info(STALE_HISTORICAL_MESSAGE)
-    st.plotly_chart(build_market_figure(response), use_container_width=True, config={"scrollZoom": True, "displaylogo": False})
+    # Native accessible popover adjacent to the toolbox; no DOM injection/custom modebar JS.
+    _, toolbox = st.columns([9, 3])
+    with toolbox:
+        with st.popover("Technical Analysis", icon=":material/analytics:", help="Show or hide technical analysis overlays"):
+            show_sma = st.checkbox("SMA (20)", value=False, key="market_sma20")
+    st.plotly_chart(build_market_figure(response, show_sma), use_container_width=True, key="market_chart",
+                    config={"scrollZoom": True, "displaylogo": False})
     provenance = market_provenance_caption(response)
     if provenance:
         st.caption(provenance)
