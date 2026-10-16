@@ -67,6 +67,9 @@ RUN useradd --uid 1000 --create-home --shell /usr/sbin/nologin aiq \
     && chmod 0555 /usr/local/bin/aiq-entrypoint \
     && find /app -type d -exec chmod 0555 {} + \
     && find /app -type f -exec chmod 0444 {} +
-USER 1000:1000
+# Azure assigns the extracted filesystem root to the configured startup UID.
+# Start as root only to preserve that boundary, then permanently drop identity
+# before the existing entrypoint processes settings or starts Streamlit.
+USER root
 EXPOSE 8501
-ENTRYPOINT ["/usr/local/bin/aiq-entrypoint"]
+ENTRYPOINT ["/usr/local/bin/python", "-I", "-S", "-c", "import os, stat; s=os.stat('/'); assert s.st_uid == 0 and not stat.S_IMODE(s.st_mode) & 0o022; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.getuid() == os.geteuid() == 1000 and os.getgid() == os.getegid() == 1000 and not os.getgroups(); os.execv('/usr/local/bin/aiq-entrypoint', ['/usr/local/bin/aiq-entrypoint'])"]
