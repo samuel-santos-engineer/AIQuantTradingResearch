@@ -66,6 +66,9 @@ def _check_path(path, directory=False, *, image_owned=False):
     if not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)):
         raise ValueError("type")
     if os.name == "posix" and (info.st_uid != (0 if image_owned else os.getuid()) or info.st_mode & (0o022 if directory or not image_owned else 0o222)):
+        if image_owned:
+            category = path.name if path.name in {"app", "python", "presentation", "_immutable_chart_candidate"} else ("filesystem-root" if path == path.parent else "member")
+            logging.getLogger(__name__).warning("Immutable image ownership check: category=%s uid=%s mode=%o", category, info.st_uid, stat.S_IMODE(info.st_mode))
         raise ValueError("ownership")
     return info
 
