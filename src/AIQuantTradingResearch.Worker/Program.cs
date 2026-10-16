@@ -12,6 +12,10 @@ using AIQuantTradingResearch.Application.Visualization;
 using AIQuantTradingResearch.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
+// An explicit Windows development command, never selected by deployed configuration.
+if (args.Contains("--local-synthetic-chart", StringComparer.Ordinal))
+    return await LocalSyntheticChart.RunAsync(args, Console.Error);
+
 var builder = Host.CreateApplicationBuilder(args);
 var apiKeyPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.ApiKeyName}";
 var requestTimeoutSecondsPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.RequestTimeoutSecondsName}";
