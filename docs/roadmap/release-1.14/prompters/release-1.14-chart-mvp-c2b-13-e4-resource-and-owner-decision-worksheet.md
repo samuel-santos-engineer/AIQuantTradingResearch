@@ -1,91 +1,87 @@
-# C2B-13 — E4 resource and owner-decision worksheet
+# C2B-13 — Local proof resource/decision worksheet (C2B-14 revision)
 
-Date: 2026-10-16. **All numbers below are candidates, not measured or owner-approved.**
-`PUBLIC_RUNTIME_VERIFIED=False`; public data unavailable; deployment/activation NO-GO;
-advanced WP07 ON HOLD. This is not test/harness creation or execution authority.
+Date: 2026-10-16. **Every numerical safeguard is candidate / not measured / not approved.**
+Owner-directed simplification supersedes the earlier native-bound table and 660-second
+session proposal. No test creation/run, build, restore, generation or export authority.
+`PUBLIC_RUNTIME_VERIFIED=False`; public data unavailable; activation/deployment NO-GO;
+advanced WP07 ON HOLD. Release T/REST/F1 production acceptance budgets remain TBD.
 
-## Finite safety contract proposal
+## Modest local safeguards and advisory observations
 
-Rationale for numeric proposals is a deliberately finite small batch, not a prediction
-of performance. Reject/revise them before authority if not credible for the selected host.
-CPU/RSS/commit, process inventory and generated build outputs lack sufficient static basis
-or qualified enforcement, so remain TBD **blocking**. No run until every mandatory bound
-and its enforcement/overshoot is independently reviewed and accepted. Release T, REST
-bytes, F1 quotas/headroom and production budgets remain separate TBD values.
-
-| Dimension | Candidate / not measured / not approved | Rationale, enforcement and STOP |
+| Dimension | Candidate, unmeasured and unapproved | Rationale / future action |
 | --- | --- | --- |
-| Preflight wall | 60 seconds | Fixed governance/toolchain validation window; no work launched on incomplete prerequisites |
-| Build wall | 180 seconds | Finite provisional operator stop, not expected build speed; root/helpers controlled from launch |
-| Comparison wall | 120 seconds per full pass | Complete three datasets/twelve selections; no extra time/retry on mismatch |
-| Negative/edge wall | 120 seconds total | Enumerated scope below, not an unbounded property/fuzz loop |
-| Total session wall | 660 seconds including cleanup | Sum of 60+180+240+120+60; independent watchdog must bound coordinator; unavailable watchdog STOP |
-| Aggregate CPU | TBD — blocking | Include all descendants and coordinator overhead; user+kernel measurement/abort semantics unresolved |
-| Peak RSS and aggregate commit | TBD — blocking, separately defined | Job commit limit does not equal RSS; sampling overshoot and native limits must be qualified |
-| Process count | One oracle at a time; total tree count TBD — blocking | Actual .NET/MSBuild/VSTest/testhost/server/helper graph unobserved; unexpected child STOP |
-| Concurrency | One session, one phase/selection and one oracle frame in flight | Explicit runner/test parallelism restriction; no simultaneous copies or retries |
-| Passes | Two full positive passes total | One comparison plus one deterministic repeat; no automatic retry; all twelve windows each |
-| Edge/negative scope | Exactly 40 named cases below, once each | Review exact inputs/assertions before source creation; no skip/helper-level false success |
-| Frame body | 256 KiB maximum; header 4 bytes | Chunk rows; check declared bytes before allocation; exact encoded worst-case still needs review |
-| Aggregate oracle stdout | 32 MiB/session | Finite provisional stream cap for exact canonical+analytics chunks; reject excess, no spill to disk |
-| Oracle stderr | 16 KiB/session | Bounded concurrent drain; sanitized category only persisted; overflow aborts |
-| Transport buffers | 1 MiB aggregate including parser/copy allocations | Provisional cap, not total RSS; inability to account parser copies blocks approval |
-| Evidence/log | 64 KiB each for two JSON summaries; 256 KiB runner.log; 384 KiB aggregate | Counters/categories/revisions only; no vectors; reserve before writing, fail on overflow |
-| Temp/build/disk/file count | TBD — blocking | Exact project-generated inventory and bounded external mapping unresolved; no broad directory permission |
-| Cancellation grace | 2 seconds cooperative, then 5 seconds final termination verification | Included within phase/session envelope; no unbounded WaitForExit; unknown membership STOP |
-| Cleanup wall | 60 seconds within total session | Exact owned outputs only; independent termination first; failure denies repeat |
-| Failure evidence retention | At most 7 days, no subsequent run until disposition | Candidate operator retention, not automatic deletion of unknown files/state; no retention beyond approved bytes |
+| Build elapsed | 120 seconds | Provisional supervised stop point, not a prediction; missing offline assets STOP, no restore |
+| Test batch elapsed | 120 seconds total | Finite complete comparisons/repeat/negative batch; operator watches outer command |
+| Oracle subprocess | 30 seconds per invocation, at most two sequential invocations | One initial independent result plus deterministic repeat; timeout cancels, no automatic retry |
+| Total elapsed | 300 seconds including 60-second cleanup allowance | Simpler finite operator-supervised envelope than 660 seconds; no independent watchdog or hard OS claim |
+| Concurrency | One session/test batch and one oracle child at a time | No parallel selection batches or automatic retries; ordinary build/test helpers may exist |
+| Repetitions | Two complete positive passes; each supplemental case once | Complete exact proof plus deterministic repeat, not statistical performance qualification |
+| Oracle stdout | 16 MiB/invocation, 32 MiB/session | Byte-counted before unbounded capture, no disk spill; complete-result size unmeasured, revise before run if insufficient |
+| Oracle stderr | 16 KiB/invocation, 32 KiB/session | Concurrent drain; overflow fails, sanitized diagnostic only persisted |
+| Logs/evidence | Two summaries up to64 KiB each, runner.log up to256 KiB; aggregate384 KiB | No raw rows/vectors or secret exception dumps; bound outer build/test logging too |
+| Build/temp/disk | Candidate1 GiB aggregate under reviewed owned output pattern | Provisional operator-observed stop, not a disk quota; actual pattern and expected build needs resolved in later authority |
+| Cancellation/final wait | Cooperative2 seconds then best-effort tree kill and finite5-second wait | No unbounded final wait; failed/uncertain termination blocks more runs until manual inspection |
+| Cleanup/retention | Cleanup allowance60 seconds; bounded failure evidence retained up to7 days for disposition | Exact owned files/pattern only; no automatic deletion of ambiguous state or unrelated files |
+| CPU | Observe elapsed process CPU where available and record its coverage | Advisory, no hard aggregate CPU ceiling or exhaustive descendant reconciliation required; report missing coverage |
+| Memory | Observe working set/commit where available and record sample method | Advisory; peaks/descendants can be missed, no hard RSS/commit cap; operator may abort resource pressure |
+| Process inventory | Record known build/testhost/oracle and related helpers where visible | No exhaustive kernel inventory prerequisite; unexpected/surviving process needs operator inspection |
 
-Phase deadlines and total deadline both apply; final-wait grace must fit their envelope,
-not extend it. No numeric table entry claims kernel enforcement. If measured overshoot
-or unavailable control defeats a ceiling, fail closed; polling alone is not proof of a
-hard bound. Cancellation itself requires future qualification, not an experiment now.
+Oracle deadlines fit inside test-batch/total deadlines, not additive extensions. Timeouts,
+RSS sampling and process-tree kill are best-effort, not OS isolation; descendants may
+survive. A missed deadline, output overrun, unexpected write/network or failed cancellation
+is STOP. No further run after uncertain termination until manually inspected. Adjusting
+candidate values requires owner review, not an unbounded retry loop.
 
-## Fixed 40-case supplemental inventory
+## Supplemental correctness cases: simpler organization, unchanged coverage
 
-Positive full comparisons cover every row of three datasets and twelve calculation/visible
-selections on each of two passes, as specified in C2B-12. The following are separate,
-finite supplemental cases. Exact literals/expected rejections require independent review
-before implementation; no fixture/vector is generated here. A case reaching only a helper
-exception is a failure of the test design, not successful validator rejection.
+Recommend 18 named groups instead of 40 artificial case labels. Each group contains the
+finite concrete variants listed here; all variants run once, with separately visible
+assertions. Grouping does not remove negatives, arithmetic edges or frozen full comparisons.
+No native fault-injection tests or special containment harness is required. Exact literals
+and expected validator failures are reviewed in the later test-file creation plan; a helper
+exception is not evidence of intended rejection.
 
-| IDs | Once-only cases |
+| Group | Explicit finite variants |
 | --- | --- |
-| A01–A10 | Constant; rising; falling; alternating; mixed; positive even/odd midpoint ties; negative even/odd midpoint ties; sqrt below/at/above midpoint as one finite three-vector case; large intermediates/maximum valid close; minimum valid precision |
-| N01–N05 | Empty input; null row; zero close; negative close; close above 10^9 |
-| N06–N10 | Excess precision; >2410 inputs; gap; duplicate timestamp; reversed order |
-| N11–N15 | Non-UTC/off-grid time; calculation start/count mismatch; invalid interval; invalid symbol/range; stale/nonclosed provenance |
-| N16–N20 | Wrong source/context; wrong generator/seed; wrong units/coverage/instrument; dataset/window fingerprint mismatch; synthetic/private mixture or non-null candle CalculationVersion |
-| F01–F05 | Oversize frame length; truncated header/body; duplicate/unknown key; wrong frame order/selection/count; extra frame or aggregate-byte overrun |
-| C01–C05 | Pre-cancel; bounded in-progress cancel; oracle nonzero exit; oracle timeout; uncertain descendant termination produces blocked-session result |
+| G01 | Constant, rising, falling, alternating and mixed close sequences |
+| G02 | Positive even/odd and negative even/odd signed midpoint ties |
+| G03 | Square-root below/at/above midpoint, including even/odd tie outcomes |
+| G04 | Large intermediates/max valid close; minimum valid precision |
+| G05 | Empty input, null row, zero close, negative close, close above10^9 |
+| G06 | Excess precision and >2410 inputs |
+| G07 | Gap, duplicate timestamp and reversed order |
+| G08 | Non-UTC and off-grid time; calculation-start and row-count mismatch |
+| G09 | Invalid interval, symbol and range |
+| G10 | Stale and nonclosed provenance |
+| G11 | Wrong source and context; generator and seed; units, coverage and instrument |
+| G12 | Dataset and window fingerprint mismatch; synthetic/private mixture; non-null candle CalculationVersion |
+| G13 | Oversize stdout and stderr; aggregate-byte overrun |
+| G14 | Malformed/truncated UTF-8/JSON; duplicate/unknown key; trailing content |
+| G15 | Missing/extra selection, wrong order/count/identity in result; missing/null field mismatch |
+| G16 | Pre-cancel and bounded in-progress cancellation |
+| G17 | Oracle nonzero exit and subprocess timeout |
+| G18 | Ordinary cleanup failure/uncertain termination result blocks further runs; review/manual inspection path, no native fault injection |
 
-Grouped labels are finite reviewed composite cases, not parameter spaces or open fuzzing.
-The implementation proposal must expand A01–A10 into ten exact named test cases in the
-listed order (ties split into positive and negative cases; sqrt's three vectors remain
-one case). Rejection combinations need exact paired input mutations and assertion targets
-reviewed so later predicates are not masked by an earlier failure. If more cases or native
-fault tests become necessary, request separate scope instead of silently expanding 40.
-Cases C/F describe future owned local test behavior only; this table authorizes no native
-or runtime fault injection. First-valid samples remain SMA/EMA/Bollinger20, RSI15,
-MACD26, signal/histogram34; all earlier nullable alignment must match.
+Positive comparisons remain EVERY byte/OHLCV row of all three datasets and EVERY aligned
+indicator/null/identity in all twelve calculation/visible selections, including250 hidden
+warmup rows. First-valid SMA/EMA/Bollinger20, RSI15, MACD26, signal/histogram34 unchanged.
+Full frozen canonical dataset/window/visible hashes and exact recurrence/rounding semantics
+remain mandatory. Overlapping candles must match; recursively seeded indicators need not
+match between distinct windows. No float tolerance, copied-output goldens, skipped cases,
+truncation or provider/private fallback. No persistent datasets or raw expected fixtures.
 
-## Approval gates and owner choices
+## Actual prerequisites and distinct owner gates
 
-| Gate | Current status / exact owner decision needed | STOP if absent |
+| Step | Required decision / evidence | Boundary |
 | --- | --- | --- |
-| Accepted C2B-12 planning | Exact PR #342 accepted and merged; proposal only | No inferred execution authority |
-| C2B-13 containment direction | Approve/revise/defer launch-time Job Object candidate versus independently qualified existing runner | No creation/assignment experiment; unsupported/uncertain boundary stays blocked |
-| C2B-13 limits | Approve/revise/defer numeric candidates; supply/require defensible CPU/RSS/commit/process/output bounds and watchdog proof | All TBD mandatory cells block execution |
-| Literal tools/output | Accept exact executable versions/identities, offline caches/environment, build-output file mapping and candidate root ownership | No PATH fallback, implicit restore or directory wildcard rights |
-| Independent oracle | Owner assigns independent numerical/spec reviewer and accepts provenance/review requirements before comparison | No fabricated reviewer/hash/golden; insufficient independence blocks proof |
-| Test-file creation | Separate explicit authority for only the two candidate files after exact edge/negative serialization review | Design approval alone creates no test files |
-| Harness creation, if needed | Separate literal runner/helper authority, preserving Windows PowerShell 5.1 compatibility | Proposed runner path is not permission; no helper project inferred |
-| Executable local E4 proof | Separate bounded commands/operations, enforced ceilings, offline/private-free context, abort/cleanup and output authority | No run before qualified containment and complete allowlist |
-| Independent evidence acceptance | Review all bytes/values/nulls/identities, negatives, resources, termination and preservation | Static plan or mutual agreement is not accepted parity |
-| Later E1/E2/E3/E5-E8 | Separate actual trust/schema/ownership/accounting/domain/response/lifecycle/isolation qualification | E4 success does not discharge these obligations |
-| Export/integration/target/deploy/activate | Each distinct authority after applicable qualification and owner acceptance | No inherited permission or advanced WP07 resumption |
+| Review this revision | Approve/revise candidate ordinary safeguards, output caps and finite coverage | No merge or executable authority implied |
+| Future creation plan | Separately authorize exact two candidate test files; define literals, assertions, oracle derivation and any genuinely necessary extra path | No runner/native helper by implication |
+| Future local run plan | Resolve exact installed dotnet/CPython paths/versions, SDK/build/test commands/filter, offline cache/no-restore constraints, reviewed minimal env and safe external or existing output pattern | No exhaustive generated-file inventory required, but no unreviewed writes/network/private inputs |
+| Supervised execution | Separate explicit authority accepts timeouts/caps, operator presence, advisory observations, abort/finite wait/manual inspection and non-destructive cleanup | No hard CPU/RSS/descendant guarantee; uncertain termination denies repeats |
+| Independent acceptance | Identify independent reviewer; review specification-derived oracle and complete exact comparisons/negatives before claiming parity | No named reviewer needed for documentation planning; no evidence accepted now |
+| Later stages | Separate E1/E2/E3/E5-E8 qualification, materialization/export, integration, Azure/browser, deployment and activation authorities | Local proof cannot establish production isolation/durability/F1 readiness or resume WP07 |
 
-Immediate owner request: approve/revise/defer the containment proposal and finite candidate
-limits; provide or require design closure for remaining mandatory bounds, exact toolchain/
-output paths, and assign an independent oracle reviewer. Then request separate test-file
-and, if needed, runner creation authority; executable proof is still a later decision.
+No command is authorized now. The two future candidate test paths remain
+`tests/AIQuantTradingResearch.Infrastructure.Tests/SyntheticSnapshotQualificationTests.cs`
+and `tests/AIQuantTradingResearch.Infrastructure.Tests/PythonIntegrationFixtures/synthetic_snapshot_reference.py`.
+See [local proof design](release-1.14-chart-mvp-c2b-13-e4-bounded-execution-contract-design.md).

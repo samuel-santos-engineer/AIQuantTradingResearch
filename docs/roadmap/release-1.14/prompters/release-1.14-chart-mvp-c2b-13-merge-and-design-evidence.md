@@ -1,5 +1,55 @@
 # C2B-13 — Guarded merge and execution-contract design evidence
 
+## 2026-10-16 — C2B-14 owner-directed amendment
+
+This dated note supersedes the earlier design preferences and blocking native-bound
+requirements described below, without rewriting their historical evidence or the original
+C2B-13 authority. The owner rejected Job Object/native containment complexity for the
+first developer-supervised offline E4 proof. The current two proposal documents now use
+ordinary finite local subprocess timeouts, concurrent byte-capped stdout/stderr capture,
+cancellation, best-effort tree kill when supported, finite final wait and manual inspection
+after failed/uncertain termination. CPU/memory observation is advisory; neither hard
+kernel limits nor exhaustive descendant accounting/watchdog/native qualification is a
+prerequisite. Descendants may survive, sampled peaks may be missed and timeouts are not
+OS isolation. Uncertain termination blocks subsequent runs until manually inspected.
+
+Fresh preflight: PR #342 remains MERGED at
+`614e5490e2aaf37c5264a0bf0afccbe6f462ea44`; PR #343 OPEN, same base, same prior head
+`790574711b0699167fd5c0b5b5fb8f39ed1cd20c`, same four new C2B-13 Markdown paths,
+same-repository owner `samuel-santos-engineer` and branch
+`planning/release-1.14-chart-mvp-c2b-13`. Fetched branch equals local prior HEAD.
+Protection state unchanged: administrators enforced, required conversation resolution,
+zero required approving reviews; no additional rulesets. No concurrent patch was overwritten.
+
+Amendment modifies only the execution-contract design, resource/decision worksheet and
+this evidence note. Original authority and every C2B-12/earlier tracked path remain unchanged.
+Two pre-existing untracked owner files (C2B-11 continuation and external C2B-14 authority)
+are preserved/excluded; no fifth PR file. Final PR report records new head and preservation
+checks, since the evidence cannot contain its own final commit hash.
+
+Current recommendation reduces the proposed session envelope from660 to300 seconds,
+with finite candidate build/test/oracle deadlines and output/log caps, and organizes the
+same correctness obligations into18 named finite groups rather than40 artificial labels.
+All concrete negative/arithmetic/cancellation variants and complete three-dataset/twelve-
+window aligned byte/value/null/identity comparisons remain. Values are candidates only,
+unmeasured and unapproved. Exhaustive generated-file enumeration is replaced by a reviewed
+owned external-root or safe existing test-output pattern and actual output inventory.
+
+Remaining ordinary prerequisites: separately authorized exact two test-source paths,
+installed .NET/CPython identities, reviewed build/test filter and offline/no-restore inputs,
+bounded safe output pattern, candidate timeouts/byte caps and supervised abort/cleanup plan.
+Independent oracle derivation/review remains necessary before claiming parity; reviewer
+must be identified before evidence acceptance, not before documentation planning.
+No complex runner/native helper is implied; any genuinely necessary extra path requires
+new owner authority. T/production/REST/F1 thresholds remain separate and TBD.
+
+No source/test/fixture creation, build/restore, Python/.NET test run, generator/calculator/
+oracle invocation, candle/snapshot/export output, native/Job Object/Azure/browser probe or
+deployment occurred. No PR merge, duplicate PR, force push, branch deletion or protection
+bypass. `PUBLIC_RUNTIME_VERIFIED=False`; public data unavailable; activation/deployment
+NO-GO; advanced WP07 ON HOLD. Everything below is retained historical C2B-13 evidence,
+not the current local-containment approval proposal.
+
 Date: 2026-10-16. Documentation only. `PUBLIC_RUNTIME_VERIFIED=False`; public data
 unavailable; public activation/Azure deployment NO-GO; advanced WP07 ON HOLD.
 
