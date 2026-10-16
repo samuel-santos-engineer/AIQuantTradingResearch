@@ -22,6 +22,12 @@ _LOCK = threading.BoundedSemaphore(1)
 def enabled(server_address, *, environment=None):
     env = os.environ if environment is None else environment
     forbidden = any(k.upper().startswith(("WEBSITE", "TWELVEDATA", "VIKE", "PERSISTENCE__", "WORKER__REPLAY__", "VISUALIZATION__")) for k in env)
+    if env.get("AIQ_RUNTIME_MODE") == "public-synthetic":
+        private = any(k.upper().startswith(("TWELVEDATA", "VIKE", "PERSISTENCE__", "WORKER__REPLAY__", "VISUALIZATION__")) for k in env)
+        return (os.name == "posix" and server_address == "0.0.0.0"
+                and not private and env.get("AIQ_LOCAL_CHART") != "1"
+                and env.get("AIQ_IMMUTABLE_CHART_CANDIDATE") != "1"
+                and env.get("AIQ_LOCAL_IMAGE_QUALIFICATION", "0") == "0")
     if env.get("AIQ_RUNTIME_MODE") == "local-candidate":
         return (os.name == "posix" and server_address == "0.0.0.0"
                 and env.get("AIQ_LOCAL_IMAGE_QUALIFICATION") == "1"

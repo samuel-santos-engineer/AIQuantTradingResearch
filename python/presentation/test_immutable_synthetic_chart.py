@@ -64,6 +64,20 @@ class ImmutableChartTests(unittest.TestCase):
             self.assertFalse(reader.enabled("127.0.0.1", environment=env))
             self.assertFalse(reader.enabled("0.0.0.0", environment={}))
 
+    def test_public_synthetic_requires_explicit_linux_mode_and_no_private_inputs(self):
+        env = dict(AIQ_RUNTIME_MODE="public-synthetic", WEBSITE_INSTANCE_ID="azure")
+        with patch.object(reader.os, "name", "posix"):
+            self.assertTrue(reader.enabled("0.0.0.0", environment=env))
+            self.assertFalse(reader.enabled("127.0.0.1", environment=env))
+            self.assertFalse(reader.enabled("0.0.0.0", environment={}))
+            for extra in ({"AIQ_LOCAL_IMAGE_QUALIFICATION": "1"}, {"AIQ_LOCAL_CHART": "1"},
+                          {"AIQ_IMMUTABLE_CHART_CANDIDATE": "1"}, {"TwelveData__ApiKey": "test"},
+                          {"Vike__ApiKey": "test"}, {"Persistence__DatabasePath": "test"},
+                          {"Worker__Replay__Target": "test"}, {"Visualization__HandoffPath": "test"}):
+                self.assertFalse(reader.enabled("0.0.0.0", environment=dict(env, **extra)))
+        with patch.object(reader.os, "name", "nt"):
+            self.assertFalse(reader.enabled("0.0.0.0", environment=env))
+
     def test_image_asset_trust_rejects_runtime_ownership_and_owner_write(self):
         from types import SimpleNamespace
         fake = SimpleNamespace(st_uid=1000, st_mode=0o100444)

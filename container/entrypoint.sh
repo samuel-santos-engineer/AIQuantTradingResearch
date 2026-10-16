@@ -3,7 +3,7 @@ set -eu
 
 # Public is the safe default. Private acquisition requires a separate explicit deployment mode.
 case "${AIQ_RUNTIME_MODE-public}" in
-    public|local-candidate)
+    public|local-candidate|public-synthetic)
         # Qualification eligibility is evaluated BEFORE environment sanitization.
         candidate_mode="${AIQ_RUNTIME_MODE-public}"
         if [ "$candidate_mode" = local-candidate ]; then
