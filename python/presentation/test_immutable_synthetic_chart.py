@@ -146,6 +146,7 @@ def qualify_generated_candidate(root):
             copy = Path(temporary) / "candidate"
             shutil.copytree(root, copy)
             path = copy / "1h-1D.json"
+            path.chmod(0o600)  # Only this owned fault-injection copy, never the immutable source.
             payload = json.loads(path.read_bytes())
             mutate(payload)
             raw = encode(payload)
@@ -153,6 +154,7 @@ def qualify_generated_candidate(root):
             manifest = json.loads((copy / "manifest.json").read_bytes())
             manifest["files"][0].update(bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest())
             manifest_bytes = encode(manifest)
+            (copy / "manifest.json").chmod(0o600)
             (copy / "manifest.json").write_bytes(manifest_bytes)
             # Test-only trust rebind reaches semantic checks; public load never accepts a pin.
             try:
