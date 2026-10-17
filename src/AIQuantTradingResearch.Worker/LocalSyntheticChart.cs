@@ -72,7 +72,8 @@ public static class LocalSyntheticChart
         return Enum.IsDefined(interval) && Enum.IsDefined(range);
     }
 
-    public sealed record Row(string TimeUtc, string Open, string High, string Low, string Close, string Volume, string Sma20);
+    public sealed record Row(string TimeUtc, string Open, string High, string Low, string Close, string Volume, string Sma20, string Ema20,
+        string BollingerLower, string BollingerMiddle, string BollingerUpper);
     public sealed record Payload(string Label, string Instrument, string Interval, string Range, string CoverageStartUtc,
         string EndExclusiveUtc, string DatasetFingerprint, string WindowFingerprint, string CalculationVersion,
         string CalculationStartUtc, int Warmup, int CalculationCount, bool PublicRuntimeVerified, IReadOnlyList<Row> Candles);
@@ -88,7 +89,11 @@ public static class LocalSyntheticChart
         var analytics = TechnicalIndicatorCalculator.CalculatePublic(request, result.Candles, result.Provenance, cancellationToken);
         var rows = result.Candles.Skip(250).Select((c, i) => new Row(SyntheticPublicationPolicy.Timestamp(c.OpenTimeUtc),
             Number(c.Open, 4), Number(c.High, 4), Number(c.Low, 4), Number(c.Close, 4), Number(c.Volume, 3),
-            Number(analytics.Rows[i + 250].Sma20 ?? throw new InvalidOperationException("Missing warmed SMA.")))).ToArray();
+            Number(analytics.Rows[i + 250].Sma20 ?? throw new InvalidOperationException("Missing warmed SMA.")),
+            Number(analytics.Rows[i + 250].Ema20 ?? throw new InvalidOperationException("Missing warmed EMA.")),
+            Number(analytics.Rows[i + 250].BollingerLower ?? throw new InvalidOperationException("Missing warmed bands.")),
+            Number(analytics.Rows[i + 250].BollingerMiddle ?? throw new InvalidOperationException("Missing warmed bands.")),
+            Number(analytics.Rows[i + 250].BollingerUpper ?? throw new InvalidOperationException("Missing warmed bands.")))).ToArray();
         if (rows.Length != SyntheticPublicationPolicy.VisibleCount(request)) throw new InvalidOperationException("Invalid local visible window.");
         return new(Label, "btc-like-simulation", SyntheticPublicationPolicy.IntervalLiteral(interval), SyntheticPublicationPolicy.RangeLiteral(range),
             "2025-10-26T00:00:00Z", "2026-10-01T00:00:00Z", result.Provenance.SyntheticIdentity!.DatasetFingerprint,

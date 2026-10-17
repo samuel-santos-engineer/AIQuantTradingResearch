@@ -21,7 +21,7 @@ class ImmutableChartTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "candidate"
         self.root.mkdir(mode=0o700)
-        self.manifest = dict(schema="aiq-chart-handoff-candidate-v1", generatorVersion="aiq-synthetic-ohlcv-v1", seed=114, files=[])
+        self.manifest = dict(schema="aiq-chart-handoff-candidate-v2", generatorVersion="aiq-synthetic-ohlcv-v1", seed=114, files=[])
         # Synthetic structure-only inputs. parse is mocked ONLY for filesystem/manifest tests;
         # independent full C# artifact integration is a separate explicit offline check.
         for name in reader.NAMES:

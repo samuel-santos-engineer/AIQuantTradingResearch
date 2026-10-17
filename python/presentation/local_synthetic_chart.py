@@ -4,6 +4,7 @@ from decimal import Decimal
 import hashlib
 import json
 import os
+import re
 from types import MappingProxyType
 from urllib.request import build_opener, ProxyHandler, HTTPRedirectHandler
 
@@ -40,6 +41,16 @@ def load(symbol, interval, range_value, *, server_address):
         raise BridgeError("LocalSourceUnavailable") from exc
 
 
+def indicator_decimal(value):
+    # Signed fixed-scale transport validation, never indicator recomputation.
+    if not isinstance(value, str) or re.fullmatch(r"-?(?:0|[1-9][0-9]{0,9})\.[0-9]{12}", value) is None:
+        raise BridgeError("MalformedLocalSource")
+    number = Decimal(value)
+    if not number.is_finite() or abs(number) > Decimal(3 * 10**9):
+        raise BridgeError("MalformedLocalSource")
+    return number
+
+
 def parse(raw, interval, range_value):
     # Local ASP.NET JSON carries the Unicode simulation label; the held Worker's
     # ASCII wire decoder is intentionally not changed or reused for this envelope.
@@ -68,7 +79,7 @@ def parse(raw, interval, range_value):
         raise BridgeError("MalformedLocalSource")
     candles, indicators = [], []
     for i, row in enumerate(value["candles"]):
-        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20"}:
+        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper"}:
             raise BridgeError("MalformedLocalSource")
         stamp = row["timeUtc"]
         if _utc_timestamp(stamp) != start + timedelta(hours=i * hours) or stamp != (start + timedelta(hours=i * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"):
@@ -80,14 +91,16 @@ def parse(raw, interval, range_value):
         if not 0 < sma <= Decimal(10**9):
             raise BridgeError("MalformedLocalSource")
         candles.append(candle)
-        # Only SMA is transported. No Python/JS recomputation or invented other indicators.
-        indicators.append(IndicatorRow(stamp, sma, None, None, None, None, None, None, None, None))
+        ema, lower, middle, upper = (indicator_decimal(row[k]) for k in ("ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper"))
+        if not 0 < ema <= Decimal(10**9) or not lower <= middle <= upper or middle != sma or middle - lower != upper - middle:
+            raise BridgeError("MalformedLocalSource")
+        indicators.append(IndicatorRow(stamp, sma, ema, None, None, None, None, lower, middle, upper))
     canonical = "".join(",".join((c.open_time_utc, format(c.open, ".4f"), format(c.high, ".4f"), format(c.low, ".4f"),
                                   format(c.close, ".4f"), format(c.volume, ".3f"))) + "\n" for c in candles).encode("ascii")
     if hashlib.sha256(canonical).hexdigest() != QUALIFIED_VISIBLE[(interval, range_value)]:
         raise BridgeError("UnqualifiedLocalCandles")
     provenance = MappingProxyType({"source": "independent-synthetic", "status": "simulated", "calculationVersion": "aiq-ta-v1",
                                    "datasetFingerprint": value["datasetFingerprint"], "windowFingerprint": value["windowFingerprint"]})
-    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "availableIndicators": ("sma20",)}), tuple(indicators))
+    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "availableIndicators": ("sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper")}), tuple(indicators))
     return MarketResponse("Available", "btc-like-simulation", interval, range_value, tuple(candles), "independent-synthetic",
                           None, None, False, None, provenance, analytics)

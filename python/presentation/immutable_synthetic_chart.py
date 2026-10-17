@@ -15,7 +15,7 @@ from local_synthetic_chart import parse
 
 ROOT = Path(__file__).resolve().parent / "_immutable_chart_candidate"
 # Candidate provenance pin, not an independently qualified production release anchor.
-MANIFEST_SHA256 = "007b2c8a6ccec19ec54976b4baf735812b648d79294e6465df884c68537d3069"
+MANIFEST_SHA256 = "2af51eff5f1d96eff63d1ad96905f6d4f1a4c112b08f3baffe0ad25c2fc66588"
 NAMES = tuple(f"{i}-{r}.json" for i in ("1h", "4h", "1d") for r in ("1D", "7D", "30D", "90D"))
 _LOCK = threading.BoundedSemaphore(1)
 
@@ -112,7 +112,7 @@ def _load_candidate(root, pin, interval, range_value, *, image_owned=False):
         raise ValueError("anchor")
     manifest = _json(raw)
     if (not isinstance(manifest, dict) or set(manifest) != {"schema", "generatorVersion", "seed", "files"}
-            or manifest["schema"] != "aiq-chart-handoff-candidate-v1"
+            or manifest["schema"] != "aiq-chart-handoff-candidate-v2"
             or manifest["generatorVersion"] != "aiq-synthetic-ohlcv-v1"
             or type(manifest["seed"]) is not int or manifest["seed"] != 114
             or not isinstance(manifest["files"], list) or len(manifest["files"]) != 12):
@@ -135,9 +135,10 @@ def _load_candidate(root, pin, interval, range_value, *, image_owned=False):
         for row in value["candles"]:
             if not isinstance(row, dict):
                 raise ValueError("row")
-            for key, digits in (("open", 4), ("high", 4), ("low", 4), ("close", 4), ("volume", 3), ("sma20", 12)):
+            for key, digits in (("open", 4), ("high", 4), ("low", 4), ("close", 4), ("volume", 3), ("sma20", 12), ("ema20", 12), ("bollingerLower", 12), ("bollingerMiddle", 12), ("bollingerUpper", 12)):
                 text = row.get(key)
-                if not isinstance(text, str) or re.fullmatch(r"(?:0|[1-9][0-9]{0,9})\.[0-9]{" + str(digits) + r"}", text) is None:
+                sign = "-?" if key == "bollingerLower" else ""
+                if not isinstance(text, str) or re.fullmatch(sign + r"(?:0|[1-9][0-9]{0,9})\.[0-9]{" + str(digits) + r"}", text) is None:
                     raise ValueError("decimal")
         i, r = name[:-5].split("-")
         response = parse(raw, i, r)  # Existing strict identity, counts, grid and frozen OHLCV fingerprint.
@@ -153,7 +154,8 @@ def load(symbol, interval, range_value, *, server_address):
     if not enabled(server_address) or symbol != "btc-like-simulation" or f"{interval}-{range_value}.json" not in NAMES:
         raise BridgeError("ImmutableCandidateUnavailable")
     if not _LOCK.acquire(blocking=False):
-        raise BridgeError("ImmutableCandidateUnavailable")
+        logging.getLogger(__name__).info("Immutable synthetic chart busy")
+        raise BridgeError("ImmutableCandidateBusy")
     try:
         return _load_candidate(ROOT, MANIFEST_SHA256, interval, range_value, image_owned=os.name == "posix")
     except (OSError, ValueError, TypeError, KeyError, ArithmeticError, RecursionError) as exc:

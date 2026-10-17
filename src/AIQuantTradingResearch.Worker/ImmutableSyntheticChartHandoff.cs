@@ -6,7 +6,7 @@ namespace AIQuantTradingResearch.Worker;
 /// <summary>Explicit offline candidate writer. Never called by presentation or startup.</summary>
 public static class ImmutableSyntheticChartHandoff
 {
-    public const string Schema = "aiq-chart-handoff-candidate-v1";
+    public const string Schema = "aiq-chart-handoff-candidate-v2";
     public const int MemberLimit = 1_048_576;
     public const int TotalLimit = 4_194_304;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
