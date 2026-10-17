@@ -154,7 +154,8 @@ def load(symbol, interval, range_value, *, server_address):
     if not enabled(server_address) or symbol != "btc-like-simulation" or f"{interval}-{range_value}.json" not in NAMES:
         raise BridgeError("ImmutableCandidateUnavailable")
     if not _LOCK.acquire(blocking=False):
-        raise BridgeError("ImmutableCandidateUnavailable")
+        logging.getLogger(__name__).info("Immutable synthetic chart busy")
+        raise BridgeError("ImmutableCandidateBusy")
     try:
         return _load_candidate(ROOT, MANIFEST_SHA256, interval, range_value, image_owned=os.name == "posix")
     except (OSError, ValueError, TypeError, KeyError, ArithmeticError, RecursionError) as exc:

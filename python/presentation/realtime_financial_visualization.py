@@ -367,6 +367,19 @@ def is_public_market_response(response, selection):
         response.analytics.metadata.get('context') == 'public-synthetic'
 
 
+def acquire_immutable_chart(selection, address):
+    # A superseded Streamlit rerun may still be releasing the global reader.
+    # Keep the reader nonqueuing; retry only transient busy, never invalid data.
+    deadline = time.monotonic() + 2
+    for attempt in range(9):
+        try:
+            return load_immutable_chart(*selection, server_address=address)
+        except BridgeError as exc:
+            if str(exc) != "ImmutableCandidateBusy" or attempt == 8 or time.monotonic() >= deadline:
+                raise
+            time.sleep(0.25)
+
+
 def render_market_research() -> None:
     st.title("AI Quant Trading Research")
     st.subheader("Historical Market Research")
@@ -397,7 +410,7 @@ def render_market_research() -> None:
     selection = (symbol, interval, range_value)
     def acquire():
         if immutable_mode:
-            return load_immutable_chart(*selection, server_address=st.get_option("server.address"))
+            return acquire_immutable_chart(selection, st.get_option("server.address"))
         return load_local_chart(*selection, server_address=st.get_option("server.address")) if local_mode else invoke(*selection)
     if market_session_request(st.session_state, selection):
         try:

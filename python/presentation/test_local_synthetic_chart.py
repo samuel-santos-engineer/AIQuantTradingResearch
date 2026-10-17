@@ -48,6 +48,24 @@ class LocalChartTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaises(BridgeError):
                 adapter.indicator_decimal(value)
 
+    def test_superseded_rerun_busy_is_retried_without_recalculating_or_weakening_validation(self):
+        expected = object()
+        with patch.object(ui, "load_immutable_chart", side_effect=[BridgeError("ImmutableCandidateBusy"), expected]) as load, \
+             patch.object(ui.time, "sleep") as sleep:
+            self.assertIs(expected, ui.acquire_immutable_chart(("btc-like-simulation", "4h", "1D"), "0.0.0.0"))
+            self.assertEqual(2, load.call_count)
+            sleep.assert_called_once_with(0.25)
+
+    def test_busy_retry_is_bounded_and_integrity_failure_is_not_retried(self):
+        with patch.object(ui, "load_immutable_chart", side_effect=BridgeError("ImmutableCandidateBusy")) as load, \
+             patch.object(ui.time, "sleep") as sleep, patch.object(ui.time, "monotonic", return_value=0):
+            with self.assertRaises(BridgeError): ui.acquire_immutable_chart(("btc-like-simulation", "4h", "1D"), "0.0.0.0")
+            self.assertEqual(9, load.call_count)
+            self.assertEqual(8, sleep.call_count)
+        with patch.object(ui, "load_immutable_chart", side_effect=BridgeError("ImmutableCandidateUnavailable")) as load:
+            with self.assertRaises(BridgeError): ui.acquire_immutable_chart(("btc-like-simulation", "4h", "1D"), "0.0.0.0")
+            load.assert_called_once()
+
     def test_health_validates_current_bundle_without_private_handoff(self):
         streamlit = Mock(session_state={"wp05_cache": "stale"})
         streamlit.get_option.return_value = "0.0.0.0"
