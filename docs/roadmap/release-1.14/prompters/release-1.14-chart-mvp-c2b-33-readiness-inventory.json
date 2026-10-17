@@ -1,0 +1,196 @@
+{
+  "recordedAtUtc": "2026-10-16T22:35:38.807493+00:00",
+  "verdict": "DISCLOSURE FIX AND LOCAL LINUX SCREENING PASS; OWNER REVIEW REQUIRED",
+  "main": "ce7afdde4febea8abe30cd2be4873fef29aeb18e",
+  "originalBranch": "feature/release-1.14-c2b-24-azure-feasibility",
+  "originalHead": "0e568d208f2769037bf4a7265ea4ba6f4609aacc",
+  "historicalCandidateHead": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+  "historicalImage": {
+    "digest": "sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424ea91e0999d5",
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "descriptorBytes": 2574,
+    "currentLocalDescriptorVerified": true,
+    "modified": false
+  },
+  "prInventory": [
+    {
+      "baseRefOid": "33b941c28b0158810b4f406db965bf83ff92244a",
+      "files": [
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-11-four-line-whitespace-exception-continuation-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-14-simplify-pr343-e4-local-proof-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-15-merge-pr343-implement-e4-test-only-proof-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-16-supervised-e4-local-verification-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-17-execute-e4-local-verification-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-18-independent-e4-oracle-review-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-19-local-chart-vertical-slice-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-20-preserve-existing-chart-add-technical-analysis-toolbox-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-21-local-streamlit-ta-adapter-integration-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-22-pr345-zoom-pan-compatibility-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-23-final-browser-acceptance-pr345-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-24-azure-compatible-synthetic-chart-runtime-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-24-azure-runtime-feasibility-assessment.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-25-immutable-synthetic-handoff-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-26-document-inclusion-manifest.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-26-linux-container-qualification-and-pr346-documents-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-26-linux-qualification-evidence.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-27-approved-linux-browser-acceptance.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-27-linux-browser-and-azure-readiness-codex.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-27-linux-browser-and-azure-readiness-evidence.md"
+      ],
+      "headRefOid": "0e568d208f2769037bf4a7265ea4ba6f4609aacc",
+      "number": 346,
+      "state": "OPEN"
+    },
+    {
+      "baseRefOid": "33b941c28b0158810b4f406db965bf83ff92244a",
+      "files": [
+        ".dockerignore",
+        ".gitignore",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-25-immutable-handoff-contract.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-25-immutable-handoff-evidence.md",
+        "python/presentation/immutable_synthetic_chart.py",
+        "python/presentation/realtime_financial_visualization.py",
+        "python/presentation/test_immutable_synthetic_chart.py",
+        "src/AIQuantTradingResearch.Worker/ImmutableSyntheticChartHandoff.cs",
+        "src/AIQuantTradingResearch.Worker/Program.cs",
+        "tests/AIQuantTradingResearch.Infrastructure.Tests/ImmutableSyntheticChartHandoffTests.cs"
+      ],
+      "headRefOid": "8240d0878dea335c08ad3216600fc7e545446140",
+      "number": 347,
+      "state": "OPEN"
+    },
+    {
+      "baseRefOid": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+      "files": [
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-28-packaging-route-assessment.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-28-route-evidence.json"
+      ],
+      "headRefOid": "c40ba4e1ba751b5097061d95d76ce81bbd019c0e",
+      "number": 349,
+      "state": "OPEN"
+    },
+    {
+      "baseRefOid": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+      "files": [
+        ".dockerignore",
+        ".gitignore",
+        "Dockerfile",
+        "container/entrypoint.sh",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-25-immutable-handoff-contract.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-25-immutable-handoff-evidence.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-29-linux-candidate-contract.md",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-29-linux-candidate-evidence.json",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-29-linux-candidate-evidence.md",
+        "python/presentation/immutable_synthetic_chart.py",
+        "python/presentation/realtime_financial_visualization.py",
+        "python/presentation/test_immutable_synthetic_chart.py",
+        "requirements-linux.lock",
+        "src/AIQuantTradingResearch.Worker/ImmutableSyntheticChartHandoff.cs",
+        "src/AIQuantTradingResearch.Worker/Program.cs",
+        "tests/AIQuantTradingResearch.Infrastructure.Tests/ImmutableSyntheticChartHandoffTests.cs"
+      ],
+      "headRefOid": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+      "number": 350,
+      "state": "OPEN"
+    },
+    {
+      "baseRefOid": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+      "files": [
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-30-registry-publication-preflight.json",
+        "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-30-registry-publication-preflight.md"
+      ],
+      "headRefOid": "00e2b527ea801162d60ca06e7a2b563b18a76be9",
+      "number": 351,
+      "state": "OPEN"
+    }
+  ],
+  "overlap": {
+    "pr347Paths": 10,
+    "pr350Paths": 16,
+    "all347PathsContainedIn350": true,
+    "uiPathSharedWith347And350": "python/presentation/realtime_financial_visualization.py",
+    "mainHasImmutableReader": false,
+    "mainHasSyntheticCandidateDockerTarget": false,
+    "textualMergeConflictClaimed": false
+  },
+  "staticAudit": {
+    "figureFunctionIdenticalMainAnd350": true,
+    "figureAstSha256": "128538382baabe0067e15068a5371136391ee243175e8142b50c7074abab455f",
+    "plotTitlePresent": false,
+    "hoverTemplates": [
+      "Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>",
+      "Volume: %{y}<extra></extra>",
+      "SMA (20): %{y:.4f}<extra></extra>"
+    ],
+    "syntheticMarkerPresentInHover": false,
+    "explicitNotRealMarkerPresent": false,
+    "modebarPngLabelGap": "INFERRED from missing figure title/annotation and default Plotly download; no new PNG exported",
+    "publicRuntimeVerified": false,
+    "syntheticInstrument": "btc-like-simulation",
+    "axisTitles": [
+      "Price",
+      "Volume"
+    ],
+    "defaultServerUnavailableGate": "preserved",
+    "noLiveDataRequest": true
+  },
+  "runtimeQualification": {
+    "newImageBuilt": false,
+    "browserRun": false,
+    "focusedTestsRun": false,
+    "reason": "Stopped at dependency plan; historical C2B-29 tests/browser evidence not represented as C2B-33 acceptance"
+  },
+  "ownerFiles": [
+    {
+      "path": "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-28-azure-f1-image-packaging-route-contract-codex.md",
+      "sha256": "c6b351cea36b0b2a164606e0c13fc5f77cb12083a719f8bd561ef554200c3f9f"
+    },
+    {
+      "path": "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-29-self-contained-linux-release-candidate-codex.md",
+      "sha256": "29d51d08013789512e9dc71638dbc7977342aa8b74bae6b395546f42d862f149"
+    },
+    {
+      "path": "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-30-exact-image-registry-promotion-codex.md",
+      "sha256": "0a95ebd5521c63147d40946b8fe80516015f3bdf29ce54182836872524feaa98"
+    },
+    {
+      "path": "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-32-real-btc-eth-historical-candles-codex.md",
+      "sha256": "896bbd0b42318cd29547bd9a046f6f2f6ce99eec59932917908d7498b5bac92b"
+    },
+    {
+      "path": "docs/roadmap/release-1.14/prompters/release-1.14-chart-mvp-c2b-33-synthetic-public-chart-readiness-codex.md",
+      "sha256": "be22046e5354dc061dcb3ca818e4903e14738610f525f44a2d18820b711cf8b2"
+    }
+  ],
+  "codeChanged": false,
+  "azureAccessed": false,
+  "registryPushed": false,
+  "prMerged": false,
+  "c2b32": "ABORTED; earlier research read-only and no repository artifacts created",
+  "c2b31": "DEFERRED",
+  "publicRuntimeVerified": false,
+  "wp07": "ON HOLD",
+  "publicActivation": "NO-GO",
+  "priorVerdict": "READ-ONLY GAP ASSESSMENT COMPLETE; IMPLEMENTATION/NEW IMAGE QUALIFICATION BLOCKED ON DEPENDENCY DISPOSITION",
+  "followUp": {
+    "labelCommit": "33e94d1c45b0a5bf066f8506cfb132e927e5f1e2",
+    "qualificationHead": "476730d",
+    "runtimeDependency": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+    "runtimePatchApplyCheck": "PASS",
+    "imageManifest": "sha256:8f54e9744b168a80c9d99a72cc4d70b198126240aa079b45a07901832a483a7a",
+    "tests": {
+      "command": "python -B -m unittest test_local_synthetic_chart test_immutable_synthetic_chart test_public_preview_api -v",
+      "count": 32,
+      "exit": 0
+    },
+    "browser": "1D/30D SMA off/on/off, selectors, hover, zoom and pan PASS",
+    "nativePng": {
+      "path": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2\\downloads\\newplot.png",
+      "sha256": "b778f973ef64a67f1f68583e6dce1a011023844ca936903fa4842b882e97f74a",
+      "disclosureVisuallyVerified": true
+    },
+    "evidenceDirectory": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2",
+    "publicRoutes": "dataset/candles/indicators 503",
+    "PUBLIC_RUNTIME_VERIFIED": false
+  }
+}
