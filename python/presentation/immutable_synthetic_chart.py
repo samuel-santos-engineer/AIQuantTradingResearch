@@ -15,7 +15,7 @@ from local_synthetic_chart import parse
 
 ROOT = Path(__file__).resolve().parent / "_immutable_chart_candidate"
 # Candidate provenance pin, not an independently qualified production release anchor.
-MANIFEST_SHA256 = "007b2c8a6ccec19ec54976b4baf735812b648d79294e6465df884c68537d3069"
+MANIFEST_SHA256 = "2af51eff5f1d96eff63d1ad96905f6d4f1a4c112b08f3baffe0ad25c2fc66588"
 NAMES = tuple(f"{i}-{r}.json" for i in ("1h", "4h", "1d") for r in ("1D", "7D", "30D", "90D"))
 _LOCK = threading.BoundedSemaphore(1)
 
