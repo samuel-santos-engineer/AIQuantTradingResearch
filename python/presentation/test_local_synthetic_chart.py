@@ -27,6 +27,27 @@ class LocalChartTests(unittest.TestCase):
             with self.subTest(payload=payload), self.assertRaises(BridgeError):
                 adapter.parse(payload, "1h", "30D")
 
+    def test_overlays_use_only_supplied_csharp_values_and_aligned_timestamps(self):
+        times = ("2026-09-30T00:00:00Z", "2026-09-30T01:00:00Z")
+        candles = tuple(Candle(t, Decimal(10), Decimal(12), Decimal(9), Decimal(11), Decimal(100)) for t in times)
+        rows = tuple(IndicatorRow(t, Decimal(10), Decimal("10.25"), None, None, None, None, Decimal(-1), Decimal(10), Decimal(21)) for t in times)
+        response = MarketResponse("Available", "btc-like-simulation", "1h", "1D", candles, "independent-synthetic", None, None, False, None, {}, Analytics({}, rows))
+        off = ui.build_market_figure(response)
+        on = ui.build_market_figure(response, True, True, True)
+        self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
+        self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
+        for index, field in ((2, "sma20"), (3, "ema20"), (4, "bollinger_lower"), (5, "bollinger_middle"), (6, "bollinger_upper")):
+            self.assertFalse(off.data[index].visible)
+            self.assertTrue(on.data[index].visible)
+            self.assertEqual(list(times), list(on.data[index].x))
+            self.assertEqual([float(getattr(r, field)) for r in rows], list(on.data[index].y))
+
+    def test_signed_indicator_transport_rejects_missing_nonfinite_and_wrong_scale(self):
+        self.assertEqual(Decimal("-1.000000000000"), adapter.indicator_decimal("-1.000000000000"))
+        for value in (None, "NaN", "Infinity", "1.0", 1.0, "3000000001.000000000000"):
+            with self.subTest(value=value), self.assertRaises(BridgeError):
+                adapter.indicator_decimal(value)
+
     def test_health_validates_current_bundle_without_private_handoff(self):
         streamlit = Mock(session_state={"wp05_cache": "stale"})
         streamlit.get_option.return_value = "0.0.0.0"
@@ -66,7 +87,7 @@ class LocalChartTests(unittest.TestCase):
         off, on = ui.build_market_figure(response, False), ui.build_market_figure(response, True)
         self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
         self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
-        self.assertEqual(("candlestick", "bar", "scatter"), tuple(t.type for t in on.data))
+        self.assertEqual(("candlestick", "bar", "scatter", "scatter", "scatter", "scatter", "scatter"), tuple(t.type for t in on.data))
         self.assertFalse(off.data[2].visible); self.assertTrue(on.data[2].visible)
         self.assertEqual([float(r.sma20) for r in indicators], list(on.data[2].y))
         self.assertEqual(off.layout.uirevision, on.layout.uirevision)

@@ -53,6 +53,10 @@ public sealed class LocalSyntheticChartTests
         for (var i = 0; i < payload.Candles.Count; i++)
         {
             Assert.Equal(expected.Rows[i + 250].Sma20, decimal.Parse(payload.Candles[i].Sma20, CultureInfo.InvariantCulture));
+            Assert.Equal(expected.Rows[i + 250].Ema20, decimal.Parse(payload.Candles[i].Ema20, CultureInfo.InvariantCulture));
+            Assert.Equal(expected.Rows[i + 250].BollingerLower, decimal.Parse(payload.Candles[i].BollingerLower, CultureInfo.InvariantCulture));
+            Assert.Equal(expected.Rows[i + 250].BollingerMiddle, decimal.Parse(payload.Candles[i].BollingerMiddle, CultureInfo.InvariantCulture));
+            Assert.Equal(expected.Rows[i + 250].BollingerUpper, decimal.Parse(payload.Candles[i].BollingerUpper, CultureInfo.InvariantCulture));
             Assert.Equal(response.Candles![i + 250].Volume, decimal.Parse(payload.Candles[i].Volume, CultureInfo.InvariantCulture));
         }
         Assert.False(LocalSyntheticChart.TrySelection("1m", "1D", out _, out _));

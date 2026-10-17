@@ -292,7 +292,7 @@ def render_visualization_frame(frame: VisualizationFrame) -> None:
             st.write({label: value})
 
 
-def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.Figure:
+def build_market_figure(response: MarketResponse, show_sma: bool = False, show_ema: bool = False, show_bollinger: bool = False) -> go.Figure:
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
     figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
@@ -308,6 +308,15 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.
                                    y=[None if r.sma20 is None else float(r.sma20) for r in response.analytics.rows],
                                    name="SMA (20)", uid="sma20", mode="lines", line=dict(color="#d9a400", width=2),
                                    visible=show_sma, hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
+        for field, label, color, visible, dash in (
+                ("ema20", "EMA (20)", "#1874d1", show_ema, "solid"),
+                ("bollinger_lower", "Bollinger lower (20, 2)", "#9254b5", show_bollinger, "solid"),
+                ("bollinger_middle", "Bollinger middle (20)", "#9254b5", show_bollinger, "dot"),
+                ("bollinger_upper", "Bollinger upper (20, 2)", "#9254b5", show_bollinger, "solid")):
+            figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
+                                       y=[None if getattr(r, field) is None else float(getattr(r, field)) for r in response.analytics.rows],
+                                       name=label, uid=field, mode="lines", line=dict(color=color, width=1.5, dash=dash), visible=visible,
+                                       hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>" + label + ": %{y:.4f}<extra></extra>"), row=1, col=1)
     figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
     return figure
 
@@ -421,7 +430,10 @@ def render_market_research() -> None:
     with toolbox:
         with st.popover("Technical Analysis", icon=":material/analytics:", help="Show or hide technical analysis overlays"):
             show_sma = st.checkbox("SMA (20)", value=False, key="market_sma20")
-    st.plotly_chart(build_market_figure(response, show_sma), use_container_width=True, key="market_chart",
+            show_ema = st.checkbox("EMA (20)", value=False, key="market_ema20")
+            show_bollinger = st.checkbox("Bollinger Bands (20, 2)", value=False, key="market_bollinger")
+            st.caption("Bollinger Bands use population standard deviation. Indicators are calculated in C# from synthetic data.")
+    st.plotly_chart(build_market_figure(response, show_sma, show_ema, show_bollinger), use_container_width=True, key="market_chart",
                     config={"scrollZoom": True, "displaylogo": False})
     provenance = market_provenance_caption(response)
     if provenance:

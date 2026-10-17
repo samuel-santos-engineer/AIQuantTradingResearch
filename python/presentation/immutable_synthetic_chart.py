@@ -112,7 +112,7 @@ def _load_candidate(root, pin, interval, range_value, *, image_owned=False):
         raise ValueError("anchor")
     manifest = _json(raw)
     if (not isinstance(manifest, dict) or set(manifest) != {"schema", "generatorVersion", "seed", "files"}
-            or manifest["schema"] != "aiq-chart-handoff-candidate-v1"
+            or manifest["schema"] != "aiq-chart-handoff-candidate-v2"
             or manifest["generatorVersion"] != "aiq-synthetic-ohlcv-v1"
             or type(manifest["seed"]) is not int or manifest["seed"] != 114
             or not isinstance(manifest["files"], list) or len(manifest["files"]) != 12):
@@ -135,9 +135,10 @@ def _load_candidate(root, pin, interval, range_value, *, image_owned=False):
         for row in value["candles"]:
             if not isinstance(row, dict):
                 raise ValueError("row")
-            for key, digits in (("open", 4), ("high", 4), ("low", 4), ("close", 4), ("volume", 3), ("sma20", 12)):
+            for key, digits in (("open", 4), ("high", 4), ("low", 4), ("close", 4), ("volume", 3), ("sma20", 12), ("ema20", 12), ("bollingerLower", 12), ("bollingerMiddle", 12), ("bollingerUpper", 12)):
                 text = row.get(key)
-                if not isinstance(text, str) or re.fullmatch(r"(?:0|[1-9][0-9]{0,9})\.[0-9]{" + str(digits) + r"}", text) is None:
+                sign = "-?" if key == "bollingerLower" else ""
+                if not isinstance(text, str) or re.fullmatch(sign + r"(?:0|[1-9][0-9]{0,9})\.[0-9]{" + str(digits) + r"}", text) is None:
                     raise ValueError("decimal")
         i, r = name[:-5].split("-")
         response = parse(raw, i, r)  # Existing strict identity, counts, grid and frozen OHLCV fingerprint.
