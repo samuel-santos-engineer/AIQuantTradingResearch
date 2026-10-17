@@ -1,0 +1,491 @@
+{
+  "recordedAtUtc": "2026-10-16T21:13:47.425418+00:00",
+  "verdict": "PASS EXACT-IMAGE REGISTRY PUBLICATION",
+  "stagingAuthorityReview": "GO FOR OWNER REVIEW ONLY",
+  "sourcePr": 350,
+  "sourcePrHead": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+  "runtimeSourceCommit": "346841f6478d21d145b850272a5e0d3af3dcc1fb",
+  "mainBaseline": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+  "registryRepository": "ghcr.io/samuel-santos-engineer/aiquanttradingresearch",
+  "observedPackageVisibility": "public",
+  "publicVisibilityAndDataPublicationApproval": "Explicit owner reply: approved. continue; interpreted in context as approval of exact candidate publication in existing public GHCR package",
+  "registryTag": "c2b30-55d142b57d0d-20261016t210908z",
+  "pushStartedAtUtc": "2026-10-16T21:10:38.2990372Z",
+  "pushFinishedAtUtc": "2026-10-16T21:11:03.6915988Z",
+  "registryReadbackAtUtc": "2026-10-16T21:11:47.229465+00:00",
+  "anyImageBytesPublished": true,
+  "registryReadbackVerdict": "PASS",
+  "registryDescriptorMatch": "PASS: raw platform manifest, config and twelve ordered layers",
+  "archive": {
+    "path": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b29-d76483136fbf46e79029e45d38c83807\\qualified-image.tar",
+    "bytes": 250158592,
+    "sha256": "700b49d2f0bacb7db74b5520faabed3b94519355cd54daabc3f6be11bf0ea7a0",
+    "hashVerdict": "PASS",
+    "completeBlobDigestSizeVerification": "PASS"
+  },
+  "platform": {
+    "digest": "sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424ea91e0999d5",
+    "bytes": 2574,
+    "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "os": "linux",
+    "architecture": "amd64"
+  },
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "sha256:27ec5f7297205ccc4d0ba5c7987effc2c8aa710904f6850ea63d16d51e69f56d",
+    "size": 8507,
+    "comparison": "PASS",
+    "user": "1000:1000",
+    "entrypoint": [
+      "/usr/local/bin/aiq-entrypoint"
+    ],
+    "registryComparison": "PASS"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e",
+      "size": 29843350,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:65a67aec859c5fafe6ca38c2ed07825c97acf3febdcf62b79441a1bfca4f3a4a",
+      "size": 1294038,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:3a5db7051419a594a866378c5d2c422e3d282d69e6792b3213772cb1349da446",
+      "size": 11923091,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:2f5b06adfd9138ef928aaf8b34f3fecf122b137a537133dfe421509dd57b4a47",
+      "size": 250,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:339a6880d01fa9aea11f4c30fe31f11d1f2c2d840ef821b59371d571e70a8842",
+      "size": 93,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:160bacecf7a44fcd8b753ef1d8f483b00bb62a26ac7f6529617820cda1804940",
+      "size": 902,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:d632e47ebcd5fe89f2e5d468c0819f905f7df3b82c87651b987244e18b4785b9",
+      "size": 206527386,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:7de1f9253283aaad74381b8a6b6d0d6bfbcd9a28012a80a3bcd555decf7ed289",
+      "size": 63578,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:43afc06075e26de4563ab5f540daff18d42c6b80135f1c21e85ec0d679fcdb83",
+      "size": 7691,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:ca98ee862b4d6e3645000e4803a481181427b99c4b74430cc08832ceabf83eef",
+      "size": 2242,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:0e17b7cb9edfe3363b73080b01629e3e126e51b99869ef0f8d829fd8818b5f90",
+      "size": 122804,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    },
+    {
+      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+      "digest": "sha256:2f0b2bcde2bf94bc119a79ce772c2a70e29561bd6f38901cc757c30b56c86e83",
+      "size": 345057,
+      "comparison": "PASS",
+      "archiveBytesRehashed": true,
+      "registryComparison": "PASS",
+      "registryAnonymousBlobBytesRehashed": "PASS"
+    }
+  ],
+  "localArchiveIndexSha256": "d26edd8c6b96b67326f4d87b1ecc3090c21c56a1d0971d4cddb61a11d38415ba",
+  "publishedIndexDigest": null,
+  "immutableBundlePriorEvidence": {
+    "files": 13,
+    "totalBytes": 656176,
+    "manifestSha256": "007b2c8a6ccec19ec54976b4baf735812b648d79294e6465df884c68537d3069",
+    "currentInspection": "Fresh C2B-30 layered archive inspection passed; superseded by immutableBundleCurrentInspection"
+  },
+  "prDependencies": [
+    {
+      "number": 346,
+      "headRefOid": "0e568d208f2769037bf4a7265ea4ba6f4609aacc",
+      "reviewDecision": "",
+      "state": "OPEN"
+    },
+    {
+      "number": 347,
+      "headRefOid": "8240d0878dea335c08ad3216600fc7e545446140",
+      "reviewDecision": "",
+      "state": "OPEN"
+    },
+    {
+      "number": 349,
+      "headRefOid": "c40ba4e1ba751b5097061d95d76ce81bbd019c0e",
+      "reviewDecision": "",
+      "state": "OPEN"
+    },
+    {
+      "number": 350,
+      "headRefOid": "e909b3ef1ade83959f41dd15600937e3fdb4ed9d",
+      "reviewDecision": "",
+      "state": "OPEN"
+    }
+  ],
+  "repoAutomation": {
+    "actionsWorkflows": 0,
+    "repositoryHooks": 0,
+    "azureSites": [
+      {
+        "name": "aiqr112wp035ec325382770",
+        "scmType": "None",
+        "dockerEnableCiSetting": "absent",
+        "imageReferenceBeforeAndAfter": "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:144de4a9c393f07d2249f450b9d5ab2af34f36b941897a31bd20d72ac325959a"
+      },
+      {
+        "name": "aiqr112wp05wus27f5eabb5",
+        "scmType": "None",
+        "dockerEnableCiSetting": "absent",
+        "imageReferenceBeforeAndAfter": "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:144de4a9c393f07d2249f450b9d5ab2af34f36b941897a31bd20d72ac325959a"
+      }
+    ],
+    "interpretation": "No configured repository automation or enabled site container CD observed; new unused tag does not repoint pinned sites",
+    "azureWrites": false
+  },
+  "writeAuthorization": {
+    "packageOwner": "samuel-santos-engineer",
+    "authenticatedOwnerMatches": true,
+    "writePackagesScope": true,
+    "requestedRegistryScope": "repository:samuel-santos-engineer/aiquanttradingresearch:pull,push",
+    "tokenFormat": "opaque; no granted JWT claims asserted"
+  },
+  "uniqueTagAvailability": "PASS anonymous GET 404 immediately before push",
+  "contentPreservingTransferTool": "Docker 29.7.2 containerd OCI import/tag/push; imported and tagged descriptor D unchanged; push D and independent raw readback D identical",
+  "futureDeploymentPullAuthorization": "PASS registry-side anonymous full config + all layers download; actual Azure pull remains untested and separately authorized",
+  "publicRuntimeVerified": false,
+  "azureStagingModified": false,
+  "azureProductionModified": false,
+  "advancedWP07": "ON HOLD",
+  "deployment": "NO-GO",
+  "toolVersions": {
+    "gh": "2.97.0",
+    "dockerEngine": "29.7.2",
+    "python": "3.13.15",
+    "powershell": "Windows PowerShell 5.1"
+  },
+  "cleanup": "Source archive retained unchanged. No containers, runtime services or ports created. Unique local registry transfer tag removed; imported exact candidate cache retained under aiq-c2b29:qualified. Existing credentials unchanged.",
+  "commands": [
+    "gh pr view 350 --json state,headRefOid,reviewDecision,baseRefOid",
+    "gh api users/samuel-santos-engineer/packages/container/aiquanttradingresearch --jq .visibility",
+    "gh api users/samuel-santos-engineer/packages/container/aiquanttradingresearch --jq .name",
+    "gh api repos/samuel-santos-engineer/AIQuantTradingResearch/actions/workflows --jq .total_count",
+    "gh api repos/samuel-santos-engineer/AIQuantTradingResearch/hooks --jq length",
+    "gh pr view <346|347|349> --json state,headRefOid",
+    "Python hashlib/tarfile read-only archive digest, descriptor size, config/platform verification",
+    "az webapp config show --resource-group <existing RG> --name <existing site> --query {linuxFxVersion,scmType} (read-only, before/after)",
+    "az webapp config appsettings list --resource-group <existing RG> --name <existing site> --query only DOCKER_ENABLE_CI (read-only, output filtered)",
+    "Existing GHCR Docker helper credential inspected in memory: account + write:packages only; no values logged or stored",
+    "docker image load --input <verified qualified-image.tar>",
+    "docker image inspect aiq-c2b29:qualified --format {{json .Descriptor}}",
+    "docker image tag aiq-c2b29:qualified ghcr.io/samuel-santos-engineer/aiquanttradingresearch:c2b30-55d142b57d0d-20261016t210908z",
+    "docker push ghcr.io/samuel-santos-engineer/aiquanttradingresearch:c2b30-55d142b57d0d-20261016t210908z",
+    "Independent urllib GHCR anonymous token + raw manifest/config/all-layer GET and SHA256 verification"
+  ],
+  "registryUrl": "https://ghcr.io/samuel-santos-engineer/aiquanttradingresearch:c2b30-55d142b57d0d-20261016t210908z",
+  "immutableBundleCurrentInspection": {
+    "files": 13,
+    "totalBytes": 656176,
+    "manifestSha256": "007b2c8a6ccec19ec54976b4baf735812b648d79294e6465df884c68537d3069",
+    "allMemberBytesAndHashes": "PASS fresh in-memory layered archive inspection",
+    "rootOwnership": "PASS uid 0",
+    "fileMode": "0444",
+    "directoryMode": "0555",
+    "links": "none"
+  },
+  "registryReadback": {
+    "startedAtUtc": "2026-10-16T21:11:19.746426+00:00",
+    "finishedAtUtc": "2026-10-16T21:11:47.229465+00:00",
+    "repository": "ghcr.io/samuel-santos-engineer/aiquanttradingresearch",
+    "tag": "c2b30-55d142b57d0d-20261016t210908z",
+    "tagResolvedDigest": "sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424ea91e0999d5",
+    "indexDigest": null,
+    "platformManifest": "sha256:55d142b57d0df9953f01350263369ee2ecd9a66019d1844d1f424ea91e0999d5",
+    "platformMediaType": "application/vnd.oci.image.manifest.v1+json",
+    "platformBytes": 2574,
+    "rawManifestExactEquality": "PASS",
+    "configAndOrderedDescriptors": "PASS",
+    "anonymousFullConfigAndLayerPull": "PASS",
+    "config": {
+      "mediaType": "application/vnd.oci.image.config.v1+json",
+      "digest": "sha256:27ec5f7297205ccc4d0ba5c7987effc2c8aa710904f6850ea63d16d51e69f56d",
+      "size": 8507,
+      "anonymousPull": "PASS",
+      "rawBytesSha256": "PASS"
+    },
+    "layers": [
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:ecc510c1e359bdc007b39802570bb7e4dec7d6ebccf357c3201a74299113e05e",
+        "size": 29843350,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:65a67aec859c5fafe6ca38c2ed07825c97acf3febdcf62b79441a1bfca4f3a4a",
+        "size": 1294038,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:3a5db7051419a594a866378c5d2c422e3d282d69e6792b3213772cb1349da446",
+        "size": 11923091,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:2f5b06adfd9138ef928aaf8b34f3fecf122b137a537133dfe421509dd57b4a47",
+        "size": 250,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:339a6880d01fa9aea11f4c30fe31f11d1f2c2d840ef821b59371d571e70a8842",
+        "size": 93,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:160bacecf7a44fcd8b753ef1d8f483b00bb62a26ac7f6529617820cda1804940",
+        "size": 902,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:d632e47ebcd5fe89f2e5d468c0819f905f7df3b82c87651b987244e18b4785b9",
+        "size": 206527386,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:7de1f9253283aaad74381b8a6b6d0d6bfbcd9a28012a80a3bcd555decf7ed289",
+        "size": 63578,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:43afc06075e26de4563ab5f540daff18d42c6b80135f1c21e85ec0d679fcdb83",
+        "size": 7691,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:ca98ee862b4d6e3645000e4803a481181427b99c4b74430cc08832ceabf83eef",
+        "size": 2242,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:0e17b7cb9edfe3363b73080b01629e3e126e51b99869ef0f8d829fd8818b5f90",
+        "size": 122804,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:2f0b2bcde2bf94bc119a79ce772c2a70e29561bd6f38901cc757c30b56c86e83",
+        "size": 345057,
+        "anonymousPull": "PASS",
+        "rawBytesSha256": "PASS"
+      }
+    ],
+    "totalBlobBytes": 250138989,
+    "configUser": "1000:1000",
+    "configEntrypoint": [
+      "/usr/local/bin/aiq-entrypoint"
+    ],
+    "publicRuntimeVerified": false
+  },
+  "preflight": {
+    "recordedAtUtc": "2026-10-16T21:09:08.709286+00:00",
+    "assets": "PASS",
+    "archive": "PASS",
+    "access": {
+      "packageOwner": "samuel-santos-engineer",
+      "authenticatedOwnerMatches": true,
+      "writePackagesScope": true,
+      "requestedRegistryScope": "repository:samuel-santos-engineer/aiquanttradingresearch:pull,push",
+      "tokenFormat": "opaque; no granted JWT claims asserted"
+    },
+    "uniqueTag": "c2b30-55d142b57d0d-20261016t210908z",
+    "uniqueTagHead": 404,
+    "visibility": "public",
+    "ownerPublicPublicationApproval": "approved. continue",
+    "allAssetMetadata": {
+      "app/python/presentation/_immutable_chart_candidate": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o555",
+        "directory": true
+      },
+      "app/python/presentation/_immutable_chart_candidate/1d-1D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1d-30D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1d-7D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1d-90D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1h-1D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1h-30D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1h-7D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/1h-90D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/4h-1D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/4h-30D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/4h-7D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/4h-90D.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      },
+      "app/python/presentation/_immutable_chart_candidate/manifest.json": {
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o444",
+        "directory": false
+      }
+    }
+  },
+  "history": [
+    {
+      "phase": "initial preflight",
+      "recordedAtUtc": "2026-10-16T18:08:59.686456+00:00",
+      "verdict": "BLOCKED before push pending explicit public visibility/data-publication approval",
+      "evidenceCommit": "a52b6326f03364804e3831ce58a72cb286e7d1c1"
+    },
+    {
+      "phase": "owner continuation",
+      "ownerReply": "approved. continue",
+      "disposition": "Specific public-package publication blocker resolved; no deployment/merge authority added"
+    }
+  ],
+  "logHashes": {
+    "push.log": "a2982d935969f46596a0210a4806ef29231e3ed8ee100c6ddf4c92b70f0cc858",
+    "registry-readback.json": "f86d0e60777e099806933ff57b1ab413d52873454340cd8c8d6af4a0d3d5b292",
+    "continuation-preflight.json": "61d9eab4174f3d14f5a262f026a90414c5368b2f5e5c1f0ff98e83ed37e8d0b4"
+  }
+}
