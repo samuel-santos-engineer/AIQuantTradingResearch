@@ -74,10 +74,10 @@ public static class LocalSyntheticChart
 
     public sealed record Row(string TimeUtc, string Open, string High, string Low, string Close, string Volume, string Sma20, string Ema20,
         string BollingerLower, string BollingerMiddle, string BollingerUpper,
-        string Rsi14, string Macd, string MacdSignal, string MacdHistogram);
+        string Rsi14, string Macd, string MacdSignal, string MacdHistogram, string Atr14);
     public sealed record Payload(string Label, string Instrument, string Interval, string Range, string CoverageStartUtc,
         string EndExclusiveUtc, string DatasetFingerprint, string WindowFingerprint, string CalculationVersion,
-        string CalculationStartUtc, int Warmup, int CalculationCount, bool PublicRuntimeVerified, IReadOnlyList<Row> Candles);
+        string AtrCalculationVersion, string CalculationStartUtc, int Warmup, int CalculationCount, bool PublicRuntimeVerified, IReadOnlyList<Row> Candles);
 
     public static async Task<Payload> CreatePayloadAsync(HistoricalCandleInterval interval, HistoricalCandleRange range,
         CancellationToken cancellationToken = default)
@@ -88,6 +88,7 @@ public static class LocalSyntheticChart
             throw new InvalidOperationException("Local synthetic input unavailable.");
         SyntheticHistoricalMarketDataProvider.CreatePublicationPolicy().Validate(request, result.Candles, result.Provenance);
         var analytics = TechnicalIndicatorCalculator.CalculatePublic(request, result.Candles, result.Provenance, cancellationToken);
+        var atr = WilderAverageTrueRangeCalculator.CalculatePublic(request, result.Candles, result.Provenance, cancellationToken);
         var rows = result.Candles.Skip(250).Select((c, i) => new Row(SyntheticPublicationPolicy.Timestamp(c.OpenTimeUtc),
             Number(c.Open, 4), Number(c.High, 4), Number(c.Low, 4), Number(c.Close, 4), Number(c.Volume, 3),
             Number(analytics.Rows[i + 250].Sma20 ?? throw new InvalidOperationException("Missing warmed SMA.")),
@@ -98,11 +99,12 @@ public static class LocalSyntheticChart
             Number(analytics.Rows[i + 250].Rsi14 ?? throw new InvalidOperationException("Missing warmed RSI.")),
             Number(analytics.Rows[i + 250].Macd ?? throw new InvalidOperationException("Missing warmed MACD.")),
             Number(analytics.Rows[i + 250].MacdSignal ?? throw new InvalidOperationException("Missing warmed MACD signal.")),
-            Number(analytics.Rows[i + 250].MacdHistogram ?? throw new InvalidOperationException("Missing warmed MACD histogram.")))).ToArray();
+            Number(analytics.Rows[i + 250].MacdHistogram ?? throw new InvalidOperationException("Missing warmed MACD histogram.")),
+            Number(atr[i + 250] ?? throw new InvalidOperationException("Missing warmed ATR.")))).ToArray();
         if (rows.Length != SyntheticPublicationPolicy.VisibleCount(request)) throw new InvalidOperationException("Invalid local visible window.");
         return new(Label, "btc-like-simulation", SyntheticPublicationPolicy.IntervalLiteral(interval), SyntheticPublicationPolicy.RangeLiteral(range),
             "2025-10-26T00:00:00Z", "2026-10-01T00:00:00Z", result.Provenance.SyntheticIdentity!.DatasetFingerprint,
-            result.Provenance.SyntheticIdentity.WindowFingerprint, "aiq-ta-v1", SyntheticPublicationPolicy.Timestamp(result.Candles[0].OpenTimeUtc),
+            result.Provenance.SyntheticIdentity.WindowFingerprint, "aiq-ta-v1", WilderAverageTrueRangeCalculator.Version, SyntheticPublicationPolicy.Timestamp(result.Candles[0].OpenTimeUtc),
             250, result.Candles.Count, false, rows);
     }
     private static string Number(decimal value, int digits = 12) => value.ToString("F" + digits, CultureInfo.InvariantCulture);

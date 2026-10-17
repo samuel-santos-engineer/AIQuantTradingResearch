@@ -1,4 +1,5 @@
 """Opt-in Windows loopback adapter. No public bridge activation or indicator arithmetic."""
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import hashlib
@@ -12,6 +13,11 @@ from historical_market_bridge import (Analytics, BridgeError, Candle, IndicatorR
                                      QUALIFIED_DATASETS, QUALIFIED_WINDOWS, QUALIFIED_VISIBLE,
                                      _object, _decimal, _utc_timestamp)
 from public_preview_api import LABEL
+
+
+@dataclass(frozen=True)
+class ChartIndicatorRow(IndicatorRow):
+    atr14: Decimal | None = None
 
 
 def enabled(server_address, *, environment=None, platform=None):
@@ -63,7 +69,7 @@ def parse(raw, interval, range_value):
     except (UnicodeError, ValueError, RecursionError) as exc:
         raise BridgeError("MalformedLocalSource") from exc
     fields = {"label", "instrument", "interval", "range", "coverageStartUtc", "endExclusiveUtc", "datasetFingerprint",
-              "windowFingerprint", "calculationVersion", "calculationStartUtc", "warmup", "calculationCount", "publicRuntimeVerified", "candles"}
+              "windowFingerprint", "calculationVersion", "atrCalculationVersion", "calculationStartUtc", "warmup", "calculationCount", "publicRuntimeVerified", "candles"}
     if not isinstance(value, dict) or set(value) != fields or type(value["publicRuntimeVerified"]) is not bool or value["publicRuntimeVerified"]:
         raise BridgeError("MalformedLocalSource")
     hours = {"1h": 1, "4h": 4, "1d": 24}[interval]
@@ -73,13 +79,13 @@ def parse(raw, interval, range_value):
     expected = {"label": LABEL, "instrument": "btc-like-simulation", "interval": interval, "range": range_value,
                 "coverageStartUtc": "2025-10-26T00:00:00Z", "endExclusiveUtc": "2026-10-01T00:00:00Z",
                 "datasetFingerprint": QUALIFIED_DATASETS[interval], "windowFingerprint": QUALIFIED_WINDOWS[(interval, range_value)],
-                "calculationVersion": "aiq-ta-v1", "warmup": 250, "calculationCount": count + 250,
+                "calculationVersion": "aiq-ta-v1", "atrCalculationVersion": "aiq-atr-wilder-v1", "warmup": 250, "calculationCount": count + 250,
                 "calculationStartUtc": (start - timedelta(hours=250 * hours)).strftime("%Y-%m-%dT%H:%M:%SZ")}
     if any(type(value[k]) is not type(v) or value[k] != v for k, v in expected.items()) or not isinstance(value["candles"], list) or len(value["candles"]) != count:
         raise BridgeError("MalformedLocalSource")
     candles, indicators = [], []
     for i, row in enumerate(value["candles"]):
-        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram"}:
+        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram", "atr14"}:
             raise BridgeError("MalformedLocalSource")
         stamp = row["timeUtc"]
         if _utc_timestamp(stamp) != start + timedelta(hours=i * hours) or stamp != (start + timedelta(hours=i * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"):
@@ -97,13 +103,16 @@ def parse(raw, interval, range_value):
         rsi, macd, signal, histogram = (indicator_decimal(row[k]) for k in ("rsi14", "macd", "macdSignal", "macdHistogram"))
         if not 0 <= rsi <= 100 or histogram != macd - signal:
             raise BridgeError("MalformedLocalSource")
-        indicators.append(IndicatorRow(stamp, sma, ema, rsi, macd, signal, histogram, lower, middle, upper))
+        atr = indicator_decimal(row["atr14"])
+        if not 0 <= atr <= Decimal(10**9):
+            raise BridgeError("MalformedLocalSource")
+        indicators.append(ChartIndicatorRow(stamp, sma, ema, rsi, macd, signal, histogram, lower, middle, upper, atr))
     canonical = "".join(",".join((c.open_time_utc, format(c.open, ".4f"), format(c.high, ".4f"), format(c.low, ".4f"),
                                   format(c.close, ".4f"), format(c.volume, ".3f"))) + "\n" for c in candles).encode("ascii")
     if hashlib.sha256(canonical).hexdigest() != QUALIFIED_VISIBLE[(interval, range_value)]:
         raise BridgeError("UnqualifiedLocalCandles")
     provenance = MappingProxyType({"source": "independent-synthetic", "status": "simulated", "calculationVersion": "aiq-ta-v1",
                                    "datasetFingerprint": value["datasetFingerprint"], "windowFingerprint": value["windowFingerprint"]})
-    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "availableIndicators": ("sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram")}), tuple(indicators))
+    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "atrCalculationVersion": "aiq-atr-wilder-v1", "availableIndicators": ("sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram", "atr14")}), tuple(indicators))
     return MarketResponse("Available", "btc-like-simulation", interval, range_value, tuple(candles), "independent-synthetic",
                           None, None, False, None, provenance, analytics)

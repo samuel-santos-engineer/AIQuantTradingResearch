@@ -292,10 +292,10 @@ def render_visualization_frame(frame: VisualizationFrame) -> None:
             st.write({label: value})
 
 
-def build_market_figure(response: MarketResponse, show_sma: bool = False, show_ema: bool = False, show_bollinger: bool = False, show_rsi: bool = False, show_macd: bool = False) -> go.Figure:
+def build_market_figure(response: MarketResponse, show_sma: bool = False, show_ema: bool = False, show_bollinger: bool = False, show_rsi: bool = False, show_macd: bool = False, show_atr: bool = False) -> go.Figure:
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
-    panel_count = int(show_rsi) + int(show_macd)
+    panel_count = int(show_rsi) + int(show_macd) + int(show_atr)
     figure = make_subplots(rows=2 + panel_count, cols=1, shared_xaxes=True, vertical_spacing=0.03,
                            row_heights=[0.72, 0.28] if not panel_count else [0.52, 0.18] + [0.30 / panel_count] * panel_count)
     figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
@@ -316,13 +316,13 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False, show_e
                 ("bollinger_middle", "Bollinger middle (20)", "#9254b5", show_bollinger, "dot"),
                 ("bollinger_upper", "Bollinger upper (20, 2)", "#9254b5", show_bollinger, "solid")):
             figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
-                                       y=[None if getattr(r, field) is None else float(getattr(r, field)) for r in response.analytics.rows],
+                                       y=[None if getattr(r, field, None) is None else float(getattr(r, field)) for r in response.analytics.rows],
                                        name=label, uid=field, mode="lines", line=dict(color=color, width=1.5, dash=dash), visible=visible,
                                        hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>" + label + ": %{y:.4f}<extra></extra>"), row=1, col=1)
         panel = 3
         def lower_trace(field, label, color, row):
             figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
-                                       y=[None if getattr(r, field) is None else float(getattr(r, field)) for r in response.analytics.rows],
+                                       y=[None if getattr(r, field, None) is None else float(getattr(r, field)) for r in response.analytics.rows],
                                        name=label, uid=field, visible=True, mode="lines", line=dict(color=color, width=1.5),
                                        hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>" + label + ": %{y:.4f}<extra></extra>"), row=row, col=1)
         if show_rsi:
@@ -338,6 +338,10 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False, show_e
                                    marker_color=["#aaa" if r.macd_histogram is None else "#00aa88" if r.macd_histogram >= 0 else "#ee4444" for r in response.analytics.rows],
                                    hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>MACD histogram: %{y:.4f}<extra></extra>"), row=panel, col=1)
             figure.update_yaxes(title_text="MACD (12, 26, 9)", zeroline=True, row=panel, col=1)
+            panel += 1
+        if show_atr:
+            lower_trace("atr14", "ATR (14)", "#008b8b", panel)
+            figure.update_yaxes(title_text="ATR (14) volatility", rangemode="tozero", row=panel, col=1)
     figure.update_layout(height=620 + 200 * panel_count)
     figure.update_xaxes(title_text="Simulation time (UTC)", row=2 + panel_count, col=1)
     figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
@@ -470,8 +474,9 @@ def render_market_research() -> None:
             show_bollinger = st.checkbox("Bollinger Bands (20, 2)", value=False, key="market_bollinger")
             show_rsi = st.checkbox("RSI (14)", value=False, key="market_rsi14")
             show_macd = st.checkbox("MACD (12, 26, 9)", value=False, key="market_macd")
+            show_atr = st.checkbox("ATR (14)", value=False, key="market_atr")
             st.caption("Bollinger Bands use population standard deviation. Indicators are calculated in C# from synthetic data.")
-    st.plotly_chart(build_market_figure(response, show_sma, show_ema, show_bollinger, show_rsi, show_macd), use_container_width=True, key="market_chart",
+    st.plotly_chart(build_market_figure(response, show_sma, show_ema, show_bollinger, show_rsi, show_macd, show_atr), use_container_width=True, key="market_chart",
                     config={"scrollZoom": True, "displaylogo": False})
     provenance = market_provenance_caption(response)
     if provenance:
@@ -537,7 +542,7 @@ def render_system_health() -> None:
     else:
         try:
             # Use the same bounded, pinned validation as the chart; never read a private handoff.
-            load_immutable_chart("btc-like-simulation", "1h", "1D", server_address=address)
+            acquire_immutable_chart(("btc-like-simulation", "1h", "1D"), address)
         except BridgeError:
             st.warning("Synthetic chart: unavailable. The bundled dataset could not be validated.")
         else:

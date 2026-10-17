@@ -46,3 +46,11 @@ Existing Streamlit use_container_width warning remains, no functional failure. R
 After protected merge, publish exact certified image to existing GHCR, verify manifest/config, deploy only staging, run real browser/API/health/startup checks and rollback on a failed staging gate before repair. Never production. Proceed C2B37 only after full phase36 staging success.
 
 Evidence directory: `C:\Users\sabsf\AppData\Local\Temp\aiq-c2b36-4a803f2f77`. before.json, image-metadata.json, application-tests.txt, infrastructure-tests.txt, python-tests.txt, artifact-validation.txt, local-browser.txt/proof.json, local-all-overlays.png, local-hover.png and local-routes.txt. Original checkout/owner prompt and archived WP07 preserved.
+
+## Final staging acceptance
+
+PR #356 merged at 156e82bff65d2245a080484fcc2abbb250c5de4a. Published exact certified manifest98501ff282a7b1fb053d3abd9653acff3dde8d4182bfdfc2a9c426de462168ed to existing GHCR; registry manifest/config readback passed. Staging aiqr112wp05wus27f5eabb5 now uses that immutable digest. Final full browser (all12 selections, five controls off/on/off on1D/30D), API503/unknown404, fresh-session System Health and startup checks PASS. Production remains original8cd59fb3760b5bf3d34284f4f035c41dda25fa899dd271b3eb0468c353815090; no production mutation.
+
+Two failed staging checks triggered rollback to captured phase35 ae6dfaafba7c7b23544ffe062bcf23df803ff4c1f0e2cdea0718356319d14f7e before retry. First browser attempt failed targeting RSI; original full stderr was not retained, so cause is unproven. Helper now captures stderr and waits for actual RSI/MACD UI. Second health check reused a pre-deployment browser tab and failed; fresh-page health then passed on the unchanged image. No application/source/image changes or weakened assertions were needed. Historical startup cancellations follow explicit configuration/restart operations and are followed by successful probes. Original failed evidence retained.
+
+Final evidence: staging-browser-proof.json, staging-browser.txt, staging-routes.txt, health-verification/, staging-logs-accepted.zip and staging-startup-summary.json in the evidence directory. Local complete browser repeat also passed. PUBLIC_RUNTIME_VERIFIED=False; public raw data APIs remain disabled; advanced WP07 ON HOLD. Proceed to separately scoped C2B37.
