@@ -88,6 +88,25 @@ class LocalChartTests(unittest.TestCase):
         self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
         self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
 
+    def test_atr_uses_supplied_values_on_separate_volatility_axis(self):
+        times = ("2026-09-30T00:00:00Z", "2026-09-30T01:00:00Z")
+        candles = tuple(Candle(t, Decimal(10), Decimal(12), Decimal(9), Decimal(11), Decimal(100)) for t in times)
+        rows = (adapter.ChartIndicatorRow(times[0], *([Decimal(10)] * 9), Decimal("2.123456789012")),
+                adapter.ChartIndicatorRow(times[1], *([None] * 10)))
+        response = MarketResponse("Available", "btc-like-simulation", "1h", "1D", candles, "independent-synthetic", None, None, False, None, {}, Analytics({}, rows))
+        off = ui.build_market_figure(response)
+        on = ui.build_market_figure(response, True, True, True, True, True, True)
+        names = {t.name: t for t in on.data}
+        self.assertNotIn("ATR (14)", {t.name for t in off.data})
+        self.assertEqual("y5", names["ATR (14)"].yaxis)
+        self.assertEqual([2.123456789012, None], list(names["ATR (14)"].y))
+        self.assertEqual(list(times), list(names["ATR (14)"].x))
+        self.assertEqual("ATR (14) volatility", on.layout.yaxis5.title.text)
+        self.assertEqual("tozero", on.layout.yaxis5.rangemode)
+        self.assertIn(ui.SYNTHETIC_DISCLOSURE, names["ATR (14)"].hovertemplate)
+        self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
+        self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
+
     def test_health_validates_current_bundle_without_private_handoff(self):
         streamlit = Mock(session_state={"wp05_cache": "stale"})
         streamlit.get_option.return_value = "0.0.0.0"
@@ -99,6 +118,18 @@ class LocalChartTests(unittest.TestCase):
         streamlit.success.assert_called_once()
         streamlit.warning.assert_not_called()
         self.assertNotIn("wp05_cache", streamlit.session_state)
+
+    def test_health_retries_only_reader_contention(self):
+        streamlit = Mock(session_state={})
+        streamlit.get_option.return_value = "0.0.0.0"
+        with patch.object(ui, "st", streamlit), patch.object(ui, "immutable_chart_enabled", return_value=True), \
+             patch.object(ui, "load_immutable_chart", side_effect=[BridgeError("ImmutableCandidateBusy"), object()]) as load, \
+             patch.object(ui.time, "sleep") as sleep:
+            ui.render_system_health()
+        self.assertEqual(2, load.call_count)
+        sleep.assert_called_once_with(0.25)
+        streamlit.success.assert_called_once()
+        streamlit.warning.assert_not_called()
 
     def test_health_reports_failed_validation_without_claiming_success(self):
         streamlit = Mock(session_state={})

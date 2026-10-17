@@ -50,6 +50,8 @@ public sealed class LocalSyntheticChartTests
         Assert.Equal(SyntheticPublicationPolicy.Timestamp(SyntheticPublicationPolicy.CoverageEnd.AddDays(-SyntheticPublicationPolicy.Days(range))), payload.Candles[0].TimeUtc);
         var response = await new SyntheticHistoricalMarketDataProvider().GetHistoricalCandlesAsync(request);
         var expected = TechnicalIndicatorCalculator.CalculatePublic(request, response.Candles!, response.Provenance!);
+        var atr = WilderAverageTrueRangeCalculator.CalculatePublic(request, response.Candles!, response.Provenance!);
+        Assert.Equal(WilderAverageTrueRangeCalculator.Version, payload.AtrCalculationVersion);
         for (var i = 0; i < payload.Candles.Count; i++)
         {
             Assert.Equal(expected.Rows[i + 250].Sma20, decimal.Parse(payload.Candles[i].Sma20, CultureInfo.InvariantCulture));
@@ -61,6 +63,7 @@ public sealed class LocalSyntheticChartTests
             Assert.Equal(expected.Rows[i + 250].Macd, decimal.Parse(payload.Candles[i].Macd, CultureInfo.InvariantCulture));
             Assert.Equal(expected.Rows[i + 250].MacdSignal, decimal.Parse(payload.Candles[i].MacdSignal, CultureInfo.InvariantCulture));
             Assert.Equal(expected.Rows[i + 250].MacdHistogram, decimal.Parse(payload.Candles[i].MacdHistogram, CultureInfo.InvariantCulture));
+            Assert.Equal(atr[i + 250], decimal.Parse(payload.Candles[i].Atr14, CultureInfo.InvariantCulture));
             Assert.Equal(response.Candles![i + 250].Volume, decimal.Parse(payload.Candles[i].Volume, CultureInfo.InvariantCulture));
         }
         Assert.False(LocalSyntheticChart.TrySelection("1m", "1D", out _, out _));
