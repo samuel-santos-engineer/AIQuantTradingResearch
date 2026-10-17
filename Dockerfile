@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:3a48280a9a7c6276c3eeaba1efa6a08820f18c84fb9e6274c187719ecfaf9fbc AS build
 WORKDIR /src
 
 COPY Directory.Build.props Directory.Build.targets Directory.Packages.props global.json ./
@@ -11,9 +11,9 @@ RUN dotnet restore src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Work
 COPY src/ src/
 RUN dotnet publish src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj --configuration Release --no-restore --output /out/worker
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS dotnet-runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:e4b445f93a5deeb6bd7de300febceb8dd7e481ac65ccf1b474eddc3642a3010f AS dotnet-runtime
 
-FROM python:3.13-slim AS runtime
+FROM python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024 AS private-runtime
 ENV DOTNET_ROOT=/usr/share/dotnet \
     PATH=/usr/share/dotnet:/opt/venv/bin:$PATH \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -49,3 +49,27 @@ RUN chmod 0555 /usr/local/bin/aiq-entrypoint \
 USER root
 EXPOSE 8501
 ENTRYPOINT ["/usr/local/bin/aiq-entrypoint"]
+
+# Offline local candidate generation is never part of startup or a request.
+FROM build AS immutable-handoff
+RUN --network=none DOTNET_ENVIRONMENT=Development AIQ_IMMUTABLE_EXPORT=1 dotnet /out/worker/AIQuantTradingResearch.Worker.dll --write-immutable-chart-candidate /out/candidate
+
+FROM python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024 AS synthetic-candidate
+ENV PATH=/opt/venv/bin:$PATH PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY requirements.txt requirements-linux.lock ./
+RUN python -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir --requirement requirements.txt --constraint requirements-linux.lock --report /app/linux-install-report.json
+COPY python/presentation/ /app/python/presentation/
+COPY favicon.ico imgs/icon.png /app/
+COPY container/entrypoint.sh /usr/local/bin/aiq-entrypoint
+COPY --from=immutable-handoff /out/candidate/ /app/python/presentation/_immutable_chart_candidate/
+RUN useradd --uid 1000 --create-home --shell /usr/sbin/nologin aiq \
+    && chmod 0555 /usr/local/bin/aiq-entrypoint \
+    && find /app -type d -exec chmod 0555 {} + \
+    && find /app -type f -exec chmod 0444 {} +
+# Azure assigns the extracted filesystem root to the configured startup UID.
+# Start as root only to preserve that boundary, then permanently drop identity
+# before the existing entrypoint processes settings or starts Streamlit.
+USER root
+EXPOSE 8501
+ENTRYPOINT ["/usr/local/bin/python", "-I", "-S", "-c", "import os, stat; s=os.stat('/'); assert s.st_uid == 0 and not stat.S_IMODE(s.st_mode) & 0o022; os.setgroups([]); os.setgid(1000); os.setuid(1000); assert os.getuid() == os.geteuid() == 1000 and os.getgid() == os.getegid() == 1000 and not os.getgroups(); os.execv('/usr/local/bin/aiq-entrypoint', ['/usr/local/bin/aiq-entrypoint'])"]

@@ -1,0 +1,361 @@
+{
+  "source_commit": "612483e570d4b8e1f99d512681ca26b1bc1320cd",
+  "local_screening_image": "sha256:62521a204a64756174de15dcffc3aef0f685bfa1d792a1008e2f01a4472dc909",
+  "azure_configured_image": "sha256:144de4a9c393f07d2249f450b9d5ab2af34f36b941897a31bd20d72ac325959a",
+  "methodology": "GET; redirects disabled; host proxies disabled; no-cache request; 8s timeout; 700ms spacing; 131072-byte response cap; no credentials or raw data logged",
+  "routes": [
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:26.649507+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:25 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 12.644
+    },
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/_stcore/health",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:27.362459+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "body_bytes": 2,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:26 GMT",
+        "Cache-Control": "no-cache"
+      },
+      "body_sha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+      "signature": "health: ok",
+      "elapsed_ms": 2.917
+    },
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/api/v1/dataset",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:28.066223+00:00",
+      "request_cache_control": "no-cache",
+      "status": 503,
+      "content_type": "application/json; charset=utf-8",
+      "body_bytes": 742,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:27 GMT",
+        "Cache-Control": "no-store"
+      },
+      "body_sha256": "806e3289ce0ad6d6e325f2f5ff70515e19224fb182b61b33b1952524cdf28482",
+      "signature": "JSON: DATASET_NOT_READY",
+      "elapsed_ms": 2.528
+    },
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/api/v1/candles",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:28.769897+00:00",
+      "request_cache_control": "no-cache",
+      "status": 503,
+      "content_type": "application/json; charset=utf-8",
+      "body_bytes": 94,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:28 GMT",
+        "Cache-Control": "no-store"
+      },
+      "body_sha256": "88e245c1b95ac931a91ac6362c340f014e304f0705b083294f97a0d4fa0da08b",
+      "signature": "JSON: DATASET_NOT_READY",
+      "elapsed_ms": 10.505
+    },
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/api/v1/indicators",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:29.481077+00:00",
+      "request_cache_control": "no-cache",
+      "status": 503,
+      "content_type": "application/json; charset=utf-8",
+      "body_bytes": 94,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:28 GMT",
+        "Cache-Control": "no-store"
+      },
+      "body_sha256": "88e245c1b95ac931a91ac6362c340f014e304f0705b083294f97a0d4fa0da08b",
+      "signature": "JSON: DATASET_NOT_READY",
+      "elapsed_ms": 1.969
+    },
+    {
+      "site": "local-public",
+      "url": "http://127.0.0.1:8501/api/v1/nonexistent-c2b28",
+      "method": "GET",
+      "utc": "2026-10-16T13:20:30.183390+00:00",
+      "request_cache_control": "no-cache",
+      "status": 404,
+      "content_type": "application/json; charset=utf-8",
+      "body_bytes": 86,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:20:29 GMT",
+        "Cache-Control": "no-store"
+      },
+      "body_sha256": "cb907cb8dbc85fb061d1bed0ffa26d57b29d2ec9a2f2e95792740049fdecb3b4",
+      "signature": "JSON: NOT_FOUND",
+      "elapsed_ms": 1.692
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:16.669063+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:16 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 796.498
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/_stcore/health",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:18.166391+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "body_bytes": 2,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:17 GMT",
+        "Cache-Control": "no-cache"
+      },
+      "body_sha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+      "signature": "health: ok",
+      "elapsed_ms": 660.457
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/api/v1/dataset",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:19.527030+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:19 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 675.974
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/api/v1/candles",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:20.903428+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:20 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 660.723
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/api/v1/indicators",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:22.264394+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:21 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 679.304
+    },
+    {
+      "site": "production",
+      "url": "https://aiqr112wp035ec325382770.azurewebsites.net/api/v1/nonexistent-c2b28",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:23.644192+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:23 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 668.32
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:25.180195+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:24 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 961.364
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/_stcore/health",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:26.842126+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/plain; charset=utf-8",
+      "body_bytes": 2,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:25 GMT",
+        "Cache-Control": "no-cache"
+      },
+      "body_sha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+      "signature": "health: ok",
+      "elapsed_ms": 757.075
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/api/v1/dataset",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:28.299523+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:27 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 751.276
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/api/v1/candles",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:29.751260+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:28 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 769.169
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/api/v1/indicators",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:31.221262+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:30 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 754.972
+    },
+    {
+      "site": "staging",
+      "url": "https://aiqr112wp05wus27f5eabb5.azurewebsites.net/api/v1/nonexistent-c2b28",
+      "method": "GET",
+      "utc": "2026-10-16T13:18:32.676623+00:00",
+      "request_cache_control": "no-cache",
+      "status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "body_bytes": 10951,
+      "body_truncated": false,
+      "headers": {
+        "Server": "uvicorn",
+        "Date": "Fri, 16 Oct 2026 13:18:32 GMT",
+        "Cache-Control": "no-cache",
+        "ETag": "\"3bcb2d75098a5b87db5019cd2b012faa\""
+      },
+      "body_sha256": "2fab6bc0f84df613fc198156c44674f6be1b0999cb39c29b3698647b9598dd3b",
+      "signature": "HTML: Streamlit SPA",
+      "elapsed_ms": 755.408
+    }
+  ]
+}

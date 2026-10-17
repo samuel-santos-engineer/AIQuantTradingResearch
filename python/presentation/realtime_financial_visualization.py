@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any, Mapping
 from pathlib import Path
+import os
 import time
 
 import streamlit as st
@@ -16,6 +17,7 @@ from visualization_read_model import Envelope, ReadModelCache, resolve_handoff_p
 from historical_market_bridge import DEFAULT_SELECTION, PUBLIC_UNAVAILABLE, BridgeError, MarketResponse, invoke, QUALIFIED_DATASETS, QUALIFIED_WINDOWS
 from historical_market_bridge import PUBLIC_RUNTIME_VERIFIED
 from local_synthetic_chart import enabled as local_chart_enabled, load as load_local_chart
+from immutable_synthetic_chart import enabled as immutable_chart_enabled, load as load_immutable_chart
 from public_preview_api import LABEL as SYNTHETIC_LABEL
 
 FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
@@ -27,6 +29,8 @@ st.set_page_config(
 
 VIKE_PUBLIC_MESSAGE = "BTC-like Market Simulation — Synthetic Historical OHLCV"
 TWELVE_DATA_BOUNDARY_MESSAGE = "Twelve Data is retained for private/internal research, including real-time market-data studies. Twelve Data values from that research are not exposed through this public interface under the project's current data-access/licensing boundary."
+SYNTHETIC_DISCLOSURE = "SYNTHETIC / SIMULATED - NOT REAL MARKET DATA"
+
 RESEARCH_FOOTER = "Research and demonstration application \u2022 No trade execution"
 STALE_HISTORICAL_MESSAGE = "Showing the most recently validated historical data."
 EMPTY_HISTORICAL_MESSAGE = "No historical market data is available for this selection."
@@ -292,9 +296,10 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
     figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
-    figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate="Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
-    figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate="Volume: %{y}<extra></extra>"), row=2, col=1)
-    figure.update_layout(height=620, margin=dict(l=16, r=16, t=44, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
+    figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
+    figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Simulated activity: %{y}<extra></extra>"), row=2, col=1)
+    figure.update_layout(title=dict(text="BTC-like simulation<br>" + SYNTHETIC_DISCLOSURE, x=0.5, xanchor="center", font=dict(size=12)),
+                         height=620, margin=dict(l=16, r=16, t=78, b=16), xaxis_rangeslider_visible=False, hovermode="x unified", dragmode="pan")
     figure.update_yaxes(title_text="Price", row=1, col=1); figure.update_yaxes(title_text="Volume", row=2, col=1)
     figure.data[0].uid = "ohlc"
     figure.data[1].uid = "volume"
@@ -302,7 +307,7 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False) -> go.
         figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
                                    y=[None if r.sma20 is None else float(r.sma20) for r in response.analytics.rows],
                                    name="SMA (20)", uid="sma20", mode="lines", line=dict(color="#d9a400", width=2),
-                                   visible=show_sma, hovertemplate="SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
+                                   visible=show_sma, hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>SMA (20): %{y:.4f}<extra></extra>"), row=1, col=1)
     figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
     return figure
 
@@ -363,7 +368,10 @@ def render_market_research() -> None:
     st.info("Selections are limited to 90 completed UTC days. The qualified reference dataset covers "
             "26 October 2025 through 30 September 2026. Rolling daily updates are not enabled.")
     local_mode = local_chart_enabled(st.get_option("server.address"))
-    if not PUBLIC_RUNTIME_VERIFIED and not local_mode:
+    immutable_mode = immutable_chart_enabled(st.get_option("server.address"))
+    if os.environ.get("AIQ_IMMUTABLE_CHART_CANDIDATE") == "1" and os.environ.get("AIQ_LOCAL_CHART") == "1":
+        local_mode = immutable_mode = False
+    if not PUBLIC_RUNTIME_VERIFIED and not (local_mode or immutable_mode):
         # Do not invoke even the disabled process bridge, retain an old chart, or
         # read a private handoff while public execution remains unqualified.
         st.session_state.pop("wp05_market_response", None)
@@ -379,6 +387,8 @@ def render_market_research() -> None:
     range_value = st.selectbox("Range", ("1D", "7D", "30D", "90D"), index=2)
     selection = (symbol, interval, range_value)
     def acquire():
+        if immutable_mode:
+            return load_immutable_chart(*selection, server_address=st.get_option("server.address"))
         return load_local_chart(*selection, server_address=st.get_option("server.address")) if local_mode else invoke(*selection)
     if market_session_request(st.session_state, selection):
         try:
@@ -467,6 +477,26 @@ def render_ml_automation_studies() -> None:
     render_research_footer()
 
 
+def render_system_health() -> None:
+    st.session_state.pop("wp05_cache", None)
+    st.title("System Health")
+    st.info("Application interface: responding.")
+    address = st.get_option("server.address")
+    if not immutable_chart_enabled(address):
+        st.info("Synthetic chart: disabled for this runtime.")
+    else:
+        try:
+            # Use the same bounded, pinned validation as the chart; never read a private handoff.
+            load_immutable_chart("btc-like-simulation", "1h", "1D", server_address=address)
+        except BridgeError:
+            st.warning("Synthetic chart: unavailable. The bundled dataset could not be validated.")
+        else:
+            st.success("Synthetic chart: available. The bundled synthetic dataset passed validation.")
+    st.info("Public data APIs: intentionally disabled.")
+    st.caption("Checks reflect this page load. Azure infrastructure monitoring is not included.")
+    render_research_footer()
+
+
 def render() -> None:
     now = time.monotonic()
     previous = st.session_state.get('wp07_last_interaction', now)
@@ -482,13 +512,7 @@ def render() -> None:
     if navigation == "Architecture & Data Governance":
         render_architecture()
         return
-    # Public health has no independent operational handoff yet. Never consult the private
-    # historical/replay envelope; the truthful unavailable state contains no data or paths.
-    st.session_state.pop('wp05_cache', None)
-    st.title("System Health")
-    st.info(SYSTEM_HEALTH_UNAVAILABLE_MESSAGE)
-    st.warning("System Health: Health evidence is unavailable; visualization data may still be available.")
-    render_research_footer()
+    render_system_health()
 
 
 if __name__ == "__main__":
