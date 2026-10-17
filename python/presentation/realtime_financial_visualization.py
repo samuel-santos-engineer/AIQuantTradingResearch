@@ -477,6 +477,26 @@ def render_ml_automation_studies() -> None:
     render_research_footer()
 
 
+def render_system_health() -> None:
+    st.session_state.pop("wp05_cache", None)
+    st.title("System Health")
+    st.info("Application interface: responding.")
+    address = st.get_option("server.address")
+    if not immutable_chart_enabled(address):
+        st.info("Synthetic chart: disabled for this runtime.")
+    else:
+        try:
+            # Use the same bounded, pinned validation as the chart; never read a private handoff.
+            load_immutable_chart("btc-like-simulation", "1h", "1D", server_address=address)
+        except BridgeError:
+            st.warning("Synthetic chart: unavailable. The bundled dataset could not be validated.")
+        else:
+            st.success("Synthetic chart: available. The bundled synthetic dataset passed validation.")
+    st.info("Public data APIs: intentionally disabled.")
+    st.caption("Checks reflect this page load. Azure infrastructure monitoring is not included.")
+    render_research_footer()
+
+
 def render() -> None:
     now = time.monotonic()
     previous = st.session_state.get('wp07_last_interaction', now)
@@ -492,13 +512,7 @@ def render() -> None:
     if navigation == "Architecture & Data Governance":
         render_architecture()
         return
-    # Public health has no independent operational handoff yet. Never consult the private
-    # historical/replay envelope; the truthful unavailable state contains no data or paths.
-    st.session_state.pop('wp05_cache', None)
-    st.title("System Health")
-    st.info(SYSTEM_HEALTH_UNAVAILABLE_MESSAGE)
-    st.warning("System Health: Health evidence is unavailable; visualization data may still be available.")
-    render_research_footer()
+    render_system_health()
 
 
 if __name__ == "__main__":
