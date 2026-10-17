@@ -66,6 +66,28 @@ class LocalChartTests(unittest.TestCase):
             with self.assertRaises(BridgeError): ui.acquire_immutable_chart(("btc-like-simulation", "4h", "1D"), "0.0.0.0")
             load.assert_called_once()
 
+    def test_rsi_macd_have_separate_aligned_panels_and_preserve_nulls(self):
+        times = ("2026-09-30T00:00:00Z", "2026-09-30T01:00:00Z")
+        candles = tuple(Candle(t, Decimal(10), Decimal(12), Decimal(9), Decimal(11), Decimal(100)) for t in times)
+        rows = (IndicatorRow(times[0], Decimal(10), Decimal(10), Decimal(40), Decimal("-1.25"), Decimal(-1), Decimal("-0.25"), Decimal(9), Decimal(10), Decimal(11)),
+                IndicatorRow(times[1], *([None] * 9)))
+        response = MarketResponse("Available", "btc-like-simulation", "1h", "1D", candles, "independent-synthetic", None, None, False, None, {}, Analytics({}, rows))
+        off = ui.build_market_figure(response)
+        on = ui.build_market_figure(response, True, True, True, True, True)
+        names = {t.name: t for t in on.data}
+        self.assertNotIn("RSI (14)", {t.name for t in off.data})
+        self.assertNotIn("MACD histogram", {t.name for t in off.data})
+        self.assertEqual((0, 100), tuple(on.layout.yaxis3.range))
+        self.assertEqual("y3", names["RSI (14)"].yaxis)
+        self.assertEqual([40.0, None], list(names["RSI (14)"].y))
+        for name, values in (("MACD (12, 26)", [-1.25, None]), ("MACD signal (9)", [-1.0, None]), ("MACD histogram", [-0.25, None])):
+            self.assertEqual("y4", names[name].yaxis)
+            self.assertEqual(list(times), list(names[name].x))
+            self.assertEqual(values, list(names[name].y))
+        self.assertEqual("bar", names["MACD histogram"].type)
+        self.assertEqual(off.data[0].to_plotly_json(), on.data[0].to_plotly_json())
+        self.assertEqual(off.data[1].to_plotly_json(), on.data[1].to_plotly_json())
+
     def test_health_validates_current_bundle_without_private_handoff(self):
         streamlit = Mock(session_state={"wp05_cache": "stale"})
         streamlit.get_option.return_value = "0.0.0.0"

@@ -292,10 +292,12 @@ def render_visualization_frame(frame: VisualizationFrame) -> None:
             st.write({label: value})
 
 
-def build_market_figure(response: MarketResponse, show_sma: bool = False, show_ema: bool = False, show_bollinger: bool = False) -> go.Figure:
+def build_market_figure(response: MarketResponse, show_sma: bool = False, show_ema: bool = False, show_bollinger: bool = False, show_rsi: bool = False, show_macd: bool = False) -> go.Figure:
     """Build the bounded client-side candlestick/volume figure from canonical bridge data."""
     candles = response.candles
-    figure = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.03, row_heights=[0.72, 0.28])
+    panel_count = int(show_rsi) + int(show_macd)
+    figure = make_subplots(rows=2 + panel_count, cols=1, shared_xaxes=True, vertical_spacing=0.03,
+                           row_heights=[0.72, 0.28] if not panel_count else [0.52, 0.18] + [0.30 / panel_count] * panel_count)
     figure.add_trace(go.Candlestick(x=[c.open_time_utc for c in candles], open=[float(c.open) for c in candles], high=[float(c.high) for c in candles], low=[float(c.low) for c in candles], close=[float(c.close) for c in candles], name="OHLC", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Open: %{open}<br>High: %{high}<br>Low: %{low}<br>Close: %{close}<extra></extra>"), row=1, col=1)
     figure.add_trace(go.Bar(x=[c.open_time_utc for c in candles], y=[float(c.volume) for c in candles], name="Volume", hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>Simulated activity: %{y}<extra></extra>"), row=2, col=1)
     figure.update_layout(title=dict(text="BTC-like simulation<br>" + SYNTHETIC_DISCLOSURE, x=0.5, xanchor="center", font=dict(size=12)),
@@ -317,6 +319,27 @@ def build_market_figure(response: MarketResponse, show_sma: bool = False, show_e
                                        y=[None if getattr(r, field) is None else float(getattr(r, field)) for r in response.analytics.rows],
                                        name=label, uid=field, mode="lines", line=dict(color=color, width=1.5, dash=dash), visible=visible,
                                        hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>" + label + ": %{y:.4f}<extra></extra>"), row=1, col=1)
+        panel = 3
+        def lower_trace(field, label, color, row):
+            figure.add_trace(go.Scatter(x=[r.open_time_utc for r in response.analytics.rows],
+                                       y=[None if getattr(r, field) is None else float(getattr(r, field)) for r in response.analytics.rows],
+                                       name=label, uid=field, visible=True, mode="lines", line=dict(color=color, width=1.5),
+                                       hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>" + label + ": %{y:.4f}<extra></extra>"), row=row, col=1)
+        if show_rsi:
+            lower_trace("rsi14", "RSI (14)", "#9254b5", panel)
+            figure.update_yaxes(title_text="RSI (14)", range=[0, 100], fixedrange=True, row=panel, col=1)
+            panel += 1
+        if show_macd:
+            lower_trace("macd", "MACD (12, 26)", "#1874d1", panel)
+            lower_trace("macd_signal", "MACD signal (9)", "#d97a00", panel)
+            figure.add_trace(go.Bar(x=[r.open_time_utc for r in response.analytics.rows],
+                                   y=[None if r.macd_histogram is None else float(r.macd_histogram) for r in response.analytics.rows],
+                                   name="MACD histogram", uid="macd_histogram", visible=True,
+                                   marker_color=["#aaa" if r.macd_histogram is None else "#00aa88" if r.macd_histogram >= 0 else "#ee4444" for r in response.analytics.rows],
+                                   hovertemplate=SYNTHETIC_DISCLOSURE + "<br>Simulation time (UTC): %{x}<br>MACD histogram: %{y:.4f}<extra></extra>"), row=panel, col=1)
+            figure.update_yaxes(title_text="MACD (12, 26, 9)", zeroline=True, row=panel, col=1)
+    figure.update_layout(height=620 + 200 * panel_count)
+    figure.update_xaxes(title_text="Simulation time (UTC)", row=2 + panel_count, col=1)
     figure.update_layout(uirevision="|".join((response.symbol or "", response.interval or "", response.range or "")))
     return figure
 
@@ -445,8 +468,10 @@ def render_market_research() -> None:
             show_sma = st.checkbox("SMA (20)", value=False, key="market_sma20")
             show_ema = st.checkbox("EMA (20)", value=False, key="market_ema20")
             show_bollinger = st.checkbox("Bollinger Bands (20, 2)", value=False, key="market_bollinger")
+            show_rsi = st.checkbox("RSI (14)", value=False, key="market_rsi14")
+            show_macd = st.checkbox("MACD (12, 26, 9)", value=False, key="market_macd")
             st.caption("Bollinger Bands use population standard deviation. Indicators are calculated in C# from synthetic data.")
-    st.plotly_chart(build_market_figure(response, show_sma, show_ema, show_bollinger), use_container_width=True, key="market_chart",
+    st.plotly_chart(build_market_figure(response, show_sma, show_ema, show_bollinger, show_rsi, show_macd), use_container_width=True, key="market_chart",
                     config={"scrollZoom": True, "displaylogo": False})
     provenance = market_provenance_caption(response)
     if provenance:

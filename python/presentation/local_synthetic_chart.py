@@ -79,7 +79,7 @@ def parse(raw, interval, range_value):
         raise BridgeError("MalformedLocalSource")
     candles, indicators = [], []
     for i, row in enumerate(value["candles"]):
-        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper"}:
+        if not isinstance(row, dict) or set(row) != {"timeUtc", "open", "high", "low", "close", "volume", "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram"}:
             raise BridgeError("MalformedLocalSource")
         stamp = row["timeUtc"]
         if _utc_timestamp(stamp) != start + timedelta(hours=i * hours) or stamp != (start + timedelta(hours=i * hours)).strftime("%Y-%m-%dT%H:%M:%SZ"):
@@ -94,13 +94,16 @@ def parse(raw, interval, range_value):
         ema, lower, middle, upper = (indicator_decimal(row[k]) for k in ("ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper"))
         if not 0 < ema <= Decimal(10**9) or not lower <= middle <= upper or middle != sma or middle - lower != upper - middle:
             raise BridgeError("MalformedLocalSource")
-        indicators.append(IndicatorRow(stamp, sma, ema, None, None, None, None, lower, middle, upper))
+        rsi, macd, signal, histogram = (indicator_decimal(row[k]) for k in ("rsi14", "macd", "macdSignal", "macdHistogram"))
+        if not 0 <= rsi <= 100 or histogram != macd - signal:
+            raise BridgeError("MalformedLocalSource")
+        indicators.append(IndicatorRow(stamp, sma, ema, rsi, macd, signal, histogram, lower, middle, upper))
     canonical = "".join(",".join((c.open_time_utc, format(c.open, ".4f"), format(c.high, ".4f"), format(c.low, ".4f"),
                                   format(c.close, ".4f"), format(c.volume, ".3f"))) + "\n" for c in candles).encode("ascii")
     if hashlib.sha256(canonical).hexdigest() != QUALIFIED_VISIBLE[(interval, range_value)]:
         raise BridgeError("UnqualifiedLocalCandles")
     provenance = MappingProxyType({"source": "independent-synthetic", "status": "simulated", "calculationVersion": "aiq-ta-v1",
                                    "datasetFingerprint": value["datasetFingerprint"], "windowFingerprint": value["windowFingerprint"]})
-    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "availableIndicators": ("sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper")}), tuple(indicators))
+    analytics = Analytics(MappingProxyType({"context": "public-synthetic", "availableIndicators": ("sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram")}), tuple(indicators))
     return MarketResponse("Available", "btc-like-simulation", interval, range_value, tuple(candles), "independent-synthetic",
                           None, None, False, None, provenance, analytics)

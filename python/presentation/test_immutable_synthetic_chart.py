@@ -21,7 +21,7 @@ class ImmutableChartTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name) / "candidate"
         self.root.mkdir(mode=0o700)
-        self.manifest = dict(schema="aiq-chart-handoff-candidate-v2", generatorVersion="aiq-synthetic-ohlcv-v1", seed=114, files=[])
+        self.manifest = dict(schema="aiq-chart-handoff-candidate-v3", generatorVersion="aiq-synthetic-ohlcv-v1", seed=114, files=[])
         # Synthetic structure-only inputs. parse is mocked ONLY for filesystem/manifest tests;
         # independent full C# artifact integration is a separate explicit offline check.
         for name in reader.NAMES:
@@ -166,6 +166,9 @@ def qualify_generated_candidate(root):
         assert all(row.sma20 is not None for row in response.analytics.rows)
         print(f"PASS {name}: {expected_count} aligned visible C# SMA rows")
     mutations = {
+        "out-of-range-rsi": lambda p: p["candles"][0].update(rsi14="101.000000000000"),
+        "wrong-histogram": lambda p: p["candles"][0].update(macdHistogram="2999999999.000000000000"),
+        "null-macd": lambda p: p["candles"][0].update(macd=None),
         "wrong-selection": lambda p: p.update(interval="4h"),
         "missing-row": lambda p: p["candles"].pop(),
         "wrong-time": lambda p: p["candles"][0].update(timeUtc="2026-09-30T00:01:00Z"),
