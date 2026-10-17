@@ -1,3 +1,5 @@
+> FINAL C2B-35: staging PASS. PR #355 merged at 2faa7dca5ab14e2cb17d45208c197685253cbed2. Exact certified image promoted without rebuild; staging browser/API/health/startup checks passed; production unchanged. Historical failures below are retained.
+
 > Continuation: owner superseded the stop-on-failure instruction and authorized iterative local/staging repair. The final local gate below now PASS; initial failure evidence is retained. Staging promotion pending. Production remains protected.
 
 # C2B-35 - EMA20 and Bollinger overlays: blocked local browser gate
@@ -56,3 +58,11 @@ Owner explicitly authorized continued local Docker and staging repair. Rapid sup
 Final local candidate digest `sha256:ae6dfaafba7c7b23544ffe062bcf23df803ff4c1f0e2cdea0718356319d14f7e`; bundle pin unchanged from this phase's v2 artifact. Tests now 38 C# formula + 14 C# projection/export + 40 Python passed, all exit 0. All twelve C# timestamp/indicator arrays exactly matched browser traces. SMA/EMA/Bollinger controls actually changed traces off/on/off on 1D and 30D. Final local HTTP root/health 200, data APIs 503 JSON, unknown API 404 JSON and inspected asset/admin boundaries passed. Runtime remains constrained/unprivileged/read-only. Final chart screenshot visually reviewed. Failed original run, helper error and later passing runs are retained separately.
 
 Current proof files: python-tests-retry.txt, local-browser-final.txt, local-browser-proof.json, local-all-overlays.png, local-hover.png, local-routes.txt and image-metadata-retry.json. Source commit 56896ac plus this evidence-only update; production remains at original digest. Staging rollback captured in before.json; do not rebuild the certified image after this point.
+
+## Staging acceptance PASS
+
+Exact certified image `sha256:ae6dfaafba7c7b23544ffe062bcf23df803ff4c1f0e2cdea0718356319d14f7e`, config `sha256:1970d75c7f875f3b16c230b9ccc9d821339862d58f8270f2e15f0042a93f424f`. Registry and staging readback matched. Initial registry helper comparison mistook Docker Desktop Id (manifest) for OCI config; corrected to recorded build config before any deployment.
+
+Promoted only to existing staging aiqr112wp05wus27f5eabb5, West US2 F1. Native staging browser passed all 12 selections with exact C# timestamp/value comparisons, SMA/EMA/Bollinger off/on/off on 1D/30D, synthetic label/hover, zoom/pan. System Health passed, root/health 200, public APIs 503 JSON, unknown API 404 JSON, inspected asset/admin boundaries passed. Corrected the startup-log reader to inspect Azure StartupLogs success files rather than only *_docker.log. Logs show a startup cancelled by the explicit authorized restart at 02:40:31Z, followed by new-image successful probe and Site started at 02:41:17Z; no unexplained restart loop. Retain original log archive locally, commit only sanitized findings.
+
+Rollback image/config captured: sha256:8cd59fb3760b5bf3d34284f4f035c41dda25fa899dd271b3eb0468c353815090. No rollback needed. PowerShell 5.1 verification script automatically rolls back staging upon failed browser/API/digest checks. Production readback remained original 8cd59fb digest, empty command and scmType None; no production mutation. PUBLIC_RUNTIME_VERIFIED=False; WP07 ON HOLD. All local tests: 38 C# formula + 14 C# projection/export + 40 Python. Final evidence final.json, staging-browser-proof.json, staging-routes.txt, health screenshot and staging-startup-summary.json. Only now may C2B-36 begin.
