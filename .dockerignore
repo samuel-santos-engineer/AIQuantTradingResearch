@@ -3,6 +3,7 @@
 .vs
 .vscode
 .venv
+**/_immutable_chart_candidate
 **/__pycache__
 **/*.py[cod]
 **/bin

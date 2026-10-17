@@ -1,6 +1,6 @@
 import unittest
 from decimal import Decimal
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import local_synthetic_chart as adapter
 import realtime_financial_visualization as ui
@@ -27,6 +27,35 @@ class LocalChartTests(unittest.TestCase):
             with self.subTest(payload=payload), self.assertRaises(BridgeError):
                 adapter.parse(payload, "1h", "30D")
 
+    def test_health_validates_current_bundle_without_private_handoff(self):
+        streamlit = Mock(session_state={"wp05_cache": "stale"})
+        streamlit.get_option.return_value = "0.0.0.0"
+        with patch.object(ui, "st", streamlit), patch.object(ui, "immutable_chart_enabled", return_value=True), \
+             patch.object(ui, "load_immutable_chart") as load, patch.object(ui, "resolve_handoff_path") as private:
+            ui.render_system_health()
+            load.assert_called_once_with("btc-like-simulation", "1h", "1D", server_address="0.0.0.0")
+            private.assert_not_called()
+        streamlit.success.assert_called_once()
+        streamlit.warning.assert_not_called()
+        self.assertNotIn("wp05_cache", streamlit.session_state)
+
+    def test_health_reports_failed_validation_without_claiming_success(self):
+        streamlit = Mock(session_state={})
+        with patch.object(ui, "st", streamlit), patch.object(ui, "immutable_chart_enabled", return_value=True), \
+             patch.object(ui, "load_immutable_chart", side_effect=BridgeError("ImmutableCandidateUnavailable")):
+            ui.render_system_health()
+        streamlit.warning.assert_called_once()
+        streamlit.success.assert_not_called()
+
+    def test_disabled_health_does_not_read_dataset_or_claim_success(self):
+        streamlit = Mock(session_state={})
+        with patch.object(ui, "st", streamlit), patch.object(ui, "immutable_chart_enabled", return_value=False), \
+             patch.object(ui, "load_immutable_chart") as load:
+            ui.render_system_health()
+            load.assert_not_called()
+        streamlit.success.assert_not_called()
+        streamlit.warning.assert_not_called()
+
     def test_toggle_changes_only_supplied_sma_visibility_with_stable_chart_identity(self):
         # UI-only contract test; actual C# values and complete selections are tested in .NET/HTTP.
         times = ("2026-09-30T00:00:00Z", "2026-09-30T01:00:00Z")
@@ -45,6 +74,16 @@ class LocalChartTests(unittest.TestCase):
         self.assertFalse(on.layout.xaxis.rangeslider.visible)
         self.assertIn("High", on.data[0].hovertemplate)
         self.assertEqual("Volume", on.layout.yaxis2.title.text)
+        # Figure-owned labels also survive Plotly's native PNG export, unlike page captions.
+        self.assertIn(ui.SYNTHETIC_DISCLOSURE, on.layout.title.text)
+        self.assertIn("BTC-like simulation", on.layout.title.text)
+        self.assertEqual(off.layout.title.text, on.layout.title.text)
+        for trace in on.data:
+            self.assertIn(ui.SYNTHETIC_DISCLOSURE, trace.hovertemplate)
+            self.assertIn("Simulation time (UTC)", trace.hovertemplate)
+        self.assertEqual([float(c.open) for c in candles], list(on.data[0].open))
+        self.assertEqual([float(c.volume) for c in candles], list(on.data[1].y))
+
 
 
 if __name__ == "__main__":
