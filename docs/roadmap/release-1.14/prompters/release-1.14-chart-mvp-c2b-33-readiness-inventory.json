@@ -192,5 +192,17 @@
     "evidenceDirectory": "C:\\Users\\sabsf\\AppData\\Local\\Temp\\aiq-c2b33-fix-57251c2e453f4476ade2996f9805bcf2",
     "publicRoutes": "dataset/candles/indicators 503",
     "PUBLIC_RUNTIME_VERIFIED": false
+  },
+  "consolidation": {
+    "currentEvidence": "release-1.14-c2b33-azure-synthetic-deployment-evidence.md",
+    "developmentSitesVerified": [
+      "aiqr112wp035ec325382770",
+      "aiqr112wp05wus27f5eabb5"
+    ],
+    "deployedPlatformManifest": "sha256:8cd59fb3760b5bf3d34284f4f035c41dda25fa899dd271b3eb0468c353815090",
+    "focusedTestsPassed": 36,
+    "PUBLIC_RUNTIME_VERIFIED": false,
+    "rawDataApis": "503 DATASET_NOT_READY",
+    "advancedWp07": "ON HOLD"
   }
 }

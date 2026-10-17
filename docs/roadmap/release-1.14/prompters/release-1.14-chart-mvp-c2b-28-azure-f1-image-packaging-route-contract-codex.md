@@ -1,8 +1,8 @@
 # C2B-28 — Azure F1 Image Packaging and Route-Contract Reconciliation
 
-**Repository:** `samuel-santos-engineer/AIQuantTradingResearch`  
-**Release:** 1.14 Chart MVP  
-**Authority type:** Bounded Codex investigation, design and local Linux Docker qualification only  
+**Repository:** `samuel-santos-engineer/AIQuantTradingResearch`\
+**Release:** 1.14 Chart MVP\
+**Authority type:** Bounded Codex investigation, design and local Linux Docker qualification only\
 **Disposition:** Owner-approved planning/local verification; **NOT** authorization to merge, promote an artifact, publish a registry image, modify Azure, deploy or activate public data routes.
 
 ## 1. Context and immutable boundaries

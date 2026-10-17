@@ -1,3 +1,5 @@
+> Consolidation update: subsequent owner-authorized development deployment and System Health fixes passed on both Azure webapps. Current evidence and final image digest are in `release-1.14-c2b33-azure-synthetic-deployment-evidence.md`. Earlier local-only and dependency-stop statements below are historical. PUBLIC_RUNTIME_VERIFIED=False; raw data APIs and advanced WP07 remain disabled.
+
 # C2B-33 - Synthetic figure disclosure fix and local screening
 
 Owner follow-up authorizes the narrow disclosure correction. Local Linux screening PASS; owner review required. PUBLIC_RUNTIME_VERIFIED=False; Azure/public activation NO-GO; advanced WP07 ON HOLD.
