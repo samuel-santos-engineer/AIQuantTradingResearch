@@ -1,37 +1,38 @@
 # Docker-first Linux release qualification policy
 
-**Status:** Proposed governance change — owner review required.  
-**Scope:** AIQuantTradingResearch public application and Release 1.14 chart showcase; subsequent public-runtime release candidates unless explicitly superseded by an owner-approved governance change.  
+**Status:** Proposed Release 1.15 clarification — effective only after owner review and merge of this amendment.  
+**Scope:** AIQuantTradingResearch public application; preserve Release 1.14 synthetic qualification history and support a separately authorized Release 1.15 historical crypto-chart candidate.  
 **Target:** Azure App Service **Linux F1** custom container.  
-**Effective:** Only after this PR is reviewed and merged; this document alone does not authorize deployment or override existing release gates.
+**Authority:** Qualification policy only, not implementation, provider, release or deployment authorization.
 
 ## Decision and intent
 
-The canonical runtime and release-qualification environment is the **local Linux Docker container image intended for deployment**. Windows is an optional developer workstation, not a supported production runtime or certification target. Minimize operational complexity: qualify the actual deployable artifact rather than maintaining parallel Windows and Linux runtime paths.
+The canonical release-qualification environment is the **actual Linux Docker image intended for deployment**. Windows may be a development workstation but is not a production/certification runtime. Build and qualify one immutable image and, only after separate approval, promote its exact digest.
 
 ## Binding rules
 
-1. **Container-only release acceptance.** Functional, integration, chart/browser, security-boundary, filesystem and startup acceptance evidence for the public runtime MUST be collected against a locally executed Linux Docker image. Host-only Windows results may inform debugging, but MUST NOT count as release certification.
-2. **One immutable deployable image.** Build and qualify one image, record its immutable digest, and promote **that exact digest** to the registry and Azure Linux F1. Do not rebuild, mutate or substitute image contents between qualification and deployment. Registry promotion and deployment remain separately authorized actions.
-3. **Single-process presentation by default.** Prefer the existing Streamlit/Plotly presentation runtime, with no live C# worker or second HTTP service in the Azure request path. C# calculations may run **offline during an authorized artifact-generation/build step**; the running public container reads only the approved immutable output.
-4. **Self-contained immutable synthetic data.** Where compatible with licensing, provenance, and explicit owner authorization, package a deterministic, versioned, checksummed synthetic OHLCV/SMA handoff inside the image as read-only assets. Verify manifest, hashes, fixed selections, bounds, permissions, and failure-closed behavior. Do not package provider credentials, private replay, warmup-only rows or unapproved data.
-5. **Linux runtime requirements.** Validate the deployed entrypoint, port 8501, non-root/read-only permissions where applicable, startup and health behavior, bounded memory/CPU/PID use, concurrent access, and no unplanned outbound network or secondary processes. Local F1-like limits are **screening evidence only**, not proof of Azure F1 capacity.
-6. **Browser acceptance on the container.** Run a real browser against the locally running Linux image to verify candles, volume, supported interval/range selectors, Technical Analysis popover, SMA(20) off/on/off, hover, zoom, pan and toolbar. A browser may execute on a test host if it exercises the **containerized Linux application** through explicitly controlled local-only ingress; this does not make the host a certification runtime. Document any narrowly scoped ingress and confirm it is not published publicly.
-7. **No Windows parity mandate.** Do not require native Windows execution, Windows-specific packaging, Windows service behavior or Windows browser acceptance as conditions for public release. Existing offline Windows development evidence can remain historical; it does not substitute for Linux-image evidence.
-8. **Provenance and repeatability.** Record source commit, Dockerfile/build inputs, image digest, dataset manifest/hashes, commands, test results, runtime constraints, observed failures and cleanup. Preserve the same data and application bits through promotion; document any unavoidable environment configuration separately.
-9. **Per-site Azure verification.** After separately authorized deployment, check the exact digest, configuration, startup/health, resource behavior, browser UX, API status and rollback for **each** Azure F1 site. Passing local Docker qualification does not imply public runtime verification.
-10. **Minimalism and change control.** Do not add new services, paid Azure resources, Windows compatibility work, new provider dependencies or production data access merely to satisfy this policy. Exceptions require an explicit owner decision, a documented rationale and a narrowly scoped PR.
+1. **Container-only release acceptance.** Functional, integration, browser, security, filesystem and startup evidence MUST exercise a locally executed Linux image. Windows host-only evidence does not certify the public runtime.
+2. **One immutable deployable image.** Record source/build provenance and image digest; do not rebuild or substitute bits between qualification, registry promotion and Azure deployment. Promotion and deployment each require separate authorization.
+3. **Runtime profiles are release-specific.** For the historical Release 1.14 synthetic showcase, prefer the existing single-process Streamlit/Plotly runtime with approved immutable synthetic handoff and offline C# calculations. For a **separately authorized Release 1.15 historical candidate**, a **single image with a minimal PID1 supervisor and two isolated non-root processes**—private C# ingestion/research and public Streamlit/Plotly—is an allowed architecture, subject to the Release 1.15 governance and qualification gates. This exception does not authorize any provider access or deployment.
+4. **Dataset and source policy.** The Release 1.14 synthetic handoff remains checksummed, immutable and clearly synthetic. The Release 1.15 proposal instead uses bounded, private SQLite real historical data with transformed public presentation **only after verified provider rights**. Never package provider credentials, private replay, raw restricted candles or secrets in publicly readable image assets or public routes. Do not treat HMAC transformation as a license.
+5. **Linux runtime security.** Verify correct PID1/supervisor behavior, restart limits, health/startup, public port 8501, separate non-root identities, strict file/secret permissions, SQLite/WAL/checkpoint isolation, loopback-only private API, public process environment sanitization, bounded memory/CPU/PID use and concurrent access. Test that the public identity cannot read research-only files/secrets or reach private services from external ingress. No unplanned outbound network: any future provider egress requires specific approval.
+6. **Browser acceptance on container.** Use a real browser against the running Linux image. Release 1.14 tests cover synthetic candles, volume, range/interval, technical analysis, hover, zoom, pan and toolbar. Release 1.15 tests additionally cover BTC/USD and ETH/USD selection, indicators, historical viewport retention, reconnect/disconnect and last-known data, corrections/intervals, truthful transformed labels and status. Use deterministic isolated fixtures; no live provider dependency in CI.
+7. **No Windows parity mandate.** Native Windows runtime or browser parity is not a release gate; historical Windows evidence may inform debugging.
+8. **Provenance and repeatability.** Record source commit, Docker inputs, immutable digest, approved dataset provenance/manifest where applicable, commands, results, observed limits, failures and cleanup. Distinguish environment configuration from image bits.
+9. **Per-site Azure verification.** After separately authorized deployment, verify exact digest, configuration, health, resource use, browser UX, API status and rollback at each Azure F1 site. Local F1-like limits are screening evidence, not Azure F1 capacity proof.
+10. **Minimalism and change control.** No extra paid service, Windows compatibility program, public private API, provider integration or security exception merely to satisfy qualification. Deviations require explicit owner approval and scoped PR.
 
 ## Release gates and non-authorizations
 
-This policy changes **where qualification occurs**, not **who may authorize release**. It does not relax existing G-B0–G-B7, WP07, artifact export/promotion, security, provenance, licensing or readiness controls. If a gate conflicts with a proposed packaging or test technique, stop and request owner disposition rather than bypassing it.
+This policy governs **where and how** qualification is performed, not who authorizes release. Preserve G-B0–G-B7, WP07, provider licensing, provenance, dataset readiness, security, immutable image promotion and owner approvals. On conflict, stop and request owner disposition; do not bypass gates.
 
-For the current Release 1.14 candidate, PR #346 (documentation) and PR #347 (immutable handoff implementation) remain independently reviewable. Their acceptance is not implied by this governance PR. Linux browser acceptance and authorized immutable-artifact packaging/promotion still need evidence. Until expressly changed through the existing process: `PUBLIC_RUNTIME_VERIFIED=False`, public data routes remain `503 DATASET_NOT_READY`, Azure publication is **NO-GO**, and advanced WP07 is **ON HOLD**.
+Release 1.14's existing synthetic image and evidence remain historical and must not be silently mutated. C2B-32 remains ABORTED; C2B-31 remains DEFERRED. The proposed Release 1.15 dual-process runtime is a **candidate**, not a deployment authority. Until separately authorized and independently qualified, `PUBLIC_RUNTIME_VERIFIED=False`, public deployment/activation **NO-GO**, and advanced WP07 **ON HOLD**. Preserve existing unavailable public-API behavior where applicable.
 
 ## Review checklist
 
-- [ ] Owner approves Linux Docker image as the exclusive public-runtime certification target
-- [ ] Owner accepts that Windows host/native parity is not a release requirement
-- [ ] Existing protected governance and release gates are preserved
-- [ ] CI/release instructions are aligned in a separately scoped implementation PR if needed
-- [ ] No image build, Azure change, merge, deployment or artifact promotion occurred in this governance PR
+- [ ] Owner accepts Linux Docker image as exclusive public-runtime certification target.
+- [ ] Owner accepts a narrowly scoped two-process exception for Release 1.15 only after separate implementation authority.
+- [ ] Owner confirms the Release 1.14 synthetic baseline and all protected gates remain intact.
+- [ ] Owner requires independent provider-rights evidence before any public real-derived display.
+- [ ] CI/release implementation changes, if any, are handled in separately scoped PRs.
+- [ ] No image build, provider call, registry push, Azure deployment, merge or data activation occurs through this governance PR.
