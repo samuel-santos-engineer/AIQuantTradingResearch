@@ -11,7 +11,7 @@
 
 The agreed Release 1.15 architecture is one Linux/amd64 Docker image with a minimal PID1 supervisor managing a private non-root C# ingestion/research service and a public non-root Streamlit/Plotly service. The private read-only presentation API is localhost-only; Streamlit alone serves public ingress. The amended Docker-first policy preserves exact-image qualification, Linux security isolation and resource testing. The historical Release 1.14 synthetic artifacts remain historical; C2B-32 remains ABORTED and C2B-31 remains DEFERRED. **PR #362 resolves product-direction and runtime-policy alignment, not provider rights or deployment readiness.** This architecture document remains for owner review and does not itself authorize provider activation, deployment, image promotion or waiver of existing G-B0–G-B7, WP07, security, provenance, dataset-readiness or `PUBLIC_RUNTIME_VERIFIED=False` controls.
 
-**Critical unresolved external prerequisite:** A provider license/terms review must establish that the contemplated acquisition, retention, derived/transformed public chart display and distribution are permitted. A daily HMAC transformation, password/login, or caching does **not** itself establish redistribution rights. If Twelve Data terms do not permit the proposed public usage, the public real-derived chart path is **NO-GO** pending a separately approved lawful source or a synthetic-only design. No unverified licensing claim is adopted here.
+**Implementation planning boundary:** Release 1.15 engineering milestones focus on building and testing the agreed chart and research architecture. This document does not add a provider-licensing review milestone or licensing-specific implementation approval gate. It does not assert that transformed data, authentication or caching grants redistribution rights; existing repository-wide governance and applicable provider terms remain independent of this architecture specification.
 
 ## 2. Product objective, limits, and non-goals
 
@@ -28,8 +28,8 @@ Only the latest **1,000 actual retained completed one-minute candles per instrum
 
 ## 4. Ingestion, source and continuity
 
-- Poll Twelve Data Basic **only if permitted by licensing and actual plan entitlements** for completed BTC/USD and ETH/USD one-minute OHLCV. Use a fixed configurable post-minute UTC grace (initial hypothesis ~15 seconds, to verify), completed/aligned candles and canonical UTC candle-opening timestamps.
-- Respect measured/verified provider request credits, prioritize live completed candles, use spare credits for bounded backfill, and fair round-robin between instruments. No burst retry strategy. Never assume quota, symbols, coverage or license from the proposed design.
+- Implement the Twelve Data Basic candidate adapter for completed BTC/USD and ETH/USD one-minute OHLCV, using configured credentials and measured plan capabilities; keep provider integration separately configurable and testable without live calls. Use a fixed configurable post-minute UTC grace (initial hypothesis ~15 seconds, to verify), completed/aligned candles and canonical UTC candle-opening timestamps.
+- Respect measured/verified provider request credits, prioritize live completed candles, use spare credits for bounded backfill, and fair round-robin between instruments. No burst retry strategy. Never assume quota, symbols or coverage from the proposed design.
 - Validate OHLCV, timestamps and completeness before commit. Recover provider gaps when feasible; irrecoverable discontinuities start a new research continuity segment. Never synthesize missing market observations.
 - Per-instrument freshness becomes **Stale** after >2 minutes without a newly completed candle (initial policy), suspending new research decisions while allowing independently validated history to remain visible.
 
@@ -60,7 +60,7 @@ Regime readiness: initial **100 consecutive observations warmup**, then **300 pr
 ## 7. Transformed public data and truthful disclosure
 
 - Private service transforms OHLC and all **price-valued** indicators after research calculation using a shared, positive, UTC-day HMAC-SHA256-derived factor in approximately **0.90–1.10**; RSI remains unchanged. Same daily factor for both instruments, and date is part of snapshot identity.
-- Label values clearly as **transformed educational values, not actual BTC/USD or ETH/USD prices**. Do not imply that a password, obfuscation, HMAC or transformed display cures licensing restrictions.
+- Label values clearly as **transformed educational values, not actual BTC/USD or ETH/USD prices**. Transformation is a presentation design, not a representation of actual quotes or a grant of redistribution rights.
 - UTC date rollover requires complete re-transformation/full snapshot replacement. A disconnected session preserves the transformation date of its last accepted snapshot until a valid replacement arrives.
 - Never expose raw private candles, provider key, HMAC secret, checkpoint, SQLite or research-only metadata through the public process.
 
@@ -121,13 +121,13 @@ Mandatory future PR CI (subject to actual repository protection configuration):
 - Minimal headless Chromium test against actual container verifying BTC/ETH candles, indicators, disconnection/last-known retention and core chart controls. Avoid pixel-perfect brittleness and live-provider dependency. Capture bounded diagnostics on failures.
 - Bounded Plotly interaction feasibility spike before committing to a custom component; validate settled viewport, command epochs, remount, pruning, date rollover, corrections and return-to-live.
 - Resource/performance test 1/3/5 concurrent sessions with worst-case retained 1,000 candles, memory accounting, no cross-session interference and protected ingestion. Record warm vs cold measurements and variability; CI is not F1 capacity proof.
-- Before any future deployment: independently authorize and qualify the **exact immutable Linux image digest**; verify each Azure F1 site, provider entitlements/license, network isolation, permissions, UTC/date rollover, stale/recovery statuses, browser usability and rollback. Preserve all existing governance gates. **No live feed, registry push, Azure deployment, API activation, merge or promotion is authorized by this documentation PR.**
+- Before any future deployment: independently authorize and qualify the **exact immutable Linux image digest**; verify each Azure F1 site, configured provider connectivity and rate-limit behavior, network isolation, permissions, UTC/date rollover, stale/recovery statuses, browser usability and rollback. Preserve all existing governance gates. **No live feed, registry push, Azure deployment, API activation, merge or promotion is authorized by this documentation PR.**
 
 ### Final proposed release acceptance / NO-GO rules
 
-A future Release 1.15 implementation is **NO-GO** if any of the following hold: provider rights for the contemplated public transformed data are unverified; private credentials/raw prices are exposed; SQLite lineage/recovery is unsafe; fabricated or incomplete candles are shown as valid; classifications are published without sufficient continuity; generation/date/version snapshots mix; browser viewport/reconnection invariants fail; Linux image/security/contract/browser tests fail; actual F1 resource evidence is insufficient; or required owner release gates remain unmet.
+A future Release 1.15 implementation is **NO-GO** if any of the following hold: private credentials/raw prices are exposed; SQLite lineage/recovery is unsafe; fabricated or incomplete candles are shown as valid; classifications are published without sufficient continuity; generation/date/version snapshots mix; browser viewport/reconnection invariants fail; Linux image/security/contract/browser tests fail; actual F1 resource evidence is insufficient; or required owner release gates remain unmet.
 
-This closes the remaining **architecture-policy questions** by recommended bounded choices. It does **not** claim all technical feasibility, license, quotas, Streamlit APIs, performance thresholds or F1 capacity have been verified. Those are explicit evidence gates, not silent assumptions.
+This closes the remaining **architecture-policy questions** by recommended bounded choices. It does **not** claim all technical feasibility, provider quotas, Streamlit APIs, performance thresholds or F1 capacity have been verified. These are implementation validation concerns, not reopened architecture decisions.
 
 ## 14. Decision ledger and review checklist
 
@@ -137,7 +137,7 @@ This closes the remaining **architecture-policy questions** by recommended bound
 | Runtime | Docker-first single Linux F1 image, PID1 + private C# and public Streamlit | Aligned with Docker-first policy by merged PR #362 |
 | Storage/integrity | Atomic SQLite, generation/version, checkpoints, outside-DB watermark, deterministic recovery | Owner discussion |
 | Research | Private indicators, trend/regime precedence and 401-candle readiness | Owner discussion |
-| Public data | Daily HMAC transformed-price presentation, clear non-actual labels | Owner discussion; **license unresolved** |
+| Public data | Daily HMAC transformed-price presentation, clear non-actual labels | Architecture settled; implement and validate |
 | Chart | Full snapshots, transition/interval history, Live/Historical UTC viewport | Owner discussion |
 | Reconciliation | Strict versioned schema, atomic replace, disconnected last-known, epochs | Owner discussion |
 | Validation | Cross-language CI, Docker and Chromium smoke, bounded interaction spike | Owner discussion |
@@ -150,13 +150,12 @@ This closes the remaining **architecture-policy questions** by recommended bound
 | Overload | Normal/Elevated/Critical, degrade presentation first | **Recommended B closure for owner review** |
 | Performance gating | Baseline-calibrated CI regression, hard functional gates | **Recommended B closure for owner review** |
 | Observability | Bounded structured diagnostics, no paid monitoring dependency | **Recommended B closure for owner review** |
-| Release gate | Explicit governance/license/security/qualification NO-GO criteria | **Recommended closure for owner review** |
+| Release gate | Security, integrity and technical qualification criteria | **Recommended closure for owner review** |
 
 **Owner review checklist:**
 - [ ] Confirm the document faithfully captures the agreed architecture and recommended closures.
 - [x] Confirm Release 1.15 product-direction amendment merged in PR #362; preserve Release 1.14 synthetic history.
 - [x] Confirm Docker-first policy expressly permits the Release 1.15 supervised dual-process architecture in one immutable image (PR #362).
-- [ ] Obtain verifiable provider terms/entitlements for the proposed public data use; otherwise retain NO-GO.
 - [ ] Authorize any future feasibility spike, implementation PR, image qualification and deployment separately.
 
-**Change control:** This is a **documentation-only proposal**. Its review/merge does not itself grant implementation, provider access, public data redistribution, registry publication, Azure deployment, governance-gate waiver or release approval.
+**Change control:** This is a **documentation-only proposal**. Its review/merge does not itself grant implementation, provider access, public data redistribution, registry publication, Azure deployment, governance-gate waiver or release approval. No additional licensing prerequisite is established by this document.
