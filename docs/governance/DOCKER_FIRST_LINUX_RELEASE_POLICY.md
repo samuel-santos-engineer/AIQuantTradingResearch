@@ -1,6 +1,6 @@
 # Docker-first Linux release qualification policy
 
-**Status:** Effective governance clarification (merged PR #362); Release 1.15 architecture details remain under review in PR #361.  
+**Status:** Effective governance clarification (merged PR #362); Release 1.15 architecture approved and merged in PR #361.  
 **Scope:** AIQuantTradingResearch public application; preserve Release 1.14 synthetic qualification history and support a separately authorized Release 1.15 historical crypto-chart candidate.  
 **Target:** Azure App Service **Linux F1** custom container.  
 **Authority:** Qualification policy only, not implementation, provider, release or deployment authorization.
