@@ -2,7 +2,7 @@
 
 **Status:** Effective Release 1.15 product-direction amendment (merged PR #362).  
 **Supersedes for Release 1.15 and subsequent explicitly authorized work:** the synthetic-only public-product objective approved 2026-10-16.  
-**Architecture companion:** [HISTORICAL_CRYPTO_CHART_AND_RESEARCH_INTERFACE.md](HISTORICAL_CRYPTO_CHART_AND_RESEARCH_INTERFACE.md) (proposed in separate draft PR #361; review and approve independently).  
+**Architecture companion:** [HISTORICAL_CRYPTO_CHART_AND_RESEARCH_INTERFACE.md](HISTORICAL_CRYPTO_CHART_AND_RESEARCH_INTERFACE.md) (merged in PR #361).  
 **Change class:** Product-scope governance only; no implementation, provider access, publication, or deployment authority.
 
 > **New target:** A publicly accessible, educational **historical BTC/USD and ETH/USD chart and private research interface**, using completed real market observations in a protected C# service and **clearly labeled transformed, non-actual price presentation** in Streamlit/Plotly, **subject to existing security, readiness and deployment qualification controls**.
@@ -14,7 +14,7 @@
 3. **Implementation focus.** Build and test the agreed ingestion, research, transformed-presentation and recovery architecture using deterministic fixtures and measured provider capabilities. No licensing-specific investigation, evidence package or approval gate is required to begin or complete Release 1.15 engineering milestones. Transformation is a presentation technique, not a legal grant; applicable obligations remain independent of this implementation plan.
 4. **Architecture direction.** Subject to separate implementation authority, target one Linux/amd64 immutable Docker image on Azure App Service Linux F1, containing a minimal PID1 supervisor, private non-root C# ingestion/research service, and public non-root Streamlit/Plotly UI. The private API binds only to loopback; private SQLite, credentials, HMAC material and recovery state are not accessible to Streamlit. No Redis, separate paid services or public private-API endpoint.
 5. **Bounded data.** Proposed retention is the latest 1,000 completed one-minute candles per instrument in private SQLite, with no fabricated candles, unbounded archive, or guaranteed always-on freshness. Historical research validity, gaps, corrections, recovery, staleness and connection state must be shown truthfully.
-6. **Qualification.** Linux container, isolation, schema/contract, browser, resource, integrity/recovery and per-site Azure F1 verification remain mandatory before any future public activation. The canonical detailed architecture and acceptance criteria are subject to owner review in the companion document.
+6. **Qualification.** Linux container, isolation, schema/contract, browser, resource, integrity/recovery and per-site Azure F1 verification remain mandatory before any future public activation. The canonical detailed architecture and acceptance criteria are defined in the merged companion document.
 
 ## Transition from the October 16 synthetic objective
 
@@ -37,7 +37,7 @@ Preserve gates G-B0–G-B7, dataset/public readiness, provenance, security, owne
 - [ ] Owner approves replacement of the future synthetic-only objective with the gated historical BTC/USD + ETH/USD research/chart objective.
 - [ ] Owner confirms that licensing review is not a Release 1.15 engineering prerequisite.
 - [ ] Owner confirms Release 1.14 synthetic evidence and C2B-32/C2B-31 statuses are preserved.
-- [ ] Owner reviews the companion Release 1.15 architecture PR independently.
+- [x] Companion Release 1.15 architecture PR #361 merged.
 - [ ] Implementation follows scoped Release 1.15 authority; image promotion and deployment remain separately controlled.
 
 This is a documentation-only governance change; it does not modify runtime behavior, data, APIs, tests, infrastructure or published artifacts.
