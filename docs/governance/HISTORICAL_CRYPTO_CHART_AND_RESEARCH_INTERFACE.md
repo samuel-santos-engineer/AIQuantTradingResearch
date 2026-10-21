@@ -5,11 +5,11 @@
 **Repository path:** `docs/governance/HISTORICAL_CRYPTO_CHART_AND_RESEARCH_INTERFACE.md`
 **Decision basis:** Owner-approved Release 1.15 architecture discussion, with remaining architecture options resolved by owner instruction to apply the assistant's recommended options. These latter resolutions are **proposals for review**, not claims of independently measured behavior.
 
-## 1. Governance precedence and explicit scope conflict
+## 1. Governance alignment: Docker-first and dual-process
 
-As of preparation, `docs/governance/SYNTHETIC_PUBLIC_PRODUCT_SCOPE.md` (owner-approved 2026-10-16) is authoritative: public charts must be **synthetic only**; real/historical feeds, Twelve Data, provider-derived public output, and associated integration/licensing work are outside current scope unless the owner **explicitly revises** that objective. C2B-32 is ABORTED and C2B-31 staging is DEFERRED. `docs/governance/DOCKER_FIRST_LINUX_RELEASE_POLICY.md` favors a single-process Streamlit runtime and immutable synthetic handoff; its existing governance status and gates must be verified before any subsequent action.
+**The governance conflict identified when this document was first drafted has been resolved by merged PR #362** (squash commit `7247eda440f26c0fb973c604b4466eb944b5343a`). The amended `docs/governance/SYNTHETIC_PUBLIC_PRODUCT_SCOPE.md` establishes the **Release 1.15 historical BTC/USD and ETH/USD research/chart product direction** in place of the former synthetic-only future objective. The amended `docs/governance/DOCKER_FIRST_LINUX_RELEASE_POLICY.md` explicitly permits a **release-specific supervised two-process runtime** in **one immutable Linux Docker image**. Docker-first governs packaging, qualification and deployment; dual-process governs separation of private research from public presentation. They are complementary, not alternatives.
 
-**This document deliberately proposes a different future product scope**: private ingestion of real completed BTC/USD and ETH/USD candles and public display of transformed, non-actual price data. It **does not silently supersede** the synthetic-only scope or authorize implementation. Before this architecture may be implemented, an **explicit owner-approved amendment/supersession of the synthetic-only objective** and a reconciled Docker/runtime policy are required. Merging this review document alone must not be construed as authorization to enable real feeds, resume C2B-32, deploy, publish APIs, promote data, or waive gates G-B0–G-B7, WP07, licensing, security, provenance, dataset readiness, or `PUBLIC_RUNTIME_VERIFIED=False`.
+The agreed Release 1.15 architecture is one Linux/amd64 Docker image with a minimal PID1 supervisor managing a private non-root C# ingestion/research service and a public non-root Streamlit/Plotly service. The private read-only presentation API is localhost-only; Streamlit alone serves public ingress. The amended Docker-first policy preserves exact-image qualification, Linux security isolation and resource testing. The historical Release 1.14 synthetic artifacts remain historical; C2B-32 remains ABORTED and C2B-31 remains DEFERRED. **PR #362 resolves product-direction and runtime-policy alignment, not provider rights or deployment readiness.** This architecture document remains for owner review and does not itself authorize provider activation, deployment, image promotion or waiver of existing G-B0–G-B7, WP07, security, provenance, dataset-readiness or `PUBLIC_RUNTIME_VERIFIED=False` controls.
 
 **Critical unresolved external prerequisite:** A provider license/terms review must establish that the contemplated acquisition, retention, derived/transformed public chart display and distribution are permitted. A daily HMAC transformation, password/login, or caching does **not** itself establish redistribution rights. If Twelve Data terms do not permit the proposed public usage, the public real-derived chart path is **NO-GO** pending a separately approved lawful source or a synthetic-only design. No unverified licensing claim is adopted here.
 
@@ -21,7 +21,7 @@ Only the latest **1,000 actual retained completed one-minute candles per instrum
 
 ## 3. Runtime, security and network
 
-- One Linux/amd64 Docker image with minimal PID1 supervisor and two supervised processes: private C# ingestion/research service and public Streamlit/Plotly UI. This is a **proposed exception** to the current synthetic single-process preference and needs explicit governance approval.
+- **Docker-first and dual-process together:** one immutable Linux/amd64 Docker image with a minimal PID1 supervisor and two supervised processes: private C# ingestion/research service and public Streamlit/Plotly UI. This release-specific runtime is **already permitted by the Docker-first policy as amended in merged PR #362**; it is not a second container or a replacement for Docker-first qualification.
 - Run as distinct non-root identities `research` and `streamlit`. Private SQLite files (including WAL/journal), checkpoints, high-watermark, API credentials and HMAC secret are readable only by research. Public process receives a sanitized environment and cannot access private storage/secrets.
 - C# serves a **loopback-only**, read-only transformed-snapshot presentation API; no external exposure of the private API. Public ingress is Streamlit only. Validate binding and permissions in the actual Linux container.
 - Supervisor checks local health roughly every 30 seconds, uses three-failure detection, independent bounded exponential process-restart backoff and roughly 90-second startup grace; actual values configurable and subject to qualification. A Streamlit outage need not stop research. Azure F1 availability is not guaranteed.
@@ -125,7 +125,7 @@ Mandatory future PR CI (subject to actual repository protection configuration):
 
 ### Final proposed release acceptance / NO-GO rules
 
-A future Release 1.15 implementation is **NO-GO** if any of the following hold: current synthetic-only governance has not been explicitly reconciled; provider rights for the contemplated public transformed data are unverified; private credentials/raw prices are exposed; SQLite lineage/recovery is unsafe; fabricated or incomplete candles are shown as valid; classifications are published without sufficient continuity; generation/date/version snapshots mix; browser viewport/reconnection invariants fail; Linux image/security/contract/browser tests fail; actual F1 resource evidence is insufficient; or required owner release gates remain unmet.
+A future Release 1.15 implementation is **NO-GO** if any of the following hold: provider rights for the contemplated public transformed data are unverified; private credentials/raw prices are exposed; SQLite lineage/recovery is unsafe; fabricated or incomplete candles are shown as valid; classifications are published without sufficient continuity; generation/date/version snapshots mix; browser viewport/reconnection invariants fail; Linux image/security/contract/browser tests fail; actual F1 resource evidence is insufficient; or required owner release gates remain unmet.
 
 This closes the remaining **architecture-policy questions** by recommended bounded choices. It does **not** claim all technical feasibility, license, quotas, Streamlit APIs, performance thresholds or F1 capacity have been verified. Those are explicit evidence gates, not silent assumptions.
 
@@ -134,7 +134,7 @@ This closes the remaining **architecture-policy questions** by recommended bound
 | Area | Decision | Status |
 |---|---|---|
 | Instruments and history | BTC/USD + ETH/USD; 1-minute completed candles; latest 1,000 each | Owner discussion |
-| Runtime | Single Linux F1 image, PID1 + private C# and public Streamlit | Owner discussion; conflicts with current synthetic scope |
+| Runtime | Docker-first single Linux F1 image, PID1 + private C# and public Streamlit | Aligned with Docker-first policy by merged PR #362 |
 | Storage/integrity | Atomic SQLite, generation/version, checkpoints, outside-DB watermark, deterministic recovery | Owner discussion |
 | Research | Private indicators, trend/regime precedence and 401-candle readiness | Owner discussion |
 | Public data | Daily HMAC transformed-price presentation, clear non-actual labels | Owner discussion; **license unresolved** |
@@ -154,8 +154,8 @@ This closes the remaining **architecture-policy questions** by recommended bound
 
 **Owner review checklist:**
 - [ ] Confirm the document faithfully captures the agreed architecture and recommended closures.
-- [ ] Decide whether/how to explicitly amend `SYNTHETIC_PUBLIC_PRODUCT_SCOPE.md` in a **separately scoped governance action**; do not assume this document alone changes it.
-- [ ] Reconcile the Docker-first policy's synthetic/single-process preference before authorizing a dual-process runtime.
+- [x] Confirm Release 1.15 product-direction amendment merged in PR #362; preserve Release 1.14 synthetic history.
+- [x] Confirm Docker-first policy expressly permits the Release 1.15 supervised dual-process architecture in one immutable image (PR #362).
 - [ ] Obtain verifiable provider terms/entitlements for the proposed public data use; otherwise retain NO-GO.
 - [ ] Authorize any future feasibility spike, implementation PR, image qualification and deployment separately.
 
