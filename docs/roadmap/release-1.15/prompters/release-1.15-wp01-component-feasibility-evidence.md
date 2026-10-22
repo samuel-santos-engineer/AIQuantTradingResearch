@@ -2,7 +2,11 @@
 
 Date: 2026-10-22 (America/Sao_Paulo). Issue #367. Existing draft PR #379; pre-change head `7edfbee3124fa758c379677a7f760f8d2524de05`. Clean main remains at planning merge `455b80d0e50c17791653457a4ebd3001d3629a6e`.
 
-**Verdict: scoped component feasibility SUPPORTED by the tested local browser matrix; OWNER REVIEW REQUIRED.** This is not WP01 acceptance, a production component, a contract freeze or permission to begin WP02. The prior native/S2 reports remain historical observations; this report adds evidence rather than rewriting their earlier incomplete results. `PUBLIC_RUNTIME_VERIFIED=False` remains unchanged.
+**Owner decision (2026-10-22): components-v2 is the preferred Release 1.15 mechanism; no further viewport-technology search.**
+
+**Latest residual verification: NOT READY TO FINALIZE - pending user intent is lost across refresh.** Stale-accepted-state guards passed the tested cases, and the bounded resource screen showed no accumulating component listener counts or large retained browser heap growth. This does not waive the reproduced input-loss defect. See the residual verification section below.
+
+**Original settled-case verdict: scoped component feasibility SUPPORTED by the tested local browser matrix; OWNER REVIEW REQUIRED.** This is not WP01 acceptance, a production component, a contract freeze or permission to begin WP02. The prior native/S2 reports remain historical observations; this report adds evidence rather than rewriting their earlier incomplete results. `PUBLIC_RUNTIME_VERIFIED=False` remains unchanged.
 
 ## Authority and exact scope
 
@@ -145,3 +149,84 @@ Before commit/push: independent staged/working-tree UTF-8/LF scan, `git diff --c
 | `tests/feasibility/release_1_15/viewport/viewport_state.py` | `191d8f05b902808232346a760d0c90cb319646a06bfc9bbb163c74991e82147b` |
 | `tests/feasibility/release_1_15/viewport/test_viewport_state.py` | `5d3d2594612c9e540cd883122b72f33cf32357172c56883844248c5384f2505b` |
 | `tests/feasibility/release_1_15/viewport/Dockerfile` | `f141404f41d17a919c05f017519511a4d4613dab1a6ea113139b7b7d8f4ace7a` |
+
+## Residual verification - owner-selected mechanism, 2026-10-22
+
+Scope: one narrowly bounded read-only verification of implementation commit `058da1c93304978db3a303c754a6023367b7d6d8`. Only this existing evidence document is updated; component, fixture, tests, Dockerfile and production source are unchanged. The owner accepted components-v2 as the preferred direction. No alternative viewport technology was investigated. Acceptance of that direction is distinct from finalizing this prototype or accepting WP01.
+
+Rebuilt the unchanged pinned fixture using the previously recorded build command, with tag `aiq-r115-wp01-residual:local`. Local image ID `sha256:a0a9f6b5f6aadc0ccf78d0d2468bf910a70d12eedcdbc3137e1ea50ad6965cfd`; functional manifest `sha256:683046c3543f718d604eac067dc072c37dd3060b1870a621697dd750f4e616a2` and config `sha256:96598096fd856dd94ed31a75cde4f71dccdfe598832ba0e9046b3de77fd46000` match the earlier tested build. The different aggregate image ID reflects regenerated build attestation, not changed application bytes. Same Streamlit 1.61.1, Plotly Python 7.1.0, local Plotly.js 4.1.1 and Chrome 155.0.8059.86; no dependency installation or external asset. Same loopback/read-only/1 CPU/512 MiB/64-task/32 MiB temporary-filesystem screening profile.
+
+### Debounce, refresh, acknowledgment and detachment results
+
+Used actual Chrome Input mouse gestures and fixture buttons, with no sleeps between the raced gesture and refresh/remount input. A separate settled control used bounded acknowledgment/revision polling. Temporary PowerShell 5.1/.NET/CDP orchestration is outside the repository; no runtime instrumentation or source patch was introduced. Browser heap/DOM diagnostics use supported CDP calls. Read-only Plotly emitter inspection is test diagnostics, not a component dependency on private internals.
+
+| Case | Actual observation | Verdict |
+| --- | --- | --- |
+| Two rapid zooms without refresh | Latest visual range was accepted once; interaction revision 1 -> 2, no intermediate overwrite | PASS for this coalescing case |
+| Pending zoom plus changed refresh, twice | Latest visible gesture was canceled; refresh restored the prior accepted range and revision did not advance | FAIL: input-loss defect, 2/2 reproductions |
+| Remount with pending callback | At 17.1 ms after the immediate post-gesture sample, remount canceled the old callback; held old graph became disconnected, emitter removed by purge | No stale overwrite; pending user intent still lost |
+| Fresh gesture on the new mount, then 1.4 s idle | Revision 3 and its viewport remained stable; old callback did not overwrite it | PASS for tested detached-callback guard |
+| Closely spaced refresh and correction inputs | Both commands observed; current command/ack reached 5/5, viewport unchanged | PASS for observed overlap; not a forced reversal of acknowledgment delivery |
+| Late stale-event replay after commands | Rejected without changing accepted x/y ranges | PASS for tested stale event |
+| Runtime exceptions during race block | 0 observed | No exception observed; not a substitute for correct intent preservation |
+
+The timing measurements below run from the immediate post-gesture browser sample through completion of the refresh input sequence. They are not claimed as exact input-release-to-server latencies; both samples still showed the old accepted revision before refresh, inside the pending 250 ms debounce window. All dates below are UTC, with string formatting normalized only for readability.
+
+| Reproduction | Refresh input interval | Prior accepted x range / revision | Latest pending visual x range | Result after refresh |
+| --- | --- | --- | --- | --- |
+| 1 | 36.4 ms | `2026-10-20T12:54:31.7959Z to 2026-10-20T15:39:08.4789Z` / 1 | `2026-10-20T13:27:19.3785Z to 2026-10-20T15:14:25.5226Z` | `2026-10-20T12:54:31.7959Z to 2026-10-20T15:39:08.4789Z` / revision 1; pending event not delivered |
+| 2 | 26.6 ms | `2026-10-20T13:48:39.5623Z to 2026-10-20T14:58:20.655Z` / 2 | `2026-10-20T14:02:32.4983Z to 2026-10-20T14:47:52.8756Z` | `2026-10-20T13:48:39.5623Z to 2026-10-20T14:58:20.655Z` / revision 2; pending event not delivered |
+
+| Reproduction | Prior accepted price y | Pending visual price y | Result price y |
+| --- | --- | --- | --- |
+| 1 | `101.34893048128342, 113.62858981976629` | `103.20059257070372, 111.21192112308292` | `101.34893048128342, 113.62858981976629` |
+| 2 | `104.40862880016509, 109.63527095733227` | `105.19675938836983, 108.60665427165537` | `104.40862880016509, 109.63527095733227` |
+
+Volume y stayed `[0, 10.526315789473685]` in both reproductions. Price y, as well as x, returned to the prior accepted range.
+
+The guards did **not** allow an older event to replace a newer accepted viewport in these cases. The separate failure is loss of the newest *pending* user intent: server state is still older when the refresh cancels the settle timer. Do not report this as a successful refresh-retention test merely because the prior accepted range survives.
+
+Static source reconciliation explains the reproduction: relayout stores a 250 ms timer but does not durably reconcile pending intent; component cleanup/data replacement clears that timer, and refresh applies `data.viewport` from the prior accepted server state. No correction was made in this verification-only pass.
+
+A focused follow-up should retain/reconcile pending gesture intent across data refresh and logical remount, distinguish explicit Return to Live/preset reset from ordinary reconciliation, and ensure old render acknowledgments cannot defeat a newer interaction. It should remain within the existing component/state/test boundary, preserve the preferred mechanism and add regression cases for these exact timings. This is a proposed correction, not unrequested implementation or an architectural search. PR finalization should wait for the correction and a rerun of the failing cases.
+
+### Bounded resource-stability control
+
+Predeclared envelope: at most five minutes, 30 refresh/real-pan cycles (20 changed, 10 unchanged), six logical remounts, post-GC samples at 0/10/20/30 and one final idle sample. The diagnostic heap flag was set before the run: final retained heap above baseline by both 20% and 5 MiB. It is a screening heuristic, not an approved product budget or acceptance SLA. Component resize listener count should remain stable and relayout emitter count should remain one.
+
+The first attempt stopped at its first interaction because a fixed 450 ms read had not yet observed the accepted revision. A later observation showed delivery, and a separately settled pan succeeded. That early attempt is INCOMPLETE, not a pass or evidence of a leak. The controlled run retained the same actual-interaction criterion, replacing the timing assumption with at most three-second polling for the current acknowledgment/accepted revision. This isolates resource stability from the already recorded debounce/refresh failure; it does not cure or waive that race.
+
+**Controlled result: 30/30 cycles completed in 45.154 seconds**, six remounts, no browser runtime exceptions. The full run fit the predeclared five-minute bound. Twenty changed refreshes produced twenty `Plotly.react` calls; ten unchanged refreshes produced none; six remounts created their new charts as expected. Direct pan rendering is not counted as a `Plotly.react` call. No excess application-driven redraw count was observed under this settled control.
+
+| Completed cycles | Post-GC V8 used bytes | DOM nodes | DOM event listeners | Window resize listeners | Component relayout handlers |
+| --- | --- | --- | --- | --- | --- |
+| 0 | 24,791,780 | 4,239 | 454 | 2 | 1 |
+| 10 | 24,899,820 | 4,165 | 455 | 2 | 1 |
+| 20 | 25,410,480 | 4,166 | 455 | 2 | 1 |
+| 30 | 25,595,448 | 4,166 | 455 | 2 | 1 |
+| Final idle | 25,578,884 | 4,165 | 455 | 2 | 1 |
+
+Final minus baseline V8 used heap: **787,104 bytes (about 0.75 MiB / 3.17%)**. This did not trigger the predeclared growth screen. One additional DOM listener appeared during warm interaction, then remained stable; resize and relayout counts did not accumulate across remounts. DOM nodes returned below baseline. Forced-GC observations distinguish retained heap from ordinary allocation peaks, but a finite 45-second control cannot prove absence of long-run leaks.
+
+Twenty changed-refresh `Plotly.react` browser timings: min 40.9 ms, median 48.8 ms, nearest-rank p95 66.8 ms, max 74.6 ms. These are renderer-call durations, not gesture-to-visible-feedback or full request/ack latency. No production performance threshold is marked passed. After 2.2 seconds quiescence, accepted revision remained 40 with identical ranges; no accumulating late callbacks were observed. There is no direct active-timer census, so this is bounded behavioral/listener evidence, not proof of zero dormant timers.
+
+Container working-set sample: 179.2 MiB/512 MiB. A late sample reported raw cgroup memory.current 254,935,040 bytes and peak 389,898,240 bytes. Final later observation:
+
+```json
+{
+  "memory.current": "254799872",
+  "memory.peak": "389898240",
+  "pids.current": "20",
+  "cpu.stat": "usage_usec 24240944\nuser_usec 21150890\nsystem_usec 3090054\nnice_usec 0\nnr_periods 3604\nnr_throttled 42\nthrottled_usec 1141597\nnr_bursts 0\nburst_usec 0"
+}
+```
+
+Container shutdown reported exit 0/no OOM. The raw peak is not browser heap and must not be added to Docker working set. Container trend samples were not taken at every browser checkpoint; this pass does not establish server long-soak stability. Nor does it qualify combined C# research load, multiple-session capacity or Azure F1 headroom.
+
+### Review handoff and preservation
+
+Recorded 47 structured residual-pass observations, including both failures, the aborted fixed-delay attempt and the completed control. Temporary raw evidence SHA-256: `12e745b2f36ebcdd4ee50fd1eb19f3c5762e6fbb1d5a03c719df8ac7a37fb7c7`. The exact failing viewport vectors and resource table are published above, without machine-specific evidence roots or personal identifiers. Source and dependency hashes remain those already recorded for commit `058da1c`; no application/test correction or new asset was written. Original 32 offline tests were not rerun in this documentation-only update; their prior result is preserved, not recounted as new tests.
+
+Only this existing evidence Markdown is changed for PR #379. UTF-8/LF and `git diff --check` apply before commit/push. The label-verified owned container, unique owned Chrome/profile and unshared experiment tag were removed after path/provenance checks; temporary observations retained, pre-existing resources untouched. No global prune, provider/Azure activity, deployment, issue closure or WP02 work.
+
+**Disposition:** components-v2 remains the owner-selected preferred direction. Resource screen is encouraging but bounded. The reproducible pending-intent loss must be resolved before finalizing this implementation. Keep PR #379 DRAFT/OPEN and issue #367 OPEN. `PUBLIC_RUNTIME_VERIFIED=False`.
