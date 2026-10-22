@@ -371,3 +371,78 @@ Container working-set sample 184.8 MiB/512 MiB; raw cgroup memory.current 203,07
 - Remaining limits: unresolved observed cold-load pandas/Plotly initialization error; storage denial/corruption and abandoned-session slot reclamation; finite browser schedule/resource coverage; no native transport freshness/capacity or production integration qualification. These are review obligations, not silently accepted gates.
 
 **Disposition:** pending-intent correction and focused regression evidence submitted for final owner review. PR #379 remains DRAFT/OPEN; issue #367 remains OPEN. No merge, WP01 acceptance/closure, WP02, provider operation, Azure change or deployment. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Bounded cold-load investigation - reproduced, 2026-10-22
+
+**Verdict: original-signature failure REPRODUCED; PR #379 remains DRAFT.** A successful reload remains recovery evidence, not reliable multi-session startup.
+
+Authority: owner requested bounded offline investigation before finalization, with any correction restricted to separately authorized exact paths. Starting branch/head: `feasibility/release-1.15-wp01-s1-s2` / `892f43773e1e589701ad59f9c2c13c18e4d23033`, initially clean. Only this existing evidence Markdown changes; application, tests, fixtures, dependencies and production remain unchanged.
+
+### Predeclared envelope
+
+Recorded the plan before testing: one unchanged offline fixture build; up to ten fresh Python processes, each releasing two construction threads together (ten-second child timeout); then at most six fresh-container starts with two isolated browser contexts each (twenty-second observation deadline), stopping on the first reproduced browser failure. Active qualification bounded to five minutes excluding the build. No import monkeypatch, injected delay, source change, package installation, provider or Azure operation. Temporary orchestration: Windows PowerShell 5.1 and existing .NET/CDP helpers outside the repository, UTF-8/LF.
+
+```powershell
+docker build --pull=false --network=none -f tests/feasibility/release_1_15/viewport/Dockerfile -t aiq-r115-wp01-cold:local .
+```
+
+Image ID `sha256:c98607d89919805df93812bfd269762607ab7d7c267042b067ca71c0680ecd6a`; functional manifest `sha256:fdf91aa91834e006f52f70655b6349bc89d55d8e8f812647dde7158d9568df34` and config `sha256:105e5a24d84ed8a2eb60be9d347ea4fdf0e59bb3cd93298c0ece7c43f2c99cc5` match the preceding correction build. Aggregate ID differs because build attestation was regenerated. Same local base, Python 3.13, Streamlit 1.61.1, Plotly 7.1.0, pandas 3.0.5, numpy 2.5.1 and Chrome 155.0.8059.86. Browser containers: read-only/loopback/1 CPU/512 MiB/64 tasks/32 MiB temporary filesystem. Standalone probes used network none.
+
+### Attempts and observations
+
+Standalone control: ten fresh Python subprocesses imported Streamlit/Plotly, then used a barrier to release two threads constructing the existing two-row shared-x subplot shape and a fake candle. **10/10 trials, 20 construction calls, no exception**, exits 0, total 8.206 seconds. This omitted full Streamlit session startup and cannot negate the browser reproduction.
+
+| Cold start | Result | Observation |
+| --- | --- | --- |
+| 1 | INCOMPLETE | PowerShell 5.1 treated ordinary Docker log stderr as a terminating NativeCommandError before observations were persisted. No startup pass claimed. Owned resources cleaned. Corrected only the temporary log collector; counts against the six-start cap. |
+| 2 | PASS for this attempt | Fresh server and two new isolated contexts. Navigation sequence 255.026 ms; B ready observed at 3,364.833 ms, both ready at 3,489.692 ms. Total trial 5.399 s. No UI exception. |
+| 3 | FAIL - reproduced | Fresh server and two new isolated contexts; navigation sequence 113.300 ms. At 2,434.852 ms, A displayed the original pandas/Series exception. B was not yet ready and had no observed exception; its eventual outcome is unknown because the trial stopped. Total trial 4.304 s. No reload counted as a pass. |
+| 4-6 | NOT RUN | Stopped on reproduction as predeclared. |
+
+Navigation duration bounds sequential CDP commands, not exact overlap of server scripts. Both page loads progressed concurrently without injected import delays. The failing session is A here: the defect is not confined to whichever context is named second. Two not-ready charts do not mean both sessions failed.
+
+UI and server log agreed on this call chain:
+
+```text
+/spike/app.py:49 -> make_subplots(rows=2, cols=1, shared_xaxes=True, ...)
+plotly/_subplots.py -> layout[xaxis_name] = x_axis
+_plotly_utils/basevalidators.py:54 -> to_scalar_or_list(e)
+_plotly_utils/basevalidators.py:59 -> isinstance(v, (pd.Series, pd.Index))
+AttributeError: partially initialized module 'pandas' ... has no attribute 'Series'
+```
+
+### Read-only mechanism reconciliation
+
+Installed `to_scalar_or_list` calls `get_module("pandas", should_load=False)`. That branch in the installed optional-import helper returns `sys.modules.get(name, None)` without waiting for import completion. A partially populated pandas module can therefore be visible to Plotly while another thread imports it; reading `pd.Series` then fails at the observed line. Installed source and traceback support this mechanism, but the initiating thread and full import timing were not traced.
+
+| Installed site-packages source | SHA-256 |
+| --- | --- |
+| `_plotly_utils/optional_imports.py` | `09006509efe340a45afe351c2cf3719f2cad78d3bef656acb2cae43bec8b639f` |
+| `_plotly_utils/basevalidators.py` | `c639797010dbd3b440dbf5d43d73fc8e4b0f2c460e9d32052675d32b3add9140` |
+
+The failing construction precedes browser debounce handling. This does not show the pending-intent correction failed; conversely, its warm/recovered matrix does not establish cold-start reliability. One failure in two completed browser trials is an observed count, not an estimated failure probability.
+
+### Exact-path correction proposal - NOT IMPLEMENTED
+
+Request separate owner authority for only:
+
+1. `tests/feasibility/release_1_15/viewport/app.py`: explicitly complete the already installed pandas import before this fixture performs Plotly construction or session UI work. Normal Python import semantics should make each session wait for initialization. No dependency change, Plotly/Streamlit patch, silent exception retry, figure cache or production startup change. This is a proposed mitigation, not a proven fix.
+2. `docs/roadmap/release-1.15/prompters/release-1.15-wp01-component-feasibility-evidence.md`: append the correction and fresh regression evidence while preserving all prior FAIL/INCOMPLETE observations.
+
+No new file or package. After separate authorization, rebuild offline and run up to six fresh-container/two-context cold starts under the same deadlines, with no recovery reloads; stop on any failure. Require every attempted pair to reach two actual chart-ready states without matching UI/server exceptions. Preserve and rerun the 36 focused tests, then a proportionate viewport/refresh/session-isolation smoke on the final image. Six clean attempts would support bounded feasibility, not prove every import schedule safe. Further failure requires renewed mechanism review, not automatic dependency or retry expansion.
+
+### Custody and next gate
+
+Raw temporary artifacts retained without publishing personal roots or unsanitized full logs:
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `cold-thread-results.jsonl` | `47adb40ce326521d290e8bb969758b8da650fe7a3a02b4e17b4ebc27106cf6af` |
+| `cold-browser-results.json` | `adc9c344ea98b5f1660a8ed8341f253168a895f9b637216579347b18f7d251fd` |
+| `cold-browser-trial-3.log` | `3212f3f36c4f8959af72631da861b0fd251f6135a32980448d6cd7edf8aba1c2` |
+
+Exact failure, timings, bounds and the proposed amendment are recorded here for review. Browser trials stopped on reproduction. No application correction, readiness transition, merge, WP01 acceptance, WP02 or deployment. Primary main checkout and prior PR paths preserved. UTF-8/LF and git diff --check required before commit.
+
+**Next gate:** owner authorization of the exact two-path correction and bounded regression procedure above. Keep PR #379 DRAFT/OPEN, issue #367 OPEN, `PUBLIC_RUNTIME_VERIFIED=False`.
+
+Cleanup completed: owned browser/profile, all labeled trial containers and the unshared investigation image/tag removed after ownership/path/reference checks. Raw observations retained; pre-existing base and unrelated resources untouched.
