@@ -45,4 +45,22 @@ class ViewportTests(unittest.TestCase):
         self.assertNotEqual(a["instrument"],b["instrument"])
         self.assertEqual(a["rows"][0]["time"],"2026-10-20T00:00:00Z")
 
+class CommandTests(unittest.TestCase):
+    def test_command_preserves_viewport(self):
+        v=ViewportTests().viewport();v.command();self.assertEqual(v.command_epoch,1);self.assertEqual(v.y,(90,120))
+    def test_rebuild_changes_mount_without_reset(self):
+        v=ViewportTests().viewport();v.command(rebuild=True);self.assertEqual(v.mount,2);self.assertFalse(v.live)
+    def test_only_one_inflight_and_one_pending(self):
+        v=Viewport();self.assertEqual(v.request(),1)
+        for _ in range(20): self.assertIsNone(v.request())
+        self.assertTrue(v.pending);self.assertEqual(v.request_epoch,1)
+        self.assertTrue(v.finish(1));self.assertTrue(v.in_flight);self.assertFalse(v.pending);self.assertEqual(v.request_epoch,2)
+        self.assertTrue(v.finish(2));self.assertFalse(v.in_flight)
+    def test_old_request_cannot_finish_current(self):
+        v=Viewport();v.request();self.assertFalse(v.finish(0));self.assertTrue(v.in_flight)
+    def test_return_live_clears_all_axes_and_commands(self):
+        v=ViewportTests().viewport();v.volume_y=(0,12);v.return_live();self.assertIsNone(v.volume_y);self.assertEqual(v.command_epoch,1)
+    def test_command_epochs_are_per_instrument(self):
+        a,b=Viewport(),Viewport();a.command();self.assertEqual(b.command_epoch,0)
+
 if __name__ == "__main__": unittest.main()
