@@ -12,6 +12,7 @@ class Viewport:
     expired: bool = False
     volume_y: tuple | None = None
     command_epoch: int = 0
+    reset_epoch: int = 0
     acknowledged: int = -1
     request_epoch: int = 0
     in_flight: bool = False
@@ -57,6 +58,7 @@ class Viewport:
         return self.x, self.y
 
     def return_live(self):
+        self.reset_epoch += 1
         self.x, self.y, self.live, self.expired = None, None, True, False
         self.revision += 1
         self.volume_y = None

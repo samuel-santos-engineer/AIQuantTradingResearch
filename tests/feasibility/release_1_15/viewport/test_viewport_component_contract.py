@@ -60,4 +60,65 @@ class EventTests(unittest.TestCase):
     def test_invalid_kind_and_top_level(self):
         self.reject(dict(self.event,kind='provider'));self.reject([])
 
+
+class PendingIntentRegressionTests(unittest.TestCase):
+    # Literal ranges from the two published failing browser records. These are
+    # expectations, not values calculated by the component under test.
+    vectors = [
+        (["2026-10-20T13:27:19.3785Z", "2026-10-20T15:14:25.5226Z"],
+         [103.20059257070372, 111.21192112308292]),
+        (["2026-10-20T14:02:32.4983Z", "2026-10-20T14:47:52.8756Z"],
+         [105.19675938836983, 108.60665427165537]),
+    ]
+
+    def make_event(self, state, revision, vector):
+        x,y=self.vectors[vector]
+        return dict(kind='manual', instrument='BTC/USD',
+                    identity=dict(generation='fixture-generation-a',version=2,displayDate='2026-10-22'),
+                    mount=state.mount, revision=revision, commandEpoch=state.command_epoch,
+                    x=x.copy(),y=y.copy(),y2=[0,10.526315789473685])
+
+    def test_published_vectors_commit_once_after_refresh(self):
+        for index in range(2):
+            with self.subTest(vector=index):
+                state=Viewport(revision=index+1);state.command()
+                event=self.make_event(state,index+2,index)
+                self.assertTrue(accept_event(event,'BTC/USD',event['identity'],state))
+                self.assertEqual(state.x,tuple(self.vectors[index][0]))
+                self.assertEqual(state.y,tuple(self.vectors[index][1]))
+                self.assertEqual(state.volume_y,(0,10.526315789473685))
+                with self.assertRaisesRegex(ValueError,'stale revision'):
+                    accept_event(event,'BTC/USD',event['identity'],state)
+
+    def test_ack_before_and_after_newest_intent(self):
+        for ack_first in [True,False]:
+            with self.subTest(ack_first=ack_first):
+                state=Viewport();state.command()
+                event=self.make_event(state,2,0)
+                old_ack=dict(event,kind='ack',revision=0)
+                if ack_first: self.assertFalse(accept_event(old_ack,'BTC/USD',event['identity'],state))
+                self.assertTrue(accept_event(event,'BTC/USD',event['identity'],state))
+                with self.assertRaisesRegex(ValueError,'ack revision'):
+                    accept_event(old_ack,'BTC/USD',event['identity'],state)
+                new_ack=dict(event,kind='ack')
+                self.assertFalse(accept_event(new_ack,'BTC/USD',event['identity'],state))
+                self.assertEqual(state.x,tuple(self.vectors[0][0]))
+
+    def test_refresh_and_remount_do_not_advance_reset_fence(self):
+        state=Viewport();state.command();state.command(rebuild=True)
+        self.assertEqual(state.reset_epoch,0)
+        event=self.make_event(state,1,0)
+        self.assertTrue(accept_event(event,'BTC/USD',event['identity'],state))
+        state.reconcile('2026-10-22T00:00:00Z','2026-10-23T00:00:00Z')
+        self.assertTrue(state.expired);self.assertFalse(state.live)
+        self.assertEqual(state.x,tuple(self.vectors[0][0]))
+
+    def test_explicit_reset_fences_delayed_intent(self):
+        state=Viewport();event=self.make_event(state,1,0)
+        state.return_live()
+        self.assertEqual(state.reset_epoch,1)
+        with self.assertRaisesRegex(ValueError,'stale mount/command'):
+            accept_event(event,'BTC/USD',event['identity'],state)
+        self.assertTrue(state.live);self.assertIsNone(state.x)
+
 if __name__=='__main__': unittest.main()

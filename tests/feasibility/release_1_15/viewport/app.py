@@ -1,5 +1,6 @@
 """Components-v2 fixture only. No production/provider/research integration."""
 import json
+import uuid
 from dataclasses import asdict
 import streamlit as st
 import plotly.graph_objects as go
@@ -10,6 +11,7 @@ from viewport_component import render, assets, accept_event
 
 st.set_page_config(layout='wide')
 st.title('WP01 owned viewport - FAKE DATA')
+if 'viewport_session' not in st.session_state: st.session_state.viewport_session=uuid.uuid4().hex
 instrument=st.radio('Instrument',['BTC/USD','ETH/USD'],horizontal=True)
 if 'instruments' not in st.session_state: st.session_state.instruments={}
 if instrument not in st.session_state.instruments:
@@ -53,7 +55,7 @@ fig.update_layout(height=620,uirevision=instrument+'_'+str(v.mount),xaxis_ranges
 fig.update_xaxes(title_text='UTC',range=[rows[-min(preset,len(rows))]['time'],rows[-1]['time']],autorange=False)
 figure=json.loads(fig.to_json())
 render_token=json.dumps([instrument,identity,s['start'],s['gap'],s['correction'],preset,overlay,v.mount,v.command_epoch],sort_keys=True)
-result=render({'figure':figure,'instrument':instrument,'identity':identity,'mount':v.mount,'revision':v.revision,'commandEpoch':v.command_epoch,
+result=render({'figure':figure,'instrument':instrument,'identity':identity,'mount':v.mount,'revision':v.revision,'commandEpoch':v.command_epoch,'resetEpoch':v.reset_epoch,'session':st.session_state.viewport_session,
                'viewport':{'x':v.x,'y':v.y,'y2':v.volume_y},'renderToken':render_token,'replay':s['replay']},key='owned_'+instrument+'_'+str(v.mount))
 event=result.viewport
 if event is not None:

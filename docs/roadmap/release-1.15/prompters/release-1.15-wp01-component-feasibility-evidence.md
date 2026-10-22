@@ -230,3 +230,144 @@ Recorded 47 structured residual-pass observations, including both failures, the 
 Only this existing evidence Markdown is changed for PR #379. UTF-8/LF and `git diff --check` apply before commit/push. The label-verified owned container, unique owned Chrome/profile and unshared experiment tag were removed after path/provenance checks; temporary observations retained, pre-existing resources untouched. No global prune, provider/Azure activity, deployment, issue closure or WP02 work.
 
 **Disposition:** components-v2 remains the owner-selected preferred direction. Resource screen is encouraging but bounded. The reproducible pending-intent loss must be resolved before finalizing this implementation. Keep PR #379 DRAFT/OPEN and issue #367 OPEN. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Pending-intent correction - final review, 2026-10-22
+
+Authority: [owner review comment](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/pull/379#issuecomment-6333075971), followed by the owner instruction to implement, commit regression evidence and return PR #379 for final review. Starting worktree/remote head `7a28d617d8deb57589c18fa425f47cd1756e6de3`; base `455b80d0e50c17791653457a4ebd3001d3629a6e`. Both worktrees initially clean. Prior failures above remain historical FAIL observations; this section records a separate corrected-source run.
+
+### Correction and ordering contract
+
+- Capture UTC x, price y and volume y2, together with a monotonically increasing interaction revision, at the manual relayout event rather than at timer delivery. Ignore mode changes and suppress programmatic restores. Keep the 250 ms debounce for ordinary gestures.
+- Hand the newest unacknowledged intent across updates/remounts using browser sessionStorage, with a per-Streamlit-session random nonce and instrument-specific slot (maximum two current-session slots). This is tab-local viewport data, not a provider/storage/transport service. A stored intent remains until server acceptance or an explicit reset fence; a disconnected component retains no publishing callback. A new Streamlit session receives a new namespace. Browser storage denial/corruption and abandoned-session storage reclamation are not qualified here.
+- Ordinary refresh, correction, retention, display-date rollover, generation replacement and remount retain absolute manual ranges. Rebind that existing revision to the current instrument/snapshot identity, mount and command epoch; do not invent another gesture. The unchanged-refresh path does not redraw. Retention expiry keeps the chosen historical range with the existing explicit expired warning; overlap does not silently reset it.
+- Return to Live and preset selection increment a separate reset epoch. An older buffered gesture cannot defeat that reset. Component invocation/mount/command/accepted-revision guards and per-invocation tickets reject obsolete callbacks; cleanup only clears the handler/timer it owns. Actual detached graphs are purged. An eligible intent is committed once by the existing strict server validator; duplicate revision, old identity, mount, command or acknowledgment revision remain rejected.
+- A pending gesture is published before the render acknowledgment, preventing the single component state channel from replacing it with an acknowledgment. After server acceptance the buffer is removed and the current acknowledgment can follow. Synthetic fixtures only; no analytics, provider or production code changed.
+
+### Exact changed paths
+
+- `tests/feasibility/release_1_15/viewport/app.py`
+- `tests/feasibility/release_1_15/viewport/viewport_state.py`
+- `tests/feasibility/release_1_15/viewport/viewport_component.js`
+- `tests/feasibility/release_1_15/viewport/test_viewport_component_contract.py`
+- `docs/roadmap/release-1.15/prompters/release-1.15-wp01-component-feasibility-evidence.md`
+
+No new repository file, dependency, production edit or fixture snapshot change. All five paths are within the existing nine-path authority. The fixture nonce uses Python standard-library uuid, not a dependency.
+
+### Final build and focused tests
+
+Final local image ID `sha256:a2e12364de976c336b7efa5150f4d0853a98639206d7941606b72f52d7ab65c9`; functional manifest `sha256:fdf91aa91834e006f52f70655b6349bc89d55d8e8f812647dde7158d9568df34`; config `sha256:105e5a24d84ed8a2eb60be9d347ea4fdf0e59bb3cd93298c0ece7c43f2c99cc5`. Same pinned local base, Streamlit 1.61.1, Plotly Python 7.1.0, Plotly.js 4.1.1 and installed Chrome 155.0.8059.86. Built with no network/pull; no packages installed. Container: read-only, loopback binding, 1 CPU, 512 MiB, 64 tasks, 32 MiB temporary filesystem.
+
+```powershell
+docker build --pull=false --network=none -f tests/feasibility/release_1_15/viewport/Dockerfile -t aiq-r115-wp01-fix:local .
+python -B -m unittest discover -s tests/feasibility/release_1_15/viewport -p 'test_viewport*.py' -v
+docker exec aiq-r115-wp01-fix /opt/venv/bin/python -B -m unittest discover -s /spike -p test_viewport*.py -v
+```
+
+Host: **36/36 PASS, exit 0**. Final Linux image: **36/36 PASS, exit 0**. These are the same 36 tests on two runtimes, not 72 distinct tests. All original 32 are retained. Four added tests contain literal pending vectors from both published failures, once-only acceptance, acknowledgment-before/after ordering, refresh/remount reset-fence preservation, retention expiry and rejection of intent delayed past an explicit reset. The second literal is the pending 14:02:32.4983Z..14:47:52.8756Z range, not its older accepted range. Intermediate builds/checks are superseded by this final-image run.
+
+Host hashes below were compared with the actual final container files before cleanup:
+
+| Path within viewport folder | SHA-256 |
+| --- | --- |
+| `app.py` | `5c6dd7fd5bccf71aa0eb04125e2d72e44b11ba6064d40060046b8b6b6d8e0193` |
+| `viewport_state.py` | `07c9349922b30b767a5acc8e25f79bc03cf2f381d692e0053f3a3881d498a2c6` |
+| `viewport_component.js` | `2455ed900e35ca316b2212b0422ff4c16324be41e6bfc2c446db53fd89174054` |
+| `test_viewport_component_contract.py` | `2f9f8de7cc95e0d92cdbc615301d71b1037f6dbfbb8143059a72eab557f721f8` |
+| `fixture_snapshots.py` | `248964c3f6172db13d3d450ac9361dd1242efb688918c062b2a3442778159ad9` |
+
+### Final-image browser matrix
+
+Actual Chrome mouse/keyboard interaction through CDP, using temporary Windows PowerShell 5.1/.NET orchestration outside the repository. No browser package installation, component framework replacement, Streamlit patch or application DOM workaround. Read-only browser layout/heap/listener inspection supplies test observations. Two isolated browser contexts have independent Streamlit sessions.
+
+**Cold-load warning:** the first matrix attempt completed cases 1-20, but the second context had no chart. Its server traceback reported `AttributeError: partially initialized module pandas ... has no attribute Series` during Plotly layout construction. A session reload recovered it; cases 21-26 then passed on the same final image. This is a real observed fixture initialization failure, not merely a missed automation click. Simultaneous cold initialization/import ordering is a suspected cause, not a proven diagnosis. No dependency/startup fix was attempted under this narrow correction. Cold-start concurrency remains unresolved for final owner review. The completed functional cases below do not erase that failed attempt.
+
+| Case | Final functional result |
+| --- | --- |
+| 01 physical zoom | PASS |
+| 02 physical pan | PASS |
+| 03 stale replay | PASS |
+| 04 changed refresh | PASS |
+| 05 unchanged refresh | PASS |
+| 06 correction | PASS |
+| 07 overlay on | PASS |
+| 08 overlay off | PASS |
+| 09 remount | PASS |
+| 10 date rollover | PASS |
+| 11 generation replacement | PASS |
+| 12 gap | PASS |
+| 13 partial retention | PASS |
+| 14 ETH independent live | PASS |
+| 15 ETH zoom | PASS |
+| 16 BTC return | PASS |
+| 17 ETH return | PASS |
+| 18 expired retention | PASS |
+| 19 Return to Live | PASS |
+| 20 preset 100 | PASS |
+| 21 second session zoom | PASS |
+| 22 B overlay | PASS |
+| 23 A unaffected by B | PASS |
+| 24 A refresh and zoom | PASS |
+| 25 B unaffected by A | PASS |
+| 26 B preset 1000 | PASS |
+
+### Pending gesture races and exact ranges
+
+Nine actual gestures were followed by command input inside the 250 ms debounce window. The recorded upper bound starts **before dispatching mouse release** and ends after the real button input sequence, including sampling/CDP overhead. Repeated changed refresh, unchanged refresh, correction, remount, date rollover, generation replacement and retention all preserved pending x/y/y2. No late duplicate revision was observed after the additional 500 ms settle check.
+
+| Command | Release/input upper bound ms | Revision before -> pending -> accepted | Command epoch before -> after | Queries before -> after | Graph renders before -> after | WS sent/received |
+| --- | --- | --- | --- | --- | --- | --- |
+| Refresh changed | 106.477 | 8 -> 9 -> 9 | 14 -> 15 | 11 -> 12 | 7 -> 8 | 3/114 |
+| Refresh changed | 92.761 | 9 -> 10 -> 10 | 15 -> 16 | 12 -> 13 | 8 -> 9 | 3/114 |
+| Refresh unchanged | 72.443 | 10 -> 11 -> 11 | 16 -> 16 | 13 -> 14 | 9 -> 9 | 3/114 |
+| Correction | 73.367 | 11 -> 12 -> 12 | 16 -> 17 | 14 -> 15 | 9 -> 10 | 3/114 |
+| Remount | 74.288 | 12 -> 13 -> 13 | 17 -> 18 | 15 -> 15 | 10 -> 1 | 3/114 |
+| Date rollover | 88.956 | 13 -> 14 -> 14 | 18 -> 19 | 15 -> 16 | 1 -> 1 | 3/114 |
+| Generation reset | 74.386 | 14 -> 15 -> 15 | 19 -> 20 | 16 -> 17 | 1 -> 1 | 3/114 |
+| Retention partial | 73.927 | 15 -> 16 -> 16 | 20 -> 21 | 17 -> 18 | 1 -> 2 | 3/114 |
+| Retention expired | 94.231 | 18 -> 19 -> 19 | 23 -> 24 | 19 -> 20 | 3 -> 4 | 3/117 |
+
+A render count of 1 after remount denotes a new graph, not a negative redraw count. Changed refresh/correction add one redraw, unchanged refresh adds none. Acknowledgment/intent reruns produced the observed WebSocket frames above; these are actual Streamlit protocol frames, not provider queries or an efficiency SLA. No external resource origin was observed (resource origin set: loopback only).
+
+Exact recorded vectors follow. Each tuple contains x (UTC), price y, volume y2. Pending and after were compared using exact UTC ticks and absolute y/y2 tolerance 1e-9. Different UTC string formatting is normalized only in this published copy.
+
+```json
+{"case":"race pending then Refresh changed","before":{"x":["2026-10-20T12:39:33.9156Z","2026-10-20T15:24:10.5986Z"],"y":[106.59085513924326,113.44426216041794],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T13:20:35.817Z","2026-10-20T14:51:13.3235Z"],"y":[107.96634675562541,111.75343441438504],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T13:20:35.817Z","2026-10-20T14:51:13.3235Z"],"y":[107.96634675562541,111.75343441438504],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Refresh changed","before":{"x":["2026-10-20T13:20:35.817Z","2026-10-20T14:51:13.3235Z"],"y":[107.96634675562541,111.75343441438504],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T13:43:11.1915Z","2026-10-20T14:33:04.755Z"],"y":[108.72642233687044,110.8191089219248],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T13:43:11.1915Z","2026-10-20T14:33:04.755Z"],"y":[108.72642233687044,110.8191089219248],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Refresh unchanged","before":{"x":["2026-10-20T13:43:11.1915Z","2026-10-20T14:33:04.755Z"],"y":[108.72642233687044,110.8191089219248],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T13:55:37.3791Z","2026-10-20T14:23:05.4548Z"],"y":[109.14642845128392,110.30281497778455],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T13:55:37.3791Z","2026-10-20T14:23:05.4548Z"],"y":[109.14642845128392,110.30281497778455],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Correction","before":{"x":["2026-10-20T13:55:37.3791Z","2026-10-20T14:23:05.4548Z"],"y":[109.14642845128392,110.30281497778455],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T14:02:28.185Z","2026-10-20T14:17:35.5162Z"],"y":[109.3785173915124,110.01751885891917],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T14:02:28.185Z","2026-10-20T14:17:35.5162Z"],"y":[109.3785173915124,110.01751885891917],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Remount","before":{"x":["2026-10-20T14:02:28.185Z","2026-10-20T14:17:35.5162Z"],"y":[109.3785173915124,110.01751885891917],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T14:06:14.35Z","2026-10-20T14:14:33.8719Z"],"y":[109.506766182013,109.85986859715756],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T14:06:14.35Z","2026-10-20T14:14:33.8719Z"],"y":[109.506766182013,109.85986859715756],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Date rollover","before":{"x":["2026-10-20T14:06:14.35Z","2026-10-20T14:14:33.8719Z"],"y":[109.506766182013,109.85986859715756],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T14:08:18.8628Z","2026-10-20T14:12:53.8695Z"],"y":[109.57763449761939,109.77275347925007],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T14:08:18.8628Z","2026-10-20T14:12:53.8695Z"],"y":[109.57763449761939,109.77275347925007],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Generation reset","before":{"x":["2026-10-20T14:08:18.8628Z","2026-10-20T14:12:53.8695Z"],"y":[109.57763449761939,109.77275347925007],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T14:09:27.4121Z","2026-10-20T14:11:58.8142Z"],"y":[109.61679524242862,109.72461500054897],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T14:09:27.4121Z","2026-10-20T14:11:58.8142Z"],"y":[109.61679524242862,109.72461500054897],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Retention partial","before":{"x":["2026-10-20T14:09:27.4121Z","2026-10-20T14:11:58.8142Z"],"y":[109.61679524242862,109.72461500054897],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T14:10:05.1512Z","2026-10-20T14:11:28.5041Z"],"y":[109.63843486968506,109.69801441517046],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T14:10:05.1512Z","2026-10-20T14:11:28.5041Z"],"y":[109.63843486968506,109.69801441517046],"y2":[0,10.526315789473685]}}
+{"case":"race pending then Retention expired","before":{"x":["2026-10-20T12:39:33.9156Z","2026-10-20T15:24:10.5986Z"],"y":[102.45806100217865,114.73772034066153],"y2":[0,10.526315789473685]},"pending":{"x":["2026-10-20T13:20:35.817Z","2026-10-20T14:51:13.3235Z"],"y":[104.92261161473178,111.70816312084531],"y2":[0,10.526315789473685]},"after":{"x":["2026-10-20T13:20:35.817Z","2026-10-20T14:51:13.3235Z"],"y":[104.92261161473178,111.70816312084531],"y2":[0,10.526315789473685]}}
+```
+
+Additional actual-browser schedules passed: refresh input before the gesture (three rapid repetitions), pending Return to Live, pending preset reset, pending instrument switch away/back, and two rapid gestures selecting the latest range. Runtime exceptions during the final race block: 0. Both browser sessions had zero pending-intent slots after quiescence.
+
+The deterministic server tests explicitly force old acknowledgment processing both before and after the newer intent, including rejection of the delayed old revision. The browser tests reverse input scheduling and observe current acknowledgment convergence; they do not claim arbitrary network acknowledgment delivery was intercepted/reordered. Browser transport scheduling is not exhaustively proven.
+
+### Final bounded resource screen
+
+Completed **30/30 refresh/pan cycles**, 20 changed/10 unchanged, six remounts, in **45.122 seconds**. Same predeclared screening flag as the earlier control: retained heap growth above both 20% and 5 MiB; maximum three minutes for this final run. Twenty changed refreshes caused exactly twenty Plotly.react calls; ten unchanged refreshes caused none; six remounts created six graphs. No extra application-driven redraw was counted.
+
+| Sample | Post-GC used heap bytes | DOM nodes | DOM listeners | Resize listeners | Relayout handlers |
+| --- | --- | --- | --- | --- | --- |
+| resource baseline | 29253864 | 4311 | 456 | 2 | 1 |
+| resource sample 10 | 29260872 | 4185 | 456 | 2 | 1 |
+| resource sample 20 | 29443448 | 4184 | 456 | 2 | 1 |
+| resource sample 30 | 29567320 | 4185 | 456 | 2 | 1 |
+| Final idle | 29550700 | 4184 | 456 | 2 | 1 |
+
+Retained heap growth **296836 bytes (0.283 MiB / 1.01%)**; screening flag false. Changed-refresh Plotly.react durations: min 39.5 ms, median 45.05 ms, nearest-rank p95 61.1 ms, max 61.4 ms. These are renderer-call durations, not end-to-end latency. After 2.2 seconds idle, revision/ranges did not drift; runtime exceptions 0. No direct active-timer census or long-soak/capacity claim.
+
+Container working-set sample 184.8 MiB/512 MiB; raw cgroup memory.current 203,079,680 bytes, peak 210,206,720 bytes, pids.current 21, OOM/OOM-kill counters 0. These are different accounting measures, not additive budgets, and do not qualify Azure F1 headroom or combined research load.
+
+### Evidence custody, limitations and review handoff
+
+- Final raw observation file `correction-final-browser.json`: 78 records, SHA-256 `2cd252fda1ffe91195600edf0444813babc750a66463e9dd78e70b6a70ccab4b`. Exact race vectors and resource observations are committed above; raw observations remain in the owned temporary artifact directory without publishing personal paths.
+- Supporting screenshot `correction-final-browser.png`: SHA-256 `d8fa92096b05bf6bf3f5538c6724c0fedf370d69eddfc3af29b3e004c2d29ae1`. Screenshot inspected: fake candles/volume, UTC axes and native Plotly controls visible; the exact narrow viewport/hover is a gesture result, not a default range.
+- Existing settled and residual evidence files, including the two original failures, were not overwritten. Primary checkout remains clean at its baseline; only the five listed experiment/evidence paths changed. UTF-8/LF, separate CRLF/UTF-8 scan and git diff --check are required before committing.
+- Confirmed owned Chrome/profile, label-verified container and unshared task image/tag removed; container exit 0, OOMKilled false. Prior intermediate image IDs were already absent. Pre-existing Docker base and unrelated processes/resources preserved.
+- Remaining limits: unresolved observed cold-load pandas/Plotly initialization error; storage denial/corruption and abandoned-session slot reclamation; finite browser schedule/resource coverage; no native transport freshness/capacity or production integration qualification. These are review obligations, not silently accepted gates.
+
+**Disposition:** pending-intent correction and focused regression evidence submitted for final owner review. PR #379 remains DRAFT/OPEN; issue #367 remains OPEN. No merge, WP01 acceptance/closure, WP02, provider operation, Azure change or deployment. `PUBLIC_RUNTIME_VERIFIED=False`.
