@@ -2,6 +2,9 @@
 import json
 import uuid
 from dataclasses import asdict
+# Complete the existing optional dependency before concurrent sessions reach Plotly.
+# Plotly's non-loading lookup can otherwise observe a partially imported module.
+import pandas  # noqa: F401 - intentional initialization barrier, not analytics
 import streamlit as st
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots

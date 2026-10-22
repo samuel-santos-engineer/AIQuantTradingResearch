@@ -446,3 +446,73 @@ Exact failure, timings, bounds and the proposed amendment are recorded here for 
 **Next gate:** owner authorization of the exact two-path correction and bounded regression procedure above. Keep PR #379 DRAFT/OPEN, issue #367 OPEN, `PUBLIC_RUNTIME_VERIFIED=False`.
 
 Cleanup completed: owned browser/profile, all labeled trial containers and the unshared investigation image/tag removed after ownership/path/reference checks. Raw observations retained; pre-existing base and unrelated resources untouched.
+
+## Authorized cold-load correction and regression - 2026-10-22
+
+Owner authorized the exact two-path correction proposed above, then instructed continuation. Baseline `5133ff9a79038552a82a3e57391c1b2544b51152`, clean worktree and matching DRAFT/OPEN remote PR #379 verified before editing. The earlier cold-start failure and incomplete attempt remain preserved.
+
+### Exact correction
+
+Only `tests/feasibility/release_1_15/viewport/app.py` and this existing evidence document changed. The fixture adds a normal import of the already installed pandas module before Streamlit session UI and Plotly work, with two explanatory comment lines. This intentionally completes module initialization before this session can enter the Plotly non-loading lookup. No exception suppression, recovery reload, automatic retry, figure cache, framework patch, package/dependency change or production startup change. Python import semantics provide the initialization ordering; no custom process/global lock is introduced.
+
+App SHA-256 before: `5c6dd7fd5bccf71aa0eb04125e2d72e44b11ba6064d40060046b8b6b6d8e0193`; after: `e0741b64b571de2ba2709696daaa463cce20a1d051f6670582fbed82293e20d3`. Host/container bytes matched. All viewport component, protocol/state/contract tests and frozen fixture files remain unchanged.
+
+### Offline final image and bounded cold-start regression
+
+Built once with `docker build --pull=false --network=none -f tests/feasibility/release_1_15/viewport/Dockerfile -t aiq-r115-wp01-coldfix:local .`. Image ID `sha256:21dc267057d0a2c4c8c05077e2ac914818ee7bc16d96bed4e09abefda8a1370c`; manifest `sha256:03d521775ddeb87cbb071e84ad2c07e4c9aede22e9f99fe9efd76cb9d5aba840`; config `sha256:f5be37f9548d691c3d4685cba33c7b8098b377a79d017d00a4d3864217a7b101`. Same local base and installed versions recorded in the preceding investigation. No dependency installation or external assets.
+
+Each of six trials used a fresh fixture server process in its own read-only container and two new isolated browser contexts, without prewarming the application. Reused only the installed Chrome process, not browser contexts or server/import state. Same loopback/1 CPU/512 MiB/64-task/32 MiB temporary-filesystem profile. Twenty-second observation deadline per trial; stop on any failure; bounded suite duration remained below five minutes. Temporary Windows PowerShell 5.1 collector checked actual chart readiness in both sessions, UI exception text and server logs for AttributeError/Traceback/uncaught app execution. No failed load was reloaded or retried.
+
+| Fresh trial | Navigation sequence ms | A ready observed ms | B ready observed ms | Trial seconds | Result |
+| --- | --- | --- | --- | --- | --- |
+| 1 | 343.853 | 7150.500 | 7150.500 | 10.652 | Two charts ready; no matching UI/server exception |
+| 2 | 194.854 | 4803.429 | 4681.950 | 8.721 | Two charts ready; no matching UI/server exception |
+| 3 | 158.853 | 4017.197 | 3892.783 | 6.633 | Two charts ready; no matching UI/server exception |
+| 4 | 155.408 | 3913.540 | 3913.540 | 7.611 | Two charts ready; no matching UI/server exception |
+| 5 | 133.049 | 3919.742 | 3919.742 | 6.109 | Two charts ready; no matching UI/server exception |
+| 6 | 198.826 | 3803.878 | 3645.569 | 6.112 | Two charts ready; no matching UI/server exception |
+
+**6/6 fresh-container pairs PASS; 12/12 sessions rendered.** Readiness timings are polling observations relative to navigation, not exact script-start timestamps, end-to-end SLAs or Azure F1 capacity measurements. Host activity was not controlled as a performance benchmark. The pre-correction real-browser reproduction is the failing control; standalone construction controls alone had not reproduced it. Six clean pairs support this mitigation under tested schedules, not a statistical guarantee or proof of all import interleavings.
+
+### Focused tests and actual-browser post-start smoke
+
+```powershell
+python -B -m unittest discover -s tests/feasibility/release_1_15/viewport -p 'test_viewport*.py' -v
+docker run --rm --network none --read-only --cpus 1 --memory 512m --pids-limit 64 --tmpfs /tmp:rw,nosuid,nodev,size=33554432 --entrypoint /opt/venv/bin/python aiq-r115-wp01-coldfix:local -B -m unittest discover -s /spike -p test_viewport*.py -v
+```
+
+**36/36 tests PASS on Windows; 36/36 PASS in corrected Linux image, exits 0.** Same 36 tests on two runtimes, not 72 distinct tests. No test was deleted, skipped, weakened or regenerated. The concurrent cold-start regression is actual browser evidence, not claimed to be exercised by these pure contract tests.
+
+A separate functional-smoke container used sequentially initialized isolated sessions after the six cold pairs; it is not counted as a seventh simultaneous cold-start trial. Actual mouse/keyboard events exercised nine checks:
+
+| Smoke case | Result |
+| --- | --- |
+| physical zoom and acceptance | PASS |
+| physical pan | PASS |
+| pending pan plus changed refresh | PASS |
+| unchanged refresh no redraw | PASS |
+| second session independent zoom | PASS |
+| A unaffected by B | PASS |
+| instrument independent live state | PASS |
+| BTC round trip retains axes | PASS |
+| B unaffected by A | PASS |
+
+No matching server exception occurred during the smoke. Pending pan plus changed refresh preserved UTC x, price y and volume y2; unchanged refresh added one fixture query and no redraw. Reciprocal session mutations remained isolated; instrument switching returned to the preserved BTC viewport. Exact pending/after viewport for the raced refresh:
+
+```json
+{"stage":"pending","x":["2026-10-20 12:19:51.4276","2026-10-20 15:04:28.1106"],"y":[102.45806100217865,114.73772034066153],"y2":[0,10.526315789473685],"serverRevision":2,"commandEpoch":0,"queries":1,"renders":"1"}
+{"stage":"accepted","x":["2026-10-20T12:19:51.4276Z","2026-10-20T15:04:28.1106Z"],"y":[102.45806100217865,114.73772034066153],"y2":[0,10.526315789473685],"serverRevision":3,"commandEpoch":1,"queries":2,"renders":"2"}
+```
+
+The earlier complete 26-case matrix and 30-cycle resource screen are historical results, not rerun or recounted as new qualifications for this import-only correction. This pass intentionally follows the authorized proportionate smoke scope.
+
+### Evidence custody, preservation and disposition
+
+| Temporary artifact | SHA-256 |
+| --- | --- |
+| `coldfix-browser-results.json` | `5c53b2ba344d2bfe67c13e9ceba70cf0685cd53086f8b9abde41d265167b3a80` |
+| `coldfix-smoke.json` | `f5c91203c2f4a3112e1265ffd190849b50a1a8504947aeeb3f64d0b8bfb36694` |
+
+Original cold-load artifacts were not overwritten; corrected results/logs use separate names. No personal evidence-root paths or unsanitized server logs are published. Owned browser/profile, six labeled cold-trial containers, separate smoke container and unshared corrected image/tag removed after boundary/ownership/reference checks. Smoke shutdown exit 0, OOMKilled false. Pre-existing base, unrelated processes/resources and the clean primary checkout preserved. UTF-8/LF, independent working-tree/staged byte scans, exact two-file scope and git diff --check required before committing.
+
+**Review recommendation:** the reproduced cold-load blocker is mitigated in the fixture and passes the authorized bounded regression. PR #379 can be considered for finalization as a feasibility PR by the owner. Leave DRAFT/OPEN for this handoff; no ready transition or merge performed. WP01 #367 remains OPEN; unresolved S2/contract decisions and storage-denial/long-soak/production integration obligations are unchanged. No WP01 acceptance, WP02, provider operation, Azure change, deployment or public activation. `PUBLIC_RUNTIME_VERIFIED=False`.
