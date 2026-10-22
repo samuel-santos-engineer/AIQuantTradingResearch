@@ -29,3 +29,13 @@ WP02 owns container runtime contract before WP05 integration; WP03 owns private 
 
 ## Verification
 Root `.gitattributes`, `AGENTS.md` and `docs/governance/REPOSITORY_LF_LINE_ENDINGS_POLICY.md` control LF normalization. Check each changed text blob for CRLF, run `git diff --check`, and disclose any pre-existing line-ending inconsistencies without bulk rewrites.
+
+## WP01 contract-closeout assessment index
+
+Documentation-only supplement after merged planning PR #378 and feasibility PR #379. These paths index a blocked closeout assessment; they are not production mutation authority or owner acceptance:
+
+- [WP01 contract closeout](RELEASE_1.15_WP01_CONTRACT_CLOSEOUT.md)
+- [WP01 D1-D7 decision register](RELEASE_1.15_WP01_DECISION_REGISTER.md)
+- [WP01 downstream qualification matrix](RELEASE_1.15_WP01_DOWNSTREAM_QUALIFICATION_MATRIX.md)
+
+Exact publication scope: these three new documents and this index addition only. Existing governance, implementation, tests, historical evidence, acceptance statuses and issue dependencies remain unchanged. `PUBLIC_RUNTIME_VERIFIED=False`; issue #367 remains open and WP02 is not started. UTF-8/LF applies to every changed text file.
