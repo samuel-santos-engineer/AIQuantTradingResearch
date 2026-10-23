@@ -52,3 +52,7 @@ This amendment changes the existing register/closeout/qualification matrix and t
 - [Owner-authorized contract correction and owner-review prompt](prompters/release-1.15-wp01-codex-contract-correction-and-owner-review.md), included after explicit authorization of the untracked prompt; wording preserved as UTF-8/LF.
 
 Documentation-only corrections update the existing proposal, register and closeout; qualification rows/owners and acceptance statuses remain unchanged. No application/test/governance or historical evidence mutation is authorized. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Dual-container Release 1.15 governance amendment — 2026-10-23
+
+Owner-selected architecture update: two single-process Linux Docker images and two Azure Web Apps per environment; the existing regional F1 App Service Plans are reused. The previous one-image PID1 and loopback-in-container WP02 model is superseded. Existing governance and WP01 D1-B/roadmap documents are amended without touching D3/D4/D5 numerical/schema/transform bodies or historical test evidence. The empty research apps and their exact resource IDs are recorded in open PR #381. No source/build/deploy/provider operations, licensing approval gate or release-gate waiver. `PUBLIC_RUNTIME_VERIFIED=False`.
