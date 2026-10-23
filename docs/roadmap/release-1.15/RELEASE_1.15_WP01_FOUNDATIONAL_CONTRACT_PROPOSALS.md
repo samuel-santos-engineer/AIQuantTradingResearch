@@ -2,7 +2,7 @@
 
 Date: 2026-10-23. **PROPOSALS FOR OWNER CHOICE; NOT APPROVED OR FROZEN.** Refs #367 and existing PR #380. Baseline `f3cf2787d7bb53bcaba236d67b41531d0cb52fde`, parent main `3880f5afee59e3d970ceacd6c3e9abfd796a0105`. Read with the [decision register](RELEASE_1.15_WP01_DECISION_REGISTER.md), [closeout](RELEASE_1.15_WP01_CONTRACT_CLOSEOUT.md) and [qualification matrix](RELEASE_1.15_WP01_DOWNSTREAM_QUALIFICATION_MATRIX.md).
 
-Every exact value, formula, bound, deadline and wire spelling below is a proposed resolution unless explicitly called inherited. Within a proposed contract, must/shall defines the candidate to review, not current implementation authority. No code/test/vector generator is run to evaluate it; illustrative mathematical values are not test passes. All new/modified text is UTF-8/LF. `PUBLIC_RUNTIME_VERIFIED=False`; WP01 remains BLOCKED, #367 OPEN and WP02 unstarted.
+Every exact value, formula, bound, deadline and wire spelling below is a proposed resolution unless explicitly called inherited. Within a proposed contract, must/shall defines the candidate to review, not current implementation authority. No product code, product tests or production vector generator is run to evaluate it. The review calculations below use independently authored inline integer arithmetic only; illustrative mathematical values are not test passes. All new/modified text is UTF-8/LF. `PUBLIC_RUNTIME_VERIFIED=False`; WP01 remains BLOCKED, #367 OPEN and WP02 unstarted.
 
 ## Owner decision sheet
 
@@ -39,13 +39,25 @@ Process groups are the first termination target, not complete ownership proof: a
 
 Launch role state machine: Stopped -> Starting -> Running -> Stopping -> Stopped, or ContainmentFailed. Only one role incarnation may occupy Starting/Running/Stopping. Record root PID, pidfd, PGID and monotonic launch sequence before health admission. Health probe every 30 s, 2 s per probe, startup grace 90 s; three consecutive post-grace failures initiate stop. Research and UI have independent health/backoff counters. A UI failure does not stop healthy research; research unavailability leaves UI serving truthful disconnected/last-known state.
 
-On stop, prohibit replacement, TERM the recorded role group and all positively identified role tasks. Give 10 s graceful time, then KILL remaining known tasks; spend at most 5 additional seconds on rescan/reap. PID1 drains wait results for its direct/adopted children without SIGCHLD=SIG_IGN or NOCLDWAIT, associates exit evidence with the role and rescans for escaped same-UID tasks. Replacement requires root exit/wait evidence and two complete role-UID-empty scans >=100 ms apart, no pending launch and all observed role children reaped. It never equates an empty PGID with an empty role. No complete census/death proof by deadline means ContainmentFailed: no same-role replacement, no availability fallback; terminate the container after bounded peer shutdown if scope/ownership is uncertain.
+On stop, prohibit replacement, TERM the recorded role group and all positively identified role tasks. Give 10 s graceful time, then KILL remaining known tasks; spend at most 5 additional seconds on rescan/reap. PID1 drains wait results for its direct/adopted children without SIGCHLD=SIG_IGN or NOCLDWAIT, associates exit evidence with the role and rescans for escaped same-UID tasks. Replacement requires root exit/wait evidence, no pending launch, all observed role children reaped and an independently qualified complete descendant-closure witness. Two complete role-UID-empty scans >=100 ms apart are necessary screening evidence only: non-atomic /proc enumeration cannot exclude a concurrent fork/exit race and is not sufficient restart authorization. No such complete witness is established by this proposal or S2; until WP02 establishes one under the approved model, same-role replacement remains disabled. It never equates an empty PGID with an empty role. No complete census/death proof by deadline means ContainmentFailed: no same-role replacement, no availability fallback; terminate the container after bounded peer shutdown if scope/ownership is uncertain.
 
 Unexpected root exit immediately enters the same closure protocol. After confirmed closure, delays are 1,2,4,8,16,30,30... seconds; reset the delay index only after five continuous healthy minutes. More than ten failures in any rolling ten minutes disables that role until container restart (UI displays unavailable if research disabled). At most one scheduled replacement per role, no unbounded queue. Container TERM/INT disables all replacements and gives both roles the same parallel 10+5 s closure window; exit 0 only after verified clean shutdown, nonzero on failure. External platform hard-kill may interrupt this protocol: persistent recovery still belongs to WP03, not a promise of graceful shutdown.
 
 No-overlap here is within one verified container PID namespace. PID1 failure admits no local restart; actual container recreation/old-instance termination and single-writer exclusion across deployment overlap/replicas require WP02/WP03/WP07 proof. A nominal single F1 instance is not evidence that rolling old/new containers cannot overlap. No public activation until private writer ownership is exclusive.
 
 Use fail-closed startup if pidfds, role census, capability reduction, ownership/permissions or role signal/wait authority cannot be verified on the target kernel. No writable-cgroup dependency is proposed. User-namespace creation must be denied by the child filter, not assumed blocked by no_new_privs: a new user namespace can confer capabilities inside that namespace. Same-UID public descendants must not switch role/UID or acquire privilege in the container namespace; this assumption requires adversarial proof, not merely a configuration comment. PID1/native launcher post-fork behavior must be safe for its chosen runtime; no language/toolchain selection or new helper dependency is authorized here.
+
+### D1 review clarification - trust and kernel prerequisites
+
+The four retained capabilities have distinct purposes: SETUID sets every child UID credential to its fixed role; SETGID sets GIDs and clears supplementary groups; SETPCAP drops child bounding capabilities before losing privilege; KILL permits cross-role termination despite different UIDs. None is evidence that PID1 is harmless: compromised root PID1 can impersonate research and read private files. The confidentiality claim excludes compromise of that explicitly trusted bootstrap/supervisor. S2 used broader default powers; it did not exercise this reduced profile, inherited filter, race-safe census or hostile-descendant closure.
+
+Require a dedicated visible PID namespace, mounted /proc exposing all role processes and threads, stable UID ownership for the whole lifetime, usable pidfd_open/pidfd_send_signal and child wait operations, plus permission under the container's outer seccomp/LSM/capability policy. Enumerate threads as well as leaders when checking credential invariants; process pidfds are not per-thread credential attestation. PIDFD_THREAD is not assumed available. Root UID alone does not override missing capabilities or an outer denial. Lost visibility, permission denial, ambiguous PID reuse or missing facilities means startup/closure failure; never request more privileges automatically.
+
+A pidfd pins an identified process for signaling/readiness; opening one neither grants signal authority nor makes a non-child waitable. Only direct/adopted children can supply the supervisor's wait status. Have one exclusive reaping authority, including coordination with any language-runtime reaper; never use SIGCHLD=SIG_IGN or SA_NOCLDWAIT. ECHILD means no matching waitable child, not proof that every role descendant is dead. A census PID must be reconciled against start time and credentials before attribution, and races must fail closed. Reaping known children plus an empty PGID or two UID scans does not close unknown descendants.
+
+no_new_privs constrains privilege gained through exec, not an already privileged setuid call or namespace creation. Verify child credential/capability clearing and inherited seccomp before admitting health. The filter must cover every supported syscall ABI, clone namespace flags and clone3's inaccessible pointed-to flags; ENOSYS fallback is a compatibility hypothesis for the pinned runtimes, not an observed result. Parent launch/reaping must be safe for the eventual runtime and kernel interfaces; no implementation language/helper is selected here. WP02 must independently prove these properties and complete closure or return a design blocker; WP07 must separately prove them on actual App Service/F1. Missing closure proof leaves restarts disabled, not permission to weaken no-overlap or add a cgroup/helper fallback.
+
+Mechanism references: [pidfd_open](https://man7.org/linux/man-pages/man2/pidfd_open.2.html), [wait](https://man7.org/linux/man-pages/man2/waitpid.2.html) and [no_new_privs](https://www.kernel.org/doc/html/latest/userspace-api/no_new_privs.html). This is read-only mechanism reconciliation, not an Azure compatibility result.
 
 ### D1 alternatives, owner choice and conformance
 
@@ -104,6 +116,44 @@ Checkpoint state must include algorithm version, segment UUID and index, last op
 WP04 must author a separate C# reference independent of production and literal mathematical vectors, before production golden expectations. Required families: flat, rising, falling, alternating/mixed, extreme valid magnitudes, ties/square-root midpoint boundaries, null positions, gaps/corrections, checkpoint restart/pruning and 400/401. Hand-derived anchors (proposed expectations, NOT RUN): flat O=H=L=C=100, volume1 gives SMA/EMA/Bollinger100, ATR0, RSI50, MACD/signal/histogram0 at their stated starts; candle400 unavailable, candle401 Neutral/Undetermined (strict flat slope 0<0 is false). Rising close=high=low=open=t gives SMA20/EMA20=10.5 at20, RSI100 at15, MACD7 at26 and signal7/histogram0 at34; ATR14=0.928571428571 at14. Falling close=1000-t gives RSI0 at15. Verify anchors independently rather than copy calculator output.
 
 Owner choice: accept D3-A population variance, first-bar ATR, midpoint rounding, RSI50 flat case, type-7 percentiles, private pre-readiness score/public null policy and exact replay. Alternatives change results and must carry explicit owner edits/vector updates. No Release 1.14 hour-grid calculator or its fixed-point identities is silently reused as the one-minute contract.
+
+### D3 independent documentation calculations - reviewed, not executed product tests
+
+For n=20, population variance is sum(p_i^2)/20 - (sum(p_i)/20)^2 = A/400. Also A=sum over i<j of (p_i-p_j)^2, hence A>=0 for every valid integer window. Standard deviation in integer price units is sqrt(A)/20. With k=floor(sqrt(A)/20), compare sqrt(A)/20 with k+1/2: both sides are nonnegative, so squaring gives **4*A versus 400*(2*k+1)^2**. The existing expression is correct and is retained; equality chooses the even adjacent integer.
+
+The following are complete positive 20-close windows in integer price units, not whole currency values. Translation by a constant preserves A. All satisfy D3's minimum raw price.
+
+| Window | sum p | sum p^2 | A | k | 4A versus midpoint threshold | Rounded sd units |
+| --- | --- | --- | --- | --- | --- | --- |
+| ten 1, ten 3 (exact square) | 40 | 100 | 400 | 1 | 1600 < 3600 | 1 |
+| nineteen 1, one 3 (below midpoint) | 22 | 28 | 76 | 0 | 304 < 400 | 0 |
+| nineteen 1, one 4 (above midpoint) | 23 | 35 | 171 | 0 | 684 > 400 | 1 |
+| ten 1, ten 2 (true even-down tie) | 30 | 50 | 100 | 0 | 400 = 400 | 0 |
+| ten 1, ten 4 (true even-up tie) | 50 | 170 | 900 | 1 | 3600 = 3600 | 2 |
+
+Independently evaluated anchors below set open=high=low=close, volume=1, one consecutive minute per index, and price(t)=100, t, or 1000-t in currency units. Means/recurrences use integer S=10^12, quotient/remainder ties-even, integer square root and independently written loops without importing product code or expected fixtures. EMA has the analytical invariant EMA_N(t)=t-(N-1)/2 for rising and 1000-t+(N-1)/2 for falling once seeded. Flat indicators retain 100. TR1=0 and TR2..=1 on both ramps, so ATR14=R(13*S,14)/S, not 0 or 1; the existing anchor is retained.
+
+| Anchor | Flat | Rising | Falling |
+| --- | --- | --- | --- |
+| SMA20 / EMA20 at20 | 100 / 100 | 10.5 / 10.5 | 989.5 / 989.5 |
+| ATR14 at14 /15 | 0 /0 | 0.928571428571 /0.933673469387 | same as rising |
+| RSI14 at15 | 50 | 100 | 0 |
+| EMA12 / EMA26 at26 | 100 /100 | 20.5 /13.5 | 979.5 /986.5 |
+| MACD at26; signal / histogram at34 | 0; 0 /0 | 7; 7 /0 | -7; -7 /0 |
+| EMA20 at400 /401 | 100 /100 | 390.5 /391.5 | 609.5 /608.5 |
+| ATR at400 /401 | 0 /0 | 0.999999999994 /0.999999999994 | same as rising |
+| Public classification at400 | null score/trend/regime | null score/trend/regime | null score/trend/regime |
+| Classification at401 | score0, Neutral, Undetermined | score2, Bullish, Undetermined | score-2, Bearish, Volatile |
+
+At401 calibration is exactly indices101..400, excluding401; nothing changes warmup, nullable seed positions, gap reset, checkpoint or exact replay rules. Flat zero slope is not strictly below its zero P40. Rising slope is below prior P70, while falling normalized ATR and width exceed their prior P80, giving Volatile precedence. Independent integer-unit comparison values (divide each by S for its dimensionless quantity):
+
+| Series | Current normalized ATR / width / signed slope | Prior P80 ATR / width | Prior P70 / P40 absolute slope |
+| --- | --- | --- | --- |
+| Flat | 0 /0 /0 | 0 /0 | 0 /0 |
+| Rising | 2493765586 /58914751441 /2587322122 | 6218935722 /152447369759 | 5675407375 /3760825092 |
+| Falling | 1669449082 /37904889383 /-1629991850 | 1515611349 /34461576924 | 1420051724 /1259604963 |
+
+These are reviewed documentation calculations, not regression results. WP04 must separately author and verify implementation vectors; do not silently copy these numbers into production golden tests. No current product calculator, checkpoint or regime implementation was executed.
 
 ## D4 proposed canonical wire contract
 
@@ -178,7 +228,7 @@ All success responses require schemaVersion, type, instrument, requestEpoch, obs
 
 Intervals sorted by start and bounded by first retained opening and last opening+60s. Collections replace completely, not append. Gaps require a new continuity segment at the following actual candle; a correction/reset can start a new segment without a time gap. Transition predecessor pruning does not delete a still-retained event. The consumer validates structural/membership/status consistency but never recomputes research from rounded transformed values.
 
-Zero-row full is HTTP200 only when a valid empty dataset identity/transform configuration exists: version0, all six collections empty, research/freshness/classificationValidity Unavailable, last candle/poll/commit/research timestamps null, integrity Protected for a verified initialized empty DB. Missing/unverifiable keys/storage use error, not a false empty dataset. There is no fabricated seed candle. Full with 1..999 actual retained rows is valid with honest readiness; 1,000 is a cap, not a requirement to hide startup history.
+Zero-row full is HTTP200 only when a valid empty dataset identity/transform configuration exists: version0, all six collections empty, research/freshness/classificationValidity Unavailable, lastCompletedCandleAt/lastCommitAt/researchAsOfCandleAt null, integrity Protected for a verified initialized empty DB. lastSuccessfulProviderPollAt is null before any successful poll; a later successful poll returning no candles may set that actual timestamp without changing version0, arrays, freshness or readiness. lastCommitAt denotes the instrument candle/research snapshot commit, not metadata/config initialization. Missing/unverifiable keys/storage use error, not a false empty dataset. There is no fabricated seed candle. Full with 1..999 actual retained rows is valid with honest readiness; 1,000 is a cap, not a requirement to hide startup history.
 
 ### D4-A illustrative positive and negative vectors
 
@@ -188,7 +238,13 @@ The following empty full is an illustrative wire/validation vector, not output o
 {"schemaVersion":"1.0","type":"full","instrument":"BTC/USD","requestEpoch":"1","observedAt":"2026-10-23T12:01:15.000000Z","identity":{"generation":"11111111-1111-4111-8111-111111111111","version":"0","displayDate":"2026-10-23","transformEpoch":"1"},"contract":{"researchAlgorithm":"aiq-r115-research-v1","transformAlgorithm":"aiq-r115-transform-v1","intervalSeconds":60},"status":{"observedAt":"2026-10-23T12:01:15.000000Z","research":"Unavailable","freshness":"Unavailable","integrity":"Protected","classificationValidity":"Unavailable","lastCompletedCandleAt":null,"lastSuccessfulProviderPollAt":null,"lastCommitAt":null,"researchAsOfCandleAt":null},"candles":[],"analytics":[],"classifications":[],"events":[],"researchUnavailableIntervals":[],"marketDataGapIntervals":[]}
 ```
 
-Positive unchanged vector: take the literal empty full above with an already accepted exact identity, change type to unchanged, requestEpoch to2 and both observedAt values to `2026-10-23T12:01:16.000000Z`, and remove all six collection keys. It must update status/connectivity without redraw. With no accepted identity, that same reply is invalid and schedules a full request on the next normal tick, not an immediate retry.
+Positive unchanged vector below requires the already accepted exact empty identity above. Both observation fields advance together, and all six collection keys are absent. This initial-empty example still has no successful poll; an actual later successful empty poll may update only its truthful poll timestamp. It must update status/connectivity without redraw. With no accepted identity, that same reply is invalid and schedules a full request on the next normal tick, not an immediate retry.
+
+```json
+{"schemaVersion":"1.0","type":"unchanged","instrument":"BTC/USD","requestEpoch":"2","observedAt":"2026-10-23T12:01:16.000000Z","identity":{"generation":"11111111-1111-4111-8111-111111111111","version":"0","displayDate":"2026-10-23","transformEpoch":"1"},"contract":{"researchAlgorithm":"aiq-r115-research-v1","transformAlgorithm":"aiq-r115-transform-v1","intervalSeconds":60},"status":{"observedAt":"2026-10-23T12:01:16.000000Z","research":"Unavailable","freshness":"Unavailable","integrity":"Protected","classificationValidity":"Unavailable","lastCompletedCandleAt":null,"lastSuccessfulProviderPollAt":null,"lastCommitAt":null,"researchAsOfCandleAt":null}}
+```
+
+On unchanged, status may reflect a new observation, poll or freshness age, but lastCompletedCandleAt, researchAsOfCandleAt and classificationValidity must remain consistent with the cached collections. A change requiring different research arrays/classifications or a different identity requires full. Recovery, untrusted time or unverifiable empty lineage is a 503 error, not a fabricated Protected empty success. All non-null status timestamps must satisfy the shared timestamp and observation-order rules.
 
 Positive one-candle vector: use the same envelope, version1, candle time `2026-10-23T12:00:00Z`, segment `22222222-2222-4222-8222-222222222222`, segmentIndex `1`, OHLC each `100.000000000000`, volume `1.000000000000`; analytics at that time with all thirteen outputs null; classification Unavailable with score/trend/regime null; one SegmentStart; researchUnavailableIntervals `[12:00:00Z,12:01:00Z)`; gaps empty. Set research Recalibrating, freshness Current, lastCompletedCandleAt=12:00, lastCommitAt and lastSuccessfulProviderPollAt=12:01:15 with six fractional digits, researchAsOf null. This vector tests accepted startup shape and does not assert these transformed numbers arise from the test HMAC key.
 
@@ -245,17 +301,38 @@ This gives inclusive endpoints0.900000000000..1.100000000000 in steps10^-12; no 
 
 RSI, normalized ATR/width/slope, scores, trend/regime/validity and timestamps are unchanged. **Volume is unchanged**, remains actual base-asset units (BTC or ETH) in12-place decimal strings, not quote-price units; unsupported/unknown provider volume units are an input capability failure, never fabricated zero or silent scaling. This explicit volume policy needs owner acceptance. No field transmits F, private keyEpoch, key bytes, raw prices or raw/private checkpoint state. Public transformEpoch below is an integer counter, not the private UUID or key fingerprint.
 
+### D5 minimum-positive proof
+
+For the minimum valid raw price p=1 integer unit, p*F/S lies in [0.9,1.1], strictly between the rounding midpoints 0.5 and 1.5. Both endpoints and every intermediate factor round to exactly 1 unit, or 0.000000000001. Nearest-even rounding is monotone, so for all integer p>=1 and F>=900000000000 the result is at least R(900000000000,S)=1. No valid positive OHLC can become zero. Nondecreasing rounding also preserves low<=open,close<=high, though distinct prices may coincide. No minimum-price amendment, clamp or new transform is needed. Raw zero, sub-unit precision or an out-of-range factor violates the private input/config contract and fails publication; it must not masquerade as a valid zero/empty dataset. Signed derived outputs may legitimately round to zero and negative Bollinger lower bands remain valid.
+
 ### D5-A durable epoch, rollover and unchanged rules
 
 Public identity is exactly D4's {generation,version,displayDate,transformEpoch}; transformEpoch is a durable positive counter string within a generation, initially1. Store an active private configuration tuple (key bytes, private keyEpoch, public transformEpoch, transformAlgorithm) with the dataset lineage outside public access. Normal restart reuses it exactly. A new dataset generation may initialize public epoch1; a key rotation does not by itself invent a new market-data generation or increment its commit version.
 
 Rotation within the same UTC day: prepare the new key/private epoch and public epoch+1, stop affected publication, durably activate the tuple with a recovery witness, discard old transformed-cache entries, rebuild both instruments with the new factor and expose only fully validated responses under the new public epoch. Never mix old/new transformed rows inside a response, and never emit unchanged to an old epoch. If either active config/epoch witness is uncertain after failure, enter Recovery and error or retain independently validated prior history according to WP03; do not guess/reuse an identity. Counter overflow stops rotation/publication until explicit new-generation recovery; no wrap. An identical key-byte reinstall with unchanged policy is a no-op only if private/public epoch tuple is unchanged; an explicit rotation always increments public epoch even if bytes or rounded factor coincide.
 
-D4 response acquisition reads one coherent active tuple and snapshot. If it changes before serialization commits, discard staged output and return DATA_UNAVAILABLE (normal scheduled retry later), not arrays under obsolete identity. Every success uses a coherent tuple; a single old response already in flight cannot overwrite a later accepted epoch because session request ordering and nondecreasing epoch validation apply. Two instruments may have distinct data versions, but the active transform epoch/key policy is shared; no success after activation uses the previous tuple. Cache key: schemaVersion/researchAlgorithm/transformAlgorithm/instrument/generation/version/displayDate/transformEpoch. No immutable entry is mutated for new keys or dates.
+D4 response acquisition reads one coherent active tuple and snapshot. If it changes before serialization commits, discard staged output and return DATA_UNAVAILABLE (normal scheduled retry later), not arrays under obsolete identity. Every success uses a coherent tuple; a single old response already in flight cannot overwrite a later accepted epoch because session request ordering and nondecreasing epoch validation apply. Two instruments may have distinct data versions, but the active transform epoch/key policy is shared; no response buffer may commit after activation using the previous tuple. A buffer committed before activation may arrive later; the server cannot recall in-flight bytes. Request ordering and identity monotonicity prevent it replacing a newer accepted snapshot; simultaneous arrival across both instruments is not promised. Cache key: schemaVersion/researchAlgorithm/transformAlgorithm/instrument/generation/version/displayDate/transformEpoch. No immutable entry is mutated for new keys or dates.
 
 At trusted UTC midnight, recompute all retained price-valued arrays under the new displayDate, keeping data version/transformEpoch unless data/key changed. Old-day unchanged is forbidden. An in-flight construction crossing midnight is discarded and re-evaluated for the new day or returns DATA_UNAVAILABLE within the existing deadline. No partial re-transform. Backward trusted date or epoch within a generation triggers Recovery/UNTRUSTED_TIME, not silent acceptance of older arrays. Last-known disconnected charts retain their old identity/date and truthful label until validated replacement.
 
 Atomic key activation/witness/fsync/rollback detection is a WP03 implementation obligation, not proven by this identity specification. Coordinated rollback of all private evidence may remain undetectable under the inherited best-effort lineage model; never claim cryptographic rollback proof. WP07 verifies actual Azure config/mount/restart behavior separately. No owner credentials, real keys or Azure operations are needed to review these proposals.
+
+### D4/D5 explicit identity and in-flight examples
+
+Illustrative base BTC identity is generation G=`11111111-1111-4111-8111-111111111111`, version `42`, displayDate `2026-10-23`, transformEpoch `7`. Values below are wire identities, not executed HMAC results. Private keyEpoch never appears in them.
+
+| Change from base | New public identity (generation/version/displayDate/transformEpoch) | Required outcome |
+| --- | --- | --- |
+| Only status observation/poll advances | G /42 /2026-10-23 /7 | unchanged allowed for exact accepted identity; no collections/redraw |
+| Completed candle/correction commits | G /43 /2026-10-23 /7 | full, complete aligned replacement |
+| Same-day explicit key rotation | G /42 /2026-10-23 /8 | full even if rounded factor coincides; no data-version increment solely for rotation |
+| Midnight after that rotation, no new data | G /42 /2026-10-24 /8 | full; never old-date unchanged |
+| ETH has independent version105 during same rotation | G /105 /2026-10-23 /8 | same active date/epoch policy, independent instrument/version cache key; no mixed factors inside a response |
+| Request10 reply arrives after accepted request11 | any otherwise valid tuple | discard request10 before publication, even if it claims a higher data version |
+| Current request12 replies with epoch7 after accepted epoch8 in G | G /43 /2026-10-23 /7 | reject decreasing epoch; retain complete accepted snapshot |
+| Independently verified new lineage | new nonzero generation G2 /0 /2026-10-23 /1 | full only, clear lineage-bound data; never infer chronology by sorting UUIDs or trusting an arbitrary generation change |
+
+The four fields and monotonic counter types are identical in D4 and D5. All examples are subject to trusted observation time, current request epoch, exact instrument/algorithm and D2 lineage checks. Pending buffers use one coherent active config/snapshot; activation or midnight before commit discards staged output. Already committed in-flight bytes may arrive later and are governed by session ordering, not a fictitious network-recall guarantee. Cross-instrument version differences are normal; shared date/epoch policy does not claim atomic simultaneous delivery. Independent WP05 race/rotation/cache tests and WP03 durable epoch recovery remain required; these examples are not their execution.
 
 ### D5 independent test-vector specification and alternatives
 
@@ -284,4 +361,4 @@ No application code, tests, CI, dependency, historical S1/S2 evidence or governa
 
 ## Documentation validation disclosure
 
-Validation for this amendment is limited to Markdown paths/anchors, D-status/owner consistency, unchanged Q/acceptance rows, illustrative JSON syntax, test-only key byte lengths, exact authorized paths and UTF-8/LF. It does not execute proposed research/HMAC/kernel behavior, independently calculate digest vectors, run product tests or qualify Linux/Azure. A first protected-file raw-byte comparison flagged existing CRLF checkout forms of three untouched governance files; Git content comparison confirmed no change. Those files were not normalized. Changed/new files and staged blobs are scanned independently for no BOM/CRLF/lone CR. Historical failed experiments remain unchanged.
+Validation includes Markdown paths/anchors, D-status/owner consistency, unchanged Q/acceptance rows, illustrative JSON syntax, test-only key byte lengths, exact authorized paths and UTF-8/LF. This correction additionally ran independently authored inline standard-library Python integer arithmetic for the documented Bollinger windows, indicator anchors, prior-only percentile comparisons and minimum-positive endpoints; no production imports or repository scripts were used. These are documentation calculations, not product tests. HMAC digest vectors, native/kernel behavior, product tests and Linux/Azure qualification were NOT RUN. A first protected-file raw-byte comparison flagged existing CRLF checkout forms of three untouched governance files; Git content comparison confirmed no change. Those files were not normalized. Changed/new files and staged blobs are scanned independently for no BOM/CRLF/lone CR. Historical failed experiments remain unchanged.

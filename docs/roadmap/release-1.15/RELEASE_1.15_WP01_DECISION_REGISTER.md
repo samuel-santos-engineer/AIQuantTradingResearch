@@ -109,3 +109,14 @@ Acceptance: exact-image Linux security/contract/browser and combined recovery/lo
 - [ ] Confirm D4/D5 public identity exactly agrees: generation/version/displayDate/transformEpoch; transformEpoch is a positive counter string, not private keyEpoch UUID.
 
 Until those choices are recorded, every status/primary owner above is unchanged and WP01 remains BLOCKED. D2 storage durability stays WP03, D6 accepted components-v2/local Plotly integration WP06 and D7 actual Linux/F1 qualification WP07. No alternative chart search, licensing gate, implementation or new test pass is introduced.
+
+## Review corrections awaiting owner disposition
+
+The [revised proposal](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md) independently derives and retains the correct Bollinger midpoint inequality and ATR14 ramp seed; adds true integer-window ties, flat/ramp EMA/MACD and 400/401 calculations; proves minimum transformed positive OHLC remains one unit; and reconciles empty/unchanged status and explicit commit/rotation/midnight/stale identity cases. Documentation arithmetic is not an implementation test pass.
+
+- [ ] D1: explicitly accept/amend/reject retained-root trust and the four capability purposes. Two UID-empty scans are insufficient closure proof; WP02 must establish a complete witness or keep replacement disabled. Alternative privileged helper/cgroup designs are not silently authorized. WP07 must verify actual F1 facilities with no privilege fallback.
+- [ ] D3: accept/amend/reject population variance, retained midpoint formula, exact seeds/rounding and 100+300 prior-only readiness. Alternative sample variance/seeding changes results; WP04 independent vectors and replay proof remain downstream.
+- [ ] D4: accept/amend/reject empty-initial versus successful-empty-poll semantics, literal unchanged envelope, all bounds/null/error rules and fresh status consistent with cached arrays. WP05 independently verifies both runtimes; WP06 integrates only the accepted contract.
+- [ ] D5: accept/amend/reject minimum-positive proof, unchanged volume and generation/version/displayDate/transformEpoch transitions. Explicit rotation advances epoch even if factor coincides; already committed replies may arrive late. WP03 durability and WP05 independent HMAC/race vectors are still unproven.
+
+D1/D2/D6/D7 remain PROVISIONAL; D3/D4/D5 remain OPEN. WP01 BLOCKED; #367 OPEN; WP02 unstarted; `PUBLIC_RUNTIME_VERIFIED=False`. Owner review concerns proposed contract choices, not a demand to complete downstream production qualification inside WP01.

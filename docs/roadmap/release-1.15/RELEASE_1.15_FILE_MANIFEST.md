@@ -46,3 +46,9 @@ Exact publication scope: these three new documents and this index addition only.
 - [Owner decision-resolution prompt](prompters/release-1.15-wp01-codex-foundational-contract-decision-resolution.md), explicitly authorized for inclusion after it was found untracked; wording retained, UTF-8/LF normalized.
 
 This amendment changes the existing register/closeout/qualification matrix and this index, adds only the proposal specification and the authorized prompt, and preserves all22 downstream owners/statuses. It proposes no automatic FROZEN designation, implementation, dependency, test/CI execution, provider/Azure operation, merge or issue closure. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP01 contract correction review index
+
+- [Owner-authorized contract correction and owner-review prompt](prompters/release-1.15-wp01-codex-contract-correction-and-owner-review.md), included after explicit authorization of the untracked prompt; wording preserved as UTF-8/LF.
+
+Documentation-only corrections update the existing proposal, register and closeout; qualification rows/owners and acceptance statuses remain unchanged. No application/test/governance or historical evidence mutation is authorized. `PUBLIC_RUNTIME_VERIFIED=False`.
