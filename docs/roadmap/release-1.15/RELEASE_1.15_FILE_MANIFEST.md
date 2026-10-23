@@ -39,3 +39,10 @@ Documentation-only supplement after merged planning PR #378 and feasibility PR #
 - [WP01 downstream qualification matrix](RELEASE_1.15_WP01_DOWNSTREAM_QUALIFICATION_MATRIX.md)
 
 Exact publication scope: these three new documents and this index addition only. Existing governance, implementation, tests, historical evidence, acceptance statuses and issue dependencies remain unchanged. `PUBLIC_RUNTIME_VERIFIED=False`; issue #367 remains open and WP02 is not started. UTF-8/LF applies to every changed text file.
+
+## WP01 foundational proposal amendment index
+
+- [Detailed D1/D3/D4/D5 candidate contracts and owner decision sheet](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md)
+- [Owner decision-resolution prompt](prompters/release-1.15-wp01-codex-foundational-contract-decision-resolution.md), explicitly authorized for inclusion after it was found untracked; wording retained, UTF-8/LF normalized.
+
+This amendment changes the existing register/closeout/qualification matrix and this index, adds only the proposal specification and the authorized prompt, and preserves all22 downstream owners/statuses. It proposes no automatic FROZEN designation, implementation, dependency, test/CI execution, provider/Azure operation, merge or issue closure. `PUBLIC_RUNTIME_VERIFIED=False`.

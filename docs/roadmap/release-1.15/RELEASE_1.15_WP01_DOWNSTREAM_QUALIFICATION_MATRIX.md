@@ -57,3 +57,7 @@ No production acceptance row becomes Pass from this documentation PR. Existing S
 ## Stop and sequencing rule
 
 Stop at the reported foundational decisions; do not manufacture numerical, schema, HMAC or privilege conventions. Owner disposition of those contracts precedes the affected exact-path implementation plans. This matrix grants no source/CI/schema/provider/Azure execution authority, adds no licensing engineering gate, and changes no predecessor dependency. WP01 remains BLOCKED, #367 OPEN and WP02 unstarted. All authored text uses UTF-8/LF; validate links, consistency and git diff --check before publication.
+
+## Foundational proposal handoff - 2026-10-23
+
+The [D1/D3/D4/D5 candidate specification](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md) provides exact unapproved resolutions for Q01 (D1-A, WP02), Q10 (D3-A, WP04), Q12 (D4-A, WP05) and Q13 (D5-A, WP05). Owner acceptance precedes implementation tests; no row is marked complete by proposal publication. Q07/Q08 include durable transform-config/epoch recovery needed by D5 but remain WP03 obligations; Q15/Q17/Q18 consume the agreed D4/D5 identity. The existing22 rows, their single primary owners, dependent WPs and all12 Pending acceptance rows are unchanged. WP08 owns final evidence/runbook handoff only. No source, numerical/crypto test, kernel probe, provider call or Azure qualification is authorized/executed by this amendment.
