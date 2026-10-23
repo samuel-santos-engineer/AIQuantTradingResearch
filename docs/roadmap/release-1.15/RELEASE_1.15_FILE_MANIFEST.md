@@ -52,3 +52,10 @@ This amendment changes the existing register/closeout/qualification matrix and t
 - [Owner-authorized contract correction and owner-review prompt](prompters/release-1.15-wp01-codex-contract-correction-and-owner-review.md), included after explicit authorization of the untracked prompt; wording preserved as UTF-8/LF.
 
 Documentation-only corrections update the existing proposal, register and closeout; qualification rows/owners and acceptance statuses remain unchanged. No application/test/governance or historical evidence mutation is authorized. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Azure existing-F1-plan infrastructure assessment - 2026-10-23
+
+- [Executed conditional provisioning authority](prompters/release-1.15-codex-azure-existing-f1-plans-additional-apps.md)
+- [Read-only capacity assessment and provisioning stop](RELEASE_1.15_AZURE_EXISTING_F1_PLANS_CAPACITY_EVIDENCE.md)
+
+Infrastructure evidence only: no resource creation, deployment, architecture/governance or WP02 implementation-plan change. Separate evidence PR; preserve all pending local work. UTF-8/LF applies; `PUBLIC_RUNTIME_VERIFIED=False`.
