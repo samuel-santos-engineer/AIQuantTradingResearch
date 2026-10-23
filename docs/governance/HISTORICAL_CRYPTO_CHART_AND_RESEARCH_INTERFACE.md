@@ -159,3 +159,36 @@ This closes the remaining **architecture-policy questions** by recommended bound
 - [ ] Authorize any future feasibility spike, implementation PR, image qualification and deployment separately.
 
 **Change control:** This is a **documentation-only proposal**. Its review/merge does not itself grant implementation, provider access, public data redistribution, registry publication, Azure deployment, governance-gate waiver or release approval. No additional licensing prerequisite is established by this document.
+
+## Release 1.15 superseding dual-container deployment decision — 2026-10-23
+
+**Status:** Owner-selected architecture amendment for planning; publication does not itself authorize application implementation, images, deployment or public runtime activation. This section supersedes all prior Release 1.15 references within this document to **one image**, **a PID1/root supervisor running both roles**, **independent in-container role restarts**, **same-container file/UID boundary** and **localhost-only UI-to-research API**. The rest of this architecture's product, numerical, integrity, UI and bounded snapshot decisions remain in force.
+
+### Four Web Apps, two Docker images per environment
+
+| Environment | Existing UI app | New research app | Existing shared F1 Linux plan |
+| --- | --- | --- | --- |
+| Production / West Central US | `aiqr112wp035ec325382770` | `aiqr115researchprodwcus7f5eabb5` | `asp-aiq-r112-wp03-wcus-5ec325382770` |
+| Staging / West US 2 | `aiqr112wp05wus27f5eabb5` | `aiqr115researchstagingwus27f5eabb5` | `asp-aiq-r112-wp05-wus2-7f5eabb5` |
+
+The two research apps were created as **empty Linux App Service resources**, each on its environment's existing F1 plan (PR #381, pending merge). Their management state Running does not establish a working application, private ingress or sufficient workload compute. Each plan now hosts two apps sharing the same F1 capacity. Keep the existing UI app/resource intact during transition.
+
+Research image: one main non-root C# process; only its container has raw completed candles, SQLite/WAL, watermark/checkpoints, provider credentials and HMAC key; its service computes indicators, classifications, transforms and bounded read-only snapshots. UI image: one main non-root Streamlit/Plotly process; no raw storage or secret mounts; handles only validated transformed responses and session-local historical viewport. No custom C supervisor, shell-managed dual-process restart or elevated same-container privilege-switching is required. Each app's container/platform handles lifecycle independently; outage of one role need not terminate the other.
+
+### Explicit network trust boundary and qualifications
+
+The research API is **not** localhost-only when called from another Azure Web App. Research's `127.0.0.1` is never the UI app's loopback. The UI-to-research channel is an untrusted network boundary and must provide HTTPS, server identity validation, service caller authentication, authorization limited to read-only transformed bounded contract operations, request limits and safe error responses. No external user may be authorized to query even transformed research snapshots directly unless independently authorized as a new public product surface. A public DNS hostname is not proof of a private Azure network. Binding research to its container interface for platform routing is not authorization to make the API anonymously available.
+
+**F1 feasibility is deliberately open:** do not assume VNet integration, private endpoints, managed identity token support in the exact configuration, authenticated upstream proxy, access restrictions or any particular network security feature without evidence. WP02 is responsible for the minimal threat model and F1-compatible service-authentication/ingress candidate; WP05 owns cross-app authenticated transport integration, preserving D4 schemas; WP07 must prove actual behavior including anonymous and directly invoked rejection, TLS, invalid/stale credential handling, key rotation/outage cases, request bounds and sensitive-data negatives. If an acceptable mechanism cannot be validated under current F1 constraints, block research API activation and report the tradeoff rather than silently expose raw data or switch plans.
+
+The accepted D4 `POST /v1/research/snapshot` message shape, full/unchanged identity, data bounds and response-validation semantics are retained; its old `http://127.0.0.1:52731` transport configuration and local 5-second roundtrip hypothesis are superseded, with cross-app endpoint, credential and timeout settings to be established using measured evidence. Authentication headers and network status handling are transport-level concerns, not permission to add raw fields to the public response or leak credentials through logs. Preserve disconnect/last-known chart behavior under research cold start, outage or idling.
+
+### Storage, resource and deployment integrity
+
+SQLite remains research-exclusive; the UI has no research filesystem, no provider calls and no database writer rights. A single main research container process is **not** sufficient proof of a sole writer when Azure replaces instances or deployments overlap. WP03/WP07 retain authoritative writer exclusion, persistent evidence, recovery and Azure mount semantics; do not declare F1 local storage durable until tested. Qualify both containers concurrently on their shared F1 plan and test resource contention, independent lifecycle, truthful stale states and 1/3/5 UI sessions without guaranteeing availability. Record and promote **two distinct immutable image digests** and their compatibility pairing, not one combined image. Existing G-B0–G-B7, Release 1.14 preservation, provider non-activation and `PUBLIC_RUNTIME_VERIFIED=False` remain unchanged.
+
+### D1 owner disposition and remaining implementation work
+
+Owner instruction to adopt dual Docker across two Azure Web Apps replaces accepted WP01 D1-A **only as to runtime topology, privileged supervision, restart and loopback transport**. D3 fixed-point algorithms, D4 wire semantics and D5 HMAC transformation remain accepted; D2 durability, F1 transport, and WP07 live validation are not fabricated as completed. Subsequent WP02 exact-path implementation plan must be revised to two single-process images and remove proposed C-supervisor-related paths; pending local WP02 files must be retained and reconciled, never reset or deleted. Do not preempt WP05's schema ownership or WP03's writer integrity obligations.
+
+**Governance consequence:** Docker-first is preserved. The exception is no longer “dual process in one image” but “two Docker images with one primary process each”; cross-app API authentication becomes required because the network trust boundary has changed. Product scope and licensing prerequisite policy do not change. PR #381 is infrastructure evidence only and remains independently reviewable.
