@@ -1,6 +1,6 @@
 # Release 1.15 - Existing Azure F1 plan capacity assessment
 
-Date: 2026-10-23. **PROVISIONING BLOCKED: no Azure resources created or changed.** `PUBLIC_RUNTIME_VERIFIED=False`. This is infrastructure evidence only; no Release1.15 architecture amendment, WP02 implementation, provider call or deployment.
+Date: 2026-10-23. **INITIAL ASSESSMENT: provisioning blocked; superseded by the dated empty-shell creation evidence below.** `PUBLIC_RUNTIME_VERIFIED=False`. This is infrastructure evidence only; no Release1.15 architecture amendment, WP02 implementation, provider call or deployment.
 
 ## Scope and provenance
 
@@ -58,3 +58,39 @@ Owner disposition: retain current single-container WP01 design while resolving e
 ## Publication scope and validation
 
 Exactly three files in this dedicated evidence PR: this document; the executed Azure prompt; RELEASE_1.15_FILE_MANIFEST.md append-only index. All output UTF-8/no BOM/LF/final newline; relative links and git diff --check verified before commit. No product tests/builds run; no governance, WP01/WP02 plans, application source or deployment configuration changed. PR remains open/unmerged. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Follow-up authority and pre-create validation - 2026-10-23
+
+[New executed owner authority](prompters/release-1.15-codex-create-two-existing-plan-f1-apps.md) supersedes the earlier future CPU/RAM headroom gate for empty shells only. The prior BLOCKED assessment above remains historical; it is not a finding of incompatibility. Actual policy/permission/ARM validation remains required. Current subscription remains the exact authorized Enabled subscription; no context switch.
+
+Re-queried both exact plans via ARM: F1, reserved=true, correct regions, one app each. Nominal documented10-app limit leaves app-count room. Regional F1 instances remain2/32 West Central US and1/31 West US2; no new plan/worker allocation is proposed. Both old apps remain attached/Running in baseline observations. Permissions at both groups include actions=* with no exclusions; subscription and group deny-assignment queries empty; subscription locks query empty; no extra group/plan policy assignment found. The inherited SecurityCenterBuiltIn initiative was resolved against actual definitions/default parameters:14 Disabled,107 AuditIfNotExists,95 Audit effects, total216, no Deny/Modify/DeployIfNotExists. No automatic policy deployment effect is selected. ARM Provider validation supplies additional exact-resource permission/policy/provider checks; this is not a universal future-policy guarantee.
+
+Both exact one-resource templates passed `az deployment group validate --validation-level Provider`, exit0, error=null, provisioningState=Succeeded, before creation. These validation results do not mean sites already exist. No deployment-create operation used. Production validation templateHash223583418337200373; staging1894376322856501043. Each template contains only one Microsoft.Web/sites2025-03-01 resource, kind app,linux, exact existing serverFarmId, reserved=true, siteConfig.alwaysOn=false; no image/runtime/artifact/secrets/identity/network resource. Check-name-availability returned true for both names below.
+
+| Role | Available proposed name | Full proposed site ID | Exact target plan ID |
+| --- | --- | --- | --- |
+| prod | aiqr115researchprodwcus7f5eabb5 | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp03-wcus-5ec325382770/providers/Microsoft.Web/sites/aiqr115researchprodwcus7f5eabb5` | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp03-wcus-5ec325382770/providers/Microsoft.Web/serverfarms/asp-aiq-r112-wp03-wcus-5ec325382770` |
+| staging | aiqr115researchstagingwus27f5eabb5 | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp05-wus2-7f5eabb5/providers/Microsoft.Web/sites/aiqr115researchstagingwus27f5eabb5` | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp05-wus2-7f5eabb5/providers/Microsoft.Web/serverfarms/asp-aiq-r112-wp05-wus2-7f5eabb5` |
+
+These names/IDs and validation evidence were recorded before mutation. Revised empty-shell acceptance gates PASS; future deployed-workload capacity, runtime security and cross-app networking remain unqualified. Next step is exactly two site PUTs, sequentially, no paid/new-plan fallback; partial success must be preserved and reported.
+
+Read-only tooling issues retained: PowerShell5.1 redirection wrote local policy JSON as UTF-16, so the initial UTF-8 parser failed; decoding the actual file encoding resolved it. Azure CLI plan show returned null reserved/sites projections; direct ARM properties verified Linux and app count instead. Neither was treated as failed Azure eligibility or grounds for weakening a gate. No existing app-setting values or owner credentials were read/published.
+
+## Actual provisioning and post-create verification - 2026-10-23
+
+**Exactly two authorized empty Linux Web Apps CREATED.** Each sequential `az rest --method put --url https://management.azure.com{exactSiteId}?api-version=2025-03-01 --body @site-body.json` exited0; bodies were the validated single-site location/kind/properties only, not deployment templates that create other resources. No retry, paid fallback, plan creation/resize or existing-site PUT was issued. Direct GETs independently confirmed both site resources exist; validation alone is not the creation evidence.
+
+| Role | Created name / hostname | Site ID | Verified plan | Region | State / provisioningState |
+| --- | --- | --- | --- | --- | --- |
+| prod | aiqr115researchprodwcus7f5eabb5.azurewebsites.net | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp03-wcus-5ec325382770/providers/Microsoft.Web/sites/aiqr115researchprodwcus7f5eabb5` | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp03-wcus-5ec325382770/providers/Microsoft.Web/serverfarms/asp-aiq-r112-wp03-wcus-5ec325382770` | West Central US | Running / null (not returned) |
+| staging | aiqr115researchstagingwus27f5eabb5.azurewebsites.net | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp05-wus2-7f5eabb5/providers/Microsoft.Web/sites/aiqr115researchstagingwus27f5eabb5` | `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r112-wp05-wus2-7f5eabb5/providers/Microsoft.Web/serverfarms/asp-aiq-r112-wp05-wus2-7f5eabb5` | West US 2 | Running / null (not returned) |
+
+Both sites: kind app,linux; reserved=true; alwaysOn=false; linuxFxVersion empty; identity=null. No image, application deployment, data/provider connection, key/credential, DNS/access-rule/auth setting or identity grant was supplied. Their default hostnames can be public; no claim of private ingress, working research service or successful HTTP runtime is made. No browser/product/runtime test was performed. GET provisioningState is null, so no fabricated Succeeded site field is reported; site PUT success, resource existence and Running management state are the observed outcomes.
+
+Both original apps' projected id/kind/serverFarmId/state compare exactly to pre-create snapshots and remain Running. Both exact plans remain F1, reserved=true, correct regions; site counts legitimately increased1 to2. Plans are not byte-identical because adding an app changes membership; no direct plan configuration mutation occurred. Each group resource inventory now contains exactly the existing plan, existing app and authorized new app, no additional registry/network/resource group/plan/identity resource. This is an observed final inventory, not a full historical audit or exclusion of outside actors. No existing secrets/settings were read for a full-config comparison.
+
+The revised empty-shell infrastructure objective is complete. Future CPU/RAM/shared quota performance remains unmeasured and was explicitly removed as an empty-shell gate, not certified. Service-to-service authentication/confidentiality, public-host restrictions, cross-app storage/coordination and network architecture remain undecided. Separate apps never share127.0.0.1. WP01 single-image engineering baseline and WP02 plans are unchanged; #368 remains OPEN. No governance amendment, provider activation, deployment or research runtime acceptance is implied. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Follow-up publication validation
+
+Follow-up changes exactly this evidence document, the manifest index and the new executed provisioning prompt. Overall PR #381 also retains the original assessment prompt. All original dirty/untracked WP02 and owner files retain their snapshotted hashes/status. UTF-8/no BOM/LF/final newline, relative Markdown links, exact-file scope, staged blobs and git diff --check checked before commit. No product builds/tests. PR stays OPEN and UNMERGED for owner review.

@@ -59,3 +59,12 @@ Documentation-only corrections update the existing proposal, register and closeo
 - [Read-only capacity assessment and provisioning stop](RELEASE_1.15_AZURE_EXISTING_F1_PLANS_CAPACITY_EVIDENCE.md)
 
 Infrastructure evidence only: no resource creation, deployment, architecture/governance or WP02 implementation-plan change. Separate evidence PR; preserve all pending local work. UTF-8/LF applies; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Azure empty-shell follow-up authority - 2026-10-23
+
+- [Executed validation/provisioning authority](prompters/release-1.15-codex-create-two-existing-plan-f1-apps.md)
+- [Continued exact-plan validation and provisioning evidence](RELEASE_1.15_AZURE_EXISTING_F1_PLANS_CAPACITY_EVIDENCE.md)
+
+Supersedes future-workload-headroom gate for empty shells only; does not amend WP01 single-container governance or authorize WP02 source/deployment. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+Follow-up outcome: exactly two empty Linux sites created on the exact existing F1 plans after effective policy/permission/name/Provider validation; original app projected properties preserved, plan membership1 to2. See dated evidence for exact IDs and returned null provisioningState. No runtime/deployment/governance acceptance. `PUBLIC_RUNTIME_VERIFIED=False`.
