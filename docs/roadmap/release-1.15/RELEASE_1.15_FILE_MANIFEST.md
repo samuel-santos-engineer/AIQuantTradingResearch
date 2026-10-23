@@ -68,3 +68,11 @@ Infrastructure evidence only: no resource creation, deployment, architecture/gov
 Supersedes future-workload-headroom gate for empty shells only; does not amend WP01 single-container governance or authorize WP02 source/deployment. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
 
 Follow-up outcome: exactly two empty Linux sites created on the exact existing F1 plans after effective policy/permission/name/Provider validation; original app projected properties preserved, plan membership1 to2. See dated evidence for exact IDs and returned null provisioningState. No runtime/deployment/governance acceptance. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP02 D1-B dual-Docker preflight - 2026-10-23
+
+- [Executed dual-Docker/API-key preflight authority](prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md)
+- [Exact-path two-image planning proposal](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md)
+- [Governance conflict reconciliation and preflight evidence](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
+
+PR #381 infrastructure evidence is merged; PR #382 conflict reconciled but governance remains unmerged. Planning only until effective governance and exact-path source authority. Original pending WP02 supervisor-plan artifacts preserved, not silently adopted/deleted. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
