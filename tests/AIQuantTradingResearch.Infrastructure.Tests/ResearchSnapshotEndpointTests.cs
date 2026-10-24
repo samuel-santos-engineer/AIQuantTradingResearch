@@ -84,6 +84,37 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         finally { File.Delete(ca); }
         await app.StopAsync();
     }
+    [Fact]
+    public async Task OwnedBrowserQualificationAgainstRealHttpsSnapshot()
+    {
+        // Explicit opt-in: ordinary unit test runs never launch a browser.
+        var python = Environment.GetEnvironmentVariable("AIQ_WP07_BROWSER_PYTHON");
+        if (string.IsNullOrEmpty(python)) return;
+        using var dir = new ResearchTestDirectory();
+        using var store = new SqliteResearchStateStore(dir.Path, true);
+        Seed(store); Provision(store);
+        using var cert = Certificate();
+        await using var app = ResearchSnapshotEndpoint.Create(new(store, new Clock()), Key, cert);
+        await app.StartAsync();
+        var ca = Path.Combine(dir.Path, "browser-ca.pem");
+        await File.WriteAllTextAsync(ca, cert.ExportCertificatePem(), new UTF8Encoding(false));
+        var start = new ProcessStartInfo(python) { UseShellExecute = false, CreateNoWindow = true,
+            RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = FindRoot() };
+        start.ArgumentList.Add("-B");
+        start.ArgumentList.Add(Path.Combine(FindRoot(), "tests", "runtime", "release_1_15", "wp07_browser_qualification.py"));
+        start.Environment["AIQ_RESEARCH_BASE_URL"] = app.Urls.Single();
+        start.Environment["AIQ_RESEARCH_API_KEY"] = Key;
+        start.Environment["AIQ_RESEARCH_CA_FILE"] = ca;
+        using var process = Process.Start(start)!;
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+        try { await process.WaitForExitAsync(deadline.Token); }
+        catch { if (!process.HasExited) process.Kill(true); throw; }
+        evidence.WriteLine(await stdout);
+        Assert.True(process.ExitCode == 0, await stderr);
+        await app.StopAsync();
+    }
     private static string FindRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

@@ -471,3 +471,69 @@ Functional offline vertical slice complete for owner review, not WP05 acceptance
 Nominal Python timeout is5s and server processing budget4s. Direct synchronous stdlib DNS/compound header operations are not claimed to have a hard total wall-clock bound; no resolver worker, subprocess cancellation or new cancellation framework is introduced. Socket phase timeouts and monotonic checks prevent accepting a late result, but adversarial slow-header wall-clock behavior has not been qualified. This availability limitation is distinct from whole-response atomic/fail-closed validation. Production remains strictly untouched; no staging or public activation. PUBLIC_RUNTIME_VERIFIED=False.
 
 WP05 publication validation: exact14 implementation paths plus2 approved existing append-only docs; all source SHA-256 values verified;33 relative Markdown targets/anchors PASS; UTF-8/no BOM/LF/final newline and git diff --check PASS. Original15-file preservation inventory includes every dirty/untracked prompt; no generated build output or new archive is included.
+
+
+## WP07 actual-browser / Linux qualification attempt (2026-10-24)
+
+**Disposition: INCOMPLETE / NOT ACCEPTED. PUBLIC_RUNTIME_VERIFIED=False.**
+No issue is closed. No provider, Azure, production, image publication or deployment operation was performed.
+Qualification branch starts at merged PR #393 (`3a068341509c78af548b734ace1de737cc8dc613`).
+The original dirty checkout remains on its original HEAD; all 17 dirty/untracked files (14 owner prompts) retain their byte sizes and SHA-256. Open #386/#387 were context only.
+
+### Approved implementation inventory
+
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: opt-in bounded coordinator using an exclusively owned temporary WP03 SQLite store, committed/calculated 401 rows per instrument, witnessed D5 tuple, localhost test CA and the actual C# HTTPS endpoint. The test service key and D5 key remain test-only and distinct.
+- `tests/runtime/release_1_15/wp07_browser_qualification.py`: actual installed Chrome DevTools automation using existing websockets; real Streamlit entrypoint, UI server-side CA-validated HTTPS, isolated Chrome profile, loopback listeners, owned-process cleanup, outside-repository result/screenshot artifacts. No browser framework install or production source change.
+- This existing evidence document: append-only results.
+
+Streamlit 1.61.1, Plotly 7.1.0, Python 3.13.15, websockets 16.1.1, Chrome 155.0.8059.86; Windows host, not Linux qualification. The explicit browser test is opt-in through AIQ_WP07_BROWSER_PYTHON; an ordinary run without that variable does not execute browser qualification and must not be cited as browser PASS.
+
+### Actual evidence and acceptance matrix
+
+| Area / obligation | Result | Evidence / limit |
+|---|---|---|
+| WP06 BTC/ETH real browser | PASS, bounded smoke | Both actual graphs have 401 candlesticks, 401 volume values and the C#-supplied SMA20 trace; instrument switch changes chart title/volume units. Constant deterministic fixture, not provider observations. |
+| Transformed disclosure / UTC / hover | PASS, observed | Page disclosure, transformed chart/trace labels, UTC axes; pointer inspection captured transformed OHLC hover with UTC time. |
+| Presets 100 / 300 / 1000 | PASS | Actual supported selectbox interactions; visible spans 100 / 300 / 401 minutes respectively. The 1000 preset cannot invent rows beyond the fixture's retained 401. |
+| RSI14 / MACD panels | PASS | Actual popover/selectbox interactions; resultant graph trace names verified, not inferred from clicks. |
+| Modebar / zoom / refresh retention | PASS, bounded smoke | Actual Plotly modebar and pointer drag. Both x and y ranges remained equal after Refresh. Pan-specific gesture NOT RUN. |
+| Return to Live | **FAIL, reproduced twice** | Page reports Live follow after button activation but actual graph remains zoomed. No production repair authorized in the initial three-path manifest. |
+| Narrow layout | PASS in initial smoke only | 390px emulated viewport; actual chart width 348px. Screenshot hash below. Extended run stops at Return to Live, before repeating this case. |
+| Correction / epoch / date / generation, gaps, optional markers, disconnect/reconnect | NOT RUN | Requires extending the disposable test scenario; no claims from unit tests alone. |
+| Per-session/instrument viewport isolation, repeated disposal/resource stability | NOT RUN | Instrument switching alone does not establish viewport isolation or absence of leaks. |
+| WP02 / WP07 Linux dual-container | **NOT RUN / BLOCKED** | Local Docker desktop-linux daemon 29.7.2 available, exact pinned SDK/ASPNET/Python bases absent. No pulls, substitutions, builds or container starts. Existing snapshot-client is a driver, not the real Streamlit UI. |
+| WP03 operational foundation | Offline subset PASS | 43 Application + 83 Infrastructure tests; no provider polling/quota, restart-durable credit accounting, Linux mount/power-loss or production ingestion proof. |
+| WP05/WP06 focused Python | PASS | 51 tests. Does not waive browser Return to Live failure. |
+| Legacy Release 1.14 hover | Baseline FAIL | 8 tests: 7 pass, 1 fails expecting Volume versus Simulated activity. Unrelated baseline test/source left unchanged. |
+
+### Concrete viewport failure
+
+Before pointer zoom, ETH/USD x was `2026-10-01T01:41:00Z` to `2026-10-01T06:41:00Z`, y was `[90.58462928981888, 92.6202389367811]`.
+After pointer zoom, x was `2026-10-01 02:55:39.3893` to `2026-10-01 05:25:53.1298`, y was `[91.0940119676723, 92.11673692744638]`.
+Refresh preserved those exact zoomed x/y ranges. Return to Live then left those same graph ranges in place for the bounded 45-second wait, although the page caption said Live follow. The repeat captured the same outcome. This is a failed functional check, not an accepted UX limitation.
+
+Initial successful subset: one opt-in xUnit coordinator PASS (9-second test); extended qualification: one coordinator FAIL (about 65 seconds), with the above earlier individual browser assertions passing. Early harness iterations also failed on selectbox markup/scroll timing; these were automation failures, not application defects. The final harness retains the failing Return to Live assertion rather than suppressing it.
+Initial narrow-screen PNG SHA-256: `14a14b602ae3bbdb6993c8c4af33d921c107718dcbf68677c153161e8748b337`. Artifacts remain in task-owned temporary storage; no personal local paths, credentials or private databases are published.
+
+### Reproduction (Windows PowerShell 5.1; existing offline dependencies)
+
+Run from this qualification branch, with existing restored build assets; no restore/install:
+
+```powershell
+$env:AIQ_WP07_BROWSER_PYTHON = '<existing-venv>\Scripts\python.exe'
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter FullyQualifiedName~OwnedBrowserQualificationAgainstRealHttpsSnapshot --logger 'console;verbosity=detailed'
+$env:PYTHONPATH = (Join-Path (Get-Location) 'python\presentation')
+& $env:AIQ_WP07_BROWSER_PYTHON -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client -v
+& $env:AIQ_WP07_BROWSER_PYTHON -B -m unittest python.presentation.test_market_research_ui -v
+```
+
+The focused Application filter was `FullyQualifiedName~ResearchIngestionServiceTests|FullyQualifiedName~PrivateResearchCalculatorTests` (43/43). The focused Infrastructure filter was `FullyQualifiedName~SqliteResearchStateStoreTests|FullyQualifiedName~ResearchStateRecoveryTests|FullyQualifiedName~CommittedResearchProjectionTests|FullyQualifiedName~TwelveDataMinuteCandleSourceTests` (83/83), both `dotnet test <respective-project> --no-restore --filter <filter>`. Existing unrelated analyzer warnings remain; no new dependencies.
+
+### Remaining acceptance blockers
+
+1. Repair and requalify Return to Live only after literal-path application/test approval; no silent waiver.
+2. Complete the NOT RUN browser scenarios with bounded disposable fixtures and session/resource observations.
+3. Make the exact pinned Linux bases and offline Linux publish artifacts available under separate authority; qualify real UI packaging in explicitly approved paths, then execute distinct non-root single-process containers and TLS negative/restart/witness/mount/resource tests. Do not replace absent images or cite Windows tests as Linux proof.
+4. Provider rate/credit/polling evidence, native Linux durability limitations (including no demonstrated directory-fsync guarantee), restart witness recovery and coordinated rollback limits remain distinct from successful offline tests.
+
+WP02 #368, WP03 #369, WP06 #372 and WP07 #373 remain unaccepted for their outstanding obligations. Public activation and production deployment are not authorized by this qualification.
