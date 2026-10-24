@@ -107,3 +107,7 @@ Seven documentation paths only; original dirty/untracked bytes preserved. Propos
 ## WP03 simple functional implementation - 2026-10-24
 
 A01-A11 authorized source/test paths implemented against merged388 baseline b066124713f6a6f25ae7fdb0f57300ed4a83c853; actual schema/reader,168 executed cases, source hashes, full12-file protected owner inventory and unresolved obligations are appended to [existing foundation evidence](RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md). Exactly11 new C# files and2 existing append-only documentation paths. New untracked WP03 implementation prompt remains original/pending archive-path approval; no duplicate/archive overwrite. No startup/DI/provider credential/live request, WP04/05/06, Docker/Azure/registry/deployment change. Implementation review only; issues stay open and `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP04 private research implementation - 2026-10-24
+
+B01-B04 plus minimal A01/A05 binding against merged389 bf4e744330986eac8234cda7a73ce866aa092242. [Appended actual evidence](RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md) records D3 calculations/events, exact string outputs, atomic checkpoint/replay, unchanged SQL DDL,150 cases, six source hashes and complete13-file owner inventory. Exactly6 source/test plus2 existing append-only docs, directly approved by owner. No new archives/evidence files; WP03/WP04 prompts pending new-path approval, originals preserved. No schema/startup/DI/provider/Python/Docker/dependency/Azure/registry/deployment changes. Review only, issues open; `PUBLIC_RUNTIME_VERIFIED=False`.
