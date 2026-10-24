@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -33,24 +32,20 @@ static byte[] KeyDigest(string? value)
     return SHA256.HashData(bytes);
 }
 byte[] active;
-byte[] previous = new byte[32];
-double overlapSeconds = 0;
+int fixtureDelayMs = 0;
+string fixtureDelayStage;
 try
 {
     active = KeyDigest(Environment.GetEnvironmentVariable("AIQ_FIXTURE_ACTIVE_KEY"));
-    var old = Environment.GetEnvironmentVariable("AIQ_FIXTURE_PREVIOUS_KEY");
-    var expiry = Environment.GetEnvironmentVariable("AIQ_FIXTURE_PREVIOUS_EXPIRES");
-    if ((old is null) != (expiry is null)) throw new InvalidOperationException();
-    if (old is not null)
-    {
-        previous = KeyDigest(old);
-        if (CryptographicOperations.FixedTimeEquals(previous, active)) throw new InvalidOperationException();
-        if (!DateTimeOffset.TryParseExact(expiry, "yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AssumeUniversal, out var deadline)) throw new InvalidOperationException();
-        overlapSeconds = (deadline - DateTimeOffset.UtcNow).TotalSeconds;
-        if (overlapSeconds > 300) throw new InvalidOperationException();
-        overlapSeconds = Math.Max(0, overlapSeconds);
-    }
+    // Obsolete overlap settings are rejected, never silently accepted as fallback.
+    if (Environment.GetEnvironmentVariable("AIQ_FIXTURE_PREVIOUS_KEY") is not null ||
+        Environment.GetEnvironmentVariable("AIQ_FIXTURE_PREVIOUS_EXPIRES") is not null)
+        throw new InvalidOperationException();
+    var delay = Environment.GetEnvironmentVariable("AIQ_FIXTURE_STATUS_DELAY_MS");
+    if (delay is not null && (!int.TryParse(delay, out fixtureDelayMs) || fixtureDelayMs < 0 || fixtureDelayMs > 1000))
+        throw new InvalidOperationException();
+    fixtureDelayStage = Environment.GetEnvironmentVariable("AIQ_FIXTURE_DELAY_STAGE") ?? "headers";
+    if (fixtureDelayStage is not ("headers" or "body")) throw new InvalidOperationException();
 }
 catch
 {
@@ -58,8 +53,6 @@ catch
     Environment.ExitCode = 64;
     return;
 }
-var clock = Stopwatch.StartNew();
-var utcAtStart = DateTimeOffset.UtcNow;
 var builder = WebApplication.CreateBuilder(Array.Empty<string>());
 builder.Logging.ClearProviders(); // Never log request headers, targets or exception values.
 builder.WebHost.ConfigureKestrel(options =>
@@ -103,12 +96,7 @@ app.Run(async context =>
             await context.Response.WriteAsync("Request unavailable.");
             return;
         }
-        var activeMatch = CryptographicOperations.FixedTimeEquals(supplied, active);
-        var previousMatch = CryptographicOperations.FixedTimeEquals(supplied, previous);
-        var elapsed = clock.Elapsed.TotalSeconds;
-        // UTC rollback expires overlap immediately; monotonic cap prevents extension.
-        var previousValid = overlapSeconds > 0 && elapsed < overlapSeconds && DateTimeOffset.UtcNow >= utcAtStart && DateTimeOffset.UtcNow < utcAtStart.AddSeconds(overlapSeconds);
-        if (!(activeMatch | (previousMatch & previousValid)))
+        if (!CryptographicOperations.FixedTimeEquals(supplied, active))
         {
             context.Response.StatusCode = 401;
             await context.Response.WriteAsync("Request unavailable.");
@@ -126,7 +114,15 @@ app.Run(async context =>
             if (context.Request.Path == "/fixture/status" && context.Request.Method == "GET")
             {
                 context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync("{\"fixture\":true,\"status\":\"unavailable\"}", deadline.Token);
+                const string status = "{\"fixture\":true,\"status\":\"unavailable\"}";
+                if (fixtureDelayStage == "body")
+                {
+                    context.Response.ContentLength = Encoding.UTF8.GetByteCount(status);
+                    await context.Response.StartAsync(deadline.Token);
+                }
+                // Owned offline timeout test only, no public timing-control endpoint.
+                await Task.Delay(fixtureDelayMs, deadline.Token);
+                await context.Response.WriteAsync(status, deadline.Token);
             }
             else if (context.Request.Path == "/v1/research/snapshot" && context.Request.Method == "POST")
             {

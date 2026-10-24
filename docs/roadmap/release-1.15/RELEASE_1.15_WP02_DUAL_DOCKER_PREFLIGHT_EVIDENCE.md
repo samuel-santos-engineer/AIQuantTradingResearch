@@ -146,3 +146,82 @@ Only this evidence, the existing plan, append-only manifest index and [new execu
 Continuation documentation validation: four exact paths; 29 relative Markdown targets/anchors; seven proposed source paths unchanged;14 merged paths match approved fixture head; manifest append-only; owner dirty status/hashes preserved; UTF-8/no BOM/LF/final newline and git diff --check PASS. Staged blobs checked separately before commit. No tests rerun;21 historical local fixture test methods verified from retained logs/hash correspondence, not CI/Azure evidence.
 
 First staged whitespace check flagged three existing Markdown hard-break lines copied from the owner prompt. Removed trailing whitespace only in the new archive; wording unchanged and original owner file byte-preserved. Final working/staged whitespace checks pass; this is documentation normalization, not a product test result.
+
+## Simplified lab hardening qualification - 2026-10-24
+
+**Implemented six explicitly owner-approved paths; OWNER REVIEW REQUIRED.** Baseline main4578f8645c9626f4daa7ec76923953e8892c93d6, merged #385. Owner's simplified lab handoff and explicit subsequent six-path approval supersede the complex strict DNS cancellation/rotation proposal for this phase. WP02 #368 remains OPEN, not fully accepted. Work isolated from the original dirty checkout; owner file/status SHA-256 preservation checked.
+
+Executed handoff filename release-1.15-wp02-simplified-lab-hardening-codex.md remains owner-untracked and byte-preserved in the original checkout (SHA-256F28DD004399D5649C1822C6E8FFB4BF9E85038B3320C1C800EA2C0B2D01608B0). No new archive path added: authorization permits only the six existing source paths and three existing documentation paths. Its decision and explicit source authorization are recorded here without silently expanding the file list.
+
+### Exact source scope and correspondence
+
+Qualification built from baseline4578f864 plus the changed source bytes below. The runner recorded all11 image/test inputs, including unchanged Dockerfiles/project/TLS helper; all hashes independently matched after testing. Publication commits these same six modified source bytes; documentation appended afterward is not an image input. No claim images were built from a later commit.
+
+| Changed exact path | Qualified SHA-256 |
+| --- | --- |
+| `tests/runtime/release_1_15/dual_docker/api_key_client_fixture.py` | `2306d10f84cfe2b535eac0c82a7b8653b1a45e46a5709634444a678a6422f23e` |
+| `tests/runtime/release_1_15/dual_docker/test_api_key_client_fixture.py` | `dd46af9a24786f595f2b942a09d4439259ebb4498a6c14760ca12735f9f610bf` |
+| `tests/runtime/release_1_15/dual_docker/Program.cs` | `b205920cbfcd2cf50c67cd2b100d99ad5fadb65bc79225a890bc33d11a270984` |
+| `tests/runtime/release_1_15/dual_docker/test_pair_boundary.py` | `776fc1b798defaeb607367dafee676ed7514eb16f41479fdda6871cdf678b8bc` |
+| `tests/runtime/release_1_15/dual_docker/fixture_contract.md` | `674fa08538cc4f43dffe4853127f7494e377923495f04606ca2a80f70d33dcd8` |
+| `eng/docker/release-1.15/Invoke-Wp02DualDockerQualification.ps1` | `f324fd01c005ddab67a7e149469280f7d5946c1610d07f22fe18a9b02287c971` |
+
+Additional edits are only existing RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md, this evidence and RELEASE_1.15_FILE_MANIFEST.md. Unchanged: both Dockerfiles, tls_fixture.py, project/package/lockfiles, CI, production Worker/UI/API/schema and historical Release1.14 evidence. No dependency installation or new source files.
+
+### Resulting fixture behavior
+
+- Standard synchronous HTTPSConnection with explicit connect and remaining monotonic budget checks before request/write, reads and publication. Default timeout4s retained. Existing small post-request timer remains for header/body stalls, not DNS. No DNS workers/helper processes/custom transport or watchdog supervisor. Native DNS and compound standard-library connect/TLS work may overrun the nominal budget; no hard end-to-end claim. Configuration/CA loading is before refresh.
+- TLS chain/hostname checks, server-side X-API-Key, no redirect/proxy/plaintext fallback, generic errors, bounded response parsing and last-known atomic publication retained. Response and connection explicitly closed on success/failure. Elapsed budget exhaustion after connect prevents sending the key; late validation cannot publish a result after budget exhaustion.
+- Exactly one active dummy service key. Constant-time fixed-size digest comparison retained. Previous-key/expiry configuration is rejected rather than creating overlap. No authentication clock/revision witness, grace period, persistence, automatic rotation or trusted-clock mechanism. Certificate generation still uses ordinary validity dates only.
+- Added bounded, startup-only OFFLINE delay knobs for the existing fixture-status route:0..1000ms, headers/body. No timing-control HTTP endpoint and no production setting changes. The intentionally unavailable D4 fixture remains503 with no real snapshots, private research/storage/calculations or chart integration.
+
+### Executed commands and tests
+
+Same existing PowerShell5.1 runner, with process-local RemoteSigned only:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
+.\eng\docker\release-1.15\Invoke-Wp02DualDockerQualification.ps1 -KeepImages
+```
+
+From tests/runtime/release_1_15/dual_docker, runner executes:
+
+```text
+python -B -m unittest test_api_key_client_fixture -v
+python -B -m unittest test_pair_boundary -v
+```
+
+**Final run PASS, exit0:14 client tests in0.301s,10 paired tests in120.465s; total runner137.961s.** These24 methods replace the earlier phase's12+9 count, not24 additional release gates. A separate initial14-client run also passed; it is the same14 methods, not28 unique tests. Prior historical results remain unchanged above. All preserved auth/TLS/body/response/identity/lifecycle intentions reran; obsolete overlap/expiry test transparently replaced by the owner's single-key replacement test. No broad production suites or actual browser/CI/Azure checks executed.
+
+| Focus | Actual proof |
+| --- | --- |
+| Client budget/recovery | Deterministic connect-exhaustion prevents header write, accumulated budget not reset, TimeoutError closes connection/preserves state, normal next request reconnects |
+| Local delayed headers | Server delay800ms; client timeout0.2s; observed failure0.2207779s, last-known preserved/disconnected; subsequent4s request succeeds |
+| Local delayed body | Server delay800ms after headers; client timeout0.2s; observed failure0.2090009s; same preservation/recovery proof |
+| Single key/restart | Former dummy key accepted before stop, replacement key denied there; old service observed stopped, new instance with only new active key accepts it and rejects former key401; no overlap grace |
+| Bad configuration | Missing/malformed active key and either legacy previous/expiry setting cause expected exit64; no sensitive error text |
+| Existing security negatives | HTTP/userinfo/query/redirect refusal, chain/wrong-host rejection, missing/wrong/duplicate/different dummy keys401, authenticated raw/admin/control routes404, malformed/oversized UTF-8/JSON/type/length responses and request limits |
+| Isolation/lifecycle | Two non-root principal services, zero effective/bounding caps/no_new_privs; fake private canary file modes/separate mounts/env; Linux AppTest connected/disconnected; independent stop/peer health; no image/log key/canary leakage |
+
+No claim of native DNS cancellation, exact timer/OS resolver-worker reclamation, key-clock expiry, configuration rollback-proof revocation, or actual Azure key replacement. No such machinery was added. Both local delay scenarios ran without new tooling/dependencies or changes to tls_fixture.py. No full production D4/SQL/algorithm/real-browser proof.
+
+### Images, limits and cleanup
+
+Separate Linux/amd64 local fixture pair (never pushed/deployed):
+
+| Role | Qualified local image ID/digest |
+| --- | --- |
+| research | `sha256:09e5b6c68a6ca4e6dfbc239eebf3349a9b49bd68cc27e20eae7deeb4d96ab652` |
+| ui | `sha256:b1cd35f6bee8ca7f25de16d849488c8d64d28b10b1ec31e41ce7ac2c2aab986d` |
+
+Pinned existing base/dependency assets and runner ownership limits unchanged: each container1CPU/512MiB/64PIDs, read-only root, no capabilities, no-new-privileges, loopback host ports, owned local bridge and temporary certs. Last Docker working-set samples: research29.91MiB/1.91%CPU; UI91.27MiB/0.55%CPU. Instant samples are not peak/RSS/throughput/F1 quota proof; per-container limits do not simulate a single shared F1 allocation. Existing fresh-builder/local-asset and bitwise-reproducibility limitations remain. PowerShell5.1 parser and actual runner execution passed; exact patch9444 is not installed here (host5.1.26100.9711).
+
+Cleanup:11 run-owned containers removed, seven normal service exits0 and four intended invalid-config exits64; no OOM or cleanup failures. Owned network and private test certificates removed; final pair retained locally for review. No unrelated resource cleanup/prune or Azure mutation.
+
+### Scope boundary and handoff
+
+Only fixture-level changes. Production/staging service keys must be distinct and separate from Twelve Data/HMAC material, kept in App Service settings only under future deployment authority. No actual key creation/read/rotation, App Service settings operation, provider call, registry push, Azure write/read, deployment, paid service or issue closure in this task. Operational replacement can use coordinated settings updates/restarts and a planned interruption; zero downtime/instant cross-instance revocation is not promised. API keys authenticate callers, not private networking.
+
+WP05 owns production D4 authenticated HTTPS integration, timeout policy and coordinated key replacement semantics; WP07 actual Azure TLS termination/ingress/proxy trust/settings/deployment/shared F1 qualification; WP03 real storage/writer recovery. Older stricter DNS/rotation proposals are superseded for this phase, not lingering requirements or new approval/licensing gates. Separate implementation PR remains OPEN/UNMERGED for owner review; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+Publication validation: nine exact existing paths (six authorized source files plus three allowed docs); all11 qualification-input hashes match; unchanged Dockerfiles/TLS helper; 32 relative links/anchors; append-only manifest; independent UTF-8/no BOM/LF/final-newline and git diff --check PASS. Original owner dirty status/hashes unchanged. Staged bytes independently verified before commit. No tests repeated after documentation-only additions.

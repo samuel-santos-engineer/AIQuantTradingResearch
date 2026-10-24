@@ -25,6 +25,9 @@ class Response:
     def getheader(self, name, default=None):
         return {"Content-Type": self.content_type, "Content-Length": self.declared}.get(name, default)
 
+    def close(self):
+        self.closed = True
+
     def read1(self, count):
         data, self.data = self.data[:count], self.data[count:]
         return data
@@ -33,6 +36,9 @@ class Response:
 class Connection:
     def __init__(self, response):
         self.response, self.sock, self.requests, self.closed = response, Socket(), [], False
+
+    def connect(self):
+        pass
 
     def request(self, *args, **kwargs):
         self.requests.append((args, kwargs))
@@ -110,9 +116,32 @@ class ClientTests(unittest.TestCase):
         with patch("api_key_client_fixture.http.client.HTTPSConnection", return_value=Connection(response)), self.assertRaises(Unavailable):
             Client("https://research", KEY).refresh()
 
-    def test_total_deadline_not_reset(self):
-        with patch("api_key_client_fixture.time.monotonic", side_effect=[0, 1, 5]), patch("api_key_client_fixture.http.client.HTTPSConnection", return_value=Connection(Response())), self.assertRaises(Unavailable):
+    def test_connect_budget_exhaustion_prevents_key_write(self):
+        connection = Connection(Response())
+        with patch("api_key_client_fixture.time.monotonic", side_effect=[0, 0, 5]), patch("api_key_client_fixture.http.client.HTTPSConnection", return_value=connection), self.assertRaises(Unavailable):
             Client("https://research", KEY).refresh()
+        self.assertEqual(connection.requests, [])
+        self.assertTrue(connection.closed)
+
+    def test_elapsed_budget_not_reset_between_phases(self):
+        connection = Connection(Response())
+        with patch("api_key_client_fixture.time.monotonic", side_effect=[0, 0, 1, 3, 5]), patch("api_key_client_fixture.http.client.HTTPSConnection", return_value=connection), self.assertRaises(Unavailable):
+            Client("https://research", KEY).refresh()
+        self.assertEqual(len(connection.requests), 1)
+        self.assertTrue(connection.closed)
+
+    def test_timeout_preserves_state_then_normal_request_recovers(self):
+        client = Client("https://research", KEY)
+        self.refresh(Response(), client)
+        old = client.last_known
+        connection = Connection(Response())
+        with patch.object(connection, "connect", side_effect=TimeoutError()), patch("api_key_client_fixture.http.client.HTTPSConnection", return_value=connection), self.assertRaises(Unavailable):
+            client.refresh()
+        self.assertIs(client.last_known, old)
+        self.assertFalse(client.connected)
+        self.assertTrue(connection.closed)
+        self.refresh(Response(), client)
+        self.assertTrue(client.connected)
 
     def test_watchdog_bounds_header_read_and_is_cancelled(self):
         from unittest.mock import MagicMock
