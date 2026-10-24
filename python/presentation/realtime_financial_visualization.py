@@ -24,6 +24,7 @@ FAVICON_PATH = Path(__file__).resolve().parents[2] / "favicon.ico"
 
 st.set_page_config(
     page_title="AI Quant Trading Research",
+    layout="wide" if os.environ.get("AIQ_RESEARCH_CHART") == "1" else "centered",
     page_icon=str(FAVICON_PATH),
 )
 
@@ -553,6 +554,10 @@ def render_system_health() -> None:
 
 
 def render() -> None:
+    if os.environ.get("AIQ_RESEARCH_CHART") == "1":
+        from research_chart import render as render_research_chart
+        render_research_chart()
+        return
     now = time.monotonic()
     previous = st.session_state.get('wp07_last_interaction', now)
     if now < previous or now - previous >= 1800: st.session_state.pop('wp05_market_response', None)
