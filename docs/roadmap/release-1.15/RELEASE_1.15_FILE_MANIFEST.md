@@ -84,3 +84,11 @@ PR #381 infrastructure evidence is merged; PR #382 conflict reconciled but gover
 ## WP02 isolated dual-Docker fixture implementation - 2026-10-24
 
 After merged #382/#383 and explicit owner eleven-path authorization, [implementation plan](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md) and [qualification evidence](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md) record the exact approved Docker/fixture/test/runner changes. No wildcard expansion; no new dependency or production API/source mutation. Twelve client and nine paired-container tests pass, with limitations recorded. Separate implementation PR remains for owner review; no Azure/deployment/acceptance authority. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP02 fixture disposition and next-phase authority request - 2026-10-24
+
+- [Executed #384 merge / planning-only continuation](prompters/release-1.15-wp02-pr384-merge-and-next-preflight-codex.md)
+- [Existing plan: next-phase deadline/rotation matrix](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md#next-bounded-phase-absolute-deadline-and-rotation-qualification---2026-10-24)
+- [Existing evidence: merged fixture disposition and read-only review](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
+
+#384 merged atd237e268fc0cd61cad9c8a32053f57095351f78c; fixture approval only. Seven subsequent existing source/test/runner paths are proposed, not authorized here. Four-file documentation PR; no source, Docker, test execution, Azure or secret operation. UTF-8/LF; #368 OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
