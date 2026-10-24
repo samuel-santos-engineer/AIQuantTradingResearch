@@ -92,3 +92,7 @@ After merged #382/#383 and explicit owner eleven-path authorization, [implementa
 - [Existing evidence: merged fixture disposition and read-only review](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
 
 #384 merged atd237e268fc0cd61cad9c8a32053f57095351f78c; fixture approval only. Seven subsequent existing source/test/runner paths are proposed, not authorized here. Four-file documentation PR; no source, Docker, test execution, Azure or secret operation. UTF-8/LF; #368 OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP02 simplified lab fixture hardening - 2026-10-24
+
+[Superseding plan](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md#superseding-simplified-lab-hardening---2026-10-24) and [qualification evidence](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md#simplified-lab-hardening-qualification---2026-10-24) record six explicitly authorized existing source edits and these three existing docs only. Single active key, synchronous standard timeout path with accepted DNS limitation; no custom DNS workers or key-rotation machinery. Historical #385 proposal remains preserved but superseded for this phase. New handoff prompt retained owner-untracked, not silently added outside exact scope. UTF-8/LF; #368 OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.

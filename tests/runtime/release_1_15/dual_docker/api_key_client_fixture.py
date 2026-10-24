@@ -48,24 +48,32 @@ class Client:
     def refresh(self):
         connection = None
         watchdog = None
+        response = None
         started = time.monotonic()
+        def remaining():
+            budget = self.timeout - (time.monotonic() - started)
+            if budget <= 0:
+                raise TimeoutError()
+            return budget
+
         try:
+            # Standard synchronous DNS/TCP/TLS: native DNS may outlast socket timeout.
             # Direct connection: no environment proxy, cookies, redirects or browser key.
-            connection = http.client.HTTPSConnection(self.host, self.port, timeout=self.timeout,
+            connection = http.client.HTTPSConnection(self.host, self.port, timeout=remaining(),
                                                      context=self.context)
-            connection.request("GET", "/fixture/status", headers={"X-API-Key": self.key})
-            remaining = self.timeout - (time.monotonic() - started)
-            if remaining <= 0:
-                raise ValueError()
+            connection.connect()
             transport = connection.sock
-            transport.settimeout(remaining)
+            transport.settimeout(remaining())
+            connection.request("GET", "/fixture/status", headers={"X-API-Key": self.key})
+            budget = remaining()
+            transport.settimeout(budget)
             def interrupt():
                 try:
                     transport.shutdown(socket.SHUT_RDWR)
                 except OSError:
                     pass
             # Bound a peer that drips headers or bytes faster than idle timeout.
-            watchdog = threading.Timer(remaining, interrupt)
+            watchdog = threading.Timer(budget, interrupt)
             watchdog.daemon = True
             watchdog.start()
             response = connection.getresponse()
@@ -76,11 +84,7 @@ class Client:
             # read1 returns after one buffered/raw read; slow chunks cannot reset deadline.
             data = bytearray()
             while True:
-                remaining = self.timeout - (time.monotonic() - started)
-                if remaining <= 0:
-                    raise ValueError()
-                if connection.sock is not None:
-                    connection.sock.settimeout(remaining)
+                transport.settimeout(remaining())
                 chunk = response.read1(min(1024, self.limit + 1 - len(data)))
                 if not chunk:
                     break
@@ -93,6 +97,7 @@ class Client:
             if (type(value) is not dict or set(value) != {"fixture", "status"}
                     or value["fixture"] is not True or value["status"] != "unavailable"):
                 raise ValueError()
+            remaining()  # Never publish a result that has already consumed the budget.
             self.last_known, self.connected = value, True
             return value
         except Exception:
@@ -101,6 +106,8 @@ class Client:
         finally:
             if watchdog is not None:
                 watchdog.cancel()
+            if response is not None:
+                response.close()
             if connection is not None:
                 connection.close()
 

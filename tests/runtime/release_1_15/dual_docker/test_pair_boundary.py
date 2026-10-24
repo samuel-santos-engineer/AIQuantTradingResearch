@@ -1,30 +1,22 @@
 """Owned local Linux Docker qualification. No Azure, provider or registry operations."""
-import argparse
 import base64
-from datetime import datetime, timedelta, timezone
-import hashlib
 import http.client
 import json
 import os
 from pathlib import Path
-import shutil
 import socket
 import ssl
 import subprocess
-import tempfile
 import time
 import unittest
-import uuid
 
 from api_key_client_fixture import Client, Unavailable
 from tls_fixture import create
 
 KEY = base64.b64encode(b"A" * 32).decode("ascii")
-OLD = base64.b64encode(b"B" * 32).decode("ascii")
+FORMER_KEY = base64.b64encode(b"B" * 32).decode("ascii")
 WRONG = base64.b64encode(b"C" * 32).decode("ascii")
 PRIVATE_CANARY = "WP02_PRIVATE_PROVIDER_HMAC_CANARY"
-ROOT = Path(__file__).resolve().parents[4]
-BASE_ID = "sha256:98501ff282a7"  # Prefix resolved/verified against supplied full ID by runner.
 
 
 def command(args, timeout=60):
@@ -49,7 +41,7 @@ class PairTests(unittest.TestCase):
             command(["docker", "network", "create", "--label", "aiq.wp02=" + cls.run_id, cls.network])
             create(cls.research, cls.certdir, cls.run_id)
             cls.trust = str(cls.certdir / "trust.pem")
-            cls.main_id, cls.port = cls.start_research()
+            cls.main_id, cls.port = cls.start_research(alias="research")
             cls.url = "https://localhost:" + str(cls.port)
             cls.ui_id = cls.start_ui()
         except Exception:
@@ -79,13 +71,11 @@ class PairTests(unittest.TestCase):
         return int(value.rsplit(":", 1)[1])
 
     @classmethod
-    def start_research(cls, previous=None, seconds=0):
-        env = {"AIQ_FIXTURE_ACTIVE_KEY": KEY, "FIXTURE_PROVIDER_CANARY": PRIVATE_CANARY, "FIXTURE_HMAC_CANARY": PRIVATE_CANARY}
-        if previous:
-            env.update(AIQ_FIXTURE_PREVIOUS_KEY=previous, AIQ_FIXTURE_PREVIOUS_EXPIRES=(datetime.now(timezone.utc) + timedelta(seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ"))
-        identifier = cls.launch(cls.research, env, ["type=bind,source=" + str(cls.certdir) + ",target=/certs,readonly"], alias="research" if previous is None else None)
-        if previous:
-            cls.previous_deadline = datetime.strptime(env["AIQ_FIXTURE_PREVIOUS_EXPIRES"], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+    def start_research(cls, active=KEY, alias=None, delay_stage=None):
+        env = {"AIQ_FIXTURE_ACTIVE_KEY": active, "FIXTURE_PROVIDER_CANARY": PRIVATE_CANARY, "FIXTURE_HMAC_CANARY": PRIVATE_CANARY}
+        if delay_stage:
+            env.update(AIQ_FIXTURE_STATUS_DELAY_MS="800", AIQ_FIXTURE_DELAY_STAGE=delay_stage)
+        identifier = cls.launch(cls.research, env, ["type=bind,source=" + str(cls.certdir) + ",target=/certs,readonly"], alias=alias)
         port = cls.port_for(identifier, 52731)
         until = time.monotonic() + 30
         while time.monotonic() < until:
@@ -123,7 +113,7 @@ class PairTests(unittest.TestCase):
                     raise RuntimeError("Ownership mismatch; no cleanup")
                 log_result = subprocess.run(["docker", "logs", identifier], capture_output=True, text=True, timeout=10)
                 logs = log_result.stdout + log_result.stderr
-                if any(secret in logs for secret in [KEY, OLD, WRONG, PRIVATE_CANARY]):
+                if any(secret in logs for secret in [KEY, FORMER_KEY, WRONG, PRIVATE_CANARY]):
                     raise RuntimeError("Fixture log leakage")
                 command(["docker", "stop", "--time", "8", identifier], timeout=15)
                 state = json.loads(command(["docker", "inspect", "--format", "{{json .State}}", identifier]))
@@ -142,7 +132,7 @@ class PairTests(unittest.TestCase):
             raise AssertionError("Owned fixture cleanup/leak/OOM check failed")
 
     def test_anonymous_wrong_and_cross_environment_denied(self):
-        for key in [None, "", WRONG, "x" * 44, KEY + "," + OLD]:
+        for key in [None, "", WRONG, "x" * 44, KEY + "," + FORMER_KEY]:
             status, body = self.request(self.port, key=key)
             self.assertEqual(status, 401)
             self.assertEqual(body, b"Request unavailable.")
@@ -158,7 +148,7 @@ class PairTests(unittest.TestCase):
         try:
             c.putrequest("GET", "/fixture/status")
             c.putheader("X-API-Key", KEY)
-            c.putheader("X-API-Key", OLD)
+            c.putheader("X-API-Key", FORMER_KEY)
             c.endheaders()
             self.assertEqual(c.getresponse().status, 401)
         finally:
@@ -207,24 +197,44 @@ class PairTests(unittest.TestCase):
 
     def test_invalid_configuration_fails_closed(self):
         for env in [{}, {"AIQ_FIXTURE_ACTIVE_KEY": "invalid"},
-                    {"AIQ_FIXTURE_ACTIVE_KEY": KEY, "AIQ_FIXTURE_PREVIOUS_KEY": OLD},
-                    {"AIQ_FIXTURE_ACTIVE_KEY": KEY, "AIQ_FIXTURE_PREVIOUS_KEY": OLD,
-                     "AIQ_FIXTURE_PREVIOUS_EXPIRES": (datetime.now(timezone.utc) + timedelta(seconds=600)).strftime("%Y-%m-%dT%H:%M:%SZ")}]:
+                    {"AIQ_FIXTURE_ACTIVE_KEY": KEY, "AIQ_FIXTURE_PREVIOUS_KEY": FORMER_KEY},
+                    {"AIQ_FIXTURE_ACTIVE_KEY": KEY, "AIQ_FIXTURE_PREVIOUS_EXPIRES": "obsolete"}]:
             identifier = self.launch(self.research, env, [])
             self.assertEqual(command(["docker", "wait", identifier], timeout=10), "64")
             self.assertNotIn(KEY, command(["docker", "logs", identifier]))
 
-    def test_rotation_overlap_expiry_and_revocation(self):
-        identifier, port = self.start_research(previous=OLD, seconds=30)
-        self.assertEqual(self.request(port, key=OLD)[0], 200)
-        self.assertEqual(self.request(port, key=KEY)[0], 200)
-        remaining = (self.previous_deadline - datetime.now(timezone.utc)).total_seconds()
-        self.assertGreater(remaining, 0, "Startup exhausted explicit test overlap")
-        time.sleep(remaining + 0.2)
-        self.assertEqual(self.request(port, key=OLD)[0], 401)
-        self.assertEqual(self.request(port, key=KEY)[0], 200)
-        self.assertEqual(self.request(self.port, key=OLD)[0], 401)
-        command(["docker", "stop", "--time", "8", identifier], timeout=15)
+    def test_single_key_replacement_after_service_restart(self):
+        first, first_port = self.start_research(active=FORMER_KEY)
+        self.assertEqual(self.request(first_port, key=FORMER_KEY)[0], 200)
+        self.assertEqual(self.request(first_port, key=KEY)[0], 401)
+        command(["docker", "stop", "--time", "8", first], timeout=15)
+        self.assertEqual(command(["docker", "inspect", "--format", "{{.State.Running}}", first]), "false")
+        second, second_port = self.start_research(active=KEY)
+        self.assertEqual(self.request(second_port, key=KEY)[0], 200)
+        self.assertEqual(self.request(second_port, key=FORMER_KEY)[0], 401)
+        command(["docker", "stop", "--time", "8", second], timeout=15)
+
+    def test_local_delayed_headers_and_body_timeout_then_recover(self):
+        observations = []
+        for stage in ["headers", "body"]:
+            identifier, port = self.start_research(delay_stage=stage)
+            client = Client("https://localhost:" + str(port), KEY, self.trust)
+            client.refresh()
+            old = client.last_known
+            client.timeout = 0.2
+            started = time.monotonic()
+            with self.assertRaises(Unavailable):
+                client.refresh()
+            elapsed = time.monotonic() - started
+            self.assertLess(elapsed, 1.5, "Bounded local socket timeout exceeded allowance")
+            self.assertIs(client.last_known, old)
+            self.assertFalse(client.connected)
+            client.timeout = 4
+            client.refresh()
+            self.assertTrue(client.connected)
+            observations.append({"stage": stage, "timeoutSeconds": 0.2, "observedSeconds": elapsed})
+            command(["docker", "stop", "--time", "8", identifier], timeout=15)
+        (self.output / "delay-observations.json").write_text(json.dumps(observations, indent=2) + "\n", encoding="utf-8")
 
     def test_ui_real_render_connected_then_disconnected_and_peer_lifecycle(self):
         code = "from streamlit.testing.v1 import AppTest; a=AppTest.from_file('/app/public_app_fixture.py').run(timeout=20); assert not a.exception; assert any('connected' in x.value for x in a.info); print('connected-render-pass')"

@@ -21,7 +21,7 @@ output.mkdir(parents=True, exist_ok=False)
 research = 'aiq-wp02-research:' + run_id
 ui = 'aiq-wp02-ui:' + run_id
 fixtures = root / 'tests/runtime/release_1_15/dual_docker'
-record = {'fixtureOnly': True, 'PUBLIC_RUNTIME_VERIFIED': False, 'runId': run_id, 'commands': [], 'result': 'FAIL'}
+record = {'fixtureOnly': True, 'authPolicy': 'single active key; no overlap', 'timeoutModel': 'standard socket timeouts; native DNS may exceed budget', 'PUBLIC_RUNTIME_VERIFIED': False, 'runId': run_id, 'commands': [], 'result': 'FAIL'}
 images = []
 started = time.monotonic()
 print('Local evidence: ' + str(output), flush=True)
