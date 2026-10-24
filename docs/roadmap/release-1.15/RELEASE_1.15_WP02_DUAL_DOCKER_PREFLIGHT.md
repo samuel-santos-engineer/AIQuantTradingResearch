@@ -1,0 +1,71 @@
+# Release 1.15 WP02 - Dual Docker implementation preflight
+
+Date: 2026-10-23. Issue #368. **PLANNING ONLY: PR #382 is OPEN, governance not effective on main.** `PUBLIC_RUNTIME_VERIFIED=False`. Every new/modified text file must be UTF-8 without BOM, LF only, final newline; independently scan CR bytes and run git diff --check. No merge/deployment authority.
+
+## Authority, reconciliation and preservation
+
+[Executed authority](prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md) selects D1-B for planning but explicitly prohibits source implementation while its governance is unmerged. Current main is `968ed80302feb33e32ad65e191971691537362bf`, merged infrastructure PR #381. PR #382 was OPEN/CONFLICTING at17436b937580c8a8b4c8e9d177399bb498822b9f. Normal merge of current main into its head, without force/rebase, preserves both histories. Only the manifest conflicted; resolution retains every merged Azure entry and the dual-container amendment, correcting its reference to merged PR #381. Reconciled head `dee115556d450a0717a110e6131bafd58b830254`; PR remains unmerged. That reconciliation is not adoption of policy into main.
+
+Pending local single-image/native-supervisor WP02 plan/evidence/prompt and owner manifest edits remain byte-preserved in the original checkout. They describe an earlier proposal and are not current implementation instructions for D1-B. This separately named plan avoids overwriting their provenance; no C/Bash supervisor is proposed here. A separate current-main worktree publishes only this plan, evidence, executed prompt and append-only index. No Azure CLI, app-setting/secret operation, provider call, image push or deployment in this task.
+
+Main's accepted WP01 D1-A remains merged history until #382 is adopted; D1-B is the owner's intended replacement. D3 numerical definitions, D4 bounded full/unchanged/error wire meanings and D5 transformation/epoch remain retained. See [baseline](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md), [qualification ownership](RELEASE_1.15_WP01_DOWNSTREAM_QUALIFICATION_MATRIX.md), [Azure evidence](RELEASE_1.15_AZURE_EXISTING_F1_PLANS_CAPACITY_EVIDENCE.md), [execution plan](RELEASE_1.15_EXECUTION_PLAN.md) and [existing exact-path preflight gate](prompters/release-1.15-wp02-codex-docker-dual-process-runtime.md).
+
+## Exact mutation proposal after governance and scoped authorization
+
+The following eleven NEW source/test/build paths are proposed, not written or granted by this planning document. Two explicit Dockerfiles preserve root Dockerfile/default deployment and Release1.14 images. Each directly execs one non-root application process; no custom supervisor, shared runtime filesystem or loopback assumption across containers.
+
+| Literal future path | Responsibility / ownership boundary |
+| --- | --- |
+| `container/release_1_15/research.Dockerfile` | Independently pinned Linux/amd64 research fixture image, direct non-root dotnet entrypoint, research-only writable mount, no Streamlit/assets; no production Worker modification |
+| `container/release_1_15/ui.Dockerfile` | Separately pinned UI fixture image, direct non-root Streamlit entrypoint, current1.61.1/Plotly7.1.0 pins, no raw/provider/HMAC assets or research mount |
+| `tests/runtime/release_1_15/dual_docker/ResearchFixture.csproj` | Standalone net10.0 Web SDK offline security fixture, no package addition |
+| `tests/runtime/release_1_15/dual_docker/Program.cs` | Dummy-key TLS/auth/liveness/bounded fixture service, explicitly unavailable transformed snapshots; not WP05 production server/schema/HMAC |
+| `tests/runtime/release_1_15/dual_docker/api_key_client_fixture.py` | Server-side HTTPS-only bounded fixture client, hostname/chain validation, no redirects or browser key exposure; not production bridge |
+| `tests/runtime/release_1_15/dual_docker/public_app_fixture.py` | Clearly labeled fixture UI/disconnected/last-known presentation; no production chart implementation |
+| `tests/runtime/release_1_15/dual_docker/test_api_key_client_fixture.py` | Offline client URL/TLS/auth/size/timeout/redirect/sanitized-error negatives |
+| `tests/runtime/release_1_15/dual_docker/test_pair_boundary.py` | Independent paired-container HTTP/TLS/auth/isolation/lifecycle observations and resource samples |
+| `tests/runtime/release_1_15/dual_docker/tls_fixture.py` | Bounded owned temporary test certificates/trust material only, existing-tool availability required, no actual Azure or real service keys |
+| `tests/runtime/release_1_15/dual_docker/fixture_contract.md` | Frozen-for-test-only endpoint/key-rotation/error rules and dummy-material labeling, explicitly not D4 production schema |
+| `eng/docker/release-1.15/Invoke-Wp02DualDockerQualification.ps1` | Windows PowerShell5.1-compatible paired build/test runner, explicit per-image provenance, loopback host ports/owned network, deadlines/log limits and owned cleanup |
+
+Current/future documentation paths for this planning PR are exactly:
+
+- `docs/roadmap/release-1.15/RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md` (this new plan)
+- `docs/roadmap/release-1.15/RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md` (new execution ledger)
+- `docs/roadmap/release-1.15/prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md` (executed owner prompt)
+- `docs/roadmap/release-1.15/RELEASE_1.15_FILE_MANIFEST.md` (append-only index)
+
+Production runtime/client/server/entrypoint/project/package/CI paths are NOT proposed for mutation. Inspect actual future implementation needs after governance merge and exact-path approval; stop if compiler/certificate utility/dependency/base/pinned asset or additional path is needed. Do not install a new TLS library or framework silently. Security fixtures cannot be promoted as completed WP03-WP06 behavior.
+
+## API-key/TLS threat model and proposed fixture rules
+
+Owner-selected boundary: HTTPS from UI server to research hostname, separate cryptographically random per-environment service keys eventually provisioned as app settings in both respective apps. UI legitimately has its service key but never provider/HMAC keys or research storage. Browser users, direct anonymous callers, network attackers, logged/malformed requests and copied UI assets are adversaries; compromise of the UI server/key permits authenticated transformed reads until revocation. API keys do not make public DNS private or solve replay after key theft. TLS and bounded abuse controls are necessary; no paid private-network assumption.
+
+The following numerical/rotation details are CANDIDATES for WP05 review, not newly frozen D4 transport semantics:
+
+- Fixture uses32 dummy bytes encoded canonical padded Base6444 ASCII characters. Validate configuration and supplied header syntax/length without unbounded allocation; reject duplicate/comma-folded/malformed/oversized keys and perform fixed-size digest comparison using constant-time primitives. Do not claim all HTTP parsing/error timing is constant time. Authentication failures have identical generic401 bodies; do not echo header/URL/body or exception text. Rate/header/concurrency/request limits precede expensive work; authenticate before reading sensitive status or snapshot data.
+- Only fixed read-only fixture paths permitted. A generic liveness endpoint may be unauthenticated only as a platform requirement and emits no research/config/identity/status. Unknown/raw/admin/write/control paths must never become an authenticated general proxy. Fixtures return unavailable data, not fabricated production D4 snapshots.
+- HTTPS URL must be configured server-side and absolute with a reviewed host, no userinfo/query/fragment/key. Verify chain and hostname; use explicit owned local test CA for offline trust only, never disable verification. Disable redirect following to prevent credential forwarding; test both same-host downgrade and cross-host redirect. No implicit proxy environment that leaks credentials; any proxy needs explicit review. Bound connect/write/read/total time and body size, reject malformed UTF-8/partial response and preserve prior complete UI state. Do not derive authentication from browser input.
+- Candidate overlap cap300s: verifier accepts active plus exactly one previous key until an explicit UTC deadline and local monotonic upper bound, whichever expires first. No previous key without a deadline, no extension on repeated reads/restart and fail closed on untrusted/backward time. Config revision/expiration must be staged coherently. Normal sequence: verifiers accept new active+old previous, switch clients, verify, expire/remove old. Rollback only within original overlap deadline and with explicit operator control; expired/revoked credentials must not revive by fallback. Clock rollback/restart/config rollback proof is unresolved and belongs to WP05/WP07; do not present these candidates as an implemented secret-rotation mechanism.
+- Local paired fixture uses direct TLS to exercise client cert/hostname checks. Azure frontend TLS termination and forwarded headers differ: do not trust arbitrary X-Forwarded-Proto, infer backend plaintext is public plaintext, or claim local TLS proves Azure enforcement. Exact HTTPS-only ingress/proxy trust, direct requests and routing must be qualified by WP07 before activation, with separately authorized deployment/configuration. No actual app settings are read/set here.
+
+WP02 documents/test-drives the boundary in isolated fixtures only. WP05 owns production C#/Python auth integration, transport deadlines/header/key format and error compatibility alongside unchanged D4 schema; any shared production path requires its own exact authority. WP03 owns research exclusive writer/storage/recovery; WP07 owns actual ingress, secret deployment/rotation and F1 behavior. API-key rotation does not change D5 transformEpoch/key, and service-authentication secrets are distinct from Twelve Data and HMAC material.
+
+## Qualification sequence and run-only regression paths
+
+1. Merge/adopt #382 only under separate owner merge authority; re-query main and resolve plan wording against merged policy. Obtain literal-path source authority before writing implementation; no assumption from issue or open PR.
+2. Verify digest-pinned existing base/dependency assets offline and test TLS tooling; build two distinct Linux/amd64 fixture images. Current requirements/requirements-linux.lock and SDK/runtime pins are read-only build inputs, not mutation authority. Record separate image IDs/digests/source build context/pair identity; never infer a digest before build.
+3. Exercise missing/wrong/revoked/expired/different-environment keys, duplicate headers, huge headers, anonymous direct requests, unknown/raw/control routes, HTTP URL refusal, bad chain/hostname/expired certificate, redirects, bounded slow/oversized/truncated responses and sanitized error/log behavior. Send dummy keys only on owned local TLS; never Twelve Data/Azure endpoints. Capture evidence independently from server self-report.
+4. Inspect each image and container: non-root application PID1 and descendants, empty capability/no_new_privs profile where feasible, writable scopes, UID/GID and env/FDs. UI contains only dummy service credential/config needed for server-side requests, never dummy provider/HMAC canaries, SQLite/sidecar/checkpoints or research mount. Ensure key is absent from browser payload/figure/log/build layers. No shared PID/filesystem/localhost between services.
+5. Test independent start/stop/failure and graceful SIGTERM; do not implement in-container restart. Research failure produces truthful UI unavailable/last-known state; UI failure does not stop research. Platform restart limits and research writer exclusion across overlapping instances remain unproved. Bounded per-container CPU/RAM/PID profiles and suite time/log limits; sample both concurrent containers separately and aggregate observed cost honestly, not a promise of future F1 headroom. No new paid resources.
+6. Commit substantive fixtures/evidence only under effective governance and scoped approval; no merge, registry push/deployment/provider activation. Keep image pair compatibility/rollback and Azure qualification as downstream gates.
+
+Run-only existing paths (no edits): `tests/feasibility/release_1_15/runtime/test_supervisor.py` (historical fixture only, not D1-B conformance); `python/presentation/test_public_runtime_isolation.py`; `python/presentation/test_public_preview_api.py`; `tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj`; `tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj`. Execute only proportionate offline checks once relevant implementation changes justify them. No broad product test run is needed for this documentation-only preflight.
+
+## Current exit
+
+Planning/reconciliation only. No application/test source written, Docker builds, API-key/TLS fixtures, resource measurements or Azure calls executed. #382 unmerged means source implementation BLOCKED; later exact-path approval is also required. No native C or Bash dual-role supervisor retained in the proposal. D3/D4/D5 meanings remain unchanged; no acceptance rows marked passed. #368 stays OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Owner continuation and reconciliation - 2026-10-24
+
+PR #382 merged as49966b38e1228d4eb336cb1676d4ac3e41c716a4; D1-B governance is now effective. Owner explicitly authorizes merge of this documentation plan and its eleven exact implementation paths in a separate implementation PR. Earlier unmerged/approval-pending labels are historical preflight observations, superseded by this note. Manifest reconciliation preserves both merged governance/Azure entries and this plan's index. Review confirms fixture-only scope, unchanged D3/D4/D5 semantics, no new dependency or production API authority. No tests/images/security behaviors are claimed by plan acceptance. Rotation/key-format candidates remain isolated fixture choices for WP05 review. `PUBLIC_RUNTIME_VERIFIED=False`; no deployment/merge of the future implementation PR is authorized.
