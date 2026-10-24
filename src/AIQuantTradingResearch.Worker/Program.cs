@@ -19,6 +19,9 @@ if (args.Contains("--write-immutable-chart-candidate", StringComparer.Ordinal))
 if (args.Contains("--local-synthetic-chart", StringComparer.Ordinal))
     return await LocalSyntheticChart.RunAsync(args, Console.Error);
 
+if (args.Contains("--research-snapshot-api", StringComparer.Ordinal))
+    return await ResearchSnapshotEndpoint.RunAsync();
+
 var builder = Host.CreateApplicationBuilder(args);
 var apiKeyPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.ApiKeyName}";
 var requestTimeoutSecondsPath = $"{TwelveDataConfiguration.SectionName}:{TwelveDataConfiguration.RequestTimeoutSecondsName}";

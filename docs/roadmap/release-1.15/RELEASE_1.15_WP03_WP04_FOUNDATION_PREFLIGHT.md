@@ -369,3 +369,105 @@ Every original untracked prompt under `docs/roadmap/release-1.15/prompters/` rem
 ### Remaining obligations
 
 WP05 fourteen-path D4/D5 transformer, bounded authenticated endpoint, strict Python HTTPS client, independent cross-language vectors and container qualification remain unimplemented in this prerequisite. No production/staging/provider/registry operation, Docker workload, UI change or deployment occurred. PR386/387 remain open and unmerged; neither source branch was adopted. Leave the prerequisite implementation PR open/unmerged for review, do not close issues or imply WP05 acceptance. Coordinated rollback of database plus witness is still outside the inherited best-effort protection; hash binding is not cryptographic anti-rollback or encryption. Azure mounts, Linux permissions/exclusion/fsync and real crash behavior require separate qualification. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP05 authenticated snapshot implementation after PR391 - 2026-10-24
+
+Owner authority: functional WP05 within the fourteen literal paths verified in open PR387's plan, plus append-only evidence in these two existing documents. Isolated branch starts from fresh main `20a8647c901d3bffc1516b80603e7dab30d01c68`, the verified PR391 squash merge, containing merged PR389/390. Live PR386/387 remained OPEN; neither branch was imported or merged. The WP05 preflight document is not present on this main; its proposed literal names were read directly from PR387 without importing its documentation. No new prompt archive path was authorized.
+
+### Functional implementation
+
+- Actual authenticated HTTPS POST /v1/research/snapshot, with one active environment service key. Length-safe SHA-256/constant-time comparison rejects missing, malformed, wrong and duplicate keys before reading private state. Anonymous /health emits only Alive. Query parameters, unsupported methods/media/encoding and unknown request fields fail closed. Generic bounded errors do not contain private exceptions, keys or raw rows.
+- The real IResearchTransformStateReader.UseTransformSnapshot callback performs public transformation AND bounded complete serialization under WP03 publication ownership. Only whitelisted public bytes leave it. Network transmission follows that staged-buffer commit; it cannot recall bytes already committed before a later rotation. No raw state/checkpoints/config are returned, and no read endpoint ingests or rotates keys.
+- Durable generation/private tuple/public epoch comes from PR391, not environment-derived D5 identity. Daily SHA-256 HMAC uses the exact LF message, unsigned big-endian digest, all 256 bits, integer factor formula and symmetric ties-even at scale 10^12. Transform price-valued indicators after calculation, including negative bands/MACD. Volume, RSI and dimensionless features remain unscaled.
+- Full emits all six exact collections. Unchanged matches all four identity fields and omits all six collections entirely. Both BTC/USD and ETH/USD share the daily factor while retaining separate committed versions, rows and classifications. Truthful partial startup/calibration, empty initialized state, gaps, unavailable intervals, stale/current status and valid classification eligibility are preserved.
+- Request bytes are counted while reading, including chunked bodies, at 4096. Success serialization is capped during writing at 4194304. Strict UTF-8, duplicate keys, lexical string/key/number limits, number exponent/magnitude, member/depth/array/token limits and canonical counters/fixed-12 strings are checked. The source rejects date rollover during staging, backward day/epoch and caller-known future same-generation identity; nominal processing cancellation discards staged output. Wire observations/status use microsecond precision consistently.
+- Python uses direct synchronous stdlib HTTPSConnection, certificate and hostname verification, no proxies/redirects/plaintext/decompression fallback. Entire bounded JSON/semantic validation precedes atomic cache replacement. Immutable defensive public views, per-instrument request epochs/connectivity/last sync, late-response/collision/rollback rejection, and last-good preservation on failure are implemented. No indicator recomputation in Python.
+- Default Worker behavior remains unchanged except one explicit early --research-snapshot-api mode. No provider, background ingestion or automatic D5 provisioning is started. The mode requires an existing verified/provisioned research.sqlite and startup tuple validation. Reopening the existing WP03 store retains its writer ownership and startup recovery/watermark behavior; HTTP snapshot calls do not mutate data.
+
+### Local composition and deferred packaging
+
+Run the built Worker with --research-snapshot-api only after separately providing a test/provisioned existing private store and test TLS material. Configuration names: AIQ_RESEARCH_PRIVATE_DIRECTORY, AIQ_RESEARCH_API_KEY, AIQ_RESEARCH_TLS_PFX, optional AIQ_RESEARCH_TLS_PASSWORD, optional AIQ_RESEARCH_BIND_ADDRESS (default127.0.0.1; only explicit0.0.0.0 alternative). HTTPS port52731. No real credentials were retrieved or supplied. Invalid/missing config exits generically; there is no public readiness or automatic seed.
+
+Python ResearchSnapshotClient accepts a server-side HTTPS base URL, service key, nominal timeout <=5 seconds and optional public CA file. connection_state(instrument) keeps observations separate; no browser/UI integration was added. The stdlib-only executable mode is a test conformance driver.
+
+Two new Dockerfiles package a prepublished linux/amd64 framework-dependent Worker and a stdlib-only client driver. They declare distinct non-root UID1654/1655 and single principal processes, preserve pinned bases and install nothing. They are prepared source artifacts, NOT built/qualified images. The PowerShell5.1 runner requires cached bases, an offline published build, a closed disposable preprovisioned test database and test TLS fixture. Default mode checks input files only; -Execute is for future separately authorized Linux screening. It copies inputs, uses an internal network and resource limits, label-checks cleanup, restores its test-key environment and retains owned local logs/copies. It does not repair storage or provision keys. A timed-out Docker CLI can require later daemon resource reconciliation.
+
+No Docker invocation, Linux container experiment, image publication, staging, Azure, provider acquisition or production inspection occurred. Linux qualification is explicitly deferred by current authority; script/parser checks do not qualify Linux private mount permissions, non-root behavior, SQLite persistence or F1 resources.
+
+### Actual offline test commands and outcomes
+
+```powershell
+dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-restore --filter 'FullyQualifiedName~ResearchSnapshotTransformerTests|FullyQualifiedName~PrivateResearchCalculatorTests|FullyQualifiedName~ResearchIngestionServiceTests|FullyQualifiedName~TechnicalIndicatorCalculatorTests|FullyQualifiedName~WilderAverageTrueRangeCalculatorTests' --logger 'console;verbosity=normal'
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter 'FullyQualifiedName~ResearchSnapshotEndpointTests|FullyQualifiedName~SqliteResearchStateStoreTests|FullyQualifiedName~ResearchStateRecoveryTests|FullyQualifiedName~CommittedResearchProjectionTests|FullyQualifiedName~TwelveDataMinuteCandleSourceTests' --logger 'console;verbosity=detailed'
+python -B -m unittest python.presentation.test_research_snapshot_client -v
+```
+
+Final exit0: Application112/112, Infrastructure91/91, Python29/29; total232 selected cases, zero failures/skips. This includes 20 new Application, 8 new Infrastructure and29 new Python cases, plus175 predecessor regressions. Not the full repository suite, CI, UI/browser, Linux or Azure evidence. Runtime .NET10.0.3; CPython3.13.15. Existing fake-source tests make no Twelve Data/provider requests. No restore/install occurred.
+
+PowerShell5.1.26100.9711: AST parse and native argument quoting unit check PASS, targeted compatibility Windows PowerShell5.1.26100.9444; exact .9444 binary not executed. Docker runner NOT RUN. New source analyzer warnings were resolved; remaining Infrastructure build warnings are in unchanged SyntheticSnapshotQualificationTests: CA1711, SYSLIB1045, CA1861, CA2219.
+
+Intermediate failures were investigated and corrected: initial test certificate lost usable Windows private-key ownership (reimport its test PFX); one overly broad leakage canary matched required lastSuccessfulProviderPollAt (now tests the actual private field); rejecting oversize without closing the HTTP connection caused a subsequent reused connection failure (errors now close the connection). A later Unicode-boundary test literal was changed by Windows PowerShell native-pipe encoding; ASCII Unicode escapes now exercise the intended multibyte value. Final rejection assertions were not weakened.
+
+### Independent proof and security negatives
+
+The separate CPython reference does not import the production transformer. It computes the 70-byte message, HMAC, factor and integer rounding independently. Test key is the explicit bytes00..1f fixture; private test key UUID11111111-1111-4111-8111-111111111111 is not a real credential. Shared corpus records exact message hex, lengths, digests, factors and outputs. For2026-10-23: digest1482db2988ff8a6447697ecbca8ad4bf2abd46062ed46f625ce13b725610051c, factor916024341133; price100 ->91.602434113300 and signed-7 ->-6.412170387931. For2026-10-24: digest10cd612d8d85ad234bb2b9bb91453a5b523f50bf5443231468b3544c219591e7, factor913126768802. C# literals were checked against these separately authored expectations, not generated from C# outputs.
+
+Real integration commits401 offline dummy OHLCV observations per instrument through the actual WP03 writer with WP04 calculations, provisions the durable fixture tuple, starts actual Kestrel HTTPS on an ephemeral loopback port, and invokes the strict Python client. The Python reference independently constructs every expected constant-series public candle, seeded indicator, classification, event, interval and status. Only random public lineage labels are taken from the response. Complete expected and actual UTF-8 bytes match; no raw-price result is used as a numerical oracle.
+
+| Final observed instrument | Actual and independent expected bytes | Matching SHA-256 |
+| --- | --- | --- |
+| BTC/USD | 320587 | e18c8f9d928b255f0ceaa6ffad4256aff4c5fc03fb9442d29858baa0f19fcbcb |
+| ETH/USD | 320587 | 79bf127a1cb14995cc387c5567c17862c2ae8e88d7276ebad3798a1dac32af88 |
+
+These are executed-run hashes, not stable golden hashes: each test uses fresh random generation/segment UUIDs. Both runtime-generated expected/actual buffers match exactly within the run. The invariant numerical HMAC/factor corpus is stable. A real1000-row calculated store serialized to806376 bytes, well below4MiB; this measures this fixture, not every possible maximum-size field combination or memory/resource qualification.
+
+Negatives include wrong/missing/duplicate API keys, bad method/media/encoding, malformed UTF-8/duplicate/surrogate/trailing JSON, exact4096 positive/+1 rejection, chunked oversize with no Content-Length, lexical/depth/member/token/key/string/array bounds including multibyte UTF-8, canonical numbers/counters/types, precision-ceiling+one-unit, invalid order/alignment/segments/intervals/events/status/readiness, stale request epochs, identity collisions/decrements/new generation, midnight/backward time, durable unconfigured/corrupted state, no raw/key/checkpoint canaries, actual untrusted-CA and wrong-host TLS rejection, no redirect/encoded/non200 acceptance, independently verified signed ties and signed indicator projection, shared BTC/ETH factor, per-instrument/two-session state, immutable views and preserved last-good/last-sync on failures.
+
+### Exact implementation paths and SHA-256
+
+| Path | SHA-256 |
+| --- | --- |
+| `src/AIQuantTradingResearch.Application/MarketData/ResearchSnapshotContracts.cs` | `b358a8d1e94ce309e8d69582563d0837afc584f7b7fe0c0ef06c594e0ae83dae` |
+| `src/AIQuantTradingResearch.Application/MarketData/ResearchSnapshotTransformer.cs` | `b3c5df4dd8480ae4d0bd6e5f8ca5eec269118c184069fdea7536703d1e8be884` |
+| `src/AIQuantTradingResearch.Worker/ResearchSnapshotEndpoint.cs` | `c4829cfff0f26c1a13724fa2658bf447cc880fcb693246da93969d42da9881d7` |
+| `src/AIQuantTradingResearch.Worker/ResearchSnapshotSource.cs` | `eec18721d8bd9b5ec6a2ef361e792ee2998f1c1a53ac4972722fbd15c843c253` |
+| `src/AIQuantTradingResearch.Worker/Program.cs` | `ba909a33e8fdc706c64ee9da97d6ef78aeaf09bcc599081bb0d71d3773414d09` |
+| `python/presentation/research_snapshot_client.py` | `2a842d2884dd347ff01a9b668400a4c3357ae3d1087382fde6eb336524ebccf7` |
+| `python/presentation/test_research_snapshot_client.py` | `e9dcebe5b35074a87a6f23f37cc1f3111ee652b3f7ecb6eea3424bd9554dd73d` |
+| `tests/AIQuantTradingResearch.Application.Tests/ResearchSnapshotTransformerTests.cs` | `701c818ee3b5a79a6ea51127357def40dcd2580e35112507ea713e4d9d9c6de1` |
+| `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs` | `ebdacefd874b6a27c08185247eecbdf4e5ddf730636efa65937c388e3ab5fa0b` |
+| `tests/AIQuantTradingResearch.Infrastructure.Tests/PythonIntegrationFixtures/research_snapshot_reference.py` | `b88554f0d3337d2aae9aadaaf60842ffb580295ee690466a44c101cf9c37d7dd` |
+| `tests/runtime/release_1_15/research_snapshot_contract_vectors.json` | `963e15e570411b4993d1ca1ec24b457aa8dd495035ff5237c1f61e7196a5142a` |
+| `container/release_1_15/research-api.Dockerfile` | `ad2f140ed3f46bd5b4b67f84c27f4013c02c657193a64d8c5cd452fc39bd1a8d` |
+| `container/release_1_15/snapshot-client.Dockerfile` | `86aaad8fd2245eb8fe54fb5ce985bd779497c428804e30be38f4dc0f59c60d93` |
+| `eng/docker/release-1.15/Invoke-Wp05SnapshotQualification.ps1` | `3a43c2e1d5b6d37312881f7303124f43d451ca1d0cd9f5ed5788be900c552edc` |
+
+### Complete owner checkout preservation and prompt provenance
+
+Original branch feat/release-1.15-wp02-runtime-isolation at6f76697707e2363cc52820e0c805172815b92159. Full before/after status and all15 dirty/untracked file sizes/SHA-256 matched after implementation. No original was staged, overwritten, renamed, reset, cleaned or stashed. This includes twelve untracked prompts; existing archive dispositions in prior sections remain unchanged. WP03 simple, WP04 simple, WP05 real-snapshot and the new WP05 after-PR391 prompt remain original/pending separate new archive-path authority; no archive was created or overwritten.
+
+| Original relative path | Bytes | Before = after SHA-256 |
+| --- | --- | --- |
+| `docs/roadmap/release-1.15/RELEASE_1.15_FILE_MANIFEST.md` | 5865 | `eaf83cb62981f8a37c84fbea68930c383bbddfe1b23ebdb7c782480d457bcbf3` |
+| `docs/roadmap/release-1.15/RELEASE_1.15_WP02_EVIDENCE.md` | 3858 | `1534c46fad27e485566fe7b3ba50dbefef4b4b20dd546dfb1fa96a14b2c2b579` |
+| `docs/roadmap/release-1.15/RELEASE_1.15_WP02_IMPLEMENTATION_PLAN.md` | 11665 | `cd21cdbcc176d206da8ccbc73876b63d9e8d27358fd5a463448285351f761dbc` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-codex-azure-existing-f1-plans-additional-apps.md` | 6991 | `fc1cae2eb9c524bd9659edd2477629f315a8bb5caa6cb585beea32d0af215184` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-codex-create-two-existing-plan-f1-apps.md` | 7888 | `5b6a452d1c82e155e3df129f8719cba5ac1b872af092753e319b0d2c558e0f71` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-codex-docker-dual-process-runtime-and-isolation.md` | 10144 | `a670a7e32627c13dc45cc8c17a386af39e94ce33dbe4ef6f505760ef22b18548` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md` | 6619 | `35097506ecd266af3c4f543c7936b1375224925e05a9c5084ae45cdf63b3ffb0` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-pr384-merge-and-next-preflight-codex.md` | 6183 | `32249579c08b2d49a81edfe09640ad2b8e49a726c4cf06e73070a05f13b42fc8` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-simplified-lab-hardening-codex.md` | 6609 | `f28dd004399d5649c1822c6e8ffb4bf9e85038b3320c1c800ea2c0b2d01608b0` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp03-simple-implementation-codex.md` | 7920 | `08fd7d1fadd5e38e4d413c5e6b972d54ff3e6801fb67668e92b750e2625c7a7c` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp03-wp04-foundation-codex.md` | 7870 | `9466670fa4c172e0d1481525956df823c30156d5db8b1e3247f96f4533087c43` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp04-simple-research-implementation-codex.md` | 8128 | `f3fff48a3254c2836c3d2b9acd4d895aa9328fda82df105d44a14ef15d9e0b18` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp05-real-snapshot-implementation-codex.md` | 8976 | `08dfbe33dc10fc2309133bde544cc233c7fe292e70575fe06c532199d5e1384d` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp05-snapshot-after-pr391-codex.md` | 6805 | `e53dafb80a4697b2947cfc654e13ee7cd16006608e7c290b9da2e27c201bcaf9` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp05-staging-only-integration-codex.md` | 10602 | `e08e63e06d64ec9fcb061c8781d8e238b5ba26124740a16abeaef49dbf3936e0` |
+
+### Remaining obligations and review disposition
+
+Functional offline vertical slice complete for owner review, not WP05 acceptance. Leave one implementation PR OPEN/UNMERGED and issue371 open. WP06 still owns real Streamlit/UI scheduling/render integration; the client driver is not that application. Future explicit runtime provisioning, deployment configuration/HTTPS ingress, dual Linux image build/mount/process/resource behavior, durable restart/power-loss and staging qualification remain separate. Existing WP03 exclusive-writer and best-effort coordinated-rollback limits still apply.
+
+Nominal Python timeout is5s and server processing budget4s. Direct synchronous stdlib DNS/compound header operations are not claimed to have a hard total wall-clock bound; no resolver worker, subprocess cancellation or new cancellation framework is introduced. Socket phase timeouts and monotonic checks prevent accepting a late result, but adversarial slow-header wall-clock behavior has not been qualified. This availability limitation is distinct from whole-response atomic/fail-closed validation. Production remains strictly untouched; no staging or public activation. PUBLIC_RUNTIME_VERIFIED=False.
+
+WP05 publication validation: exact14 implementation paths plus2 approved existing append-only docs; all source SHA-256 values verified;33 relative Markdown targets/anchors PASS; UTF-8/no BOM/LF/final newline and git diff --check PASS. Original15-file preservation inventory includes every dirty/untracked prompt; no generated build output or new archive is included.
