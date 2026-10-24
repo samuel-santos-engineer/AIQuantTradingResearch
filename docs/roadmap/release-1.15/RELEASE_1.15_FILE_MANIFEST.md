@@ -92,3 +92,14 @@ After merged #382/#383 and explicit owner eleven-path authorization, [implementa
 - [Existing evidence: merged fixture disposition and read-only review](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
 
 #384 merged atd237e268fc0cd61cad9c8a32053f57095351f78c; fixture approval only. Seven subsequent existing source/test/runner paths are proposed, not authorized here. Four-file documentation PR; no source, Docker, test execution, Azure or secret operation. UTF-8/LF; #368 OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP03/WP04 functional foundation preflight - 2026-10-24
+
+- [WP03-first exact-path implementation/acceptance proposal](RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md)
+- [Complete untracked prompt inventory, hashes and archive disposition](RELEASE_1.15_WP03_WP04_PROMPT_PROVENANCE.md)
+- [Current executed foundation authority](prompters/release-1.15-wp03-wp04-foundation-codex.md)
+- [Historical superseded WP02 dual-process authority](prompters/release-1.15-wp02-codex-docker-dual-process-runtime-and-isolation.md)
+- [WP02 simplified-lab authority](prompters/release-1.15-wp02-simplified-lab-hardening-codex.md)
+- [WP05 owner-copy authority, distinct from pending PR387 attachment](prompters/release-1.15-wp05-staging-only-integration-owner-copy.md)
+
+Seven documentation paths only; original dirty/untracked bytes preserved. Proposed11 WP03 and4 new WP04 source/test paths plus2 limited WP03 follow-up edits are not implementation grants. PR386/387 remain open, no merges; no source/test execution, Azure/provider/registry/deployment operations. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
