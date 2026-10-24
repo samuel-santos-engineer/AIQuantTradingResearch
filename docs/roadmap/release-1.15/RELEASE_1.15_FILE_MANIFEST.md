@@ -80,3 +80,7 @@ Owner-selected architecture update: two single-process Linux Docker images and t
 - [Governance conflict reconciliation and preflight evidence](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
 
 PR #381 infrastructure evidence is merged; PR #382 conflict reconciled but governance remains unmerged. Planning only until effective governance and exact-path source authority. Original pending WP02 supervisor-plan artifacts preserved, not silently adopted/deleted. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP02 isolated dual-Docker fixture implementation - 2026-10-24
+
+After merged #382/#383 and explicit owner eleven-path authorization, [implementation plan](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT.md) and [qualification evidence](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md) record the exact approved Docker/fixture/test/runner changes. No wildcard expansion; no new dependency or production API/source mutation. Twelve client and nine paired-container tests pass, with limitations recorded. Separate implementation PR remains for owner review; no Azure/deployment/acceptance authority. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
