@@ -283,3 +283,89 @@ Owner review required, not automatic WP03/WP04 acceptance or issue closure. No s
 Runtime composition/DI, provider capability/volume entitlement/quotas/restart-wide accounting, Linux private files/processes/mount/WAL/fsync/exclusion, shared F1 and final image/browser qualification remain separate. Local lock is not cross-App-Service fencing. No production/staging Azure/URLs/settings/secrets, live provider, registry/Docker/promotion/deployment operation. Future publishing/assessment STAGING ONLY under separate WP07 authority. Preserve two non-root images, one service key and accepted synchronous HTTPS/native-DNS limitation. Leave implementation PR OPEN/UNMERGED; `PUBLIC_RUNTIME_VERIFIED=False`.
 
 WP04 publication validation: exact8-path scope (6 source/test plus2 directly approved existing docs),6 source hashes verified,30 relative Markdown links/anchors, append-only historical docs, UTF-8/no BOM/LF/final newline and git diff --check PASS. Original status/HEAD and13 dirty/untracked paths/sizes/hashes preserved. Staged blobs independently scanned; no generated artifacts staged.
+
+## WP05 implementation boundary reconciliation - 2026-10-24
+
+Status: BLOCKED at durable D5 integration; owner scope decision required. This is an append-only finding, not WP05 acceptance or a replacement planning PR. The owner directly approved the fourteen WP05 implementation paths, these two existing evidence documents, and one implementation PR left open/unmerged. No additional source path is thereby authorized.
+
+The isolated implementation branch starts at merged WP04 `2ad60bf5c0c670d3f4934b5ee7100df7bf05234f`. Original dirty checkout remains separate. Previous live checks found PR389/390 merged and PR386/387 open; neither open branch was adopted. No application implementation, build, test suite, Docker workload, provider call, Azure operation or deployment was performed in this reconciliation pass.
+
+### Concrete storage mismatch
+
+- `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs` exposes immutable committed research reads, but its constructor acquires writer ownership, can initialize the database, validates recovery and updates the watermark. It is not a separately qualified read-only database opener.
+- `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStateRecovery.cs` computes its data hash from instruments and checkpoints. Its witness binds generation, revision and the existing commit chain, without a D5 active configuration tuple, public transform epoch or configuration activation state.
+- `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchWriterOwnership.cs` permits only research.sqlite and its WAL/SHM files, writer.lock, watermark.json and watermark.json.pending. It rejects unrelated private-directory entries. Adding a transform configuration sidecar there is incompatible with current ownership validation.
+- D5 in `RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md`, under "D5-A durable epoch, rollover and unchanged rules", requires a durable active tuple bound to dataset lineage and fail-closed recovery when configuration/epoch evidence is uncertain. Atomic activation, witness and rollback handling are explicitly WP03 obligations. The current WP05 authority prohibits modifying WP03 writer/recovery/schema.
+
+A separate environment value or independently hashed file can supply bytes, but does not establish the missing durable active-epoch recovery contract. A response-only checksum or in-memory counter must not be represented as that proof. No alternate persistence mechanism, schema change, key generation, key rotation or production activation has been introduced.
+
+### Narrow amendment proposed for owner review
+
+Before claiming a working durable WP05 runtime, authorize a focused WP03 prerequisite proposal covering the literal existing paths `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs`, `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStateRecovery.cs`, `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStateSchema.cs`, `src/AIQuantTradingResearch.Application/MarketData/ResearchStateContracts.cs`, and `tests/AIQuantTradingResearch.Infrastructure.Tests/SqliteResearchStateStoreTests.cs`. The existing test filename was verified; the prerequisite design and scope still require owner approval. This proposal is not permission to modify those paths.
+
+The prerequisite must define initial provisioning, generation binding, exact restart reuse, same-day epoch changes, crash/recovery witness behavior and coherent publication checks. Reuse the existing writer and recovery model; do not add an independent writer or assume that a second config file is transactional with SQLite. If the owner instead chooses to defer durable activation, explicitly approve an offline-only transform/endpoint subset and retain fail-closed runtime behavior; that would be partial WP05, not the working-runtime acceptance target.
+
+No implementation PR is opened from this documentation-only blocker finding. Existing fourteen-path implementation approval remains recorded; no source/test completion is claimed. Native Linux durability and future separately authorized staging qualification remain outstanding. Production remains off limits. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Authorized WP03 D5 prerequisite implementation - 2026-10-24
+
+Owner directly authorized the five-path WP03 prerequisite after the preceding blocker report. This resolves the absence of a local durable configuration mechanism; it does not claim WP05 endpoint/client completion or Azure durability. The preceding blocker entry remains historical evidence. Scope: exactly five source/test paths below and append-only evidence in these two existing documents. No other WP05 implementation paths have been edited yet.
+
+### Implementation and compatibility
+
+- Add an explicitly provisioned singleton `transform_configuration` table inside the existing private SQLite database. Persist canonical padded base64 of the 32-byte key, private key UUID, public positive epoch, algorithm, dataset generation and activation revision. No secret sidecar or ownership-allowlist change. The tuple is private plaintext at rest, protected by existing private database permissions, not encryption.
+- Include the canonical tuple and activation revision in the existing recovery data hash. Initial provisioning/rotation uses the existing exclusive writer, FULL/WAL transaction, storage revision and commit chain. Instrument generation, versions, rows, poll/commit times and calculation checkpoints are not invented or advanced by configuration activation.
+- Legacy databases without the table retain their original data hashes and raw/calculated read behavior. The table is created only during explicit activation. This is an additive schema extension; metadata schema_version remains 1. Compatibility is tested with the current binary; old binaries are not qualified to open a provisioned D5 database and must not be used as a rollback strategy.
+- Initial epoch must be 1. Rotation requires expected current epoch, next public epoch and a distinct private key UUID. Exact tuple reinstall is a no-op. Stale expectations, wrong generation, skipped/decreasing epochs and overflow are rejected. No automatic key creation, runtime provisioning command or key-rotation service is added.
+- Recovery requires the external watermark to cover at least the tuple activation revision. Failure after the SQLite commit but before successful witness replacement prevents publication and restart. It never guesses the new tuple or silently falls back to the old epoch. Precommit faults roll back and can retry. Manual recovery of an unwitnessed activation is deliberately not automated.
+- `IResearchTransformStateReader.UseTransformSnapshot` validates and supplies one coherent committed state/tuple under the existing store lock. The synchronous callback must stage and commit a whitelisted response before returning; it must not escape a snapshot for later publication or perform asynchronous publication. Rotation, ingestion mutations and ownership release cannot interleave, including reentrant mutation/disposal. WP05 still owns actual response staging, UTC checks, bounds and deadlines.
+- Private configuration is defensively copied, excluded from default JSON serialization and given a non-secret ToString. Only test keys were used. No key/factor/private UUID is a public response contract.
+
+### Executed offline evidence
+
+Commands (PowerShell-compatible, no restore):
+
+```powershell
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter 'FullyQualifiedName~SqliteResearchStateStoreTests|FullyQualifiedName~ResearchStateRecoveryTests|FullyQualifiedName~CommittedResearchProjectionTests|FullyQualifiedName~TwelveDataMinuteCandleSourceTests' --logger 'console;verbosity=normal'
+dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-restore --filter 'FullyQualifiedName~PrivateResearchCalculatorTests|FullyQualifiedName~ResearchIngestionServiceTests|FullyQualifiedName~TechnicalIndicatorCalculatorTests|FullyQualifiedName~WilderAverageTrueRangeCalculatorTests' --logger 'console;verbosity=normal'
+```
+
+Final results: Infrastructure 83/83; Application 92/92; both exit 0. Total 175 distinct selected cases, including 24 new prerequisite cases (36 total in SqliteResearchStateStoreTests). These are focused regressions, not the full repository suite. Source tests use fake provider inputs and do not acquire market data. No dependency installation or restore.
+
+The first focused run passed 27/31: four tamper tests reached rejection but cleanup failed because the test's external SQLite connection used default pooling. Setting Pooling=False fixed the test handle lifetime; no production rejection assertion was weakened. Subsequent final tests pass. Two introduced analyzer warnings (invariant conversion and blocking Task.Wait) were corrected. Remaining build warnings originate in unchanged SyntheticSnapshotQualificationTests: CA1711, SYSLIB1045, CA2219 and CA1861.
+
+Negative/compatibility evidence includes missing configuration, invalid key length/identities/epoch, defensive copies/no default serialization leakage, wrong-generation/stale/skip/same-private-UUID rotation, exact reinstall, cancellation, precommit rollback, postcommit/watermark/write-replace faults during initial activation AND rotation, key/private UUID/public epoch/generation tampering, restored old witness, missing witness, 135 subsequent commits through chain pruning, exact calculated checkpoint/row preservation, two-instrument tuple reuse across restart, concurrent rotation blocked until staging returns, reentrant commit/rotation/disposal refusal and callback-failure guard release. Native Linux filesystem persistence, actual process crash/power loss and cloud restarts are not established by injected .NET exceptions on Windows.
+
+### Exact source/test paths and SHA-256
+
+| Path | SHA-256 |
+| --- | --- |
+| `src/AIQuantTradingResearch.Application/MarketData/ResearchStateContracts.cs` | `286582a0d475767a021ad18d3accff3c6349ac28b66dc5873a1e512a4914c1a3` |
+| `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs` | `073aed9fc7ce369dae321db63b8770e2410f7be9527f60de7e2c7b21fc610c9b` |
+| `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStateRecovery.cs` | `903c57f16f2260d6a583a90b3abd59e245ed0c47044666e1b4b264e49d1035fb` |
+| `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStateSchema.cs` | `9441a82f3165eedee82a5567f5a87215b5d6dd711d4b4d3e5c5225a6e9cf8b88` |
+| `tests/AIQuantTradingResearch.Infrastructure.Tests/SqliteResearchStateStoreTests.cs` | `36ef1d95587531472e207620f356a4f1d4789f912195688296e7e00f979b32d9` |
+
+### Preserved owner work and prompt dispositions
+
+Original branch `feat/release-1.15-wp02-runtime-isolation`, HEAD `6f76697707e2363cc52820e0c805172815b92159`: full dirty/untracked status and all 14 owner-file sizes/SHA-256 match the before snapshot. Original manifest and two untracked WP02 evidence/plan files are unchanged. The prior full 13-file inventory remains above; the additional untracked `docs/roadmap/release-1.15/prompters/release-1.15-wp05-real-snapshot-implementation-codex.md` is 8976 bytes, SHA-256 `08dfbe33dc10fc2309133bde544cc233c7fe292e70575fe06c532199d5e1384d`.
+
+Every original untracked prompt under `docs/roadmap/release-1.15/prompters/` remains preserved:
+
+| Filename | Existing disposition; no archive edits in this task |
+| --- | --- |
+| release-1.15-codex-azure-existing-f1-plans-additional-apps.md | Existing exact archive duplicate |
+| release-1.15-codex-create-two-existing-plan-f1-apps.md | Existing exact archive duplicate |
+| release-1.15-wp02-codex-docker-dual-process-runtime-and-isolation.md | Historical/superseded single-image authority archive |
+| release-1.15-wp02-dual-docker-api-key-codex-prompt.md | Existing exact archive duplicate |
+| release-1.15-wp02-pr384-merge-and-next-preflight-codex.md | Existing normalized equivalent archive |
+| release-1.15-wp02-simplified-lab-hardening-codex.md | Existing normalized archive |
+| release-1.15-wp03-simple-implementation-codex.md | Original retained; separate archive-path approval pending |
+| release-1.15-wp03-wp04-foundation-codex.md | Existing normalized archive |
+| release-1.15-wp04-simple-research-implementation-codex.md | Original retained; separate archive-path approval pending |
+| release-1.15-wp05-real-snapshot-implementation-codex.md | New original retained; separate archive-path approval pending |
+| release-1.15-wp05-staging-only-integration-codex.md | Existing owner-copy archive; distinct pending PR387 attachment preserved |
+
+### Remaining obligations
+
+WP05 fourteen-path D4/D5 transformer, bounded authenticated endpoint, strict Python HTTPS client, independent cross-language vectors and container qualification remain unimplemented in this prerequisite. No production/staging/provider/registry operation, Docker workload, UI change or deployment occurred. PR386/387 remain open and unmerged; neither source branch was adopted. Leave the prerequisite implementation PR open/unmerged for review, do not close issues or imply WP05 acceptance. Coordinated rollback of database plus witness is still outside the inherited best-effort protection; hash binding is not cryptographic anti-rollback or encryption. Azure mounts, Linux permissions/exclusion/fsync and real crash behavior require separate qualification. `PUBLIC_RUNTIME_VERIFIED=False`.

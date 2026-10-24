@@ -6,7 +6,7 @@ using Microsoft.Data.Sqlite;
 namespace AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 
 /// <summary>Private, caller-driven WP03 store. No public endpoint, provider acquisition or calculated readiness.</summary>
-public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IResearchStateWriter, IDisposable
+public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IResearchStateWriter, IResearchTransformStateReader, IDisposable
 {
     private readonly object sync = new();
     private readonly ResearchWriterOwnership ownership;
@@ -14,6 +14,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
     private readonly string watermark;
     private readonly Action<string>? fault;
     private readonly bool calculateResearch;
+    private bool publication;
     private bool recovery;
     private bool disposed;
     private ResearchIntegrity protection;
@@ -155,7 +156,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
                 _ = ResearchStateRecovery.Validate(c, t, g, revision, watermark);
                 var state = Load(c, t, g, instrument, protection);t.Commit();return state;
             }
-            catch (Exception e) when (e is SqliteException or JsonException or ArgumentException or InvalidOperationException or IOException or ResearchUnavailableException)
+            catch (Exception e) when (e is SqliteException or JsonException or ArgumentException or InvalidOperationException or IOException or FormatException or ResearchUnavailableException)
             { recovery = true;throw new ResearchUnavailableException(); }
         }
     }
@@ -170,7 +171,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
         ResearchInputValidation.Validate(request, batch);cancellationToken.ThrowIfCancellationRequested();
         lock (sync)
         {
-            if (recovery) throw new ResearchUnavailableException();
+            if (recovery || publication) throw new ResearchUnavailableException();
             using var c = Open();using var t = c.BeginTransaction();var (g, revision) = Metadata(c, t);
             ResearchStateRecovery.Witness prior;
             try { prior = ResearchStateRecovery.Validate(c, t, g, revision, watermark); }
@@ -244,10 +245,84 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
                 changed ? request.ObservedAtUtc : state.LastCommitAt, request.ObservedAtUtc, protection, projectedCheckpoint);
         }
     }
+    /// <summary>Explicit private provisioning/rotation, using existing writer ownership and recovery chain.</summary>
+    public void ActivateTransform(ResearchTransformConfiguration configuration, long expectedTransformEpoch,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (sync)
+        {
+            if (recovery || publication) throw new ResearchUnavailableException();
+            var committed = false;
+            try
+            {
+                using var c = Open(); using var t = c.BeginTransaction(); var (g, revision) = Metadata(c, t);
+                var prior = ResearchStateRecovery.Validate(c, t, g, revision, watermark);
+                var active = ResearchStateRecovery.ReadTransform(c, t);
+                if (configuration.Generation != g || expectedTransformEpoch != (active?.Configuration.TransformEpoch ?? 0))
+                    throw new ResearchUnavailableException();
+                if (active is not null && configuration.TransformEpoch == active.Value.Configuration.TransformEpoch &&
+                    configuration.KeyEpoch == active.Value.Configuration.KeyEpoch &&
+                    System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(configuration.CopyKey(), active.Value.Configuration.CopyKey()))
+                    return; // Exact reinstall is a no-op, not a rotation.
+                if (expectedTransformEpoch == long.MaxValue || configuration.TransformEpoch != expectedTransformEpoch + 1 ||
+                    active is not null && configuration.KeyEpoch == active.Value.Configuration.KeyEpoch)
+                    throw new ResearchUnavailableException();
+                revision = checked(revision + 1);
+                Execute(c, t, ResearchStateSchema.TransformSql);
+                Execute(c, t, "INSERT INTO transform_configuration VALUES(1,$g,$k,$e,$p,$a,$r) ON CONFLICT(id) DO UPDATE SET generation=$g,key_base64=$k,key_epoch=$e,transform_epoch=$p,algorithm=$a,activation_revision=$r",
+                    ("$g", g.ToString("D")), ("$k", Convert.ToBase64String(configuration.CopyKey())),
+                    ("$e", configuration.KeyEpoch.ToString("D")), ("$p", configuration.TransformEpoch),
+                    ("$a", ResearchTransformConfiguration.Algorithm), ("$r", revision));
+                var data = ResearchStateRecovery.DataHash(c, t); var hash = ResearchStateRecovery.Chain(g, revision, prior.Hash, data);
+                Execute(c, t, "UPDATE metadata SET revision=$r WHERE id=1", ("$r", revision));
+                Execute(c, t, "INSERT INTO commits VALUES($r,$p,$d,$h)", ("$r", revision), ("$p", prior.Hash), ("$d", data), ("$h", hash));
+                Execute(c, t, "DELETE FROM commits WHERE revision < $floor", ("$floor", Math.Max(0, revision - 127)));
+                cancellationToken.ThrowIfCancellationRequested(); fault?.Invoke("transform-before-commit");
+                t.Commit(); committed = true;
+                fault?.Invoke("transform-after-commit");
+                UpdateWitness(new ResearchStateRecovery.Witness(g, revision, hash));
+                if (protection != ResearchIntegrity.Protected) throw new ResearchUnavailableException();
+                ownership.ProtectFiles();
+            }
+            catch (Exception e) when (e is SqliteException or IOException or UnauthorizedAccessException or JsonException or FormatException or ArgumentException or InvalidOperationException or ResearchUnavailableException)
+            {
+                if (committed) recovery = true;
+                throw new ResearchUnavailableException();
+            }
+            catch { if (committed) recovery = true; throw; }
+        }
+    }
+
+    public TResult UseTransformSnapshot<TResult>(ResearchInstrument instrument,
+        Func<ResearchCommittedState, ResearchTransformConfiguration, TResult> stageAndCommit)
+    {
+        ArgumentNullException.ThrowIfNull(stageAndCommit);
+        lock (sync)
+        {
+            if (recovery || publication || !Enum.IsDefined(instrument)) throw new ResearchUnavailableException();
+            ResearchCommittedState state; ResearchTransformConfiguration configuration;
+            try
+            {
+                using var c = Open(); using var t = c.BeginTransaction(); var (g, revision) = Metadata(c, t);
+                _ = ResearchStateRecovery.Validate(c, t, g, revision, watermark);
+                var active = ResearchStateRecovery.ReadTransform(c, t) ?? throw new ResearchUnavailableException();
+                configuration = active.Configuration;
+                state = Load(c, t, g, instrument, protection); t.Commit();
+            }
+            catch (Exception e) when (e is SqliteException or IOException or UnauthorizedAccessException or JsonException or FormatException or ArgumentException or InvalidOperationException or ResearchUnavailableException)
+            { throw new ResearchUnavailableException(); }
+            publication = true;
+            try { return stageAndCommit(state, configuration); }
+            finally { publication = false; }
+        }
+    }
+
     private void UpdateWitness(ResearchStateRecovery.Witness witness)
     {
         try { ResearchStateRecovery.WriteWitness(watermark, witness, fault);protection = ResearchIntegrity.Protected; }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { protection = ResearchIntegrity.Degraded; }
     }
-    public void Dispose() { lock (sync) { if (disposed) return;disposed = true;ownership.Dispose(); } }
+    public void Dispose() { lock (sync) { if (disposed) return;if (publication) throw new ResearchUnavailableException();disposed = true;ownership.Dispose(); } }
 }
