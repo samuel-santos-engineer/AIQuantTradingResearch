@@ -103,3 +103,7 @@ After merged #382/#383 and explicit owner eleven-path authorization, [implementa
 - [WP05 owner-copy authority, distinct from pending PR387 attachment](prompters/release-1.15-wp05-staging-only-integration-owner-copy.md)
 
 Seven documentation paths only; original dirty/untracked bytes preserved. Proposed11 WP03 and4 new WP04 source/test paths plus2 limited WP03 follow-up edits are not implementation grants. PR386/387 remain open, no merges; no source/test execution, Azure/provider/registry/deployment operations. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP03 simple functional implementation - 2026-10-24
+
+A01-A11 authorized source/test paths implemented against merged388 baseline b066124713f6a6f25ae7fdb0f57300ed4a83c853; actual schema/reader,168 executed cases, source hashes, full12-file protected owner inventory and unresolved obligations are appended to [existing foundation evidence](RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md). Exactly11 new C# files and2 existing append-only documentation paths. New untracked WP03 implementation prompt remains original/pending archive-path approval; no duplicate/archive overwrite. No startup/DI/provider credential/live request, WP04/05/06, Docker/Azure/registry/deployment change. Implementation review only; issues stay open and `PUBLIC_RUNTIME_VERIFIED=False`.
