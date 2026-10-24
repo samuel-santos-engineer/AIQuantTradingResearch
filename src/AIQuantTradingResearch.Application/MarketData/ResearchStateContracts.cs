@@ -135,3 +135,28 @@ public static class ResearchInputValidation
         }
     }
 }
+
+/// <summary>Private D5 tuple. Never serialize into a public response or diagnostic.</summary>
+public sealed class ResearchTransformConfiguration
+{
+    public const string Algorithm = "aiq-r115-transform-v1";
+    private readonly byte[] key;
+    [System.Text.Json.Serialization.JsonIgnore] public Guid Generation { get; }
+    [System.Text.Json.Serialization.JsonIgnore] public Guid KeyEpoch { get; }
+    [System.Text.Json.Serialization.JsonIgnore] public long TransformEpoch { get; }
+    public ResearchTransformConfiguration(Guid generation, byte[] key, Guid keyEpoch, long transformEpoch)
+    {
+        if (generation == Guid.Empty || key is null || key.Length != 32 || keyEpoch == Guid.Empty || transformEpoch < 1)
+            throw new ArgumentException("Invalid private transform configuration.");
+        Generation = generation; this.key = (byte[])key.Clone(); KeyEpoch = keyEpoch; TransformEpoch = transformEpoch;
+    }
+    public byte[] CopyKey() => (byte[])key.Clone();
+    public override string ToString() => "Private research transform configuration.";
+}
+
+/// <summary>Stage and commit a whitelisted response inside the callback; do not publish escaped snapshots later.</summary>
+public interface IResearchTransformStateReader
+{
+    TResult UseTransformSnapshot<TResult>(ResearchInstrument instrument,
+        Func<ResearchCommittedState, ResearchTransformConfiguration, TResult> stageAndCommit);
+}

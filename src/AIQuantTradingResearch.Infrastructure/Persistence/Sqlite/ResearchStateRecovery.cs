@@ -25,7 +25,31 @@ internal static class ResearchStateRecovery
             if (Hash(reader.GetString(2)) != reader.GetString(3)) throw new ResearchUnavailableException();
             rows.Add(JsonSerializer.Serialize(new[] { reader.GetInt64(0).ToString(System.Globalization.CultureInfo.InvariantCulture), reader.GetInt64(1).ToString(System.Globalization.CultureInfo.InvariantCulture), reader.GetString(2), reader.GetString(3) }));
         }
+        var transform = ReadTransform(connection, transaction);
+        if (transform is not null)
+            rows.Add(JsonSerializer.Serialize(new[] { "D5", transform.Value.Configuration.Generation.ToString("D"),
+                Convert.ToBase64String(transform.Value.Configuration.CopyKey()), transform.Value.Configuration.KeyEpoch.ToString("D"),
+                transform.Value.Configuration.TransformEpoch.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ResearchTransformConfiguration.Algorithm, transform.Value.Revision.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
         return Hash(string.Join("\n", rows));
+    }
+    internal static (ResearchTransformConfiguration Configuration, long Revision)? ReadTransform(SqliteConnection connection, SqliteTransaction transaction)
+    {
+        using var cmd = connection.CreateCommand(); cmd.Transaction = transaction;
+        cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='transform_configuration'";
+        if (Convert.ToInt64(cmd.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture) == 0) return null;
+        cmd.CommandText = "SELECT id,generation,key_base64,key_epoch,transform_epoch,algorithm,activation_revision FROM transform_configuration";
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+        if (r.GetInt64(0) != 1 || !Guid.TryParseExact(r.GetString(1), "D", out var generation) || r.GetString(1) != generation.ToString("D") ||
+            !Guid.TryParseExact(r.GetString(3), "D", out var epoch) || r.GetString(3) != epoch.ToString("D") ||
+            r.GetString(2).Length != 44 || r.GetString(5) != ResearchTransformConfiguration.Algorithm || r.GetInt64(6) < 1)
+            throw new ResearchUnavailableException();
+        var key = Convert.FromBase64String(r.GetString(2));
+        if (Convert.ToBase64String(key) != r.GetString(2)) throw new ResearchUnavailableException();
+        var result = (new ResearchTransformConfiguration(generation, key, epoch, r.GetInt64(4)), r.GetInt64(6));
+        if (r.Read()) throw new ResearchUnavailableException();
+        return result;
     }
     internal static Witness Validate(SqliteConnection connection, SqliteTransaction transaction, Guid generation, long revision, string watermark)
     {
@@ -42,14 +66,18 @@ internal static class ResearchStateRecovery
             if (commits.Count >= 128) throw new ResearchUnavailableException();
             commits.Add(index, hash);previous = hash;last = index;
         }
+        var transform = ReadTransform(connection, transaction);
+        if (transform is not null && (transform.Value.Configuration.Generation != generation || transform.Value.Revision > revision))
+            throw new ResearchUnavailableException();
         if (last != revision || previous is null) throw new ResearchUnavailableException();
         // Missing witness after any committed mutation is uncertain, never silently initialized.
-        if (!File.Exists(watermark)) { if (revision != 0) throw new ResearchUnavailableException(); }
+        if (!File.Exists(watermark)) { if (revision != 0 || transform is not null) throw new ResearchUnavailableException(); }
         else
         {
             if (new FileInfo(watermark).Length > 1024) throw new ResearchUnavailableException();
             var witness = JsonSerializer.Deserialize<Witness>(File.ReadAllBytes(watermark)) ?? throw new ResearchUnavailableException();
-            if (witness.Generation != generation || witness.Revision > revision || !commits.TryGetValue(witness.Revision, out var hash) || hash != witness.Hash)
+            if (witness.Generation != generation || witness.Revision > revision ||
+                transform is not null && witness.Revision < transform.Value.Revision || !commits.TryGetValue(witness.Revision, out var hash) || hash != witness.Hash)
                 throw new ResearchUnavailableException();
         }
         return new Witness(generation, revision, previous);
