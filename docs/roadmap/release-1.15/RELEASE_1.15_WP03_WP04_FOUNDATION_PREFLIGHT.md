@@ -206,3 +206,80 @@ Negative evidence: exact closing/grace tick boundaries; invalid/oversize/precisi
 Recommendation: owner review of the functioning WP03 subset, not WP03 acceptance or WP04 readiness. #369/#370/#371 stay open. Confirm missing recovery/epoch/calculated-state obligations and narrowly scope next authority before WP04/WP05 runtime integration. Leave implementation PR OPEN/UNMERGED. `PUBLIC_RUNTIME_VERIFIED=False`.
 
 Publication validation: exact13-path diff (A01-A11 plus2 authorized existing docs),11 source SHA-256 matches,28 relative Markdown targets/anchors, append-only historical documentation, independent UTF-8/no BOM/LF/final newline and git diff --check PASS. Original12 dirty/untracked file paths/sizes/hashes, complete status and HEAD preserved. Staged blobs independently scanned before commit. No generated build/log artifacts staged; no issue acceptance/merge/deployment.
+
+## WP04 private research - actual implementation evidence 2026-10-24
+
+### Verified baseline, authority and scope
+
+Current main/isolated starting HEAD bf4e744330986eac8234cda7a73ce866aa092242 (#389 squash), containing #388 b066124713f6a6f25ae7fdb0f57300ed4a83c853. #386 OPEN at1829b05cd627f53d556758d797d191af06807263; #387 OPEN atc59634534fb65c85785971fcdd11a23729b5e0b8; GitHub reported both bases4578f8645c9626f4daa7ec76923953e8892c93d6. Neither merged/cherry-picked. #370 remains OPEN.
+
+Four new B01-B04 and two existing A01/A05 files implement the explicitly authorized six-path scope. Only this preflight and existing manifest receive dated append-only documentation (8 changed files total). Automated review initially misread A01 scope; re-read explicit six-path authorization and direct retry succeeded. Automated review rejected documentation twice despite attachment line28; no writes occurred from those attempts. Owner then directly approved BOTH existing docs through the approval question, permitting these appends. No indirect workaround or new archive/evidence file. ResearchStateSchema.cs, ResearchStateRecovery.cs, ResearchIngestionService.cs and Worker Program bytes match baseline. No DI/provider/Python/Docker/project/dependency/lockfile or pending387 edits.
+
+### Actual calculations and atomic private reader
+
+PrivateResearchCalculator implements aiq-r115-research-v1 on validated raw private minute OHLCV: SMA20/EMA20, population Bollinger20x2, Wilder RSI14/ATR14, MACD12/26/9, normalized ATR/width/slope5, trend score and regimes. BigInteger scale10^12 with signed nearest-even, exact seeds/null positions, first-bar ATR, flat RSI50, signed MACD/negative bands and integer square-root midpoint rule. All13 calculated quantities are canonical FIXED12 STRINGS or null; integer checkpoint values canonical INTEGER strings. This avoids decimal/double significant-digit loss for allowed large normalized ratios. Raw WP03 candle decimals remain unchanged/exact. No D5-transformed inputs or custom numerical dependency.
+
+First valid classification401 uses exactly prior300 feature samples101..400 after100 warmup, never current. Type7 percentiles, strict comparisons and readiness->Volatile->Trending->Ranging->Undetermined precedence. Null score/trend/regime until eligible. SegmentStart at actual segment origin; TrendTransition first valid/change only, not regime-only; previous trend/current regime retained. Enclosing generation/instrument and segment/time/type identify events. Corrections rebuild affected segment/events without stale markers.
+
+Existing immutable committed reader now carries optional ResearchCalculation/Classification/events and ResearchCalculationCheckpoint. New explicit SqliteResearchStateStore(directory, calculateResearch:true) opts in; default raw mode remains compatible/Unavailable. ResearchReady reflects eligible last classification, separate from later freshness/transport. A raw-mode writer cannot overwrite a calculated instrument. No startup/DI/UI/HTTP activation.
+
+Existing instruments.payload and checkpoints.payload/checksum TEXT columns support calculated rows and a versioned recursive frame. Actual before/after sqlite_schema DDL identity test PASSES; no table/column/migration or schema-file change. A05 verifies expected generation/version and calculates/persists raw+calculated+checkpoint in the SAME existing writer transaction/hash chain. Existing outside watermark remains post-commit. Projection/checkpoint/before-commit fault tests roll back all state. No second writer/cache authority or caller-supplied projection injection.
+
+Calculated checkpoints persist every changed commit for exact version alignment; raw-only cadence5 preserved. Frame contains before-first-retained and after-last state: segment/index/time/previous close,20 closes, EMA12/20/26 seed sums/current values, Wilder gain/loss/ATR sums/means, MACD signal seed/state,6 EMA20 values, prior300 indexed/timestamped features and last trend. Fixed periods/index encode seeded flags/counts unambiguously. Canonical integers/frame shape/depth/rings/lineage/version/time validated; WP03 checksums/watermark remain recovery authority.
+
+Bounded projection considers <=2000 actual rows before pruning, retains latest1000, advances baseline across pruning without reseeding visible history. Nonflat restart matches uninterrupted projection bit-for-bit. Event survives while its own row remains even if predecessor pruned. Corrections/gaps honestly rewarm. Already-pruned raw history without seed evidence stays unavailable until a genuine new segment can rewarm. Private limits4MiB row payload/512KiB checkpoint wrapper/256KiB recurrence state; not new D4 wire limits or Azure resource claims. SQL+outside watermark not cross-file atomic; coordinated rollback limits unchanged.
+
+### Independent proof and actual results
+
+PrivateResearchReference was authored BEFORE production engine: full batch arrays/separate EMA/Wilder passes, independent quotient/remainder rounding and Newton root; no production helpers/output import. Compares ALL13 outputs and classifications for flat/rising/falling/mixed/intrabar/large/extreme-ratio families, plus literal seed/ATR/MACD/RSI and signed/sqrt midpoint anchors. ZERO integer tolerance. Covers400/401, no lookahead, strict equality, Volatile precedence, independently identified regime-only changes, stale/mixed/malformed checkpoints, gaps, pruning, cancellation. True SQLite integration separately covers commit/restart, nonflat checkpoint, corrections/invalidated readiness, duplicate/stale lineage, transactional faults, event retention and unchanged DDL.
+
+Existing ignored NuGet assets/props/targets reused for six required projects; NO restore/install. SDK10.0.103/VSTest18.0.1, Windows win-x64; executed version test runtime10.0.3/native SQLite3.53.3. No signing/policy change. Suite duration is not performance/F1 qualification.
+
+| Actual executed command | Final result |
+| --- | --- |
+| `dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-restore --filter FullyQualifiedName~PrivateResearchCalculatorTests --logger "console;verbosity=minimal"` |30 pass,0fail/0skip, exit0 |
+| `dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter "FullyQualifiedName~CommittedResearchProjectionTests&#124;FullyQualifiedName~SqliteResearchStateStoreTests&#124;FullyQualifiedName~ResearchStateRecoveryTests&#124;FullyQualifiedName~TwelveDataMinuteCandleSourceTests" --logger "console;verbosity=detailed"` |58 pass,0fail/0skip, exit0:11 new SQLite+47 WP03 |
+| `dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-build --no-restore --filter "FullyQualifiedName~ResearchIngestionServiceTests&#124;FullyQualifiedName~TechnicalIndicatorCalculatorTests&#124;FullyQualifiedName~WilderAverageTrueRangeCalculatorTests" --logger "console;verbosity=minimal"` |62 pass,0fail/0skip, exit0:13 WP03+49 numerical regressions |
+
+150 unique final cases:41 new WP04+109 regressions. #389168 remains historical; its other59 Worker/persistence/provider cases NOT rerun/counted here. Windows local only, not CI/Linux/browser/Azure/provider capability. HTTP uses offline fixtures only, zero live calls or credentials.
+
+Earlier evidence: initial24 Application/10 Infrastructure passed before representation review. Code review identified decimal precision risk; new output fields changed to exact strings with ratio/intrabar/shape cases. Expanded compilation failed when a test-helper replacement referenced family in midpoint test; fixed that authorized region. Expanded27 then final30 Application cases passed; final58 Infrastructure and62 regressions passed. No skip/xfail/deleted failing assertion. New CA1822/xUnit2031/CA1861 warnings corrected; remaining Infrastructure warnings belong to unchanged SyntheticSnapshotQualificationTests.cs (CA1711/SYSLIB1045/CA1861/CA2219).
+
+### Exact source/test paths and hashes
+
+| Authorized path | SHA-256 |
+| --- | --- |
+| `src/AIQuantTradingResearch.Application/MarketData/PrivateResearchCalculator.cs` | `1d4c090abcf390f14d4f9889ef98a9ef29475da1cafbae3047c2b22190c980b0` |
+| `tests/AIQuantTradingResearch.Application.Tests/PrivateResearchCalculatorTests.cs` | `175bf5177641ccf3234ea82be20fd9535b895909628f9b0ae7a7a7c4e16613c4` |
+| `tests/AIQuantTradingResearch.Application.Tests/PrivateResearchReference.cs` | `31441e5ec0f2224a3c20c2bada6d49455d2cda212235c452d528811eb5a8cc54` |
+| `tests/AIQuantTradingResearch.Infrastructure.Tests/CommittedResearchProjectionTests.cs` | `d1c8c0de0edba2e799fcdaeccc7e3e9edbc115e1983e903c0cf2abb6fc9a5ce3` |
+| `src/AIQuantTradingResearch.Application/MarketData/ResearchStateContracts.cs` | `b4e40269e7b3916cdda66ae47b16511d7e8d7ff3092be15eb7f401d02ecf4a0c` |
+| `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs` | `1b9160487e5f1fb0b2396f7c9f2e2cc568299ab07f9027b67635528783bfa487` |
+
+### Complete protected owner inventory - before = after
+
+Original branch feat/release-1.15-wp02-runtime-isolation at6f76697707e2363cc52820e0c805172815b92159; complete status and13 original sizes/hashes unchanged. Ten untracked Codex prompts. Previous8 archive dispositions unchanged in [provenance](RELEASE_1.15_WP03_WP04_PROMPT_PROVENANCE.md). New WP03 and current WP04 prompts remain ORIGINAL/PENDING new archive-path approval: proposed destinations `docs/roadmap/release-1.15/prompters/release-1.15-wp03-simple-implementation-codex.md` and `docs/roadmap/release-1.15/prompters/release-1.15-wp04-simple-research-implementation-codex.md`. No archives moved/deleted/duplicated/overwritten; original byte counts/hashes below. No personal host paths.
+
+| Original relative path | Bytes | SHA-256 |
+| --- | --- | --- |
+| `docs/roadmap/release-1.15/RELEASE_1.15_FILE_MANIFEST.md` | 5865 | `eaf83cb62981f8a37c84fbea68930c383bbddfe1b23ebdb7c782480d457bcbf3` |
+| `docs/roadmap/release-1.15/RELEASE_1.15_WP02_EVIDENCE.md` | 3858 | `1534c46fad27e485566fe7b3ba50dbefef4b4b20dd546dfb1fa96a14b2c2b579` |
+| `docs/roadmap/release-1.15/RELEASE_1.15_WP02_IMPLEMENTATION_PLAN.md` | 11665 | `cd21cdbcc176d206da8ccbc73876b63d9e8d27358fd5a463448285351f761dbc` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-codex-azure-existing-f1-plans-additional-apps.md` | 6991 | `fc1cae2eb9c524bd9659edd2477629f315a8bb5caa6cb585beea32d0af215184` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-codex-create-two-existing-plan-f1-apps.md` | 7888 | `5b6a452d1c82e155e3df129f8719cba5ac1b872af092753e319b0d2c558e0f71` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-codex-docker-dual-process-runtime-and-isolation.md` | 10144 | `a670a7e32627c13dc45cc8c17a386af39e94ce33dbe4ef6f505760ef22b18548` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md` | 6619 | `35097506ecd266af3c4f543c7936b1375224925e05a9c5084ae45cdf63b3ffb0` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-pr384-merge-and-next-preflight-codex.md` | 6183 | `32249579c08b2d49a81edfe09640ad2b8e49a726c4cf06e73070a05f13b42fc8` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp02-simplified-lab-hardening-codex.md` | 6609 | `f28dd004399d5649c1822c6e8ffb4bf9e85038b3320c1c800ea2c0b2d01608b0` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp03-simple-implementation-codex.md` | 7920 | `08fd7d1fadd5e38e4d413c5e6b972d54ff3e6801fb67668e92b750e2625c7a7c` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp03-wp04-foundation-codex.md` | 7870 | `9466670fa4c172e0d1481525956df823c30156d5db8b1e3247f96f4533087c43` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp04-simple-research-implementation-codex.md` | 8128 | `f3fff48a3254c2836c3d2b9acd4d895aa9328fda82df105d44a14ef15d9e0b18` |
+| `docs/roadmap/release-1.15/prompters/release-1.15-wp05-staging-only-integration-codex.md` | 10602 | `e08e63e06d64ec9fcb061c8781d8e238b5ba26124740a16abeaef49dbf3936e0` |
+
+### Remaining obligations / review disposition
+
+Owner review required, not automatic WP03/WP04 acceptance or issue closure. No schema amendment needed for current existing-column binding; later storage changes need scoped review. Missing historical seed evidence remains unavailable. WP05 must reconcile actual fixed12-string indicators/classifications/events and immutable reader against approved #38714-path design; NEVER serialize private checkpoints/raw values. Durable D5 config/transformEpoch activation still WP03/WP05 work; no transform factor or service-key rotation here.
+
+Runtime composition/DI, provider capability/volume entitlement/quotas/restart-wide accounting, Linux private files/processes/mount/WAL/fsync/exclusion, shared F1 and final image/browser qualification remain separate. Local lock is not cross-App-Service fencing. No production/staging Azure/URLs/settings/secrets, live provider, registry/Docker/promotion/deployment operation. Future publishing/assessment STAGING ONLY under separate WP07 authority. Preserve two non-root images, one service key and accepted synchronous HTTPS/native-DNS limitation. Leave implementation PR OPEN/UNMERGED; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+WP04 publication validation: exact8-path scope (6 source/test plus2 directly approved existing docs),6 source hashes verified,30 relative Markdown links/anchors, append-only historical docs, UTF-8/no BOM/LF/final newline and git diff --check PASS. Original status/HEAD and13 dirty/untracked paths/sizes/hashes preserved. Staged blobs independently scanned; no generated artifacts staged.

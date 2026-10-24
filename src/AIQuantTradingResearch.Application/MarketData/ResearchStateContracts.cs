@@ -32,9 +32,39 @@ public sealed record CompletedResearchCandle
     private static bool Exact(decimal value) => decimal.Round(value, 12) == value;
 }
 
-public sealed record ResearchStoredCandle(CompletedResearchCandle Candle, Guid Segment, long SegmentIndex);
+public sealed record ResearchStoredCandle(CompletedResearchCandle Candle, Guid Segment, long SegmentIndex,
+    ResearchCalculation? Calculation = null);
+public sealed record ResearchIndicators(string? Sma20, string? Ema20, string? BollingerLower,
+    string? BollingerMiddle, string? BollingerUpper, string? Rsi14, string? Macd,
+    string? MacdSignal, string? MacdHistogram, string? Atr14, string? NormalizedAtr14,
+    string? BollingerWidth, string? EmaSlope5);
+public sealed record ResearchClassification(bool Valid, int? TrendScore, string? Trend, string? Regime);
+public sealed record ResearchTransitionEvent(DateTimeOffset Time, Guid Segment, string Type,
+    string? PreviousTrend, string? Trend, string? Regime);
+public sealed record ResearchCalculation(ResearchIndicators Indicators, ResearchClassification Classification,
+    ResearchTransitionEvent? SegmentStart, ResearchTransitionEvent? TrendTransition);
+/// <summary>Private canonical integer state before and after the retained window.</summary>
+public sealed record ResearchCalculationCheckpoint(Guid Generation, ResearchInstrument Instrument, long Version,
+    DateTimeOffset FirstRetainedTime, DateTimeOffset LastTime, string State)
+{
+    public string Algorithm { get; } = "aiq-r115-research-v1";
+}
+public sealed class ResearchCalculatedProjection
+{
+    public Guid Generation { get; }
+    public ResearchInstrument Instrument { get; }
+    public long Version { get; }
+    public IReadOnlyList<ResearchStoredCandle> Candles { get; }
+    public ResearchCalculationCheckpoint Checkpoint { get; }
+    public ResearchCalculatedProjection(Guid generation, ResearchInstrument instrument, long version,
+        IEnumerable<ResearchStoredCandle> candles, ResearchCalculationCheckpoint checkpoint)
+    {
+        Generation = generation; Instrument = instrument; Version = version;
+        Candles = Array.AsReadOnly(candles.ToArray()); Checkpoint = checkpoint;
+    }
+}
 
-/// <summary>An immutable, coherent SQLite commit. Calculated values are not implemented by WP03.</summary>
+/// <summary>Immutable private commit, optionally containing same-transaction D3 calculations.</summary>
 public sealed class ResearchCommittedState
 {
     public Guid Generation { get; }
@@ -44,15 +74,17 @@ public sealed class ResearchCommittedState
     public DateTimeOffset? LastCommitAt { get; }
     public DateTimeOffset? LastSuccessfulProviderPollAt { get; }
     public ResearchIntegrity Integrity { get; }
-    public bool ResearchReady { get; }
-    public string ResearchStatus => Integrity == ResearchIntegrity.Recovery ? "Recovering" : "Unavailable";
+    public ResearchCalculationCheckpoint? Checkpoint { get; }
+    public bool ResearchReady => Integrity != ResearchIntegrity.Recovery && Candles.Count > 0 && Candles[^1].Calculation?.Classification.Valid == true;
+    public string ResearchStatus => Integrity == ResearchIntegrity.Recovery ? "Recovering" : ResearchReady ? "Ready" :
+        Candles.Count > 0 && Candles[^1].Calculation is not null ? "Recalibrating" : "Unavailable";
     public ResearchCommittedState(Guid generation, ResearchInstrument instrument, long version,
         IEnumerable<ResearchStoredCandle> candles, DateTimeOffset? lastCommitAt,
-        DateTimeOffset? lastSuccessfulProviderPollAt, ResearchIntegrity integrity)
+        DateTimeOffset? lastSuccessfulProviderPollAt, ResearchIntegrity integrity, ResearchCalculationCheckpoint? checkpoint = null)
     {
         Generation = generation; Instrument = instrument; Version = version;
         Candles = new ReadOnlyCollection<ResearchStoredCandle>(candles.ToArray());
-        LastCommitAt = lastCommitAt; LastSuccessfulProviderPollAt = lastSuccessfulProviderPollAt; Integrity = integrity;
+        LastCommitAt = lastCommitAt; LastSuccessfulProviderPollAt = lastSuccessfulProviderPollAt; Integrity = integrity; Checkpoint = checkpoint;
     }
 }
 

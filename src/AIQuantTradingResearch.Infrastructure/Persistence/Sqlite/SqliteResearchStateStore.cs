@@ -13,13 +13,16 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
     private readonly string database;
     private readonly string watermark;
     private readonly Action<string>? fault;
+    private readonly bool calculateResearch;
     private bool recovery;
     private bool disposed;
     private ResearchIntegrity protection;
-    public SqliteResearchStateStore(string privateDirectory) : this(privateDirectory, null) { }
-    internal SqliteResearchStateStore(string privateDirectory, Action<string>? fault)
+    public SqliteResearchStateStore(string privateDirectory) : this(privateDirectory, false, null) { }
+    public SqliteResearchStateStore(string privateDirectory, bool calculateResearch) : this(privateDirectory, calculateResearch, null) { }
+    internal SqliteResearchStateStore(string privateDirectory, Action<string>? fault) : this(privateDirectory, false, fault) { }
+    internal SqliteResearchStateStore(string privateDirectory, bool calculateResearch, Action<string>? fault)
     {
-        this.fault = fault;
+        this.fault = fault; this.calculateResearch = calculateResearch;
         try { ownership = new ResearchWriterOwnership(privateDirectory); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new ResearchUnavailableException(); }
         database = Path.Combine(ownership.DirectoryPath, "research.sqlite");
@@ -100,8 +103,10 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
             count++;
             if (reader.GetInt64(0) < 0 || reader.GetInt64(0) > reader.GetInt64(1) || reader.GetInt64(1) - reader.GetInt64(0) > 4) throw new ResearchUnavailableException();
             using var checkpoint = JsonDocument.Parse(reader.GetString(2));
+            var algorithm = checkpoint.RootElement.GetProperty("Algorithm").GetString();
             if (checkpoint.RootElement.GetProperty("Version").GetInt64() != reader.GetInt64(0) ||
-                checkpoint.RootElement.GetProperty("Algorithm").GetString() != "wp03-raw-unavailable-v1") throw new ResearchUnavailableException();
+                algorithm is not ("wp03-raw-unavailable-v1" or PrivateResearchCalculator.Algorithm) ||
+                algorithm == PrivateResearchCalculator.Algorithm && reader.GetInt64(0) != reader.GetInt64(1)) throw new ResearchUnavailableException();
         }
         if (count != 2) throw new ResearchUnavailableException();
     }
@@ -110,7 +115,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
     {
         using var cmd = c.CreateCommand();cmd.Transaction = t;cmd.CommandText = "SELECT version,last_commit,last_poll,payload FROM instruments WHERE instrument=$i";cmd.Parameters.AddWithValue("$i", (int)instrument);
         using var r = cmd.ExecuteReader();if (!r.Read()) throw new ResearchUnavailableException();
-        var payload = r.GetString(3);if (payload.Length > 1_048_576) throw new ResearchUnavailableException();
+        var payload = r.GetString(3);if (payload.Length > 4_194_304) throw new ResearchUnavailableException();
         var rows = JsonSerializer.Deserialize<ResearchStoredCandle[]>(payload) ?? throw new ResearchUnavailableException();
         var version = r.GetInt64(0);var commit = Time(r, 1);var poll = Time(r, 2);
         if (rows.Length > 1000 || version < 0 || (rows.Length > 0 && (version == 0 || commit is null || poll is null))) throw new ResearchUnavailableException();
@@ -124,7 +129,20 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
                     (row.Segment != previous.Segment && row.SegmentIndex != 1)))) throw new ResearchUnavailableException();
             previous = row;
         }
-        return new ResearchCommittedState(generation, instrument, version, rows, commit, poll, integrity);
+        using var cpCommand = c.CreateCommand();cpCommand.Transaction = t;
+        cpCommand.CommandText = "SELECT payload FROM checkpoints WHERE instrument=$i";cpCommand.Parameters.AddWithValue("$i", (int)instrument);
+        var cpText = cpCommand.ExecuteScalar() as string ?? throw new ResearchUnavailableException();
+        if (cpText.Length > 524288) throw new ResearchUnavailableException();
+        using var cpDocument = JsonDocument.Parse(cpText);
+        ResearchCalculationCheckpoint? checkpoint = null;
+        if (cpDocument.RootElement.GetProperty("Algorithm").GetString() == PrivateResearchCalculator.Algorithm)
+        {
+            checkpoint = JsonSerializer.Deserialize<ResearchCalculationCheckpoint>(cpText) ?? throw new ResearchUnavailableException();
+            if (rows.Length == 0) throw new ResearchUnavailableException();
+            PrivateResearchCalculator.ValidateCheckpoint(checkpoint, generation, instrument, version, rows[0].Candle.OpenTimeUtc, rows[^1].Candle.OpenTimeUtc);
+        }
+        if (checkpoint is null && rows.Any(x => x.Calculation is not null)) throw new ResearchUnavailableException();
+        return new ResearchCommittedState(generation, instrument, version, rows, commit, poll, integrity, checkpoint);
     }
     public ResearchCommittedState Read(ResearchInstrument instrument)
     {
@@ -158,6 +176,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
             try { prior = ResearchStateRecovery.Validate(c, t, g, revision, watermark); }
             catch { recovery = true;throw new ResearchUnavailableException(); }
             var state = Load(c, t, g, request.Instrument, protection);
+            if (state.Checkpoint is not null && !calculateResearch) throw new ResearchUnavailableException();
             if (g != expectedGeneration || state.Version != expectedVersion || request.ObservedAtUtc < state.LastSuccessfulProviderPollAt) throw new ResearchUnavailableException();
             if (state.Candles.Count > 0 && batch.Candles.Any(x => x.OpenTimeUtc < state.Candles[0].Candle.OpenTimeUtc)) throw new ResearchUnavailableException();
             var rows = state.Candles.ToDictionary(x => x.Candle.OpenTimeUtc);DateTimeOffset? reset = null;var changed = false;
@@ -168,7 +187,8 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
                     reset = reset is null || candle.OpenTimeUtc < reset ? candle.OpenTimeUtc : reset;
                 rows[candle.OpenTimeUtc] = new ResearchStoredCandle(candle, Guid.Empty, 0);changed = true;
             }
-            var retained = rows.Values.OrderBy(x => x.Candle.OpenTimeUtc).TakeLast(1000).ToArray();ResearchStoredCandle? previous = null;
+            var ordered = rows.Values.OrderBy(x => x.Candle.OpenTimeUtc);
+            var retained = (calculateResearch ? ordered : ordered.TakeLast(1000)).ToArray();ResearchStoredCandle? previous = null;
             var resetSegment = Guid.Empty;
             for (var index = 0; index < retained.Length; index++)
             {
@@ -186,13 +206,24 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
                 previous = row;
             }
             var version = changed ? checked(state.Version + 1) : state.Version;
+            ResearchCalculationCheckpoint? projectedCheckpoint = state.Checkpoint;
+            if (calculateResearch && changed)
+            {
+                var candidate = new ResearchCommittedState(g, request.Instrument, version, retained, request.ObservedAtUtc, request.ObservedAtUtc, protection);
+                var projection = PrivateResearchCalculator.Project(candidate, state.Checkpoint, cancellationToken);
+                retained = projection.Candles.ToArray();projectedCheckpoint = projection.Checkpoint;
+                fault?.Invoke("projection");
+            }
             var payload = JsonSerializer.Serialize(retained);
+            if (payload.Length > 4_194_304) throw new ResearchUnavailableException();
             Execute(c, t, "UPDATE instruments SET version=$v,last_commit=$c,last_poll=$p,payload=$d WHERE instrument=$i",
                 ("$v", version), ("$c", changed ? request.ObservedAtUtc.ToString("O", CultureInfo.InvariantCulture) : state.LastCommitAt?.ToString("O", CultureInfo.InvariantCulture)),
                 ("$p", request.ObservedAtUtc.ToString("O", CultureInfo.InvariantCulture)), ("$d", payload), ("$i", (int)request.Instrument));
-            if (changed && version % 5 == 0)
+            if (changed && (calculateResearch || version % 5 == 0))
             {
-                fault?.Invoke("checkpoint");var cp = Checkpoint(version, payload);
+                fault?.Invoke("checkpoint");
+                var cp = projectedCheckpoint is null ? Checkpoint(version, payload) : JsonSerializer.Serialize(projectedCheckpoint);
+                if (cp.Length > 524288) throw new ResearchUnavailableException();
                 Execute(c, t, "UPDATE checkpoints SET version=$v,payload=$p,checksum=$h WHERE instrument=$i", ("$v", version), ("$p", cp), ("$h", ResearchStateRecovery.Hash(cp)), ("$i", (int)request.Instrument));
             }
             cancellationToken.ThrowIfCancellationRequested();fault?.Invoke("before-commit");
@@ -210,7 +241,7 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
             UpdateWitness(new ResearchStateRecovery.Witness(g, revision, hash));
             try { ownership.ProtectFiles(); } catch { recovery = true;throw new ResearchUnavailableException(); }
             return new ResearchCommittedState(g, request.Instrument, version, retained,
-                changed ? request.ObservedAtUtc : state.LastCommitAt, request.ObservedAtUtc, protection);
+                changed ? request.ObservedAtUtc : state.LastCommitAt, request.ObservedAtUtc, protection, projectedCheckpoint);
         }
     }
     private void UpdateWitness(ResearchStateRecovery.Witness witness)
