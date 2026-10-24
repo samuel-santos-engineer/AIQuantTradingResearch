@@ -69,6 +69,10 @@ Supersedes future-workload-headroom gate for empty shells only; does not amend W
 
 Follow-up outcome: exactly two empty Linux sites created on the exact existing F1 plans after effective policy/permission/name/Provider validation; original app projected properties preserved, plan membership1 to2. See dated evidence for exact IDs and returned null provisioningState. No runtime/deployment/governance acceptance. `PUBLIC_RUNTIME_VERIFIED=False`.
 
+## Dual-container Release 1.15 governance amendment — 2026-10-23
+
+Owner-selected architecture update: two single-process Linux Docker images and two Azure Web Apps per environment; the existing regional F1 App Service Plans are reused. The previous one-image PID1 and loopback-in-container WP02 model is superseded. Existing governance and WP01 D1-B/roadmap documents are amended without touching D3/D4/D5 numerical/schema/transform bodies or historical test evidence. The empty research apps and their exact resource IDs are recorded in merged PR #381. No source/build/deploy/provider operations, licensing approval gate or release-gate waiver. `PUBLIC_RUNTIME_VERIFIED=False`.
+
 ## WP02 D1-B dual-Docker preflight - 2026-10-23
 
 - [Executed dual-Docker/API-key preflight authority](prompters/release-1.15-wp02-dual-docker-api-key-codex-prompt.md)

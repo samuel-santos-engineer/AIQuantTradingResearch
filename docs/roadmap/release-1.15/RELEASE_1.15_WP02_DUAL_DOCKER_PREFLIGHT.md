@@ -65,3 +65,7 @@ Run-only existing paths (no edits): `tests/feasibility/release_1_15/runtime/test
 ## Current exit
 
 Planning/reconciliation only. No application/test source written, Docker builds, API-key/TLS fixtures, resource measurements or Azure calls executed. #382 unmerged means source implementation BLOCKED; later exact-path approval is also required. No native C or Bash dual-role supervisor retained in the proposal. D3/D4/D5 meanings remain unchanged; no acceptance rows marked passed. #368 stays OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Owner continuation and reconciliation - 2026-10-24
+
+PR #382 merged as49966b38e1228d4eb336cb1676d4ac3e41c716a4; D1-B governance is now effective. Owner explicitly authorizes merge of this documentation plan and its eleven exact implementation paths in a separate implementation PR. Earlier unmerged/approval-pending labels are historical preflight observations, superseded by this note. Manifest reconciliation preserves both merged governance/Azure entries and this plan's index. Review confirms fixture-only scope, unchanged D3/D4/D5 semantics, no new dependency or production API authority. No tests/images/security behaviors are claimed by plan acceptance. Rotation/key-format candidates remain isolated fixture choices for WP05 review. `PUBLIC_RUNTIME_VERIFIED=False`; no deployment/merge of the future implementation PR is authorized.

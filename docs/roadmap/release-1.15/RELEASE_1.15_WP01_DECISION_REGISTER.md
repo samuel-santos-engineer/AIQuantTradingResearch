@@ -120,3 +120,9 @@ The [revised proposal](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md) ind
 - [ ] D5: accept/amend/reject minimum-positive proof, unchanged volume and generation/version/displayDate/transformEpoch transitions. Explicit rotation advances epoch even if factor coincides; already committed replies may arrive late. WP03 durability and WP05 independent HMAC/race vectors are still unproven.
 
 D1/D2/D6/D7 remain PROVISIONAL; D3/D4/D5 remain OPEN. WP01 BLOCKED; #367 OPEN; WP02 unstarted; `PUBLIC_RUNTIME_VERIFIED=False`. Owner review concerns proposed contract choices, not a demand to complete downstream production qualification inside WP01.
+
+## Owner D1-B runtime amendment — 2026-10-23
+
+**Supersedes D1-A runtime topology for Release 1.15.** Owner-selected D1-B: research C# and public Streamlit each run one non-root application in separate immutable Linux/amd64 Docker images and Azure F1 Web Apps; both apps per environment share the existing regional F1 plan. No root PID1 multiprocess supervisor, no special role UID-switching capabilities, no local-loopback cross-service route and no in-container independent role restart requirement. Preserve the previously accepted D3-A, D4-A wire semantics and D5-A decisions; D4 transport is modified to authenticated HTTPS service-to-service with direct unauthorized request rejection, subject to WP02/WP05 specification and WP07 qualification. D2 multi-incarnation writer exclusivity and storage durability remain independently qualified. Do not infer runtime acceptance from empty App Service creation. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+The D1 decision is therefore **owner-amended as D1-B, implementation/qualification pending**. Historical status text above was the 2026-10-22 pre-owner-review assessment, not a revocation of this new owner decision. No change is asserted to other D3/D4/D5 schema/numeric/transform contracts.
