@@ -1,0 +1,99 @@
+# Release 1.15 WP05 - Transformed research API integration preflight
+
+Date: 2026-10-24. Planning/evidence only; owner review required. Issue #371.
+
+## Authority and verified baseline
+
+[Executed continuation](prompters/release-1.15-wp05-staging-only-integration-codex.md) controls this task. No source edits, product tests, Docker execution, Azure commands, settings/secrets access, provider calls, image publication or deployment. Production is strictly excluded, including live read-only inspection. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+The isolated branch starts at main `4578f8645c9626f4daa7ec76923953e8892c93d6`, verified merge of #385. Live GitHub read on this date: #386 OPEN/UNMERGED, expected head `1829b05cd627f53d556758d797d191af06807263`, base equal to that main. Do not merge it or assume its source is effective on main. #384 fixture foundation was merged at `d237e268fc0cd61cad9c8a32053f57095351f78c`. Before this PR, #386 was the only open PR returned; its fixture/runner and three WP02 documentation paths do not overlap the proposed new WP05 source. Recheck ownership before implementation.
+
+Read-only evidence commands: git status/branch/rev-parse; fetch origin main; gh pr view385 and386, gh issue view368 through373 (each queried separately), gh pr list --state open; rg --files and targeted rg/Get-Content for governance, roadmap, projects, source and fixtures. Read LF, Docker-first, historical-interface and synthetic-scope governance; execution plan, manifest, WP01 register/foundational contracts, WP02 evidence and existing WP05 prompt. D1-B appended supersession controls historical single-image/loopback wording. Current owner single-key/synchronous-DNS decisions supersede #385's unimplemented complex proposals. No historical evidence is rewritten.
+
+| Predecessor | Observed evidence | Consequence |
+| --- | --- | --- |
+| WP01 / D1-B | [Decision register](RELEASE_1.15_WP01_DECISION_REGISTER.md), [foundational contracts](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md), merged #382 | Two images/apps, authenticated HTTPS. Amendment preserves accepted D3-A/D4-A/D5-A; historical OPEN/proposal text is not a new revocation. |
+| WP02 #368 | OPEN; merged #384/#385, pending #386 | Foundation is fixture-only. Main still has previous-key overlap; future integration uses one active key under current authority. Confirm disposition before source integration. |
+| WP03 #369 | OPEN; no accepted Release1.15 backend identified in main or open PR inventory | BLOCKER: accepted coherent committed 1m OHLCV/lineage/recovery/transform-config reader missing. Existing observation SQLite schema holds target/time/price, not complete D4 research state. |
+| WP04 #370 | OPEN; no accepted Release1.15 calculated-state implementation identified | BLOCKER: accepted segment/replay/classification/transition state missing. Older calculators are not evidence of this backend. |
+| WP06 #372 / WP07 #373 | Both OPEN | Browser/UI composition and Azure qualification remain separate owners. |
+
+Search for research/snapshot, aiq-r115, transformEpoch and knownIdentity across src/presentation/tests found the snapshot route only in WP02 fixtures/tests. Fixture Program.cs accepts empty JSON then deliberate503; fixture client fetches /fixture/status. Neither is D4 production. Existing HistoricalMarketDataContracts.cs supports1h/4h/1d, not required1m. Existing public_preview_app.py serves the Release1.14 application. No fake backend, synthetic production history or fixture503 substitution is proposed.
+
+The original dirty checkout was snapshotted (status/HEAD and SHA-256 of every dirty/untracked file), left on its original branch and not reset/cleaned/stashed. Temporary-directory worktree creation initially failed with permission denied; a fresh isolated checkout under .codex succeeded but appeared as a task-owned untracked directory. It was then relocated to a fresh task-owned temporary directory, restoring the original status exactly. Restricted-directory access required escalation. These tooling failures are not application test failures.
+
+## Literal-path proposal - NOT implementation authority
+
+No existing dedicated WP05 plan/evidence document was found; an older generic WP05 prompt is preserved. This PR changes exactly this plan, the new executed-authority archive and an append-only existing manifest index. All proposed source paths below were checked for existing/new status. No wildcard grants writes.
+
+| ID | Exact path | State / owner / purpose |
+| --- | --- | --- |
+| P01 | `src/AIQuantTradingResearch.Application/MarketData/ResearchSnapshotContracts.cs` | New, WP05: immutable D4 DTOs/coherent read boundary, reconciled with predecessor types; no storage schema. |
+| P02 | `src/AIQuantTradingResearch.Application/MarketData/ResearchSnapshotTransformer.cs` | New, WP05: exact D5 projection, no research recomputation. |
+| P03 | `src/AIQuantTradingResearch.Worker/ResearchSnapshotEndpoint.cs` | New, WP05: authenticated read-only ASP.NET endpoint, bounded stream parsing and staged responses. |
+| P04 | `src/AIQuantTradingResearch.Worker/ResearchSnapshotSource.cs` | New, WP05 adapter: blocked on accepted WP03/WP04 reader signatures; no SQL writer/recovery implementation. Amend path if predecessor integration requires another. |
+| P05 | `src/AIQuantTradingResearch.Worker/Program.cs` | Existing: limited explicit research-host mode/composition, default preserved; real binding blocked on predecessors. |
+| P06 | `python/presentation/research_snapshot_client.py` | New, WP05: server-side synchronous HTTPS, strict D4 validation and atomic state; no rendering/calculation. |
+| P07 | `python/presentation/test_research_snapshot_client.py` | New, WP05: transport/parser/state negatives and instrument/session separation. |
+| P08 | `tests/AIQuantTradingResearch.Application.Tests/ResearchSnapshotTransformerTests.cs` | New, WP05: independent D5/numeric/race vectors. |
+| P09 | `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs` | New, WP05: auth/bounds/coherent-reader doubles and real endpoint conformance. |
+| P10 | `tests/AIQuantTradingResearch.Infrastructure.Tests/PythonIntegrationFixtures/research_snapshot_reference.py` | New, WP05: independently authored CPython D5 reference, not copied production output. Existing project copies Python fixtures from this location. |
+| P11 | `tests/runtime/release_1_15/research_snapshot_contract_vectors.json` | New, WP05: shared bounded wire corpus, test-only data, no credentials/private history. |
+| P12 | `container/release_1_15/research-api.Dockerfile` | New, WP05/WP02 review: actual research mode packaging after predecessor binding, distinct from historical fixture image. |
+| P13 | `container/release_1_15/snapshot-client.Dockerfile` | New, WP05/WP02 review: offline client conformance driver, NOT final Streamlit UI image. Existing pinned assets, no pip install. |
+| P14 | `eng/docker/release-1.15/Invoke-Wp05SnapshotQualification.ps1` | New, WP05: bounded local paired-Docker driver/evidence/ownership cleanup; Windows PowerShell5.1.26100.9444-compatible, UTF-8/LF. |
+
+Future documentation: existing `docs/roadmap/release-1.15/RELEASE_1.15_WP05_INTEGRATION_PREFLIGHT.md`, existing `docs/roadmap/release-1.15/RELEASE_1.15_FILE_MANIFEST.md`, proposed new `docs/roadmap/release-1.15/RELEASE_1.15_WP05_INTEGRATION_EVIDENCE.md` (not created now). Executed authority archive is provenance, not a source-edit grant.
+
+Smallest sequence: separately approve P01/P02/P06-P11 for deterministic contract-only work with explicit reader doubles; it cannot satisfy integration acceptance. After WP03/WP04 acceptance and exact reader reconciliation, approve P03-P05/P12-P14 for actual committed-state C# to Python vertical slice. Missing state returns truthful error, never fabricated successful history. Extra project/DI/schema/package/adapter paths require a literal-path amendment before mutation. WP06 separately owns existing chart/Streamlit composition and final UI entrypoint; client-driver evidence does not replace it.
+
+## Decision and test matrix
+
+All tests below are proposed, NOT RUN by this documentation task.
+
+| Component / source of truth | Paths | Required behavior / deterministic offline evidence | Owner / blocker |
+| --- | --- | --- | --- |
+| Committed state: WP03/WP04, D3 | P01/P04/P05/P09 | One coherent committed snapshot plus active durable transform tuple; max1000 actual completed1m rows. Doubles cover correction/rollback/empty/recovery; eventual actual storage/calculated-state integration is required, no partial reads. | WP03 reader/lineage and WP04 calculations missing; BLOCKED |
+| D5 transform | P02/P08/P10/P11 | Independent CPython expected HMAC bytes/digest/factor/output versus C#; both instruments/days, signed midpoint ties, negative price indicators, extrema, midnight/config races, unchanged volume/RSI/dimensionless quantities. No private factor/key/keyEpoch emitted. | WP05; WP03 owns durable config and public transformEpoch |
+| Single-key auth / TLS | P03/P05-P07/P09/P12-P14 | Authenticate before data/status; generic liveness only anonymous. Length-safe constant-time comparison. Missing/wrong/multiple/malformed keys/config, raw/admin/unknown routes, wrong CA/host, redirects/plaintext/proxy rejection. Dummy-secret/raw canaries absent from responses/logs/images. | WP05/WP02; HTTPS is not private networking, Azure ingress unverified |
+| D4 identity / atomic state | P01/P03/P06/P07/P09-P11 | generation/version/displayDate/transformEpoch, current requestEpoch, instrument/schema/algorithm context. Exact unchanged forbids all six collections even null. New generation/date/epoch forces full. Same identity changed data, decreasing counters, late/wrong-instrument replies reject. Compatible bounded unknown optional response fields accepted. | WP05; no session connectivity/viewport in shared immutable cache |
+| Strict stream bounds | P03/P06/P07/P09/P11 | Request4096 during reading; success4194304/error4096; depth8,32members,64-byte keys,256-byte strings,64-byte numeric lexemes,250000tokens and D4 array caps. Boundary/+1, chunk splits/no length, invalid UTF-8/surrogates/duplicates/trailing JSON/encoding, NaN/numeric decimals/bool coercion/null/order/alignment/gaps. No truncation or unbounded allocation before checks. | WP05; parser/memory adequacy not yet measured |
+| Empty/status/outage | P03/P04/P06/P07/P09/P11 | Verified initialized version0 only; no seed. Empty-poll versus commit timestamps, partial startup history,120s freshness edge, independent status dimensions. Timeout/error/non200 positive body preserves prior complete arrays/last-sync; disconnected state truthful; later normal refresh recovers. | WP05 consumes actual WP03 truth |
+| Container isolation/resource | P12-P14 | Separate non-root single-principal-process linux/amd64 images; research-only storage/keys; UID/process/image/environment canaries, private-volume denial, local TLS, independent shutdown/restart, CPU/memory samples and ownership cleanup. Bounded loopback-only ports/network. | WP02/WP05 local screening; final UI/browser/shared-F1 WP06/WP07 |
+
+D4 source: [canonical contract](RELEASE_1.15_WP01_FOUNDATIONAL_CONTRACT_PROPOSALS.md#d4-proposed-canonical-wire-contract). POST /v1/research/snapshot, schema1.0 emitted/compatible1.m accepted, algorithms aiq-r115-research-v1 and aiq-r115-transform-v1, intervalSeconds60. Exact six full collections: candles, analytics, classifications, events, researchUnavailableIntervals, marketDataGapIntervals. Counters canonical decimal strings <=int64max, transformEpoch>=1; quantities fixed12-place strings. Preserve all collection/event/interval/segment/status/number-lexeme and field-specific ceilings in the full contract. Unknown request fields reject. Full complete arrays are staged and atomically accepted; unchanged status must agree with cached data. No raw prices/secret/internal recovery state crosses the boundary.
+
+D5 retains32-byte private key and private keyEpochUUID, distinct from service API key. HMAC message is algorithm LF displayDate LF privateKeyEpoch LF. Interpret SHA256 digest D unsigned big-endian; S=10^12; F=900000000000+floor(D*200000000001/2^256), output R(x*F/S), signed ties-to-even. Shared daily factor across instruments; price-valued OHLC/analytics transformed after private calculation, volume/RSI/dimensionless unchanged. Public positive durable transformEpoch is not private keyEpoch. Config/date change before serialization commit discards staged output; midnight and same-day epoch change force full. Removing service-key rotation machinery does not remove D5 identity/recovery tests.
+
+Standard synchronous HTTPS with modest configurable timeout is accepted. Native DNS/compound connect may exceed the budget; document rather than introduce resolver workers/subprocesses/cancellation frameworks/new gates. Remaining monotonic phase budgets and rejection of late publication do not prove hard DNS cancellation. No immediate retry loop; normal reconciliation cadence, one in-flight/coalesced tick per instrument/session; viewport never fetches. WP06 owns scheduler/render integration.
+
+## Dependency and test impact
+
+Existing Worker project references Application/Infrastructure and Microsoft.AspNetCore.App; existing Infrastructure test project references Worker and copies PythonIntegrationFixtures/*.py. Default SDK C# globs avoid new project/solution edits for these paths. Standard net10 cryptography/numerics and Python ssl/http.client/json/decimal/hmac suffice; no package upgrades, new dependency installs or lock changes proposed. Recheck actual build discovery before source work; missing offline caches stop execution rather than justify installation.
+
+Existing Dockerfiles pin .NET10 SDK/ASP.NET and Python3.13-slim digests. requirements-linux.lock pins Streamlit1.61.1/Plotly7.1.0; preserve local assets and versions. Their source pins are not current runtime-version evidence. Future driver must verify the existing qualified dependency asset by immutable local ID without consulting production registry tags. Do not change historical fixture Dockerfiles or root Release1.14 Dockerfile.
+
+Run-only existing project paths: `src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj`, `src/AIQuantTradingResearch.Application/AIQuantTradingResearch.Application.csproj`, `tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj`, `tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj`.
+
+Run-only regressions after explicit implementation scope: `tests/runtime/release_1_15/dual_docker/test_api_key_client_fixture.py`, `tests/runtime/release_1_15/dual_docker/test_pair_boundary.py`, `eng/docker/release-1.15/Invoke-Wp02DualDockerQualification.ps1` after #386 disposition; `python/presentation/test_public_runtime_isolation.py`, `python/presentation/test_public_preview_api.py`, `python/presentation/test_public_preview_shell.py` for retained boundaries. No WP05 edits to these overlapping fixture paths, existing bridge, UI/chart, provider, SQLite schema/writer or calculators.
+
+Future focused commands: `python -B -m unittest python.presentation.test_research_snapshot_client -v`; `dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-restore --filter FullyQualifiedName~ResearchSnapshotTransformerTests`; corresponding Infrastructure test project filtered to ResearchSnapshotEndpointTests; then the exact new PowerShell Docker driver. Cross-language tests consume actual C# serialized bytes with Python and independent expected vectors, not copied output. Record per-suite counts, failures, byte/hash matches, negative coverage and cleanup. Tests against doubles remain contract-only; integration needs genuine committed predecessors.
+
+#386 reports14 client+10 paired methods as historical local evidence, not newly rerun tests, CI, browser or Azure. No product tests were run here; no broad requalification claimed.
+
+## Future staging-only rollout proposal - separate WP07 authority required
+
+Planning locators only: UI aiqr112wp05wus27f5eabb5; research aiqr115researchstagingwus27f5eabb5; RG rg-aiq-r112-wp05-wus2-7f5eabb5; shared Linux F1 plan asp-aiq-r112-wp05-wus2-7f5eabb5; WestUS2. No live Azure operations now; production is never a fallback.
+
+1. After actual integration, final UI composition, local Linux browser evidence and owner review, obtain separate registry/settings/credentials/deployment authority. Record BOTH final research/UI immutable registry digests, compatible source/schema/algorithm pair, linux/amd64 build provenance and secret-free config fingerprint. Fixture/client-driver images are not the final application pair. Do not rebuild between qualification and deployment.
+2. Proposed UI settings: AIQ_RESEARCH_BASE_URL=https://aiqr115researchstagingwus27f5eabb5.azurewebsites.net, server-side AIQ_RESEARCH_API_KEY, AIQ_RESEARCH_TIMEOUT_SECONDS initially5 (nominal D4 hypothesis, not DNS guarantee). Research receives same environment service key plus WP03-owned private storage/config locators/provider/HMAC material; UI receives none of the private material. Names require exact configuration approval; no values read/generated now. Candidate UI URL https://aiqr112wp05wus27f5eabb5.azurewebsites.net is unqueried. No browser key, proxy inheritance, TLS bypass or private-network claim. Local fixture TLS differs from Azure ingress termination; actual HTTPS-only policy, host/chain and proxy trust require staging evidence.
+3. Stop old research writer before replacement unless WP03 has qualified exclusivity. Coordinate compatible research/UI rollout with planned interruption as needed. One active service key per environment; later replacement uses coordinated settings/restart and planned downtime, no previous-key grace/expiry/persistence/automatic rotation apparatus.
+4. Verify staging auth denials, HTTPS ingress, bounded full/unchanged, raw/admin denial, private files/settings separation, outage/last-known browser behavior, independent restart/recovery and shared-F1 resource contention. Capture actual paired digests, time/limits/test counts and cleanup without keys or personal host paths. A Running shell/liveness pass is not readiness.
+5. Reversibility: record previous STAGING paired image digests and storage/schema compatibility before rollout. Stop replacement writer before restoring previous compatible pair; do not blindly roll back database or API-key configuration. WP03 owns recovery for incompatible storage; absent safe evidence, no deployment. No configuration-rollback subsystem is introduced.
+6. Stop on wrong environment/authority, unknown digests/compatibility, missing accepted predecessor, failed TLS/auth, leakage, unverifiable writer/storage lineage, unavailable dependency, paid-resource requirement or exhausted resources. Preserve evidence and report failure. Successful staging does not authorize production or acceptance.
+
+## Review outcome
+
+PLAN READY FOR OWNER REVIEW; real implementation blocked on #386 disposition, WP03/WP04 accepted coherent reader/calculated state, and exact-path approval. D4 worst-case payload/memory adequacy, cross-language parser conformance, D5 independent vectors/durable time/epoch races, final UI/browser and F1 remain unexecuted obligations. No provider-licensing gate introduced. Issues stay open; this documentation PR must remain OPEN/UNMERGED. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+Documentation validation: three exact documentation paths;24 relative Markdown targets/anchors; append-only manifest; independent UTF-8/no BOM/LF/final-newline and git diff --check pass. Original HEAD/status and all10 pre-existing dirty/untracked file SHA-256 values verified unchanged after relocating the worktree. No product test results were generated.

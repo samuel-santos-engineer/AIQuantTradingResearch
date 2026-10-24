@@ -92,3 +92,10 @@ After merged #382/#383 and explicit owner eleven-path authorization, [implementa
 - [Existing evidence: merged fixture disposition and read-only review](RELEASE_1.15_WP02_DUAL_DOCKER_PREFLIGHT_EVIDENCE.md)
 
 #384 merged atd237e268fc0cd61cad9c8a32053f57095351f78c; fixture approval only. Seven subsequent existing source/test/runner paths are proposed, not authorized here. Four-file documentation PR; no source, Docker, test execution, Azure or secret operation. UTF-8/LF; #368 OPEN; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## WP05 staging-only integration preflight - 2026-10-24
+
+- [Exact-path proposal and read-only evidence](RELEASE_1.15_WP05_INTEGRATION_PREFLIGHT.md)
+- [Executed staging-only continuation authority](prompters/release-1.15-wp05-staging-only-integration-codex.md)
+
+Planning only: #385 merged; #386 open at expected head; WP03/WP04 acceptance and real backend integration missing. Proposed literal source/test/build paths require separate owner approval and predecessor confirmation. Three documentation paths only; no source edits, tests, Azure/provider/registry/deployment operations. UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
