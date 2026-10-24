@@ -50,3 +50,13 @@ Stop for missing predecessor evidence, unauthorized paths, schema incompatibilit
 
 ## Milestone lifecycle
 Each issue records plan → scoped implementation PR → deterministic tests → evidence → owner acceptance. GitHub PR merge, provider activation, image promotion, Azure deployment and release closure remain distinct lifecycle decisions.
+
+## Release 1.15 dual-container execution-plan amendment — 2026-10-23
+
+The owner selected two Linux Docker images and two Azure Linux F1 Web Apps **per environment** after the empty research shells were created (pending infrastructure evidence PR #381). This supersedes the earlier WP02 “Docker dual-process runtime” wording, single-image launch/supervisor assumption and local-only WP05 transport assumption in this plan. Dependency order WP01–WP08 remains intact; WP02 #368 now owns **two single-process images, per-container least privilege/lifecycle, environment separation and F1-compatible service-to-service security design**. No C PID1 supervisor, host Bash multiprocess supervisor, role-child restart protocol or same-container role-UID census is required.
+
+WP03 #369 owns single-writer SQLite/recovery across any research-app replacement overlap; WP04 #370 research calculations unchanged; WP05 #371 authenticated HTTPS research snapshot client/server transport under the unchanged bounded D4 schema; WP06 #372 UI/viewport unchanged apart from transport; WP07 #373 qualifies two compatible digests, two concurrently running apps per F1 plan, per-environment actual Azure access control, denial cases, cold starts and resource pressure; WP08 #374 documents pairing/rollback of both images. Existing apps and infrastructure remain unchanged until separately authorized deployment.
+
+**Security boundary:** A research Web App DNS name does not mean it has private ingress. External unauthorized requests to research endpoints must be rejected; no raw candles/keys/storage or admin operations in public API; HTTPS service authentication is required. Do not assume free-plan private endpoints, VNet features or dedicated compute. Fail closed on unsupported F1 security rather than invent paid resources or anonymously expose the research service.
+
+**Qualification and gates:** The exact paired image digests, cross-app conformance and per-site browser tests replace one-image qualification. Existing source/contract/fixture approvals, G-B0–G-B7 and `PUBLIC_RUNTIME_VERIFIED=False` remain. No new licensing prerequisite, provider call, deployment, PR merge or WP02 source-path approval follows from this amendment.
