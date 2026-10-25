@@ -88,6 +88,48 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         finally { File.Delete(ca); }
         await app.StopAsync();
     }
+    [Fact]
+    public void ExportOwnedLinuxQualificationFixture()
+    {
+        var requested = Environment.GetEnvironmentVariable("AIQ_WP07_EXPORT");
+        if (string.IsNullOrEmpty(requested)) return; // Explicit fixture export, never normal startup.
+        var root = Path.GetFullPath(requested);
+        Assert.StartsWith(Path.GetFullPath(Path.GetTempPath()), root);
+        Assert.False(Directory.Exists(root));
+        Directory.CreateDirectory(root);
+        var privateDirectory = Path.Combine(root, "private");
+        using (var store = new SqliteResearchStateStore(privateDirectory, true))
+        {
+            Provision(store);
+            var source = new ResearchSnapshotSource(store, new Clock());
+            foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+            {
+                var state = store.Read(instrument);
+                store.Commit(new(instrument, Now, TimeSpan.Zero), new(Enumerable.Range(0, 400).Select(n => ResearchTestDirectory.Candle(n, instrument))), state.Generation, state.Version);
+                using var before = JsonDocument.Parse(source.Read(new("1.0", instrument == ResearchInstrument.BtcUsd ? "BTC/USD" : "ETH/USD", "1", null)));
+                Assert.Equal("Unavailable", before.RootElement.GetProperty("status").GetProperty("classificationValidity").GetString());
+                state = store.Read(instrument);
+                store.Commit(new(instrument, Now, TimeSpan.Zero), new([ResearchTestDirectory.Candle(400, instrument)]), state.Generation, state.Version);
+                using var after = JsonDocument.Parse(source.Read(new("1.0", instrument == ResearchInstrument.BtcUsd ? "BTC/USD" : "ETH/USD", "2", null)));
+                Assert.Equal("Valid", after.RootElement.GetProperty("status").GetProperty("classificationValidity").GetString());
+                state = store.Read(instrument);
+                store.Commit(new(instrument, Now, TimeSpan.Zero), new(Enumerable.Range(401, 605).Where(n => n != 600).Select(n => ResearchTestDirectory.Candle(n, instrument))), state.Generation, state.Version);
+                Assert.Equal(1000, store.Read(instrument).Candles.Count);
+            }
+        } // Close writer/WAL before exporting; the runtime validates its witness normally.
+        var tls = Path.Combine(root, "tls"); Directory.CreateDirectory(tls);
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest("CN=wp07-research", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var san = new SubjectAlternativeNameBuilder(); san.AddDnsName("wp07-research");
+        request.CertificateExtensions.Add(san.Build());
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        using var cert = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+        File.WriteAllBytes(Path.Combine(tls, "server.pfx"), cert.Export(X509ContentType.Pfx));
+        File.WriteAllText(Path.Combine(tls, "ca.pem"), cert.ExportCertificatePem() + "\n", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(root, "service.key"), Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)) + "\n", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(root, "fixture.json"), "{\"testOnly\":true,\"rowsPerInstrument\":1000,\"readiness400\":false,\"readiness401\":true}\n", new UTF8Encoding(false));
+        evidence.WriteLine("Closed offline Linux fixture: both instruments 1000 rows; readiness 400/401 verified; no provider calls.");
+    }
     private sealed class BrowserReader(SqliteResearchStateStore initial) : IResearchTransformStateReader
     {
         public SqliteResearchStateStore Current { get; set; } = initial;
