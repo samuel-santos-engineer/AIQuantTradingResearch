@@ -25,7 +25,7 @@ class StagingReadinessTests(unittest.TestCase):
     def test_config_presence_never_proves_runtime_or_storage(self):
         r=self.assessment()
         self.assertTrue(r['uiConfigurationPresent'])
-        self.assertFalse(r['appServiceWriterSupported'])
+        self.assertFalse(r['appServiceDurableWriterSupported'])
         self.assertFalse(r['compatibleResearchEndpointVerified'])
         self.assertEqual(r['chartAcceptance'],'NOT_RUN')
         self.assertFalse(r['PUBLIC_RUNTIME_VERIFIED'])
