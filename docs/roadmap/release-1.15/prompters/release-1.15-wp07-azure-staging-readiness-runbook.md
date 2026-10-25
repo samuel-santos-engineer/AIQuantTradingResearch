@@ -453,3 +453,85 @@ Once a compatible endpoint and authentic input are supplied, request one narrowl
 Acceptance after that authority targets only `https://aiqr112wp05wus27f5eabb5.azurewebsites.net/` and the expressly assigned research endpoint: actual completed BTC/ETH candles, C# indicators/SMA/RSI, retained gaps/hidden warmup, selectors/hover/zoom/pan, truthful stale/reconnect, hostname/certificate/API-key negatives, no browser/provider secrets, unchanged SQLite/D5 through controlled stop/verify/start, and accurately measured cold-start/session results. None was inferred from HTTP200 or reused local fixtures.
 
 Stop here pending two concrete inputs: (A) secure authentic-data/account prerequisites above; (B) designate the compatible existing endpoint, or explicitly defer staging integration. No withdrawn budget proposal or new infrastructure approval gate. PUBLIC_RUNTIME_VERIFIED=False.
+
+
+## WP09 implementation: exact F1 non-durable exception (2026-10-25)
+
+This section supersedes the prior assumption that any App Service writer must be rejected: default rejection remains, but the owner now authorizes one exact-site ephemeral exception. No VM, paid resource, durable-volume acceptance, image publication or Azure mutation is authorized in this PR. See the existing engineering contract's narrow WP09 amendment. All new/modified text is UTF-8/LF.
+
+Code requires BOTH scope=`azure-f1-staging-ephemeral` and allow flag=`1`, exact research WEBSITE_SITE_NAME and WEBSITE_HOSTNAME, nonempty WEBSITE_INSTANCE_ID, WEBSITE_ROLE_INSTANCE_ID=`0`, WEBSITES_ENABLE_APP_SERVICE_STORAGE=`false`, AIQ_RESEARCH_EXPECTED_MOUNT_PATH=`/`, Linux UID1654 and fixed AIQ_RESEARCH_PRIVATE_DIRECTORY=`/tmp/aiq-research`. Only the writable container-root overlay (root/mount `/`, major0, no shared/master propagation or nested state-file mount) passes. `/home`, Azure Files/CIFS/NFS, ext4/XFS mounted data volumes, tmpfs, bind/subdirectory roots, symlinks, group/other permissions, wrong UID or unverifiable kernel evidence reject. A private0700 directory and real create/write/delete probe are required before store ownership/SQLite open. Files remain0600 through existing ownership logic. Neither image markers nor local-qualification can substitute for the exception.
+
+The path is a **conditional implementation candidate**, verified locally only. Microsoft's [custom container documentation](https://learn.microsoft.com/azure/app-service/configure-custom-container) describes writes outside home/storage mounts as nonpersistent across restart; it does not prove our named F1 app's mount type. Actual mountinfo/UID/permissions in that app are NOT_RUN and must be checked by the implementation itself after later deployment. Unknown actual layouts reject. Mountinfo cannot prove backing-disk lifetime, detect a dishonest operator or eliminate TOCTOU against a privileged local adversary. No such co-tenant/capabilities are permitted; no durability or global writer-fence claim follows from these checks.
+
+### Reproduce local evidence without Azure actions
+
+```powershell
+# Offline restore from the existing package cache, then focused tests:
+dotnet restore tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --source "$env:USERPROFILE/.nuget/packages" -p:NuGetAudit=false --ignore-failed-sources
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --filter "FullyQualifiedName~ResearchStorageBoundaryTests|FullyQualifiedName~ResearchSnapshotEndpointTests|FullyQualifiedName~ResearchStateInitializationTests"
+# Publish outside Git, no restore/network. The container helper is never packaged.
+dotnet publish src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj --no-restore -c Release -p:UseAppHost=false -o $OwnedPublishDirectory
+& ./eng/docker/release-1.15/Invoke-Wp09EphemeralQualification.ps1 -ResearchImage $ExistingImmutableResearchImage -PublishedResearchDirectory $OwnedPublishDirectory
+# Explicit local execution only: existing Docker Desktop named pipe, cached Linux image,
+# no network, owned containers, test-only publish copy, offline compiler, bounded deadlines.
+& ./eng/docker/release-1.15/Invoke-Wp09EphemeralQualification.ps1 -ResearchImage $ExistingImmutableResearchImage -PublishedResearchDirectory $OwnedPublishDirectory -Execute
+```
+
+The Linux helper is compiled as a friend-test assembly and bind-mounted with a disposable copy of the changed production publish. It simulates Azure marker strings; it is **not Azure identity/qualification**. Positive case creates an empty offline test store/D5 (no candles), confirms exclusion of a second writer and reopens the same container-local state; no fixture is imported or represented as real. Negatives include default denial, wrong site, missing instance, wrong UID, read-only root, tmpfs, real symlinks/broad modes and missing/malformed database startup rejection. Every exact labeled test container is removed; no volume, registry layer or Azure resource is created. The initial harness failed with Docker exit125 due to nested read-only bind setup; using an owned test-only publish copy corrected the harness, without weakening the boundary.
+
+### Later exact staging deployment sequence - NOT AUTHORIZED / NOT EXECUTED
+
+First merge/review this implementation under separate lifecycle approval. Build and qualify the updated **existing research-api Dockerfile** from a clean production publish, excluding the friend-test helper. Do not reuse the old cached image as a changed release image. Publish only under separate authority, capture real immutable registry manifest digests privately, and verify image UID1654 / UI UID12002. No digest is fabricated here.
+
+Prepare protected external JSON settings files. Research settings include the scope/flag/disabled-storage/fixed-directory/expected-mount above, WEBSITES_PORT=52731, AIQ_RESEARCH_TRANSPORT=azure-app-service-http, AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1, AIQ_RESEARCH_BIND_ADDRESS=0.0.0.0 and an independently supplied API key. Do **not** set WEBSITE_* identity variables: require genuine platform values. UI settings include WEBSITES_PORT=8501, AIQ_RESEARCH_CHART=1, AIQ_RESEARCH_BASE_URL=`https://aiqr115researchstagingwus27f5eabb5.azurewebsites.net`, and the same service key; system CA trust, no provider/HMAC/private files in UI. The existing C# App Service transport relies on frontend HTTPS terminating into platform HTTP; it is not end-to-end TLS. Azure HTTPS-only must actually be enabled, not merely asserted in an environment variable.
+
+These PowerShell5.1 commands target only the existing staging resources. They are templates requiring real qualified digest and private input files plus explicit mutation authority; none ran here:
+
+```powershell
+$Group='rg-aiq-r112-wp05-wus2-7f5eabb5'
+$Research='aiqr115researchstagingwus27f5eabb5'
+$Ui='aiqr112wp05wus27f5eabb5'
+az webapp stop -g $Group -n $Ui --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+az webapp stop -g $Group -n $Research --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+foreach($App in @($Ui,$Research)) {
+    $Stopped=$false
+    for($Attempt=0;$Attempt -lt 15;$Attempt++) {
+        $State=az webapp show -g $Group -n $App --query state -o tsv
+        if($LASTEXITCODE -ne 0){throw 'Stop verification failed'}
+        if($State -eq 'Stopped'){$Stopped=$true;break}
+        Start-Sleep -Seconds 2
+    }
+    if(-not $Stopped){throw 'Stop not verified; do not start another writer'}
+}
+az webapp update -g $Group -n $Research --https-only true --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+az webapp config container set -g $Group -n $Research --container-image-name $QualifiedResearchRegistryDigest --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+az webapp config appsettings set -g $Group -n $Research --settings "@$ProtectedResearchSettingsFile" --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+az webapp config container set -g $Group -n $Ui --container-image-name $QualifiedUiRegistryDigest --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+az webapp config appsettings set -g $Group -n $Ui --settings "@$ProtectedUiSettingsFile" --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+# Do NOT start until the controlled private bootstrap delivery described below is approved.
+# After that input and exact bootstrap/startup mechanism have been reviewed:
+az webapp start -g $Group -n $Research --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+# Require authenticated valid snapshots for both symbols before starting UI:
+az webapp start -g $Group -n $Ui --output none
+if($LASTEXITCODE -ne 0){throw 'Staging operation failed; stop for review'}
+```
+
+Operational commands must stop on any failed Azure CLI exit; do not continue a partial configuration. Capture previous image/config/HTTPS state privately before mutations. No settings output, credentials, registry namespaces or row data in evidence. App stop status alone is management evidence; before new research startup verify the old application instance/writer is gone using the later authorized application-container diagnostic path. No deployment slots, overlap or scale-out; role0 is not a distributed lock.
+
+**Controlled bootstrap is a remaining operational input, not implemented auto-seeding.** Existing ENTRYPOINT starts snapshot service only and refuses missing/invalid DB/D5. It cannot initialize a fresh ephemeral instance by itself. In an expressly authorized application-container operator session, deliver authentic export plus protected initializer configuration privately outside Git; run `dotnet /app/AIQuantTradingResearch.Worker.dll --research-initialize` with redirected stdin and AIQ_RESEARCH_IMPORT_FILE pointing to the protected export, AIQ_RESEARCH_PRIVATE_DIRECTORY fixed as above and genuine platform markers intact. Then close initializer and `exec dotnet /app/AIQuantTradingResearch.Worker.dll --research-snapshot-api` in the **same container instance**. Existing --research-initialize and wrapper remain unchanged; Windows wrapper is not an Azure remote-console mechanism. No arbitrary public bootstrap/admin route is added. Secure delivery/session/startup sequencing must be authorized and established before a deployment can actually serve; no unverified SCM-to-application filesystem equivalence is assumed. If such a session/delivery mechanism is unavailable on the actual app, report BLOCKED rather than inventing credentials/fixtures or claiming deployment executable end-to-end.
+
+Restart/replacement may discard DB, WAL, witness, D5 and input files. The service must then remain unavailable until controlled reimport is possible. Keep authorized original export/config privately with the operator for reinitialization; do not fabricate observations, independently restore witness/DB, rotate epochs silently or start a second authority. On ordinary same-instance reopen with retained files, preserve the existing tuple/identity. On total loss, original tuple/import reuse follows existing initializer validation and does not claim preserved revision history or durable continuity.
+
+Rollback: stop UI/research, verify old process stopped; restore previously captured **compatible** image/config/HTTPS settings with the same exact commands, then start only after valid private state or controlled authentic reinitialization exists. If rolling back to the former research shell, leave it stopped and restore the previous legacy UI image/config; do not imply that the shell is a research backend. Remove only specifically introduced opt-in settings absent from the private baseline through an explicitly reviewed `az webapp config appsettings delete --setting-names ... --output none` list. Never enable the exception for any other app.
+
+Two apps still share the existing Free plan. Idle unload/cold start, image pull/startup time, competing CPU/memory quotas and loss of ephemeral state can make availability intermittent; no AlwaysOn, SLA or spare capacity is assumed. See [App Service configuration](https://learn.microsoft.com/azure/app-service/configure-common) for idle/AlwaysOn behavior. This PR did not restart, load-test or measure those apps. Later authorized testing must observe cold startup, actual resource/availability behavior and bounded1/3/5 sessions, recording failures; HTTP200 alone is never browser acceptance.
+
+PASS_LOCAL: focused .NET tests and11 local Linux cases,8 existing diagnostics regressions. VERIFIED_AZURE_STAGING: none newly performed in WP09. BLOCKED_INPUT: designated secure real-data channel/export, account-specific credits and base-volume confirmation, and practical private bootstrap delivery for the existing app. Acquisition stays0 requests/0 credits; no credential retrieval. NOT_RUN: Azure filesystem verification, image publication/config/start/restart, import of real observations, public research TLS/auth and browser acceptance for BTC/ETH/indicators/gaps/stale/reconnect. PUBLIC_RUNTIME_VERIFIED=False. No paid resources, merge or WP closure.

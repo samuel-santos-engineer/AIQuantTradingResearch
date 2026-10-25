@@ -17,7 +17,7 @@ function Get-Wp07ConfigurationAssessment($Ui,$Research,$SettingNames) {
         uiConfigurationPresent=($Ui.state -eq 'Running' -and $Ui.httpsOnly -eq $true -and $Ui.imageAssigned -eq $true -and $missing.Count -eq 0)
         researchShellRunning=($Research.state -eq 'Running')
         researchImageAssigned=([bool]$Research.imageAssigned)
-        appServiceWriterSupported=$false
+        appServiceDurableWriterSupported=$false
         compatibleResearchEndpointVerified=$false
         chartAcceptance='NOT_RUN'
         PUBLIC_RUNTIME_VERIFIED=$false
