@@ -537,3 +537,17 @@ The focused Application filter was `FullyQualifiedName~ResearchIngestionServiceT
 4. Provider rate/credit/polling evidence, native Linux durability limitations (including no demonstrated directory-fsync guarantee), restart witness recovery and coordinated rollback limits remain distinct from successful offline tests.
 
 WP02 #368, WP03 #369, WP06 #372 and WP07 #373 remain unaccepted for their outstanding obligations. Public activation and production deployment are not authorized by this qualification.
+
+
+### WP07 owner-authorized Return to Live correction (2026-10-24)
+
+This addendum supersedes the preceding Return to Live FAIL disposition for the corrected head only; it preserves the failed baseline evidence. The owner approved three potential repair paths. Only two needed edits:
+
+- `python/presentation/research_chart.py`: one-line change adding the existing reset epoch to Plotly's `uirevision`. An explicit Return to Live or preset reset now invalidates Plotly's retained user ranges. Ordinary refresh and manual exploration retain the same UI revision. No new protocol, component mechanism, indicator computation or dependency.
+- `python/presentation/test_research_chart.py`: regression test proves refresh retains the UI revision, live reset changes it and clears saved ranges, and the live range/data match the initial figure. `research_chart_component.js` required no change.
+
+The unchanged real-browser regression now **PASSes** (one opt-in xUnit test, exit 0, 27.1991 seconds): actual ETH pointer zoom changes x/y, Refresh retains them, and Return to Live restores x to `[2026-10-01T01:41:00Z, 2026-10-01T06:41:00Z]` and y to `[90.58462928981888, 92.6202389367811]`. These are the exact initial ranges, not merely a changed caption. BTC/ETH, all presets, RSI14/MACD, disclosure and narrow-layout assertions also pass in this run. Narrow PNG SHA-256: `59f27a7107542b07fdf8445e0ae8b4e46d833dc7fe0c2cf53c62305f61e7ea7c`.
+
+Focused command `python -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client -v`: **52/52 PASS**, exit 0 (including the new regression). Browser command and prerequisites remain as above. No broad .NET rerun was needed for a Python figure reset change; the earlier 43/83 focused results are unchanged historical evidence.
+
+**WP07 remains INCOMPLETE**: all earlier NOT RUN browser scenarios and pinned Linux-base/container blockers remain. The browser harness reports PARTIAL rather than overall qualification PASS. No production readiness, Azure activation, provider ingestion or release acceptance is inferred. `PUBLIC_RUNTIME_VERIFIED=False`; PR remains OPEN/UNMERGED.

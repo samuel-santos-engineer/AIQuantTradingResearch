@@ -136,6 +136,26 @@ class ProjectionTests(unittest.TestCase):
             self.assertEqual(data["candles"][-preset]["time"], fig["layout"]["xaxis"]["range"][0])
             self.assertEqual(1000, len(fig["data"][0]["x"]))
 
+    def test_live_reset_changes_plotly_ui_revision_but_refresh_retains_it(self):
+        data = self.snapshot()
+        state = chart.InstrumentView()
+        initial = chart.component_data(data, state, "session")
+        state.view.x = (data["candles"][200]["time"], data["candles"][300]["time"])
+        state.view.y = (91.0, 92.0)
+        state.view.live = False
+        historical = chart.component_data(data, state, "session")
+        self.assertEqual(initial["figure"]["layout"]["uirevision"], historical["figure"]["layout"]["uirevision"])
+        state.view.command()  # Ordinary refresh must preserve Plotly's user viewport.
+        refreshed = chart.component_data(data, state, "session")
+        self.assertEqual(historical["figure"]["layout"]["uirevision"], refreshed["figure"]["layout"]["uirevision"])
+        state.view.return_live()
+        live = chart.component_data(data, state, "session")
+        self.assertNotEqual(refreshed["figure"]["layout"]["uirevision"], live["figure"]["layout"]["uirevision"])
+        self.assertIsNone(live["viewport"]["x"])
+        self.assertIsNone(live["viewport"]["y"])
+        self.assertEqual(initial["figure"]["layout"]["xaxis"]["range"], live["figure"]["layout"]["xaxis"]["range"])
+        self.assertEqual(initial["figure"]["data"], live["figure"]["data"])
+
     def test_classification_400_401_and_only_transition_events(self):
         before, after = self.snapshot(400), self.snapshot(401)
         self.assertEqual("Unavailable", before["classifications"][-1]["validity"])
