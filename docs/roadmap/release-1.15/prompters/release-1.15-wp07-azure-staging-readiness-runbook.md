@@ -303,3 +303,60 @@ Rollback is stop/verify-stopped/start of the prior **compatible** image pair wit
 ### Remaining online decision, not another durability workstream
 
 The owned workstation now has a demonstrated loopback-only chart path; it is not an always-reachable research host for Azure staging. Existing F1 research remains blocked by the retained storage boundary. To get a real chart online, the owner must (1) authorize bounded real completed-observation acquisition or supply an already authorized export, and (2) designate an existing always-reachable Linux research host with persistent local/block storage, certificate/DNS and operator-controlled stop/start. None was established by the authorized staging inspection. If no such host exists, explicitly approve the minimal single-instance Linux compute/persistent-disk cost/topology adjustment already described above before provisioning. No distributed coordination, host-power-loss study, paid-resource purchase, public endpoint, registry push or deployment is authorized by this runbook. After that decision, separately authorize exact staging image/secret/config/endpoint changes and actual staging browser verification. PUBLIC_RUNTIME_VERIFIED=False.
+
+
+## Staging-specific delivery checkpoint - 2026-10-25
+
+Baseline: merged PR #399, `654274a3aca706008ea82bb2852b11d19200c092`. This checkpoint is read-only Azure inventory and deployment preparation, not runtime qualification. Reuse the accepted local results in #395-#399; no fault matrix or browser suite was repeated. All changes in this increment use UTF-8/LF.
+
+| Item | Status | Actual evidence / remaining action |
+| --- | --- | --- |
+| Existing staging resource inventory | VERIFIED_AZURE_STAGING | Management plane only: the exact resource group contains one F1 plan and the two named Microsoft.Web/sites; no separate compute or disk resource is present there. No unrelated resource groups or subscriptions were searched. |
+| UI staging configuration | VERIFIED_AZURE_STAGING | `aiqr112wp05wus27f5eabb5`: Running, Linux/container, assigned existing image, HTTPS-only true, public access enabled, Allow-all ingress, port8501, App Service storage false, no custom mounts, no AIQ_RESEARCH_* settings. AlwaysOn false; health-check path unset. Image namespace and credentials are deliberately omitted. |
+| Research staging shell | VERIFIED_AZURE_STAGING | `aiqr115researchstagingwus27f5eabb5`: Running shell, Linux, no assigned image, HTTPS-only false, public access enabled, Allow-all ingress, no custom mounts, no port/storage or AIQ_RESEARCH_* settings. AlwaysOn false; health-check path unset. Running does not mean a working research service. |
+| Plan association | VERIFIED_AZURE_STAGING | Both apps belong to `asp-aiq-r112-wp05-wus2-7f5eabb5`, West US2, F1/Free, capacity1. This is configuration evidence, not startup, throughput or concurrent-session evidence. |
+| Strict public research HTTPS client | IMPLEMENTED_LOCAL | Existing ResearchSnapshotClient accepts an HTTPS hostname, uses ssl.create_default_context with system trust or an explicit CA, and sends X-API-Key server-side. Direct HTTPSConnection does not inherit proxies or follow redirects. No client change required. Accepted local evidence remains local. |
+| Authorized authentic completed-minute input | BLOCKED_OWNER_INPUT | No approved real export was supplied or identified in the scoped operator inputs. Repository filename inventory found no candidate export; private disks were not searched. Existing disposable fixture rows are not real data and cannot bootstrap staging. No provider secrets or live calls accessed. |
+| Persistent research host assigned to these staging apps | BLOCKED_OWNER_INPUT | No suitable host exists in the inspected group. An already-owned host elsewhere may be designated explicitly by the owner; its existence, persistence, TLS and reachability have not been established. Existing App Service writer rejection remains unchanged. |
+| Research initialization, image publication and configuration/deployment | NOT_RUN | Require separate precise staging authority, real input and assigned host. No Azure/registry mutations executed. |
+| Azure routing, TLS/auth negatives, startup, persistence and Chrome acceptance | NOT_RUN | Management-plane values do not establish behavior. Execute only against the named staging UI and explicitly assigned staging research host after authorization. |
+
+### Two concrete owner inputs
+
+1. Supply a private authorized Twelve Data completed-minute export for both BTC/USD and ETH/USD, in the existing initializer envelope: source, observedAtUtc, and ascending UTC minute rows with decimal-string OHLCV. Preserve gaps; at most1000 rows per instrument. At least401 consecutive rows are needed for the existing classification readiness. Alternatively, authorize bounded acquisition for these two symbols (one request of at most1000 rows each, explicit credit allowance/account and secure credential delivery). No live acquisition is authorized or executed here; no new licensing gate is introduced.
+2. Designate an existing always-reachable Linux research host explicitly serving these staging apps, with a persistent local/block filesystem, protected state, strict HTTPS hostname/certificate and controlled stop/start. If none exists, the smallest topology proposal is one Linux VM with one persistent managed disk for the single SQLite authority, keeping UI on the existing F1 app. This is not established as feasible or free: compute, disk, networking and any backup costs need a region/size/retention-specific quote and explicit approval before provisioning. No paid resource, subscription expansion or hypothetical host is evaluated as Azure qualification.
+
+Stop at these inputs. Do not build speculative infrastructure. The local launcher is a loopback development tool, not a remote Azure deployment tool. Do not remove App Service identity markers, use ephemeral storage as durable storage, enable unsupported F1 WAL, copy a live database, or run two writers.
+
+### Staging command preparation - do not execute mutations yet
+
+The following PowerShell5.1-compatible templates target the existing staging UI only. Variables are unresolved operator inputs, not verified image digests or endpoints. The registry publication, resource deployment and secret/config changes each require precise separate authorization. Existing local image SHA256 IDs are not pullable registry manifest digests. Research-host-specific commands cannot be made executable until the owner designates that host; no replacement host is assumed.
+
+Before mutation, capture the current UI image and needed settings privately for rollback without printing them; freeze an immutable qualified UI registry digest. Obtain the server-side API key through the approved secure channel, never from browser input or shell arguments. Prepare a protected external JSON settings file containing WEBSITES_PORT=8501, AIQ_RESEARCH_CHART=1, AIQ_RESEARCH_BASE_URL pointing to the assigned HTTPS hostname, and AIQ_RESEARCH_API_KEY. Omit AIQ_RESEARCH_CA_FILE for system-trusted CA; a private CA needs separately approved delivery of its public certificate only. The UI receives no provider key, HMAC key, database or server private certificate. Preserve unrelated settings; do not change the existing F1 plan.
+
+```powershell
+# PREPARATION ONLY: NOT EXECUTED. Supply only owner-reviewed staging inputs.
+$StagingGroup='rg-aiq-r112-wp05-wus2-7f5eabb5'
+$StagingUi='aiqr112wp05wus27f5eabb5'
+# $UiRegistryDigest: qualified pullable image reference, pinned by manifest digest.
+# $ProtectedUiSettingsFile: protected external JSON object; never commit or print.
+# $RollbackUiRegistryDigest / $ProtectedRollbackSettingsFile: privately captured baseline.
+# Execute ONLY under new authority for these exact mutations:
+az webapp config container set --resource-group $StagingGroup --name $StagingUi --container-image-name $UiRegistryDigest --output none
+az webapp config appsettings set --resource-group $StagingGroup --name $StagingUi --settings "@$ProtectedUiSettingsFile" --output none
+az webapp restart --resource-group $StagingGroup --name $StagingUi --output none
+# Rollback, if separately authorized: restore captured compatible image/settings.
+az webapp config container set --resource-group $StagingGroup --name $StagingUi --container-image-name $RollbackUiRegistryDigest --output none
+az webapp config appsettings set --resource-group $StagingGroup --name $StagingUi --settings "@$ProtectedRollbackSettingsFile" --output none
+az webapp restart --resource-group $StagingGroup --name $StagingUi --output none
+```
+
+Rollback settings must explicitly restore every overwritten setting, including the chart-mode gate; setting a subset does not delete introduced keys. If a newly introduced setting must be absent, use a separately authorized exact-name appsettings delete with output none after rollback. Review that deletion list against the captured baseline before execution. Do not expose rollback registry namespaces or private settings in public evidence. No registry authentication changes are prepared or assumed.
+
+Research sequence after host assignment and separate authority: verify actual persistent mount and UID1654 boundary on that host; securely initialize authentic input through existing --research-initialize with redirected stdin; close initializer; keep the same authoritative SQLite directory, D5 tuple and witness; start exactly one --research-snapshot-api with strict HTTPS. Configure host-specific bounded stop/verify/start and compatible-image rollback before deployment. Never switch to the rejected App Service HTTP writer path. Frontend TLS termination alone does not establish end-to-end HTTPS. No concrete research deployment command is asserted without the host's service/container/storage identifiers.
+
+### Actual staging acceptance sequence after separate authority
+
+Use only `https://aiqr112wp05wus27f5eabb5.azurewebsites.net` and the explicitly assigned staging research hostname. First verify actual image digest and strict certificate/hostname/auth behavior using bounded requests, then real completed BTC/ETH candles, C# indicators, hidden warmup, gaps and truthful stale state. Verify one writer and identity continuity through ordinary sequential stop/verify/start of the research instance using unchanged storage; never redo general power-loss or distributed-fencing work. In actual Chrome check both instruments, selectors, SMA/RSI, hover/modebar/zoom/pan and reconnect while retaining last good data. Check F1 cold start and bounded1/3/5 sessions if practical; record elapsed times and failures without inferring capacity from plan metadata. Confirm the browser receives neither API keys nor raw/private state and makes no direct provider request. Report every not-run criterion explicitly. No browser, network reachability, TLS-negative, cold-start or session test against Azure was executed in this checkpoint.
+
+PUBLIC_RUNTIME_VERIFIED=False. Azure chart acceptance, production changes and WP closure remain unapproved.
