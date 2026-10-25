@@ -201,7 +201,7 @@ def build_figure(snapshot, state):
         end = (_date(rows[-1]["time"]) + timedelta(minutes=1)).isoformat().replace("+00:00", "Z")
         figure.update_xaxes(type="date", range=[start, end], autorange=False, title_text="UTC")
     figure.update_layout(height=620, title=snapshot["instrument"] + " - transformed educational OHLC (not actual quotes)",
-                         dragmode="zoom", uirevision=snapshot["instrument"] + str(state.view.mount),
+                         dragmode="zoom", uirevision=f"{snapshot['instrument']}:{state.view.mount}:{state.view.reset_epoch}",
                          margin={"l": 45, "r": 20, "t": 70, "b": 40}, legend={"orientation": "h", "y": 1.06},
                          xaxis_rangeslider_visible=False)
     figure.update_yaxes(title_text="Transformed price", row=1, col=1)
