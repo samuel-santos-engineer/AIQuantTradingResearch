@@ -551,3 +551,91 @@ The unchanged real-browser regression now **PASSes** (one opt-in xUnit test, exi
 Focused command `python -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client -v`: **52/52 PASS**, exit 0 (including the new regression). Browser command and prerequisites remain as above. No broad .NET rerun was needed for a Python figure reset change; the earlier 43/83 focused results are unchanged historical evidence.
 
 **WP07 remains INCOMPLETE**: all earlier NOT RUN browser scenarios and pinned Linux-base/container blockers remain. The browser harness reports PARTIAL rather than overall qualification PASS. No production readiness, Azure activation, provider ingestion or release acceptance is inferred. `PUBLIC_RUNTIME_VERIFIED=False`; PR remains OPEN/UNMERGED.
+
+
+### WP07 qualification continuation: final bounded browser evidence (2026-10-25)
+
+**Owner review disposition: expanded Windows/local browser qualification executed; WP07 overall remains PARTIAL, not accepted. PUBLIC_RUNTIME_VERIFIED=False.** This addendum supersedes the earlier NOT RUN browser rows only for the bounded scenarios below; it does not erase failed attempts or establish Linux/Azure qualification. PR #394 was verified draft/open at `db34c2395017af11003b2e48a0da2c22a9b8afad`, base `3a068341509c78af548b734ace1de737cc8dc613`, before continuation. No competing PR, merge, issue closure, provider call, install, image pull, Azure or deployment operation.
+
+Only the existing C# coordinator, Python browser harness and this append-only evidence document change in this continuation. The already-approved one-line application reset fix and its regression file are unchanged. The total PR inventory remains its five approved paths.
+
+#### Real stack and fixture changes
+
+The opt-in coordinator runs actual Chrome/CDP -> actual Streamlit entrypoint -> UI server-side CA-validated HTTPS -> actual C# snapshot endpoint -> exclusively owned, committed/calculated SQLite WP03/WP04/D5 fixtures. There are initially 401 completed deterministic candles per instrument, no provider observations or acquisition. The test CA/control files now occupy a separate owned directory: placing them in the store directory correctly triggered its file-allowlist protection in an early fixture attempt. Production storage guards were preserved.
+
+Private atomic command/ack files, visible only to the test coordinator/harness, request actual committed correction, UTC-day advancement, transform activation and switching to a separately preprovisioned database generation. These are not application/admin HTTP routes. For outage/authentication tests the same owned loopback TLS endpoint role stops/restarts; for malformed response only, that test role temporarily emits an invalid JSON body over its trusted TLS connection, then returns to the actual endpoint. No test command or fixture enters production code.
+
+Environment remains Windows, Chrome 155.0.8059.86, Python 3.13.15, Streamlit 1.61.1, Plotly 7.1.0 and existing websockets 16.1.1. No dependency changes. Browser uses a fresh owned profile and a second isolated browser context; no attachment to user browsers. Control interaction uses actual pointer events/public accessible elements; delayed popup layout requires a fresh coordinate measurement after scrolling. Final assertions read resulting Plotly state, not clicks alone.
+
+#### Final actual-browser matrix
+
+| Scenario | Result | Concrete bounded evidence |
+|---|---|---|
+| BTC/ETH, supplied analytics, disclosure, controls | PASS | Actual candlesticks/volume/SMA20, instrument identities, 100/300/1000 presets and RSI14/MACD traces. All original 401 candles stay present; 1000 clips its visible span to available history. |
+| Zoom, explicit Pan modebar tool, Refresh, Return to Live | PASS | Separate pointer zoom and pan; x/y stay identical across an actual Refresh button operation. Explicit live reset restores the initial x/y; existing reset regression retained. |
+| Genuine nonempty transition markers | PASS | Toggle before correction verifies a nonempty Trend transition trace, not merely an empty named trace. |
+| Gap / null overlays / continuity markers | PASS | Commit adds minute 405 after minute 400: exactly 402 actual rows, last times 06:40 and 06:45 UTC, gap rectangle, null latest warmup overlay and connectgaps=false; marker control produces trace state. No invented candles fill the four missing minutes. |
+| Committed correction | PASS | Correct last retained close through WP03 Commit; browser version changes and plotted closes differ. UTC live window remains equal. |
+| UTC day and transform epoch | PASS | Actual source clock advances Oct 23 to Oct 24; actual witnessed D5 epoch activates 1 -> 2. Each accepted public identity/value set changes; UTC live window remains equal. |
+| Generation replacement | PASS | Switch reader to a separately preprovisioned committed database: new generation accepted, old 402-row/gap view replaced by 401 rows and different closes. |
+| Disconnect, wrong-key, malformed body | PASS | Each actual transport failure shows Disconnected / last-known history and preserves plotted closes. Restart actual authenticated endpoint and verify Connected recovery. |
+| Two independent browser sessions | PASS | Fresh context starts BTC independently; changing second session preset and RSI panel leaves first viewport/panel unchanged. BTC/ETH switches in the first leave the second BTC/RSI state intact and restore the first ETH UTC range. |
+| Stale intent and disposal/remount | PASS, bounded | Capture genuine pending pan intent before debounce clears it; replay after explicit reset. Three RSI/MACD/None remounts cannot overwrite the latest live UTC x range. This is not exhaustive arbitrary-callback or adversarial race proof. |
+| Real user-enabled 60-second refresh | PASS | Checkbox selected state verified; actual last-successful-sync caption changes after **59.1883 seconds** of observation (after activation/settling). Timer was not shortened. |
+| Narrow layout and visible-secret negative | PASS | 390px browser viewport, actual graph <=390px; screenshot visually shows stacked controls/disclosure. Screenshot is the above-chart viewport; chart width is separately read from the real graph. Fake service key absent from rendered text/graph serialization. |
+| Hover | OBSERVED | Earlier actual pointer run captured transformed OHLC hover and UTC text in the rendered page. The final clean harness does not contain a dedicated hover-popup assertion; do not label that as a separate automated PASS. |
+| Repeated refresh/resource behavior | OBSERVED, bounded | Eight post-GC refresh samples; details below. Not long-run or server/F1 capacity proof. |
+
+The final explicit opt-in xUnit browser coordinator **passed 1/1, exit 0**, total **1.9766 minutes** (~118.6 seconds). Its report deliberately remains PARTIAL because the whole WP07/Linux gate is not complete. No final case is silently waived. Earlier popup/control timing failures, one intentionally preserved missing-intent NOT RUN, and an abnormal ~12.9-hour interrupted browser connection run remain failed/limited attempts, not clean bounded passes. The final rerun captures the stale intent promptly and verifies selected control states. The initial ambiguous Refresh prefix could hit the auto-refresh checkbox; final exact-label-first matching plus actual committed mutations supersede earlier refresh-only assertions.
+
+#### Resource / artifact observations
+
+Eight samples after CDP-requested garbage collection each have **2 documents, 2,076 DOM nodes and 441 listeners**. Used JS heap ranges **25,283,336 to 25,612,476 bytes** (~0.33 MB growth); this is a short observation, not proof of no heap leak. The graph's last Plotly redraw measurement stays **30.6 ms** throughout unchanged refreshes; that is not full request latency or CPU accounting. Browser GC sampling distinguishes uncollected transient listeners seen in earlier samples from retained live objects. Native timer enumeration, long-run server memory/CPU and 1/3/5 session capacity are NOT RUN.
+
+Final result JSON SHA-256: `de819c70ccedc19e17b0f60aeee9b3c153c86ac4cda6009883017177f6f661f6`.
+Final narrow-controls PNG SHA-256: `ed10852aa06acc71a4fa4ab9ecfba198938f39a58619bcba9752d90b4de4caf7`.
+Artifacts remain in owned temporary storage; no personal evidence-root paths, private databases, keys or host identifiers are committed/published.
+
+#### Focused regression commands and results
+
+From this isolated checkout, existing offline build assets and virtualenv only:
+
+```powershell
+$env:AIQ_WP07_BROWSER_PYTHON = '<existing-venv>\Scripts\python.exe'
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter FullyQualifiedName~OwnedBrowserQualificationAgainstRealHttpsSnapshot --logger 'console;verbosity=detailed'
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-build --no-restore --filter 'FullyQualifiedName~ResearchSnapshotEndpointTests&FullyQualifiedName!~OwnedBrowserQualificationAgainstRealHttpsSnapshot' --logger 'console;verbosity=minimal'
+$env:PYTHONPATH = (Join-Path (Get-Location) 'python\presentation')
+& $env:AIQ_WP07_BROWSER_PYTHON -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client -v
+& $env:AIQ_WP07_BROWSER_PYTHON -B -m unittest python.presentation.test_market_research_ui -v
+```
+
+The initial final build uses --no-restore; later final browser reruns use --no-build --no-restore. The browser opt-in variable was actually set; ordinary opt-out execution is not counted. Focused Application filter from the preceding section: **43/43 PASS**; focused Infrastructure filter: **83/83 PASS**; existing endpoint negatives/integration: **8/8 PASS**; focused Python: **52/52 PASS**. Legacy synthetic UI rerun: **7/8 PASS, one unchanged Volume vs Simulated activity assertion FAIL**. No baseline source/test edits. Existing analyzer warnings remain distinct from qualification failures.
+
+#### Linux blocker and minimal separately reviewable proposal
+
+Read-only inventory reconfirmed local Docker desktop-linux / engine 29.7.2, linux platform. All exact pinned bases are missing:
+
+- ASP.NET: `mcr.microsoft.com/dotnet/aspnet:10.0@sha256:e4b445f93a5deeb6bd7de300febceb8dd7e481ac65ccf1b474eddc3642a3010f`.
+- Python: `python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024`.
+- SDK: `mcr.microsoft.com/dotnet/sdk:10.0@sha256:3a48280a9a7c6276c3eeaba1efa6a08820f18c84fb9e6274c187719ecfaf9fbc`.
+
+No pulls, image substitutions, builds, container starts or shared-F1 conclusions. No qualified offline Linux publish/private closed DB+SAN-correct TLS input pairing is established. Existing `container/release_1_15/ui.Dockerfile` still starts the WP02 fixture app, and snapshot-client is a test driver. Neither is claimed as final chart UI qualification.
+
+Smallest follow-up proposal, **NOT implemented or authorized by this evidence**: (1) new `container/release_1_15/research-chart.Dockerfile`, using the accepted pinned base/qualified dependency context and actual merged presentation assets, one non-root Streamlit process, no private filesystem mount; (2) extend existing `eng/docker/release-1.15/Invoke-Wp05SnapshotQualification.ps1` to pair actual research and chart roles on an owned network with explicit fixture inputs; (3) if required, extend the already-approved C# test coordinator for an explicitly requested closed, witnessed disposable fixture export outside the repository. Obtain separate literal-path/fixture-input approval before any such change. First make exact cached bases and offline Linux publish inputs available under separate authority. Then test non-root roles, independent processes, TLS/hostname/key negatives, mount/WAL/exclusive writer/restart witness and CPU/memory/startup/latency. No substitute architecture or deployment proposed.
+
+#### Remaining release disposition and preservation
+
+| Work package | Supported here | Still unqualified |
+|---|---|---|
+| WP02 #368 | Host-local server-side authenticated HTTPS and fault/reconnect behavior | Actual separate non-root Linux chart/research containers; mount/lifecycle/resources; Azure/F1 separately |
+| WP03 #369 | Offline commit/correction/gap/generation fixtures, recovery/integrity suites | Provider acquisition/quota, restart-durable credits, native Linux/Azure filesystem and power-loss semantics, cross-instance exclusion |
+| WP06 #372 | Expanded real-browser Windows chart functionality, bounded session/remount cases | Dedicated final hover assertion, exhaustive race/long-run stability/capacity, Linux image/browser pairing |
+| WP07 #373 | Reproducible bounded real-browser result and explicit regression evidence | Linux prerequisites/qualification, native resource/storage/transport evidence and separately authorized staging |
+
+Original checkout HEAD/status and byte sizes/SHA-256 of **all 18 dirty/untracked owner files**, including prompts, are rechecked unchanged. Only isolated qualification worktree files are committed. UTF-8/no BOM/LF/final newline checks and git diff --check are mandatory for all five PR text paths. PR stays **draft/open/unmerged**; no issue acceptance or closure. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+Source SHA-256 for the final executable qualification revision:
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: `680c88fa83b9921501dd714e14df5ea339c489120c029a954843265d766c92ee`.
+- `tests/runtime/release_1_15/wp07_browser_qualification.py`: `8035b502ac955eaf6f0d7fbc9ff04b83dfdd529443adbd80e8c5da16e4bb9df4`.
+- `python/presentation/research_chart.py`: `c5abd2bfea8f4d0dae7623a2e69436a4169578f012b9bbee8dd57ce6dafe87ea`.
+- `python/presentation/test_research_chart.py`: `db79cd8951b7730828da93e61a6f097730aaa252bc037f10532131ac0f7a5b50`.

@@ -10,6 +10,10 @@ using AIQuantTradingResearch.Application.MarketData;
 using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 using AIQuantTradingResearch.Worker;
 using Xunit;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace AIQuantTradingResearch.Infrastructure.Tests;
 
@@ -84,6 +88,12 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         finally { File.Delete(ca); }
         await app.StopAsync();
     }
+    private sealed class BrowserReader(SqliteResearchStateStore initial) : IResearchTransformStateReader
+    {
+        public SqliteResearchStateStore Current { get; set; } = initial;
+        public TResult UseTransformSnapshot<TResult>(ResearchInstrument instrument, Func<ResearchCommittedState, ResearchTransformConfiguration, TResult> callback) =>
+            Current.UseTransformSnapshot(instrument, callback);
+    }
     [Fact]
     public async Task OwnedBrowserQualificationAgainstRealHttpsSnapshot()
     {
@@ -94,9 +104,22 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         using var store = new SqliteResearchStateStore(dir.Path, true);
         Seed(store); Provision(store);
         using var cert = Certificate();
-        await using var app = ResearchSnapshotEndpoint.Create(new(store, new Clock()), Key, cert);
+        using var alternateDirectory = new ResearchTestDirectory();
+        using var alternate = new SqliteResearchStateStore(alternateDirectory.Path, true);
+        Seed(alternate); Provision(alternate);
+        foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+        {
+            var state = alternate.Read(instrument);
+            alternate.Commit(new(instrument, Now, TimeSpan.Zero), new([ResearchTestDirectory.Candle(400, instrument, close: 104)]), state.Generation, state.Version);
+        }
+        var reader = new BrowserReader(store);
+        var clock = new Clock();
+        var app = ResearchSnapshotEndpoint.Create(new(reader, clock), Key, cert);
         await app.StartAsync();
-        var ca = Path.Combine(dir.Path, "browser-ca.pem");
+        var endpointPort = new Uri(app.Urls.Single()).Port;
+        using var control = new ResearchTestDirectory();
+        Directory.CreateDirectory(control.Path);
+        var ca = Path.Combine(control.Path, "browser-ca.pem");
         await File.WriteAllTextAsync(ca, cert.ExportCertificatePem(), new UTF8Encoding(false));
         var start = new ProcessStartInfo(python) { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = FindRoot() };
@@ -105,15 +128,72 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         start.Environment["AIQ_RESEARCH_BASE_URL"] = app.Urls.Single();
         start.Environment["AIQ_RESEARCH_API_KEY"] = Key;
         start.Environment["AIQ_RESEARCH_CA_FILE"] = ca;
+        start.Environment["AIQ_WP07_CONTROL"] = control.Path;
         using var process = Process.Start(start)!;
         var stdout = process.StandardOutput.ReadToEndAsync();
         var stderr = process.StandardError.ReadToEndAsync();
         using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-        try { await process.WaitForExitAsync(deadline.Token); }
+        try
+        {
+            var commandPath = Path.Combine(control.Path, "command.json");
+            var ackPath = Path.Combine(control.Path, "ack.json");
+            var sequence = 0;
+            while (!process.HasExited)
+            {
+                deadline.Token.ThrowIfCancellationRequested();
+                if (File.Exists(commandPath))
+                {
+                    using var command = JsonDocument.Parse(await File.ReadAllTextAsync(commandPath, deadline.Token));
+                    var next = command.RootElement.GetProperty("sequence").GetInt32();
+                    if (next > sequence)
+                    {
+                        var action = command.RootElement.GetProperty("action").GetString();
+                        if (action is "correction" or "gap")
+                        {
+                            foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+                            {
+                                var state = store.Read(instrument);
+                                var candle = ResearchTestDirectory.Candle(action == "gap" ? 405 : 400, instrument, close: action == "gap" ? 100 : 101);
+                                store.Commit(new(instrument, clock.Now, TimeSpan.Zero), new([candle]), state.Generation, state.Version);
+                            }
+                        }
+                        else if (action == "generation") reader.Current = alternate;
+                        else if (action == "day") clock.Now = clock.Now.AddDays(1);
+                        else if (action == "epoch")
+                            store.ActivateTransform(new(store.Read(ResearchInstrument.BtcUsd).Generation,
+                                Enumerable.Repeat((byte)9, 32).ToArray(), Guid.Parse("55555555-5555-4555-8555-555555555555"), 2), 1);
+                        else if (action is "offline" or "unauthorized" or "malformed" or "online")
+                        {
+                            await app.StopAsync();
+                            if (action != "offline")
+                            {
+                                await app.DisposeAsync();
+                                if (action == "malformed")
+                                {
+                                    // Same owned TLS fixture role/port, deliberately invalid transport body.
+                                    // This is test fault injection, never an application/admin route.
+                                    var builder = WebApplication.CreateSlimBuilder(); builder.Logging.ClearProviders();
+                                    builder.WebHost.ConfigureKestrel(o => o.Listen(IPAddress.Loopback, endpointPort, listener => listener.UseHttps(cert)));
+                                    app = builder.Build();
+                                    app.Run(async context => { context.Response.ContentType = "application/json"; await context.Response.WriteAsync("{"); });
+                                }
+                                else app = ResearchSnapshotEndpoint.Create(new(reader, clock), action == "unauthorized" ? "wrong-test-service-key-12345678" : Key, cert, endpointPort);
+                                await app.StartAsync();
+                            }
+                        }
+                        else throw new InvalidOperationException("Unknown qualification command.");
+                        sequence = next;
+                        await File.WriteAllTextAsync(ackPath + ".pending", JsonSerializer.Serialize(new { sequence }), new UTF8Encoding(false), deadline.Token);
+                        File.Move(ackPath + ".pending", ackPath, true);
+                    }
+                }
+                await Task.Delay(50, deadline.Token);
+            }
+        }
         catch { if (!process.HasExited) process.Kill(true); throw; }
+        finally { await app.DisposeAsync(); }
         evidence.WriteLine(await stdout);
         Assert.True(process.ExitCode == 0, await stderr);
-        await app.StopAsync();
     }
     private static string FindRoot()
     {
