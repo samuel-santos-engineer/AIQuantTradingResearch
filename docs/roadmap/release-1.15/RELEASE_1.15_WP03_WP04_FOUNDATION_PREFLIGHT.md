@@ -737,3 +737,61 @@ WP02 #368 and WP07 #373 now have actual local Linux role/HTTPS/browser/restart e
 - `eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1`: `0be3606f67813c2b428b9910e1ce314f5e64318006083d066230b8ec725d6ca7`.
 - `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: `bf7379ea3c060931433932facc8b2f4cf8ef34efa697c4adfcdeb47958742f3a`.
 - `tests/runtime/release_1_15/wp07_browser_qualification.py`: `a75a21755020039526000c7cc6bb19149fb5f486a568c8af3385e66db5bea233`.
+
+
+## WP07 Azure staging readiness preparation (2026-10-25)
+
+**Outcome: PASS_LOCAL_ONLY re-confirmed; Azure deployment BLOCKED / NOT RUN; PUBLIC_RUNTIME_VERIFIED=False.** Preparation starts from merged PR #395/main `71e4f8ccce877547d11c965ded92280fb02e65de`. No application or deployment implementation changes. No Azure mutation, registry push, credentials acquisition, provider call, production operation, issue closure or merge. PR #386/#387 were not imported.
+
+### Exact paths and read-only reconciliation
+
+Only this existing document (append only) and new [staging readiness operator runbook](prompters/release-1.15-wp07-azure-staging-readiness-runbook.md) change. The runbook contains the requirement/evidence/result/remediation matrix, runtime variables, ports/entrypoints, certificate/state prerequisites, ordered withheld deployment/validation/rollback checklist and minimum future authority. A new mutation-capable script is unnecessary. No additional licensing/policy gate is introduced. UTF-8/LF and separate CRLF verification apply.
+
+Read canonical governance, execution plan, acceptance/file manifest, prior evidence, actual Dockerfiles and source; GitHub issues #368/#369/#372/#373 and #395 merge state were checked live. #395 is MERGED at the expected squash SHA. Original checkout remains on its existing dirty branch; isolated readiness branch starts at merged main. All 20 original modified/untracked owner files were inventoried by byte size and SHA-256 before work, with HEAD/status rechecked after work.
+
+Azure CLI 2.89.1 used existing authentication for read-only projections of exactly the named staging apps/shared F1 plan. Confirmed both belong to `asp-aiq-r112-wp05-wus2-7f5eabb5`, SKU F1/Free capacity 1, Linux West US 2. Both report Running and Always On false; neither has a health-check path or startup override. These management observations are not runtime tests. The research shell has empty image assignment, no app settings or custom storage mounts, httpsOnly=false and publicNetworkAccess Enabled. UI retains its prior image assignment, port8501, storage=false and no custom mounts; legacy provider setting names remain, while Release 1.15 research client settings are absent. No secret setting value, registry credential, publishing profile or token was requested/output. Current rollback image namespace is deliberately omitted from public evidence.
+
+Commands used: `gh pr view 395 --json state,mergedAt,mergeCommit`; `gh issue view <368|369|372|373> --json number,title,state,body`; `az appservice plan show`, `az webapp show`, `az webapp config show` with safe field projections; `az webapp config appsettings list` projected to names and three non-secret port/storage/startup fields only; `az webapp config storage-account list` projected to names. Initial Windows batch quoting of `keys(@)` failed; the Python CLI retry showed the response was an array, so the corrected `[].name` projection succeeded, returning [] for both apps. These failed query attempts made no mutations. All final required inventory queries exited0. CLI null plan metadata was retained as unknown, not spare capacity.
+
+### Re-executed local qualification
+
+Environment: Windows PowerShell **5.1.26100.9711** (compatible 5.1 syntax; requested patch 5.1.26100.9444 not separately available), Docker **29.7.2 linux/amd64**, existing Python environment, Streamlit **1.61.1**, Plotly Python **7.1.0**, actual browser Plotly.js **4.1.1**, Chrome **155.0.8059.86**. No installed dependencies, restores or pulls. Existing pinned cached runtime bases and qualified Python dependency image reused.
+
+First script invocation was denied by process execution policy before any build/start; retry used process-only RemoteSigned, not a machine policy change. Successful commands (operator-owned private paths intentionally represented as variables):
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process -Force
+& ./eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1 `
+  -PublishedResearchDirectory $PublishedResearchDirectory `
+  -FixtureDirectory $FixtureDirectory -Python $ExistingPython -Execute -KeepImages
+$env:PYTHONPATH='python/presentation'
+& $ExistingPython -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client
+```
+
+- Docker runner exit **0**, **PASS_LOCAL_ONLY**. Actual Linux C# API and Streamlit pair; real browser BTC/ETH1000 rows, retention/gap, supplied RSI, outage/last-good/reconnect and no browser research/CDN requests PASS.
+- API full/unchanged and missing/wrong service key, wrong hostname/untrusted CA rejection PASS. Private directory1654:1654 mode0700; DB/witness0600; UI no private mounts PASS. Graceful restart and SIGKILL at quiescence preserve identities/rows; same-volume second writer exits unsuccessfully; logs contain no fixture service key. No interrupted-write, power-loss or cross-host/Azure mount proof is implied.
+- Python **52/52**, exit **0**, **17.851s**. Expected bare-mode Streamlit missing-ScriptRunContext warnings; no assertion failure. No broad .NET rerun or legacy hover test alteration. Prior #395 .NET results remain prior evidence, not newly executed counts.
+- Existing portable publish reused, manifest SHA-256 `94545ea795181bd513978a1bc85f88ee918eeb467135612051d3cad6344ea4ac`; deterministic fixture/TLS files remained external to build contexts. No claim of fresh application compilation at this baseline.
+- Startup to completed initial API/negative probe **6.380852s**, not isolated chart time or Azure cold-start guarantee. BTC full/unchanged **1.076409/0.354337s**; ETH **0.559888/0.199549s**. One stats sample: research **154.6MiB/256MiB**, **0.06% CPU**,16 tasks; UI **183.8MiB/512MiB**, **1.14% CPU**,13 tasks. Task counts include threads; each has one principal app process. Not peak measurements, F1 guarantees or concurrent-session qualification.
+- All owned runtime containers/networks/volumes cleaned by the runner; image pair retained locally for review. No unrelated process/resource cleanup. Old qualified pair left untouched.
+
+New **local image/config identities**, not pushed registry RepoDigests:
+
+| Role | Image ID | User |
+|---|---|---|
+| Research | `sha256:aadc31bf0ef06d51b9d32c38cc0cf74ff0a7a32a2543b11d226a8cceabb35f62` | 1654:1654 |
+| UI | `sha256:fc1c57f4bdb2fcb87de2c169aff60ab5f7ee657a8660041af7c3563ad3de9e42` | 12002:12002 |
+
+Local result SHA-256: `497a4d3b907292f336c45b752c09d2de93559d09b5d20fc0decbe53788dd5040`.
+Actual Linux browser screenshot SHA-256: `0290355d85e9995410b48b74b1e47b3d6cb6ec9b9f1042d00d92d6a5ec7d3792`.
+Private local report/screenshot paths and personal identifiers are omitted. Docker labels/tags differ from the prior run, so new image IDs are not a registry substitution or a claim of byte-identical rebuilds.
+
+### Concrete blockers and withheld operations
+
+1. **Transport BLOCKED:** actual research UseHttps-only listener52731 conflicts with documented App Service frontend TLS termination/HTTP backend routing. WEBSITES_PORT and external httpsOnly do not fix this. No HTTP fallback, proxy, sidecar or contract amendment implemented. Separate narrow proposal needed before promotion.
+2. **Storage/writer BLOCKED:** no research mount exists. Persistent /home does not prove WAL/UID/sync/rename/replacement safety; SQLite WAL is not a network-filesystem solution. ResearchWriterOwnership explicitly provides local-process ownership, not cross-App-Service leasing. No durable Azure backend selected or qualified; no silent ephemeral-state or journal-mode substitution.
+3. **State/provisioning BLOCKED:** existing DB/witness/D5 tuple required at startup; no operational initializer/live ingestion runtime established by this read-only snapshot entrypoint. Local test exporter/fake state cannot be deployed. Secure non-test initialization/acquisition/recovery procedure remains unspecified.
+4. **Configuration NOT READY:** research lacks image/secrets/HTTPS-only; UI still has legacy provider-setting names and lacks client settings. Remote auth, CA/hostname, direct unauthorized denial and no-leak behavior remain NOT RUN.
+5. **F1/resource NOT RUN:** same plan membership confirmed; concurrent deployed workloads, actual idle/cold startup, quotas, 1/3/5 sessions, Azure filesystem and rollout overlap unverified. No Always On, paid tier or new resource assumed.
+
+References and inference limits are linked in the runbook, including Microsoft custom-container/Linux FAQ/hosting-plan docs and SQLite WAL documentation. Next action is owner review of this preparation PR and a narrowly scoped transport/storage/provisioning resolution. Only after resolution/local requalification would exact paired registry publication and changes to the two named staging apps, secret/CA/state configuration, bounded staging verification and coordinated rollback need explicit deployment authority. Production/provider activation remain excluded. Deployment permission alone would not resolve technical blockers. No WP acceptance or PUBLIC_RUNTIME_VERIFIED change follows from these local results.
