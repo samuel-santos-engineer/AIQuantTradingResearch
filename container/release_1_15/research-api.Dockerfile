@@ -3,7 +3,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0@sha256:e4b445f93a5deeb6bd7de300febceb8
 WORKDIR /app
 # Context must contain a previously built linux/amd64 framework-dependent publish in research/.
 COPY research/ ./
+COPY container/release_1_15/research-bootstrap.sh /app/research-bootstrap.sh
 ENV AIQ_RESEARCH_BIND_ADDRESS=0.0.0.0
 USER 1654:1654
 EXPOSE 52731
-ENTRYPOINT ["dotnet", "AIQuantTradingResearch.Worker.dll", "--research-snapshot-api"]
+ENTRYPOINT ["/bin/sh", "/app/research-bootstrap.sh"]

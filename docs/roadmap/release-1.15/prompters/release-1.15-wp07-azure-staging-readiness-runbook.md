@@ -535,3 +535,101 @@ Rollback: stop UI/research, verify old process stopped; restore previously captu
 Two apps still share the existing Free plan. Idle unload/cold start, image pull/startup time, competing CPU/memory quotas and loss of ephemeral state can make availability intermittent; no AlwaysOn, SLA or spare capacity is assumed. See [App Service configuration](https://learn.microsoft.com/azure/app-service/configure-common) for idle/AlwaysOn behavior. This PR did not restart, load-test or measure those apps. Later authorized testing must observe cold startup, actual resource/availability behavior and bounded1/3/5 sessions, recording failures; HTTP200 alone is never browser acceptance.
 
 PASS_LOCAL: focused .NET tests and11 local Linux cases,8 existing diagnostics regressions. VERIFIED_AZURE_STAGING: none newly performed in WP09. BLOCKED_INPUT: designated secure real-data channel/export, account-specific credits and base-volume confirmation, and practical private bootstrap delivery for the existing app. Acquisition stays0 requests/0 credits; no credential retrieval. NOT_RUN: Azure filesystem verification, image publication/config/start/restart, import of real observations, public research TLS/auth and browser acceptance for BTC/ETH/indicators/gaps/stale/reconnect. PUBLIC_RUNTIME_VERIFIED=False. No paid resources, merge or WP closure.
+
+
+## WP10 same-container bootstrap and diagnostic image increment (2026-10-25)
+
+Baseline PR403 squash `894b075e65863c042e9c39167fdbd71612020c90`. No C# contract/initializer/endpoint, WP09 boundary, governance, provider or schema change. The research image now enters `research-bootstrap.sh`; serve remains default. All new/modified text is UTF-8/LF. The old Linux qualification runner copies the new shell into its allowlisted build context, preserving reproducibility.
+
+Modes:
+- `serve`: exec the existing snapshot endpoint. Missing/lost/corrupt state fails unchanged; no fetch or automatic initialization.
+- `operator-stdin`: require an already privately delivered readable export via AIQ_RESEARCH_IMPORT_FILE, send bounded initializer configuration through stdin, run the unchanged initializer to completion, then unset bootstrap/import path variables and exec the endpoint in the **same container**. Initializer exit releases the single-writer lock before the server opens it. Invalid/missing input returns REIMPORT_REQUIRED and never starts the server. No background writer, public import route, shell tracing or secret arguments.
+- `diagnose`: read-only one-shot UID fields, selected root/tmp mount metadata (no host backing paths), private-directory mode/existence and known cgroup limits. No mkdir, write probe, initializer, database access, server or export handling. It is not a guard-pass verdict. Local diagnostic was tested with read-only rootfs. Default serve is not silently replaced by diagnostics.
+
+### Actual access findings and private-channel limit
+
+Fresh read-only management queries against the exact research staging app show Running Linux shell, no assigned image, no startup command, AlwaysOn false and one listed instance. This is not its future research container's UID/mount proof. No runtime command was executed in Azure.
+
+Microsoft now documents a newer Linux app-container terminal/`az webapp exec` channel without an image SSH daemon; it requires Azure CLI2.90 or later, SCM access and a running app container. Its detached mode returns acceptance without remote stdout/exit, and it has no file-transfer feature. See [official app-container access documentation](https://learn.microsoft.com/en-us/azure/app-service/configure-linux-open-ssh-session). App and Kudu remain different environments. Our installed CLI does not recognize `webapp exec`; local help exited1. No CLI/extension upgrade, SSH daemon/password, RBAC/network change or publishing credential retrieval was performed. Initial sandbox help hit Azure-profile permissions; escalated help confirmed the unsupported command. A supported owner portal terminal/new CLI may be investigated later against the designated app; neither access nor private stdin/file transfer was demonstrated here. Do not claim the channel exists merely from documentation.
+
+Thus **actual Azure bootstrap delivery is still BLOCKED**. Local Docker stdin plus daemon-mediated private file copy demonstrated the wrapper sequencing, not an App Service transport. No direct Azure Docker-daemon access, SCM/application file equivalence, input mount, stdin attachment to PID1 or endpoint for import is assumed. An authenticated HTTP import surface would require separate design review/authority and is not added. If no supported private operator path is feasible, stop at that design boundary; this PR does not claim to finish Azure bootstrap.
+
+### Reproduce the bounded local image/bootstrap checks
+
+```powershell
+# Publish only clean approved source, using cached packages and no provider credentials.
+dotnet restore src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj --source "$env:USERPROFILE/.nuget/packages" -p:NuGetAudit=false --ignore-failed-sources
+dotnet publish src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj -c Release --no-restore -p:UseAppHost=false -o $OwnedPublishDirectory
+& ./eng/docker/release-1.15/Invoke-Wp10BootstrapQualification.ps1 -PublishedResearchDirectory $OwnedPublishDirectory
+& ./eng/docker/release-1.15/Invoke-Wp10BootstrapQualification.ps1 -PublishedResearchDirectory $OwnedPublishDirectory -Execute
+```
+
+Default is read-only cached-input preflight. -Execute builds the existing two Dockerfiles from pinned cached ASP.NET/Python bases and the accepted local dependency image; no pulls, installs, provider requests or registry publication. Context is an allowlisted public source/publish copy; fake configuration/export are generated **after builds**, outside the context. No keys/exports in image layers/Git. Both images retain expected nonroot identities1654/12002. Context, fake input and environment file are removed only from the exact owned temporary root; exact labeled containers are removed. Only local candidate images remain. No shell/app/provider source is substituted.
+
+Eleven actual local cases passed: read-only diagnostic; unknown mode refusal; missing private export; missing state with configured private path; invalid stdin never starts server; initializer then endpoint in same container; missing API key denied; BTC and ETH full C# snapshots from **offline test fixtures**; no service/HMAC secrets in diagnostics; UI image health without network/credentials. The fixture uses401 constant candles per symbol and is never represented as authentic acquisition. Existing C# calculations/integrity execute; no Python indicators. Local HTTP is the existing explicitly selected platform-HTTP transport with simulated Azure metadata, not Azure frontend TLS or browser acceptance. Loopback-only host publication and bounded memory/pids/timeouts. Initial nine cases passed; added invalid-input/read-only checks yielded ten cases, all passed. A final run added isolated UI-image health, yielding11/11.
+
+Latest tested local IDs (not pullable registry manifest digests):
+- Research: `sha256:b1a70c7f3e9be8ca9db178ae3d8a0b2a9663c8d20f20ccd932569c1b7596187b`
+- UI: `sha256:d7eece4918fba6897aaf6570f080fd198d8d6c33e2b09dc890f3d2c7b978e639`
+
+### Narrow next mutation request: research diagnostic only
+
+Request owner approval to publish **only that research candidate** into the already approved registry destination, read back its real manifest digest, temporarily configure only `rg-aiq-r112-wp05-wus2-7f5eabb5` / `aiqr115researchstagingwus27f5eabb5` to that immutable digest with AIQ_RESEARCH_BOOTSTRAP_MODE=diagnose, start briefly, collect only allowlisted diagnostic output, then stop and restore its prior shell/configuration. UI `aiqr112wp05wus27f5eabb5` stays unchanged. No provider/data import, new resource, container SSH installation, readiness promotion or production action. No app identity markers are set. This is a request, not executed authority.
+
+After approval, privately capture the baseline image/startup/settings/state; never print full settings or registry namespace. Pin the actual registry digest after publication; a local config ID cannot substitute. Templates target only the research staging app:
+
+```powershell
+$Group='rg-aiq-r112-wp05-wus2-7f5eabb5'
+$Research='aiqr115researchstagingwus27f5eabb5'
+# $ReviewedRegistryTag is the existing approved registry destination, privately supplied.
+# $LocalResearchImage is exactly the tested ID above; no UI image publication here.
+docker tag $LocalResearchImage $ReviewedRegistryTag
+if($LASTEXITCODE -ne 0){throw 'Tag failed'}
+docker push $ReviewedRegistryTag
+if($LASTEXITCODE -ne 0){throw 'Publication failed'}
+# Read back registry manifest, bind its actual digest to the local candidate and record privately.
+# STOP unless $QualifiedResearchRegistryDigest is the verified immutable registry reference.
+az webapp stop -g $Group -n $Research --output none
+if($LASTEXITCODE -ne 0){throw 'Stop failed'}
+$State=az webapp show -g $Group -n $Research --query state -o tsv
+if($LASTEXITCODE -ne 0 -or $State -ne 'Stopped'){throw 'Stop unverified'}
+az webapp config container set -g $Group -n $Research --container-image-name $QualifiedResearchRegistryDigest --output none
+if($LASTEXITCODE -ne 0){throw 'Image config failed'}
+az webapp config appsettings set -g $Group -n $Research --settings AIQ_RESEARCH_BOOTSTRAP_MODE=diagnose --output none
+if($LASTEXITCODE -ne 0){throw 'Diagnostic config failed'}
+az webapp start -g $Group -n $Research --output none
+if($LASTEXITCODE -ne 0){throw 'Start failed'}
+# Bound observation window to <=60s; use approved application log capture, sanitize platform lines.
+# Diagnostic exits without a server: no health/startup-success claim, and retries are not imports.
+az webapp stop -g $Group -n $Research --output none
+if($LASTEXITCODE -ne 0){throw 'Diagnostic stop failed'}
+# Verify stopped, restore privately captured baseline image/startup/settings exactly.
+# If mode was absent, delete only AIQ_RESEARCH_BOOTSTRAP_MODE with output none.
+# Prior research shell had no image; do not invent a rollback image or enable a research server.
+```
+
+The prior shell has no digest, so rollback cannot be an invented previous image. Prepare the exact baseline linuxFxVersion/appCommandLine restoration from the privately captured config (App Service config set with protected generic-configurations JSON), remove only newly introduced mode, verify config equality, and restore its prior Running/Stopped shell state after diagnostic stop. Registry rollback/temporary-tag retention also needs the approved publication disposition; do not delete another image/version. Exact rollback application commands after verifying diagnostic stopped (protected config contains only captured linuxFxVersion/appCommandLine; protected mode settings contain only the prior bootstrap mode if it existed):
+
+```powershell
+az webapp config set -g $Group -n $Research --generic-configurations "@$ProtectedBaselineContainerConfigFile" --output none
+if($LASTEXITCODE -ne 0){throw 'Baseline config restoration failed'}
+if($BaselineModeWasPresent) {
+    az webapp config appsettings set -g $Group -n $Research --settings "@$ProtectedBaselineModeFile" --output none
+} else {
+    az webapp config appsettings delete -g $Group -n $Research --setting-names AIQ_RESEARCH_BOOTSTRAP_MODE --output none
+}
+if($LASTEXITCODE -ne 0){throw 'Mode restoration failed'}
+# Verify image/startup/mode equality to baseline privately, then restore initial state:
+if($BaselineState -eq 'Running') {
+    az webapp start -g $Group -n $Research --output none
+    if($LASTEXITCODE -ne 0){throw 'Original shell state restoration failed'}
+}
+```
+
+No publication credentials are obtained by these templates. Missing registry access, baseline rollback or bounded safe log capture stops execution before mutation. No fallback deployment or repeated failure loop is authorized.
+
+The requested diagnostic is only phase1. It cannot prove writable-state initialization, ingress TLS or secure bootstrap. Evaluate its actual UID/overlay/tmp/cgroup evidence against unchanged WP09; mismatch requires a separate evidence-backed change, not broadening guards here. Only after real input and private channel are established request exact research/UI rollout and actual Chrome acceptance. Prior target-specific two-app commands remain templates, not executed steps. The UI's HTTPS hostname/API-key setup remains server-side; no browser credential exposure. Shared F1 capacity/idle/cold-start remains to measure, never solved by an HTTP200 probe.
+
+### Current result
+
+PASS_LOCAL: both images built, eleven local bootstrap cases; no actual private Azure channel proof. VERIFIED_AZURE_STAGING: management metadata only, no container/runtime/browser claim. BLOCKED_INPUT: absent approved private provider credential/export and account-specific credit/base-volume evidence; private Azure import channel not demonstrated. Acquisition0 requests/0 credits. NOT_RUN: registry publication, Azure mutations/restarts/import, actual research filesystem/TLS/API/browser acceptance, cold-start/session measurements. PUBLIC_RUNTIME_VERIFIED=False. One focused review PR, OPEN/UNMERGED; no production/paid infrastructure or WP closure.

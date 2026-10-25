@@ -1090,3 +1090,25 @@ Final hygiene PASS: nine changed files strict UTF-8/no BOM/LF/final-newline; all
 - tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs
 - tests/runtime/release_1_15/test_wp07_staging_readiness.py
 - tests/runtime/release_1_15/wp09_ephemeral_probe.cs
+
+
+## WP10 private-stdin bootstrap and two-image local qualification - 2026-10-25
+
+Baseline PR403 merged at `894b075e65863c042e9c39167fdbd71612020c90`, verified ancestry and GitHub merge. Isolated worktree; no C#/governance/storage-guard change. New shell entrypoint adds explicit operator-stdin initialization followed by exec of unchanged endpoint, plus read-only diagnostics; default serve remains. Existing qualification context now includes the shell. New PS5.1 wrapper/Python runner builds both existing images from pinned cached inputs and tests sequencing privately. No public import endpoint or automatic polling/fetch/fixture bootstrap.
+
+PASS_LOCAL: cache-only restore and fresh offline Worker publish succeeded. Invoke-Wp10BootstrapQualification.ps1 default PREFLIGHT_ONLY; -Execute built research/UI in three bounded runs (9,10, then11 cases), final eleven passed: diagnostic on read-only root, unknown mode, missing export, lost state, invalid stdin, same-container initializer/server, missing-key401, BTC+ETH full C# fixture snapshots, no secret diagnostics and isolated UI image health with no credentials/network. No failing code/smoke runs. Fixture401 rows/symbol are fabricated offline tests, not real observations; local platform-HTTP/simulated Azure markers are not actual Azure or end-to-end TLS proof. Both expected UID images; all owned containers, private test input/context/env files cleaned. Local image IDs recorded in runbook, no registry digests fabricated. No broad SQLite/browser qualification repeated.
+
+VERIFIED_AZURE_STAGING management only: exact research app Running Linux shell, imageAssigned=false, startupConfigured=false, AlwaysOn=false, one listed instance. No UID/mount/runtime command executed in Azure. The current Microsoft documented app-container exec channel needs CLI2.90+; installed CLI help rejects webapp exec, exit1. Initial sandbox help was profile-permission blocked; escalated help confirmed unsupported command. No CLI/extension install, RBAC/SSH change or SCM credential retrieval. Do not infer actual private file/stdin delivery from local Docker or documentation. Kudu filesystem is not assumed equal to application filesystem.
+
+BLOCKED_INPUT: presence-only provider environment checks all false, no approved alternate export/channel, account-specific credit or base-volume facts. Provider requests0/credits0. Same-container secure delivery on actual Azure still unproven; an authenticated import route would need separate design review and is not implemented. Task goal not achieved in staging yet. NOT_RUN: image push, Azure config/restart/import, runtime guard verification, authentic observations, TLS/auth/browser/cold-start/sessions. PUBLIC_RUNTIME_VERIFIED=False.
+
+Next narrow mutation request is only publish the tested research candidate, apply diagnostic mode to the exact existing research staging app for a <=60s observation, stop/restore its original shell/configuration; no UI mutation/data/provider/new resource. Capture exact baseline and actual registry digest privately first; failure to establish safe rollback/log capture stops before mutation. Runbook provides precise commands and limits; no mutation authorized by this PR.
+
+Final checks PASS: strict UTF-8/no BOM/LF/final-newline for all7 changed paths, append-only documents, git diff --check, Windows PowerShell5.1 parser for both changed PS scripts and Python AST. No labeled test containers remain. Original owner HEAD/status and all28 dirty/untracked SHA256/lengths preserved. Actual shell5.1.26100.9711; exact9444 patch unavailable. Changed paths:
+- container/release_1_15/research-api.Dockerfile
+- container/release_1_15/research-bootstrap.sh
+- docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md
+- docs/roadmap/release-1.15/prompters/release-1.15-wp07-azure-staging-readiness-runbook.md
+- eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1
+- eng/docker/release-1.15/Invoke-Wp10BootstrapQualification.ps1
+- tests/runtime/release_1_15/wp10_bootstrap_qualification.py

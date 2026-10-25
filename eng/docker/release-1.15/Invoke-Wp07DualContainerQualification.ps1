@@ -102,6 +102,8 @@ try:
     record['publishManifestSha256']=hashlib.sha256(json.dumps({p.relative_to(published).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(published.rglob('*')) if p.is_file()},sort_keys=True).encode()).hexdigest()
     context=out/'context';(context/'research').mkdir(parents=True)
     shutil.copytree(published,context/'research',dirs_exist_ok=True)
+    bootstrap=context/'container/release_1_15';bootstrap.mkdir(parents=True)
+    shutil.copyfile(root/'container/release_1_15/research-bootstrap.sh',bootstrap/'research-bootstrap.sh')
     presentation=context/'python/presentation';presentation.mkdir(parents=True)
     modules=['realtime_financial_visualization.py','research_chart.py','research_snapshot_client.py','research_chart_component.js','research_chart_component.html','visualization_read_model.py','historical_market_bridge.py','local_synthetic_chart.py','immutable_synthetic_chart.py','public_preview_api.py']
     record['sourceHashes']={}
