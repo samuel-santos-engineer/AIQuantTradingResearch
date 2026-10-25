@@ -409,3 +409,47 @@ Stop/start: stop the old research service/container; verify that exact process/c
 | NOT_RUN | Provider acquisition, host provisioning, registry publication, deployment, authentic import, Azure HTTPS/auth/runtime/browser/restart/cold-start/session tests. No paid resource or secret retrieval. |
 
 **Next executable owner step:** choose A (supply private completed-minute export, or approve the exact bounded acquisition above) and B (designate an already-owned persistent host explicitly serving existing staging, or approve this WestUS2 single-instance proposal/budget for a separately scoped provisioning sequence). All subsequent runtime qualification targets only the existing staging URL and that explicitly assigned host. Existing staged UI config/rollback command templates above remain applicable after host/digest/secret inputs are resolved. Stop before unapproved calls or provisioning. PUBLIC_RUNTIME_VERIFIED=False.
+
+
+## Authentic chart assignment: current operational disposition - 2026-10-25
+
+Baseline merged PR #401 `f19d63647efcda5fe734363d87c430ffe8208ae2`. **The prior VM/disk/IP proposal and its budget are withdrawn.** Earlier proposal text is historical, not an approved dependency. No VM, disk, IP, network, paid service, governance change or storage-policy change is part of this increment. Persistent local/block hosting work is deferred. The existing App Service writer safeguard remains unchanged; no marker stripping, fixture authority, ephemeral/network SQLite workaround or second writer is permitted.
+
+### Acquisition result: no requests sent
+
+Bounded acquisition authority permits one request per symbol,1000 rows maximum each, at most16 account credits total, no retries. Actual execution: **0 requests,0 credits consumed**. Presence-only checks found no TwelveData__ApiKey, TWELVE_DATA_API_KEY or AIQ_TWELVE_DATA_API_KEY in the current process environment. No alternative approved private credential channel or export was supplied. No Azure provider-key setting, user secret store, unrelated app setting or private credential file was retrieved. No provider request was used to discover account information.
+
+The account-specific credit cost and base-asset-volume semantics are also unestablished. Existing source requests UTC ascending1min outputsize1000 and requires baseAssetVolumeConfirmed; that boolean does not prove the account's volume units. ResearchIngestionService's configured credit counter is not evidence of provider-account pricing. Needed input is the designated private credential channel (or authorized export), account confirmation of actual credits per request for these two requests within the16-credit cap, and confirmation of base-asset volume semantics. This is the existing source's technical precondition, not a new licensing gate. Do not call the provider until those facts are supplied without an extra discovery request. Once available, use the unchanged source/initializer and merged Invoke-Wp07ResearchImport.ps1; preserve UTC completion, provenance and gaps. Private rows/config/state remain outside Git.
+
+### Executable staging-only read-only preflight
+
+New `eng/docker/release-1.15/Test-Wp07StagingChartReadiness.ps1` targets only the named existing staging apps and fixed UI routes. Default invocation makes no network/process calls and reports NOT_RUN. -InspectAzure uses the installed Azure CLI with30-second child deadlines and safe management projections; settings **names only**, no values, images, CLI diagnostics or account identifiers are printed. -ProbeUi makes one bounded nonredirecting HTTPS GET each to the existing staging root and Streamlit health route with standard certificate validation, no proxy inheritance,10-second network/read deadlines and64KiB body limit; bodies are discarded. It never launches a browser, submits credentials or calls research/provider APIs. No mutation action exists.
+
+```powershell
+# Windows PowerShell5.1; default does nothing operationally.
+& ./eng/docker/release-1.15/Test-Wp07StagingChartReadiness.ps1
+# Explicit read-only checks against the designated staging apps only:
+& ./eng/docker/release-1.15/Test-Wp07StagingChartReadiness.ps1 -InspectAzure -ProbeUi
+```
+
+Exit0 means the requested observations were reported, not that chart readiness passed. Examine uiConfigurationPresent, transport status and chartAcceptance. Setting-name presence cannot prove correct values, TLS, authentication or a compatible research endpoint. The script always retains appServiceWriterSupported=false, compatibleResearchEndpointVerified=false, chartAcceptance=NOT_RUN and PUBLIC_RUNTIME_VERIFIED=false. It deliberately cannot award browser acceptance. Its pure assessment tests use metadata fixtures only; they are not substitute Azure tests.
+
+| Status | Actual result |
+| --- | --- |
+| PASS_LOCAL | Eight focused offline tests, exit0, final2.781s; default no-network behavior, missing image/HTTPS/settings, stopped UI, rejection of an unapproved route, PowerShell5.1 parsing and no false acceptance from configuration. No fault matrix, builds, package installs or broad test suite. |
+| VERIFIED_AZURE_STAGING_MANAGEMENT | Exact group still contains only the existing F1 plan and two apps. UI Running, HTTPS-only, image assigned, no research settings/custom mounts. Research Running shell, no image, no research settings/mounts, HTTPS-only false. New preflight independently reports3 missing required UI research settings and uiConfigurationPresent=false. No unrelated resource search. |
+| VERIFIED_AZURE_STAGING_HTTP | First bounded root/health probes returned UNAVAILABLE without an HTTP status; cause was not established and is not called an application outage. After adding safe transport categories, one bounded follow-up observed200 on both routes, without deployment/restart. Four total public GET attempts. This proves HTTP observations only, not authentic data, indicators, cold start, capacity or browser behavior. |
+| BLOCKED_INPUT | No available authorized provider credential/export, account-specific credit-rate/volume evidence or designated compatible research endpoint. Process-environment research URL/key also absent. No private file search. |
+| NOT_RUN | Authentic acquisition/import; image publication; Azure mutation/deployment; research TLS/auth negatives; SQLite restart continuity in Azure; real chart/browser/indicator/stale/reconnect/cold-start/session acceptance. |
+
+### Exact remaining decision, not another hosting proposal
+
+The unchanged ResearchStorageBoundary rejects App Service before SQLite writer initialization. Both designated Azure apps are App Service. No compatible research endpoint was configured, supplied or established within the authorized scope; none is assumed elsewhere. The existing F1 UI can serve its current legacy application and could host the already implemented Release1.15 client after authorization, but that client cannot display authentic research snapshots without a compatible endpoint. A UI-only config/image update cannot remove this blocker. Local accepted fixture evidence does not change it.
+
+The smallest governance-preserving next option is **owner designation of an already-owned, reachable, compatible research snapshot endpoint explicitly serving this staging UI**, retaining existing SQLite/D5, single-writer and strict HTTPS/API-key semantics; do not provision anything or search other environments. If no such endpoint can be designated while hosting is deferred, **defer actual staging chart delivery**. Enabling the F1 writer would require changing a boundary explicitly prohibited by this assignment, so it is not offered as an implementation trick. No mutation approval alone can fix absence of the endpoint.
+
+Once a compatible endpoint and authentic input are supplied, request one narrowly scoped staging action approval for the existing UI's immutable image/config and subsequent acceptance. Earlier exact-target UI commands remain templates only: `az webapp config container set`, `az webapp config appsettings set` using a protected external settings JSON, and `az webapp restart`, all restricted to `rg-aiq-r112-wp05-wus2-7f5eabb5` / `aiqr112wp05wus27f5eabb5` and reviewed exact digest/hostname/settings. No actual digest or endpoint is invented. Do not execute until explicitly authorized; preserve rollback settings privately and never expose secrets in argv/logs. Do not deploy research into the F1 shell.
+
+Acceptance after that authority targets only `https://aiqr112wp05wus27f5eabb5.azurewebsites.net/` and the expressly assigned research endpoint: actual completed BTC/ETH candles, C# indicators/SMA/RSI, retained gaps/hidden warmup, selectors/hover/zoom/pan, truthful stale/reconnect, hostname/certificate/API-key negatives, no browser/provider secrets, unchanged SQLite/D5 through controlled stop/verify/start, and accurately measured cold-start/session results. None was inferred from HTTP200 or reused local fixtures.
+
+Stop here pending two concrete inputs: (A) secure authentic-data/account prerequisites above; (B) designate the compatible existing endpoint, or explicitly defer staging integration. No withdrawn budget proposal or new infrastructure approval gate. PUBLIC_RUNTIME_VERIFIED=False.
