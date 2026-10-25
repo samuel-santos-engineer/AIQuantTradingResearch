@@ -12,6 +12,11 @@ using AIQuantTradingResearch.Application.Visualization;
 using AIQuantTradingResearch.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
+// Explicit operator-only command. Secrets enter through bounded stdin, never arguments.
+if (args.Contains("--research-initialize", StringComparer.Ordinal))
+    return args.Length == 1 ? await ResearchStateInitialization.RunAsync(Console.OpenStandardInput(), Console.Error,
+        Environment.GetEnvironmentVariable("AIQ_RESEARCH_PRIVATE_DIRECTORY"), Environment.GetEnvironmentVariable("AIQ_RESEARCH_IMPORT_FILE")) : 1;
+
 // Explicit offline candidate / Windows local commands, never selected by deployed configuration.
 if (args.Contains("--write-immutable-chart-candidate", StringComparer.Ordinal))
     return await ImmutableSyntheticChartHandoff.RunAsync(args, Console.Error);

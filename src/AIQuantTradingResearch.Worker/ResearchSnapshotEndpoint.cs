@@ -11,11 +11,33 @@ using Microsoft.Extensions.Logging;
 
 namespace AIQuantTradingResearch.Worker;
 
+/// <summary>Explicit platform opt-in, not attestation of Azure ingress configuration.</summary>
+public sealed record ResearchSnapshotTransport
+{
+    public bool PlatformHttp { get; }
+    private ResearchSnapshotTransport(bool platformHttp) => PlatformHttp = platformHttp;
+    public static ResearchSnapshotTransport FromSettings(Func<string, string?> setting)
+    {
+        var mode = setting("AIQ_RESEARCH_TRANSPORT") ?? "local-https";
+        if (mode == "local-https") return new(false);
+        if (mode != "azure-app-service-http" ||
+            setting("WEBSITE_SITE_NAME") != "aiqr115researchstagingwus27f5eabb5" ||
+            setting("WEBSITE_HOSTNAME") != "aiqr115researchstagingwus27f5eabb5.azurewebsites.net" ||
+            string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) ||
+            setting("AIQ_RESEARCH_PLATFORM_HTTPS_ONLY") != "1" ||
+            setting("AIQ_RESEARCH_BIND_ADDRESS") != "0.0.0.0")
+            throw new ArgumentException("Research configuration unavailable.");
+        return new(true);
+    }
+}
+
 public static class ResearchSnapshotEndpoint
 {
-    public static WebApplication Create(ResearchSnapshotSource source, string apiKey, X509Certificate2 certificate, int port = 0, IPAddress? listenAddress = null)
+    public static WebApplication Create(ResearchSnapshotSource source, string apiKey, X509Certificate2? certificate, int port = 0, IPAddress? listenAddress = null, ResearchSnapshotTransport? transport = null)
     {
-        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Length is < 16 or > 256 || apiKey.Any(c => c is < '!' or > '~') || !certificate.HasPrivateKey)
+        var platformHttp = transport?.PlatformHttp == true;
+        if (platformHttp && !IPAddress.Any.Equals(listenAddress)) throw new ArgumentException("Research configuration unavailable.");
+        if (string.IsNullOrWhiteSpace(apiKey) || apiKey.Length is < 16 or > 256 || apiKey.Any(c => c is < '!' or > '~') || (!platformHttp && certificate?.HasPrivateKey != true) || (platformHttp && certificate is not null))
             throw new ArgumentException("Research configuration unavailable.");
         var expected = SHA256.HashData(Encoding.ASCII.GetBytes(apiKey));
         var builder = WebApplication.CreateSlimBuilder(); builder.Logging.ClearProviders();
@@ -25,7 +47,7 @@ public static class ResearchSnapshotEndpoint
             options.Limits.MaxRequestBodySize = ResearchSnapshotJson.RequestLimit;
             options.Limits.MaxRequestHeadersTotalSize = 8192;
             options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(4);
-            options.Listen(listenAddress ?? IPAddress.Loopback, port, listen => listen.UseHttps(certificate));
+            options.Listen(listenAddress ?? IPAddress.Loopback, port, listen => { if (!platformHttp) listen.UseHttps(certificate!); });
         });
         var app = builder.Build(); var admission = new SemaphoreSlim(1, 1);
         app.Lifetime.ApplicationStopped.Register(admission.Dispose);
@@ -100,13 +122,15 @@ public static class ResearchSnapshotEndpoint
             var directory = Environment.GetEnvironmentVariable("AIQ_RESEARCH_PRIVATE_DIRECTORY") ?? throw new ArgumentException();
             if (!File.Exists(Path.Combine(directory, "research.sqlite"))) throw new ArgumentException();
             var key = Environment.GetEnvironmentVariable("AIQ_RESEARCH_API_KEY") ?? throw new ArgumentException();
-            var pfx = Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException();
-            using var certificate = X509CertificateLoader.LoadPkcs12FromFile(pfx, Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PASSWORD"));
+            var transport = ResearchSnapshotTransport.FromSettings(Environment.GetEnvironmentVariable);
+            using var certificate = transport.PlatformHttp ? null : X509CertificateLoader.LoadPkcs12FromFile(
+                Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException(),
+                Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PASSWORD"));
             using var store = new SqliteResearchStateStore(directory, true);
             store.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
             var addressText = Environment.GetEnvironmentVariable("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
             if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException();
-            await using var app = Create(new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText));
+            await using var app = Create(new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText), transport);
             await app.RunAsync(); return 0;
         }
         catch { Console.Error.WriteLine("Research snapshot service unavailable."); return 1; }

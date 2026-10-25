@@ -20,9 +20,11 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
     private ResearchIntegrity protection;
     public SqliteResearchStateStore(string privateDirectory) : this(privateDirectory, false, null) { }
     public SqliteResearchStateStore(string privateDirectory, bool calculateResearch) : this(privateDirectory, calculateResearch, null) { }
+    public SqliteResearchStateStore(string privateDirectory, bool calculateResearch, Guid initialGeneration) : this(privateDirectory, calculateResearch, null, initialGeneration) { }
     internal SqliteResearchStateStore(string privateDirectory, Action<string>? fault) : this(privateDirectory, false, fault) { }
-    internal SqliteResearchStateStore(string privateDirectory, bool calculateResearch, Action<string>? fault)
+    internal SqliteResearchStateStore(string privateDirectory, bool calculateResearch, Action<string>? fault, Guid? initialGeneration = null)
     {
+        if (initialGeneration == Guid.Empty) throw new ArgumentException("Invalid research generation.");
         this.fault = fault; this.calculateResearch = calculateResearch;
         try { ownership = new ResearchWriterOwnership(privateDirectory); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { throw new ResearchUnavailableException(); }
@@ -35,9 +37,10 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
             if (!exists && File.Exists(watermark)) throw new ResearchUnavailableException();
             using var connection = Open();
             using var transaction = connection.BeginTransaction();
-            if (!exists) Initialize(connection, transaction);
+            if (!exists) Initialize(connection, transaction, initialGeneration ?? Guid.NewGuid());
             ValidateStates(connection, transaction);
             var (generation, revision) = Metadata(connection, transaction);
+            if (initialGeneration is not null && generation != initialGeneration) throw new ResearchUnavailableException();
             var witness = ResearchStateRecovery.Validate(connection, transaction, generation, revision, watermark);
             transaction.Commit();
             UpdateWitness(witness);
@@ -77,10 +80,9 @@ public sealed class SqliteResearchStateStore : IResearchCommittedStateReader, IR
             throw new ResearchUnavailableException();
         return (g, r.GetInt64(1));
     }
-    private static void Initialize(SqliteConnection c, SqliteTransaction t)
+    private static void Initialize(SqliteConnection c, SqliteTransaction t, Guid generation)
     {
         Execute(c, t, ResearchStateSchema.Sql);
-        var generation = Guid.NewGuid();
         Execute(c, t, "INSERT INTO metadata VALUES(1,1,$g,0)", ("$g", generation.ToString("D")));
         foreach (var instrument in Enum.GetValues<ResearchInstrument>())
         {

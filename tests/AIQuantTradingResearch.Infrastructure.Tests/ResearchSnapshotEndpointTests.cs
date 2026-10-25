@@ -59,6 +59,51 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
             store.Commit(new(instrument, Now, TimeSpan.Zero), new(Enumerable.Range(0, 401).Select(i => ResearchTestDirectory.Candle(i, instrument))), old.Generation, 0);
         }
     }
+    private static Dictionary<string, string?> PlatformSettings() => new()
+    {
+        ["AIQ_RESEARCH_TRANSPORT"] = "azure-app-service-http",
+        ["WEBSITE_SITE_NAME"] = "aiqr115researchstagingwus27f5eabb5",
+        ["WEBSITE_HOSTNAME"] = "aiqr115researchstagingwus27f5eabb5.azurewebsites.net",
+        ["WEBSITE_INSTANCE_ID"] = "offline-instance",
+        ["AIQ_RESEARCH_PLATFORM_HTTPS_ONLY"] = "1", ["AIQ_RESEARCH_BIND_ADDRESS"] = "0.0.0.0"
+    };
+    [Theory]
+    [InlineData("AIQ_RESEARCH_TRANSPORT", "http")]
+    [InlineData("WEBSITE_SITE_NAME", "other")]
+    [InlineData("WEBSITE_HOSTNAME", "other.azurewebsites.net")]
+    [InlineData("WEBSITE_INSTANCE_ID", "")]
+    [InlineData("AIQ_RESEARCH_PLATFORM_HTTPS_ONLY", "0")]
+    [InlineData("AIQ_RESEARCH_BIND_ADDRESS", "127.0.0.1")]
+    public void PlatformBackendRejectsUnknownOrIncompleteConfiguration(string name, string value)
+    {
+        var settings = PlatformSettings(); settings[name] = value;
+        Assert.Throws<ArgumentException>(() => ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k)));
+    }
+    [Fact] public void DefaultTransportRequiresPrivateCertificateAndNeverEnablesHttpImplicitly()
+    {
+        Assert.False(ResearchSnapshotTransport.FromSettings(_ => null).PlatformHttp);
+        using var dir = new ResearchTestDirectory(); using var store = dir.Open();
+        Assert.Throws<ArgumentException>(() => ResearchSnapshotEndpoint.Create(new(store), Key, null));
+    }
+    [Fact] public async Task ExplicitPlatformBackendPreservesAuthenticationRoutingAndBodyBounds()
+    {
+        var settings = PlatformSettings(); var mode = ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k));
+        using var dir = new ResearchTestDirectory(); using var store = new SqliteResearchStateStore(dir.Path, true); Seed(store); Provision(store);
+        await using var app = ResearchSnapshotEndpoint.Create(new(store, new Clock()), Key, null, 0, IPAddress.Parse("0.0.0.0"), mode);
+        await app.StartAsync(); var port = new Uri(app.Urls.Single()).Port;
+        using var client = new HttpClient(new HttpClientHandler { UseProxy = false }) { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+        Assert.Equal("Alive", await client.GetStringAsync("/health"));
+        using var denied = await client.PostAsync("/v1/research/snapshot", Body()); Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+        client.DefaultRequestHeaders.Add("X-API-Key", "wrong-key-long-enough");
+        using var wrong = await client.PostAsync("/v1/research/snapshot", Body()); Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
+        client.DefaultRequestHeaders.Remove("X-API-Key"); client.DefaultRequestHeaders.Add("X-API-Key", Key);
+        using var valid = await client.PostAsync("/v1/research/snapshot", Body()); Assert.Equal(HttpStatusCode.OK, valid.StatusCode);
+        using var raw = await client.GetAsync("/raw"); Assert.Equal(HttpStatusCode.NotFound, raw.StatusCode);
+        using var method = await client.GetAsync("/v1/research/snapshot"); Assert.Equal(HttpStatusCode.MethodNotAllowed, method.StatusCode);
+        using var large = await client.PostAsync("/v1/research/snapshot", new StringContent(new string('x', 5000), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, large.StatusCode);
+        await app.StopAsync();
+    }
     [Fact] public async Task RealCommittedCalculatedBtcAndEthFlowThroughTlsAndIndependentPythonClient()
     {
         using var dir = new ResearchTestDirectory(); using var store = new SqliteResearchStateStore(dir.Path, true); Seed(store); Provision(store);
