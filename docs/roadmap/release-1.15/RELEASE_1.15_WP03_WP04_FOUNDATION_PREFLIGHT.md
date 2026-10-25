@@ -639,3 +639,101 @@ Source SHA-256 for the final executable qualification revision:
 - `tests/runtime/release_1_15/wp07_browser_qualification.py`: `8035b502ac955eaf6f0d7fbc9ff04b83dfdd529443adbd80e8c5da16e4bb9df4`.
 - `python/presentation/research_chart.py`: `c5abd2bfea8f4d0dae7623a2e69436a4169578f012b9bbee8dd57ce6dafe87ea`.
 - `python/presentation/test_research_chart.py`: `db79cd8951b7730828da93e61a6f097730aaa252bc037f10532131ac0f7a5b50`.
+
+
+## WP07 real Linux dual-container integration (2026-10-25)
+
+**Local outcome: PASS_LOCAL_ONLY. Release/WP acceptance and staging remain unverified; PUBLIC_RUNTIME_VERIFIED=False.** This new implementation starts from exact merged PR #394/main `6d16a41edbd4a0a576f0d87cd62b0677f2218ccf`. It supersedes the prior missing-runtime-base blocker only for this local qualified pair. It does not change historical Release 1.14 evidence or retroactively convert earlier NOT RUN cases to executed cases.
+
+### Scope, environment and executed inputs
+
+The owner directly approved five literal paths and pulls of the exact pinned bases. Only these paths change:
+
+1. New `container/release_1_15/research-chart.Dockerfile`: real Streamlit entrypoint and its explicit public-module/component/local Plotly dependencies; one non-root principal process.
+2. New `eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1`: Windows PowerShell 5.1 wrapper, existing Python standard-library orchestration, allowlisted build context, bounded/owner-labeled Docker operations, fixture volumes, actual HTTPS/browser/lifecycle checks and cleanup. Default is read-only Docker/input preflight; mutation needs explicit -Execute.
+3. Existing `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: explicit opt-in test-only closed fixture/TLS export; no production provisioning surface.
+4. Existing `tests/runtime/release_1_15/wp07_browser_qualification.py`: separate actual-container UI mode using existing Chrome/CDP, preserving the merged Windows scenario. Captures actual page requests and rejects external CDN/browser-to-upstream HTTP requests.
+5. This existing foundation evidence document: append only.
+
+No application contracts, dependencies, project files, existing Dockerfiles, startup/DI, provider adapters, Azure, registry push, deployment, issue closure or merge changes. PR #386/#387 were not imported. Original protected checkout HEAD/status and bytes/hashes of all **19** dirty/untracked owner files, including prompts, are preserved. All work is in an isolated worktree.
+
+Docker Desktop local named-pipe context `desktop-linux`, engine 29.7.2, linux/amd64. Explicit approved runtime pulls:
+
+- `mcr.microsoft.com/dotnet/aspnet:10.0@sha256:e4b445f93a5deeb6bd7de300febceb8dd7e481ac65ccf1b474eddc3642a3010f`
+- `python:3.13-slim@sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024`
+
+The SDK image was **not pulled**: an existing-asset `dotnet publish --no-restore --no-self-contained -p:UseAppHost=false` produced portable framework-dependent IL plus cached Linux x64 SQLite native assets, subsequently executed by the actual Linux runtime. No package restore/install/upgrade. Qualified cached dependency image ID remains `sha256:98501ff282a7b1fb053d3abd9653acff3dde8d4182bfdfc2a9c426de462168ed`; only its /opt/venv contents enter the new UI image. Both Docker builds use --platform linux/amd64, --pull=false and --network=none. Context contains copied publish/public source only, never fixture DBs, HMAC material, service.key or TLS private keys.
+
+Actual retained-image runtimes: Microsoft.NETCore.App and Microsoft.AspNetCore.App **10.0.13**; CPython **3.13.16**, Streamlit **1.61.1**, Plotly Python **7.1.0**. These Linux patch versions come from the repository's exact existing pins, not package upgrades. Browser observes bundled Plotly.js **4.1.1**, served through supported components-v2/local assets, and installed host Chrome **155.0.8059.86**. The runner targets PowerShell 5.1 (including requested 5.1.26100.9444 syntax); actual available execution engine is **5.1.26100.9711**, so exact .9444 patch execution is not claimed.
+
+### Actual fixture and isolation model
+
+The explicit export test commits actual WP03/WP04 state and activates D5 through its real private store. Both instruments are checked Unavailable at candle 400 and Valid at 401, then committed past retention with one missing minute; final retained count is exactly 1,000 each and the latest continuity has enough observations for valid research. These are deterministic fake completed candles, **not provider observations**. The export closes the writer before Docker copies. A random test-only service key is separate from test-only D5 material; no real credential is acquired or used.
+
+Named volumes hold research data and TLS material. Docker daemon copies populate an owned data/ directory as UID/GID1654, mode0700; files0600. Research uses /private/data, its own writable volume and a separate read-only TLS volume. The stopped population container is removed and recreated with read-only TLS **before any application startup**; no privileged/root runtime helper is launched. UI mounts only public ca.pem read-only, never research data/PFX/provider/HMAC material. Root filesystems are read-only; tmpfs, cap-drop=ALL, no-new-privileges, memory and PID limits are explicit.
+
+Research is on an internal Docker network with no host publication. UI joins that network for HTTPS hostname `wp07-research` and a separate owned bridge for **127.0.0.1-only ephemeral UI publication**. This second bridge is local test ingress, not Azure ingress evidence. Research container loopback is not used by UI. API key is passed by environment variable name (not a literal command argument) and used only by server-side HTTPS. CA+hostname validation is active. No assertions about Azure private networking/F1 capabilities follow.
+
+### Executed qualification matrix
+
+| Case | Result | Evidence and limit |
+|---|---|---|
+| Two actual Linux images | PASS | linux/amd64, research UID/GID1654 and UI12002. docker top shows one principal application process each; stats PIDs include threads, not extra application roles. |
+| Native private SQLite and file protection | PASS, local | Actual native Linux SQLite opens and runtime enforces WAL mode; /private/data 1654:1654 0700, DB/watermark0600. UI test confirms no /private or /tls/server.pfx. |
+| Actual transformed full/unchanged | PASS | Strict client inside UI validates 1,000 BTC and ETH rows, valid latest classification, supplied SMA, gap metadata, transformed values and unchanged identity. Client UID12002; no provider/HMAC environment. |
+| HTTPS/authentication negatives | PASS | Missing/wrong key401, wrong hostname rejection, untrusted CA rejection. No TLS bypass. Research has no published host port. |
+| Actual container browser | PASS | Chrome against real Streamlit image: BTC/ETH components, 1,000-retention/gap, supplied RSI, transformed disclosure, no visible service key, supported v2 and local Plotly asset loading. No Windows replacement backend/UI. |
+| Independent research outage / UI continuity | PASS | Browser requests stop/start through owned test control files: UI process stays alive, shows disconnected last-good values, then reconnects with the same validated closes. No admin route added. |
+| Graceful restart and witnessed persistence | PASS | Same persisted identities/rows/closes after browser-directed stop/start; real store startup validates its recovery witness. |
+| Abrupt process restart | PASS, quiescent | SIGKILL then start research; full/unchanged identities and data match. This is **not** interrupted-write transaction atomicity or host power-loss proof. |
+| Same-volume competing writer | PASS, local | Second non-root research process on the same owned volume exits1/fail-closed while original remains healthy. Does not prove cross-host Azure mount leases. |
+| Logs / private boundary | PASS, bounded | Service key absent from captured app logs, rendered page/graph; no raw or key files enter UI build context/mounts. Tests use fake secrets only. |
+| Resource/startup/latency | OBSERVED | Actual samples below, not F1 benchmarks or service guarantees. |
+| Cleanup | PASS final run | Owned containers, networks, volumes and temporary dependency tag removed; qualified final two image tags retained. Earlier attempt images removed by exact labels, no prune/forced unrelated deletion. |
+| Interrupted-write WAL atomicity, host power loss, Azure persistent mounts, shared-F1 1/3/5-session capacity | NOT RUN | Remain separate qualification work; Windows/offline fault tests do not prove these native/cloud conditions. |
+
+### Exact retained pair and artifacts
+
+These are **local content-addressed image/config IDs**, not pushed registry RepoDigests or deployment/promotion identifiers. Docker reported matching local descriptors; no registry publication took place.
+
+- Research: `sha256:acf31c4363ba4ca9d0d90451a4ce8805218ef1cc94bce25ff683293fd33db3dd`
+- UI: `sha256:27dc8960609c3fbd5cb239aead8221967abaf0ff67f8793679abfc3aba2b5550`
+- Portable publish manifest SHA-256: `94545ea795181bd513978a1bc85f88ee918eeb467135612051d3cad6344ea4ac`
+- Final local result JSON SHA-256: `9bc11e288968d4d1650fd0c816897f6c0da7f3674be86238ffe57f6471a53b6f`
+- Actual Linux UI chart PNG SHA-256: `f238bb8f8a81ce01b5e5d802372c9cb58dab041c5ea9aec38bb3e6a4e099bd84`
+
+The PNG was visually inspected: the constant educational fixture's dense candles and volume render in the actual Plotly component. It is a fixture screenshot, not a real market chart or visual-production acceptance. Private DBs/keys and personal evidence-root paths are not committed or published. Raw owned logs/artifacts remain local.
+
+### Actual measurements and interpretation
+
+Final start-to-completed-initial-probe: **6.0388 seconds**, including TLS/client validation, both full/unchanged instruments and negative probes; this is not an isolated HTTP-ready or usable-chart latency. Initial full roundtrip+validation: BTC **0.9710s**, ETH **0.3788s**; unchanged: BTC **0.2346s**, ETH **0.1818s**. One sample per operation, not percentiles or a CI/F1 SLA.
+
+Final docker stats after restart/contender work: research **142.5 MiB /256 MiB, 64.72% CPU,17 task/thread PIDs**; UI **168.2 MiB /512 MiB,1.40% CPU,13 task/thread PIDs**. Earlier smaller samples are not substituted for these final measurements. Host regressions also ran during this session; these are local bounded observations, not isolated steady-state benchmarks or shared Azure F1 headroom proof. Browser executes on the Windows client against Linux services.
+
+### Reproduction and focused regressions
+
+Use existing offline-restored project assets and installed virtualenv. Fixture output must be a fresh, nonexisting owned path under TEMP; never reuse owner/private production data. Example PowerShell5.1 commands:
+
+```powershell
+$publish = Join-Path $env:TEMP 'aiq-wp07-linux-publish'
+dotnet publish src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj --no-restore --no-self-contained -p:UseAppHost=false -c Release -o $publish
+$env:AIQ_WP07_EXPORT = Join-Path $env:TEMP ('aiq-wp07-linux-fixture-'+[guid]::NewGuid().ToString('N'))
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore --filter FullyQualifiedName~ExportOwnedLinuxQualificationFixture --logger 'console;verbosity=normal'
+./eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1 -PublishedResearchDirectory $publish -FixtureDirectory $env:AIQ_WP07_EXPORT -Python '<existing-venv>\Scripts\python.exe' -Execute -KeepImages
+```
+
+Preflight without -Execute checks local daemon, exact cached bases and closed input files only. Runner does not pull images, restore packages, provision runtime data or deploy. Required bases must be present under explicit pull authority. KeepImages retains only the run's image tags; all other owned resources are reconciled. On timeouts it terminates only its still-running owned browser process tree; cleanup failures are reported as FAIL_CLEANUP, not PASS.
+
+Executed results: **1 fixture-export test**, **43 Application**, **83 Infrastructure**, **8 endpoint** and **52 Python** tests PASS; merged explicit Windows browser coordinator **1/1 PASS**, exit0, **2.2234 minutes**; actual Linux runner **PASS_LOCAL_ONLY**, exit0, including seven browser cases and native lifecycle/negative checks. Focused filters and no-restore commands remain the preceding WP07 section's exact commands; fixture-export invocation is above. Legacy synthetic UI rerun remains **7/8 PASS, one pre-existing Volume vs Simulated activity hover assertion FAIL**, unchanged test/source. No opt-out browser execution is counted as a browser pass.
+
+Failed attempts remain evidence: copying into an already read-only TLS mount, initial probe search path, root-owned volume root, and internal-only network lacking a published host port were test/setup failures corrected inside the approved scope. One cleanup inspection timeout left an owned stopped research container and two volumes; exact-label retry removed all three. One automatic approval-review timeout prevented a focused-test launch; its single authorized retry executed successfully. No gate bypass or fabricated result. Existing analyzer warnings remain separate from test failures.
+
+### Remaining disposition
+
+WP02 #368 and WP07 #373 now have actual local Linux role/HTTPS/browser/restart evidence; WP03 #369 has native same-host writer exclusion and quiescent persistence evidence; WP06 #372 has actual-container chart smoke plus preserved merged Windows coverage. None is accepted/closed here. Pending: interruption during an actual native write, host/Azure filesystem durability and rollout overlap, prolonged/concurrent load, exact .9444 PowerShell patch execution, and independently authorized staging/F1 verification. Retained images are local only; no Azure resources/settings, live provider, registry push, public activation, issue closure or merge. `PUBLIC_RUNTIME_VERIFIED=False`.
+
+### Source SHA-256
+- `container/release_1_15/research-chart.Dockerfile`: `c74bc6a5b1aebaf236d524246ab6983bdc2bf62bcfcceb14edaa98c709c921de`.
+- `eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1`: `0be3606f67813c2b428b9910e1ce314f5e64318006083d066230b8ec725d6ca7`.
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: `bf7379ea3c060931433932facc8b2f4cf8ef34efa697c4adfcdeb47958742f3a`.
+- `tests/runtime/release_1_15/wp07_browser_qualification.py`: `a75a21755020039526000c7cc6bb19149fb5f486a568c8af3385e66db5bea233`.

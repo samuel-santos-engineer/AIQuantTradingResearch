@@ -51,6 +51,7 @@ class Browser:
     def __init__(self, url):
         self.ws = connect(url, origin="http://localhost", max_size=32_000_000)
         self.sequence = 0
+        self.urls = []
 
     def call(self, method, **params):
         self.sequence += 1
@@ -59,6 +60,8 @@ class Browser:
         deadline = time.monotonic() + 15
         while time.monotonic() < deadline:
             message = json.loads(self.ws.recv(timeout=max(.1, deadline - time.monotonic())))
+            if message.get('method') == 'Network.requestWillBeSent':
+                self.urls.append(message['params']['request']['url'])
             if message.get("id") == ticket:
                 if "error" in message:
                     raise AssertionError(message["error"])
@@ -122,6 +125,84 @@ class Browser:
         self.call('Input.dispatchMouseEvent', type='mouseMoved', **rect)
         self.call('Input.dispatchMouseEvent', type='mousePressed', **rect, button='left', clickCount=1)
         self.call('Input.dispatchMouseEvent', type='mouseReleased', **rect, button='left', clickCount=1)
+
+
+def external_main():
+    """Actual container UI only; never start a Windows replacement UI/backend."""
+    url = os.environ['AIQ_WP07_EXTERNAL_UI_URL']
+    assert url.startswith('http://127.0.0.1:')
+    output = Path(tempfile.mkdtemp(prefix='aiq-wp07-linux-browser-'))
+    result = dict(PUBLIC_RUNTIME_VERIFIED=False, mode='actual-linux-container-ui', cases={})
+    process = browser = None
+    def lifecycle(action):
+        folder = Path(os.environ['AIQ_WP07_CONTAINER_CONTROL'])
+        pending = folder / 'browser-command.pending'
+        pending.write_text(json.dumps(dict(action=action)), encoding='utf-8')
+        pending.replace(folder / 'browser-command.json')
+        wait_for(lambda: (folder / 'browser-ack.json').exists() and json.loads((folder / 'browser-ack.json').read_text())['action'] == action)
+    try:
+        chrome_port = port()
+        chrome = Path(os.environ.get('PROGRAMFILES', 'C:/Program Files')) / 'Google/Chrome/Application/chrome.exe'
+        process = subprocess.Popen([str(chrome), '--headless=new', '--disable-gpu', '--no-first-run',
+            '--disable-background-networking', '--disable-component-update', '--disable-sync',
+            '--remote-allow-origins=http://localhost', '--user-data-dir='+str(output/'profile'),
+            '--remote-debugging-address=127.0.0.1', '--remote-debugging-port='+str(chrome_port), 'about:blank'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=subprocess.CREATE_NO_WINDOW)
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        targets = wait_for(lambda: json.load(opener.open(f'http://127.0.0.1:{chrome_port}/json', timeout=2)))
+        browser = Browser(next(t['webSocketDebuggerUrl'] for t in targets if t['type']=='page'))
+        browser.call('Page.enable'); browser.call('Network.enable')
+        result['browser'] = browser.call('Browser.getVersion')['product']
+        browser.call('Page.navigate', url=url)
+        graph = wait_for(browser.graph)
+        assert graph['instrument']=='BTC/USD' and len(graph['candleTimes'])==1000
+        assert any('SMA20' in (t['name'] or '') for t in graph['traces'])
+        assert graph['loading']=='verified' and graph['modebar']
+        result['cases']['BTC_actual_component'] = 'PASS'
+        browser.select('Retained candles', 1000)
+        assert len(browser.graph()['candleTimes'])==1000 and browser.graph()['shapes']
+        result['cases']['bounded_retention_and_gap'] = 'PASS'
+        browser.click('Technical Analysis'); time.sleep(.5); browser.select('Research panel', 'RSI14'); browser.key('Escape')
+        wait_for(lambda: any('RSI14' in (t['name'] or '') for t in browser.graph()['traces']))
+        result['cases']['supplied_RSI'] = 'PASS'
+        browser.click('ETH/USD')
+        eth = wait_for(lambda: (g if (g:=browser.graph()) and g['instrument']=='ETH/USD' else None))
+        assert len(eth['candleTimes'])==1000
+        result['cases']['ETH_actual_component'] = 'PASS'
+        lifecycle('stop')
+        browser.click('Refresh')
+        wait_for(lambda: 'Disconnected - showing last-known' in browser.js('document.body.innerText'))
+        assert browser.graph()['closes']==eth['closes']
+        result['cases']['research_outage_last_good'] = 'PASS'
+        lifecycle('start'); time.sleep(2); browser.click('Refresh')
+        wait_for(lambda: 'Connected |' in browser.js('document.body.innerText'))
+        assert browser.graph()['closes']==eth['closes']
+        result['cases']['restart_reconnect'] = 'PASS'
+        text = browser.js('document.body.innerText')
+        assert 'Transformed educational values' in text and os.environ['AIQ_RESEARCH_API_KEY'] not in text+json.dumps(browser.graph())
+        from urllib.parse import urlparse
+        unexpected = [u for u in browser.urls if urlparse(u).scheme in ('http','https') and urlparse(u).hostname not in ('127.0.0.1','localhost')]
+        assert not unexpected, unexpected
+        result['cases']['no_CDN_or_browser_upstream'] = 'PASS'
+        result['plotlyJs'] = browser.graph_js('g.dataset.plotlyVersion')
+        browser.graph_js("(()=>{g.scrollIntoView({behavior:'instant',block:'center'});return true})()")
+        raw = base64.b64decode(browser.call('Page.captureScreenshot', format='png')['data'])
+        (output/'chart.png').write_bytes(raw); result['screenshotSha256']=hashlib.sha256(raw).hexdigest()
+        result['result']='PASS'
+    except Exception as error:
+        result['result']='FAIL';result['error']=str(error)
+        raise
+    finally:
+        if browser:
+            try: browser.call('Browser.close')
+            except Exception: pass
+            browser.ws.close()
+        if process and process.poll() is None:
+            process.terminate()
+            try: process.wait(timeout=10)
+            except subprocess.TimeoutExpired: process.kill();process.wait(timeout=5)
+        (output/'result.json').write_text(json.dumps(result,indent=2)+'\n',encoding='utf-8',newline='\n')
+        print(json.dumps(result),flush=True)
 
 
 def main():
@@ -382,4 +463,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    if os.environ.get('AIQ_WP07_EXTERNAL_UI_URL'):
+        external_main()
+    else:
+        main()
