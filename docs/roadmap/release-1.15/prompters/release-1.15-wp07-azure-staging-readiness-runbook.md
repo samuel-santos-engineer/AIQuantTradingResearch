@@ -1,20 +1,19 @@
 # Release 1.15 WP07 - Azure staging readiness and operator runbook
 
-Date: 2026-10-25. Implementation baseline: merged PR #396, `8bbb8790fff96c895b2a3b4ec9d0200f1ac51d74`; prior Linux qualification from #395 retained in append-only evidence.
+Date: 2026-10-25. Implementation baseline: merged PR #397, `fa0b17e5608fdabc44b8cb88d9a68340d70733b9`; prior Linux qualification from #395 retained in append-only evidence.
 
 **Outcome: preparation complete; deployment BLOCKED. PUBLIC_RUNTIME_VERIFIED=False.**
-This is a reviewable operator checklist, not deployment authority or Azure runtime acceptance. All new/modified text must remain UTF-8/LF. This increment adds explicit platform-backend transport and operator-only initialization/import; no dependency, schema, provider, Azure or production changes are included. PR #386/#387 are not imported. Issues #368/#369/#372/#373/#374 remain open for their own disposition.
+This is a reviewable operator checklist, not deployment authority or Azure runtime acceptance. All new/modified text must remain UTF-8/LF. This increment blocks unsupported App Service writable storage and adds local fault qualification, preserving the prior transport/initializer; no dependency, schema, provider, Azure or production changes are included. PR #386/#387 are not imported. Issues #368/#369/#372/#373/#374 remain open for their own disposition.
 
 ## Exact publication scope
 
-1. Existing runbook: `docs/roadmap/release-1.15/prompters/release-1.15-wp07-azure-staging-readiness-runbook.md`.
-2. Append only: `docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md`.
-3. `src/AIQuantTradingResearch.Worker/Program.cs`.
-4. `src/AIQuantTradingResearch.Worker/ResearchSnapshotEndpoint.cs`.
-5. New `src/AIQuantTradingResearch.Worker/ResearchStateInitialization.cs`.
-6. `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs`.
-7. `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`.
-8. New `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStateInitializationTests.cs`.
+1. New `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs`.
+2. `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchWriterOwnership.cs`.
+3. New `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs`.
+4. New `tests/runtime/release_1_15/wp07_sqlite_fault_probe.cs` (test-only; mounted at runtime, never packaged).
+5. New `eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1` (Windows PowerShell5.1; default preflight only).
+6. This existing runbook.
+7. Append-only `docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md`.
 
 No executable deployment script is necessary. The merged local qualification runner already defaults to non-mutating preflight; `-Execute` means **local Docker only**, never Azure. Commands below with placeholders are withheld operator steps, not commands executed during this review. Do not run them before the stated prerequisites and separate owner authorization.
 
@@ -42,7 +41,7 @@ Read-only Azure CLI 2.89.1 observations using existing authentication; no login,
 | Research platform routing | Default local HTTPS preserved; explicit staging-only HTTP backend mode on52731, same authenticated handler | IMPLEMENTED_LOCAL | Verify frontend HTTPS-only and actual Azure routing; platform backend is plaintext, not end-to-end TLS |
 | External HTTPS and caller authentication | Local missing/wrong key, hostname and CA rejection PASS; research shell HTTPS-only false | BLOCKED | Require HTTPS-only, validated public hostname/CA and server-side key; prove direct anonymous/wrong-key rejection before UI activation |
 | Research ingress | Public DNS/network enabled; Allow rule; no remote endpoint test | NOT RUN | Verify compatible restrictions if available; public DNS is not private ingress; authenticated bounded transformed endpoint only |
-| Private persistent WAL storage | No research mount/settings; current writer explicitly local-process ownership only | BLOCKED | Identify actual durable backend, UID permissions, WAL/locking/replacement guarantees; no shared-filesystem or ephemeral-disk substitution |
+| Private persistent WAL storage | App Service is now rejected before directory/lock/SQLite creation; local UID/mount checks and fault harness | BLOCKED on F1 | No supported durable WAL/fencing arrangement exists in the inspected resources; choose a SQLite-preserving hosting adjustment, not a settings override |
 | D5 provisioning and initial data | Operator-only production initializer, bounded completed-observation import and exact retry checks | IMPLEMENTED_LOCAL; acquisition NOT_RUN | Use independently acquired real observations; no provider call, automatic ingestion or Azure initialization performed |
 | UI secret isolation | Local image/mount/browser negatives PASS; legacy Azure UI secret setting names remain | BLOCKED | Remove provider/HMAC/private mounts from UI; provide only environment-specific service key server-side and CA as needed |
 | Health versus data readiness | Research GET /health returns Alive; snapshot validity checks actual state; UI /_stcore/health | PASS_LOCAL | Probe separately; liveness 200 cannot establish 401-candle readiness or chart usability |
@@ -53,7 +52,7 @@ PASS_LOCAL in the inventory row means the inspection completed from the workstat
 
 ## Routing and storage findings
 
-Research starts `dotnet AIQuantTradingResearch.Worker.dll --research-snapshot-api`. Default `AIQ_RESEARCH_TRANSPORT=local-https` (or unset) still requires a private PFX and listens with TLS on52731. Explicit `azure-app-service-http` enables HTTP on52731 only with bind0.0.0.0, exact staging WEBSITE_SITE_NAME/WEBSITE_HOSTNAME, nonempty WEBSITE_INSTANCE_ID and `AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1`. Unknown modes or incomplete settings fail startup. Production identity is deliberately not enabled.
+Research starts `dotnet AIQuantTradingResearch.Worker.dll --research-snapshot-api`. Default `AIQ_RESEARCH_TRANSPORT=local-https` (or unset) still requires a private PFX and listens with TLS on52731. Explicit `azure-app-service-http` enables HTTP on52731 only with bind0.0.0.0, exact staging WEBSITE_SITE_NAME/WEBSITE_HOSTNAME, nonempty WEBSITE_INSTANCE_ID and `AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1`. Unknown modes or incomplete settings fail startup. Production identity is deliberately not enabled. **The new storage boundary denies all App Service writer startup, including this staging mode, before writable store access.** Transport code is retained; no environment flag currently authorizes an Azure writer.
 
 **Trust boundary:** the UI's strict HTTPS client still validates the external Azure research hostname/certificate and sends X-API-Key server-side. Azure terminates TLS; the backend HTTP hop carries that credential and transformed response in plaintext within the platform boundary. `httpsOnly` does not encrypt that hop. The application neither authenticates the frontend nor treats forwarded headers as proof of TLS. The opt-in settings are operator assertions and can be simulated locally; they are not platform attestation or independent verification of httpsOnly. Azure ingress must prevent untrusted direct backend access, and actual frontend HTTPS-only/authentication must be verified before deployment acceptance. If this platform trust boundary is unacceptable, stop; this PR adds no proxy, paid service or silent client downgrade.
 
@@ -118,7 +117,7 @@ Review this readiness PR first. The next engineering decision is a supported dur
 
 ## Operator-only initialization and completed-observation import
 
-**IMPLEMENTED_LOCAL.** Invoke the published Worker once with exactly `--research-initialize`, never through an HTTP/admin endpoint or normal snapshot startup. Set `AIQ_RESEARCH_PRIVATE_DIRECTORY` to the qualified research-only directory. Supply a UTF-8 JSON object via redirected standard input, maximum4096 bytes and30-second command deadline:
+**IMPLEMENTED_LOCAL, App Service execution BLOCKED by storage boundary.** Invoke the published Worker once with exactly `--research-initialize`, never through an HTTP/admin endpoint or normal snapshot startup. Set `AIQ_RESEARCH_PRIVATE_DIRECTORY` to the qualified research-only directory. Supply a UTF-8 JSON object via redirected standard input, maximum4096 bytes and30-second command deadline:
 
 - `generation`: explicit nonzero canonical lowercase UUID; no generation reset on existing DB.
 - `keyEpoch`: separate explicit nonzero canonical lowercase UUID.
@@ -133,3 +132,47 @@ Optional `AIQ_RESEARCH_IMPORT_FILE` names an existing private UTF-8 JSON file, m
 **Acquisition remains NOT_RUN:** the operator must obtain actual completed BTC/USD and ETH/USD one-minute Twelve Data observations through separately authorized private acquisition, then map the authentic timestamp/OHLCV fields into this private envelope without filling gaps. The `source` label is an operator assertion, not cryptographic provenance. This command performs no provider request and does not prove a real export exists. Test vectors used locally are disposable fabricated test inputs, not real market acquisition. Subsequent polling, corrections and retention use the existing WP03 pipeline under separate runtime authority; the initializer is not a polling service.
 
 Without import, it creates an empty witnessed D5 state and explicitly makes no readiness claim. Imports use existing Commit/calculation/witness logic; fewer than401 contiguous rows remain unready. Matching tuple and identical imported rows are a no-op retry. Wrong generation/key/epoch, nonidentical re-import into nonempty state, live writer or invalid witness fails closed. It never resets or deletes state. Each instrument commits separately: a failure between instruments may leave a valid BTC-only import; exact rerun can skip the matching BTC rows and finish empty ETH. There is no cross-instrument atomicity claim. A crash between initial DB creation and D5 activation can leave an inactive store that this command rejects; preserve it for explicit recovery, never erase it automatically. API startup still requires an existing active tuple.
+
+
+## SQLite durability and writer-exclusion disposition
+
+**Outcome B: fail-closed implementation; Azure durability BLOCKED.** SQLite remains the sole authoritative datastore. No schema/journal-mode change, external database, blob-backed live DB, new lease or paid service is implemented. The research API cannot simply open this store read-only: its constructor validates/reconciles the external witness and holds writer ownership. No read-only Azure bypass is provided.
+
+Before any private-directory creation, lock acquisition or writable SQLite open, ResearchStorageBoundary rejects presence of WEBSITE_INSTANCE_ID, WEBSITE_SITE_NAME, WEBSITE_HOSTNAME or WEBSITE_ROLE_INSTANCE_ID, the staging azure-app-service-http transport, and unknown AIQ_RESEARCH_STORAGE_SCOPE values. Unset/local-qualification is only local scope, **never** an override for Azure markers. Removing markers is not a supported deployment procedure or a security boundary against a privileged operator.
+
+On Linux local execution, it reads kernel /proc/self/status and /proc/self/mountinfo, requires real/effective/saved/filesystem UID1654, resolves the deepest backing mount, validates device/root/mountpoint/filesystem fields and writable mount options, and rejects read-only/network/unknown/tmpfs storage. ext4/xfs/btrfs and overlay are allowed only for local qualification; overlay is explicitly ephemeral and is not a durable-hosting approval. Optional AIQ_RESEARCH_EXPECTED_MOUNT_PATH must equal the kernel's resolved mountpoint; the Linux harness pins /private. Kernel device/root/type are observable identity, not a persistent attestation or distributed lease. The existing store enforces0700/0600 and validates generation, commit chain, D5 activation and external witness. A mount-path match does not prove power-loss durability or identify a disk across migrations.
+
+Layout for local qualification: mount/private contains data/ (research.sqlite, WAL/SHM when present, watermark.json, writer.lock, pending witness) owned1654:1654; the test-only sibling control/ contains fault-ready markers and is never passed as research state. Never split live WAL/SHM/DB from the directory or restore DB independently of its witness/D5 tuple. Preserve the whole quiesced recoverable lineage for backups/moves; no backup/migration is executed here. FileShare.None only coordinates writers using one host kernel and shared volume; it does not fence different App Service workers or copies on separate volumes.
+
+### SQLite-preserving compatibility matrix
+
+| Option | Durability and SQLite WAL | Writer exclusion / takeover | F1/cost consequence | Decision |
+|---|---|---|---|---|
+| F1 container writable layer / ephemeral host disk | Local semantics may run SQLite but state can disappear on replacement | No common authority across different hosts/volumes | Existing free compute; fails required durability | REJECTED |
+| App Service persistent /home or Azure Files SMB | Documented network-backed persistence; WAL shared-memory/locking assumptions unsupported | Local lockfile is not a proven distributed fence; share persistence is insufficient | No new resource assumed; current research has no configured mount | BLOCKED; do not deploy WAL there |
+| NFS / shared network filesystem | WAL is not qualified over network filesystems | No demonstrated single authoritative writer/fence | Would require supported mount/resources, not present here | REJECTED as an untested workaround |
+| Upgrade only the App Service compute tier | Does not by itself supply a persistent local block volume contract | Does not by itself fence replacement writers | New recurring spend with storage problem unresolved | NOT RECOMMENDED as sole fix |
+| Single owner-controlled Linux host with persistent local ext4/xfs block filesystem, both replacement containers on same kernel/volume | Candidate for SQLite WAL; still needs fsync/checkpoint/backup and host-crash validation | Kernel-held local lock excludes overlapping containers; kill/reap old writer before local takeover; cross-host migration must fence the old host first | Reuse existing suitable host only if one actually exists; none established by this inventory | SMALLEST TECHNICAL CANDIDATE, not implemented/deployed |
+| New small Linux VM plus explicitly non-shared managed persistent disk | Durable block-storage candidate; filesystem and full DB/WAL/witness lineage must be qualified | One authoritative host; never attach/mount for a second writer while old host can access it; verified host shutdown/detach before migration | New VM, persistent disk, backup and possible network-transfer charges; not an F1 feature or zero-cost promise | Owner resource/cost/topology decision required |
+
+Recommendation: keep the UI image on its existing F1 app and, **only if the owner accepts a research-hosting adjustment**, qualify the research image on one suitable Linux host with persistent block-backed local storage. Prefer an already-owned suitable host if independently available; otherwise a small VM/non-shared disk is the minimal Azure candidate, not a quote or approved purchase. Keep separate images/identities, strict UI HTTPS, service authentication and private SQLite. This changes the research hosting topology, so it needs explicit owner authorization and a scoped deployment/storage plan. No monthly price is asserted: VM size, region, disk capacity, backup retention and network usage must be selected and priced before approval. Do not silently create resources or treat this proposal as cross-host automatic failover.
+
+Sources distinguish documented capabilities from our local tests: [App Service Linux storage FAQ](https://learn.microsoft.com/en-us/troubleshoot/azure/app-service/faqs-app-service-linux-new), [SQLite WAL limits](https://sqlite.org/wal.html), [Azure managed disk types](https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types). Existing F1 exposes documented network persistence and ephemeral local storage, not a verified persistent local/block-backed research volume; no compatible arrangement was established. No live Azure mount/fault experiment was authorized or performed.
+
+### Reproducible bounded local SQLite qualification
+
+```powershell
+# ResearchImage must be the immutable local SHA256 ID from the successful dual-container run.
+# Without -Execute: read-only Docker/image/input preflight; no compiler/container/volume mutation.
+& ./eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1 `
+  -ResearchImage $ResearchImage -PublishedResearchDirectory $PublishedResearchDirectory
+# Explicit local execution only; exact owned cleanup in finally.
+& ./eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1 `
+  -ResearchImage $ResearchImage -PublishedResearchDirectory $PublishedResearchDirectory -Execute
+```
+
+The harness reuses the installed .NET10 compiler/reference assemblies and existing published dependencies, without project/package/restore changes. It compiles a test-only helper under the existing friend-test assembly name to reach already existing internal fault hooks; the helper is mounted read-only into a container for qualification and is absent from published image layers. It uses only the local Windows Docker named-pipe endpoint, immutable Linux/amd64 image1654:1654, bounded256MiB/64 tasks, network none, read-only rootfs, dropped capabilities and exact-owner resources.
+
+Fault marker is armed **after** constructor recovery. SIGKILL is issued only after observing the marker for: before-commit (uncommitted transaction should roll back); watermark-replace (DB committed, pending witness flushed, old witness still present; existing validated chain may advance witness); transform-before-commit (old D5 remains); transform-after-commit (new D5 activation ahead of old witness must reject recovery). This is interrupted process/transaction evidence with the host and disk still running, **not host power loss**. Reopen checks generation/version/D5/integrity and runs WAL checkpoint. Same-volume distinct containers test denial while owner lives and acquisition only after owner kill/wait. Distinct-volume writers deliberately both run, demonstrating absence of a global fence. Two simulated Azure instance markers must both fail before a new directory exists, even with local-qualification set. Read-only mount, mount mismatch, wrong UID, witness tampering and secret-output negatives remain fail-closed.
+
+All Azure deployment, registry publication, real acquisition, actual host failure, distributed lease/fencing and Azure durable storage acceptance remain BLOCKED/NOT_RUN. PUBLIC_RUNTIME_VERIFIED=False. Next owner decision is whether to authorize a SQLite-preserving research-hosting/storage adjustment; there is no F1 environment-variable workaround in this code.

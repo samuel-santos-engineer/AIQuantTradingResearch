@@ -871,3 +871,81 @@ Final executable source/test SHA-256 inventory:
 - `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/SqliteResearchStateStore.cs`: `38cd027ec5b006d3f768884d4a6a5f0f635aad658ccc0b2d81ab9807d8c9955b`.
 - `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs`: `d757df16f8b9df8b177fa416b314d36824f81feefc221dccc21b3f638e5c3dea`.
 - `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStateInitializationTests.cs`: `a8c9014d05de297d2a5f88f9bdd5a2f6c7e12ac99005d2454479fae9af1145cc`.
+
+
+## WP07 authoritative SQLite durability / writer-exclusion disposition (2026-10-25)
+
+**Outcome B: IMPLEMENTED_LOCAL fail-closed boundary and reproducible Linux fault evidence; Azure durability and cross-host fencing remain BLOCKED. PUBLIC_RUNTIME_VERIFIED=False.** SQLite remains the sole authoritative datastore. Fresh main baseline is merged PR #397 `fa0b17e5608fdabc44b8cb88d9a68340d70733b9`; no changes from open #386/#387 imported. Original owner checkout HEAD/status and all **22** modified/untracked files were recorded by bytes/SHA-256 and preserved in an isolated worktree.
+
+### Exact seven-path increment
+
+1. New `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs`: reject unsupported App Service writers before directory, lock or SQLite creation; validate local Linux UID/mount identity/options.
+2. `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchWriterOwnership.cs`: invoke the boundary before any filesystem mutation.
+3. New `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs`: App Service/no-override, network/unknown/tmpfs/read-only filesystem, mount mismatch, UID and malformed-kernel negatives.
+4. New `tests/runtime/release_1_15/wp07_sqlite_fault_probe.cs`: test-only internal-fault driver; not production code or an image layer.
+5. New `eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1`: Windows PowerShell5.1, nonmutating Docker preflight by default; explicit -Execute for bounded offline compilation and local Linux probes only.
+6. Existing [WP07 staging runbook](prompters/release-1.15-wp07-azure-staging-readiness-runbook.md): precise layout, restart/failure semantics, compatibility/cost matrix and SQLite-preserving next decision.
+7. This existing evidence document: append only, historical prefix unchanged.
+
+No Worker/initializer/transport/client/chart, schema, package, project, Dockerfile, owner prompt or provider changes. Existing platform HTTP code, default local HTTPS, constant-time API-key checks, strict server-side Python HTTPS and operator D5 initializer/import remain. The shared store boundary now intentionally prevents App Service API/initializer writable startup; this is not an Azure read-only-service exception.
+
+### What the boundary establishes
+
+ValidateHost denies any presence of WEBSITE_INSTANCE_ID, WEBSITE_SITE_NAME, WEBSITE_HOSTNAME or WEBSITE_ROLE_INSTANCE_ID, explicit azure-app-service-http transport, and unknown storage scope. local-qualification scope never overrides these denials. This is fail-closed deployment policy for the unsupported platform, **not** kernel attestation or a distributed fence; a privileged operator stripping all markers is outside this guarantee and is not a supported deployment path.
+
+Local Linux writers require real/effective/saved/filesystem UID1654, readable/valid kernel mount metadata, a recognized backing filesystem (ext4/xfs/btrfs/overlay), writable mount options and optional exact expected mountpoint. Deepest mount wins, so a nested tmpfs/share cannot hide behind an allowed parent. Device/root/mountpoint/type are observed identity, not a reboot-stable disk identity or proof of durability. Overlay is allowed solely for disposable local qualification. Windows host tests do not certify these Linux checks. Existing0700/0600 protection, local lock, WAL/FULL, explicit generation/D5 tuple, witness and fail-closed integrity logic are unchanged. No automatic generation/epoch regeneration or witness override.
+
+Layout: a research-only volume /private, data/ containing DB/WAL/SHM/watermark/writer.lock/pending witness; test-only sibling control/ contains readiness markers. Recover/backup the entire consistent lineage, never a live DB alone or an independently restored old witness. Existing witness flush(true)/same-directory replacement remains **without a directory-fsync/host-power-loss guarantee**. No backup or live Azure storage manipulation was performed.
+
+### Documented versus observed platform facts
+
+Fresh read-only Azure CLI2.89.1 using existing authentication reconfirmed research shell Running, httpsOnly=false, public network enabled, no configured custom storage mounts; shared plan F1 capacity1. No settings/credential values, tokens, publishing profiles or provider calls. No Azure mutation or active Azure filesystem test. These observations do not certify runtime capacity/storage.
+
+[Microsoft Linux App Service FAQ](https://learn.microsoft.com/en-us/troubleshoot/azure/app-service/faqs-app-service-linux-new) documents network-backed persistent /home and separate ephemeral container/host storage. [SQLite WAL documentation](https://sqlite.org/wal.html) requires same-host shared memory and disallows assuming WAL safety on a network filesystem. Existing local writer ownership expressly is not a cross-App-Service lease. Consequently the currently available documented F1 surfaces do not establish durable local WAL plus a fenced authoritative writer across host replacements. This is a concrete compatibility blocker, not a claim that an unexecuted Azure fault test failed.
+
+The runbook matrix retains SQLite for every alternative: ephemeral local storage rejected for durability; /home/SMB/NFS WAL unqualified; a compute-tier upgrade alone does not solve either requirement; single-host persistent block-backed local filesystem is a candidate. Recommend first establishing whether an already-owned suitable Linux host exists; otherwise a small Linux VM with an explicitly non-shared persistent managed disk is the minimal Azure candidate. It requires new recurring compute/disk/backup and possible transfer costs and a research-host topology decision, not a free F1 setting. No size/price/resource purchase is selected. [Managed disk documentation](https://learn.microsoft.com/en-us/azure/virtual-machines/disks-types) supports the block-storage candidate, not application acceptance. Keep UI on F1 and separate images/HTTPS identities only under separately authorized hosting/deployment design. Across-host takeover must fence the old host before disk movement; no automatic distributed failover is implemented.
+
+### Executed commands and results
+
+Tools: .NET SDK10.0.103, PowerShell5.1.26100.9711 (requested patch5.1.26100.9444 unavailable), Docker29.7.2 local desktop-linux named pipe, existing Streamlit1.61.1/Plotly Python7.1.0, Chrome155.0.8059.86/Plotly.js4.1.1. Existing pinned cached runtime bases/qualified dependency context reused. No package installation, dependency upgrades, restores, registry publication or Azure deployment. Only existing ignored NuGet assets were copied to the isolated build tree.
+
+- `dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --filter '(FullyQualifiedName~ResearchStorageBoundaryTests|FullyQualifiedName~ResearchStateInitializationTests|FullyQualifiedName~ResearchSnapshotEndpointTests|FullyQualifiedName~SqliteResearchStateStoreTests|FullyQualifiedName~ResearchStateRecoveryTests|FullyQualifiedName~CommittedResearchProjectionTests|FullyQualifiedName~TwelveDataMinuteCandleSourceTests)&FullyQualifiedName!~ExportOwnedLinuxQualificationFixture&FullyQualifiedName!~OwnedBrowserQualificationAgainstRealHttpsSnapshot'`: **137/137**, exit0,6s. Includes19 new boundary cases; inactive opt-in methods excluded.
+- Application project same offline command with filter `FullyQualifiedName~ResearchIngestionServiceTests|FullyQualifiedName~PrivateResearchCalculatorTests|FullyQualifiedName~ResearchSnapshotTransformerTests`: **63/63**, exit0,1s.
+- Existing venv `python -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client`, PYTHONPATH=python/presentation: **52/52**, exit0,12.376s. Expected bare-mode Streamlit warnings. Existing synthetic test analyzer warnings untouched; no new production warning left. Known legacy Volume/Simulated activity hover assertion remains a baseline failure, untouched/not rerun.
+- `dotnet publish src/AIQuantTradingResearch.Worker/AIQuantTradingResearch.Worker.csproj --no-restore --no-self-contained -p:UseAppHost=false -c Release -o <owned-temp-publish>`: exit0, new binaries with Linux SQLite native dependency.
+- Existing `Invoke-Wp07DualContainerQualification.ps1 -PublishedResearchDirectory <new-publish> -FixtureDirectory <closed-test-fixture> -Python <existing-python> -Execute -KeepImages`: exit0, **PASS_LOCAL_ONLY**, actual default-HTTPS Linux pair and browser.
+- New `Invoke-Wp07SqliteQualification.ps1 -ResearchImage <immutable-local-id> -PublishedResearchDirectory <new-publish>`: exit0, **PREFLIGHT_ONLY**, no compiler/container/volume mutation. Windows PowerShell5.1 parser passed.
+- Same new harness with `-Execute`: final exit0, **PASS_LOCAL_ONLY_AZURE_BLOCKED**,12 reported cases (one deliberately demonstrates a limitation), cleanupErrors empty. Offline compiler/reference assemblies and already published dependencies only; image Infrastructure DLL hash matched the compile dependency. Test driver uses the existing friend-test assembly identity and is read-only mounted into the running container, absent from image layers. Probe memory256MiB/PIDs64, no network, dropped capabilities, no-new-privileges, read-only rootfs. Kernel-reported local volume type and binary/probe hashes are in the report.
+
+### Deterministic Linux fault/overlap results
+
+| Case | Observed result | What it does not prove |
+|---|---|---|
+| Same volume, separate container writer while first lives | Second rejected; after first SIGKILL+wait, reopen validates same generation/version/D5 and checkpoint | Cross-host distributed fence |
+| Separate volumes, two live writer containers | **Both run**, intentional negative control | No global writer exclusion exists across independent volumes |
+| SIGKILL at armed before-commit marker | Uncommitted mutation rolls back; version1 and old tuple reopen Protected | Host power loss |
+| SIGKILL at watermark-replace marker | DB version2 committed, pending witness written/flushed; existing chain validates and witness reconciles; checkpoint succeeds | Atomic DB+witness transaction or directory-fsync guarantee |
+| SIGKILL at transform-before-commit | Old tuple/version remain recoverable | External D5 secret acquisition or Azure initialization |
+| SIGKILL at transform-after-commit | Activation newer than witness is rejected; no reset/automatic healing | Availability through uncertain activation |
+| Read-only mount / wrong mount path / UID12002 | All reject | Actual Azure mount behavior |
+| Two simulated App Service instance markers | Both reject before a fresh state directory exists, even with local-qualification scope | Live Azure execution or cross-instance lease implementation |
+| Tampered witness | Reopen rejected | Detection of coordinated rollback of every artifact |
+| Directory/file protection and canary output checks |1654:1654,0700/0600; no test HMAC material in probe diagnostics | Full production secret-delivery audit |
+
+These fault tests observe a precise marker while the transaction/activation is paused, then kill the exact owned container; they are stronger than quiescent SIGKILL, but the host and storage remain running. **Host power loss, physical disk removal, Azure replacement, cross-host fencing and Azure durability remain NOT_RUN/BLOCKED.** No false PASS for those obligations.
+
+Initial harness execution failed at the watermark scenario because its hook was armed during constructor witness reconciliation; it interrupted startup rather than the intended mutation. Fixed test-only arming after constructor completion, reran all cases successfully. The earlier failed report remains FAIL. A subsequent read-only-mount negative was added and all137 assertions, final images/browser and full harness rerun. No production recovery behavior was weakened to pass tests. An initial script-writing command had a nested here-string parser error before executing/writing; corrected quoting, then PowerShell5.1 syntax and execution passed.
+
+Default pair final local image/config IDs, **not registry RepoDigests**: research `sha256:284736e3d0c8b7cc1755141192eecd8611ffbd165f5c4b966cc8bbaa6e325fd5`; UI `sha256:828bc0a1236d378a40acff5bd5c74537b818cc0427418640f37ec6f1c90cae3a`. Publish manifest `3afa5b4e37aa79b5d09a51ae919fe3f7d81f62b343c37ca7b6d022fad248a15e`; dual report `24fa73380ea640febf90e851868e339c3e720781afc7201da14cc7a31da0afba`. Default pair still passes full/unchanged BTC/ETH1000, HTTPS hostname/CA/key rejection, private UI isolation, real browser analytics/gap/retention/instrument/outage/reconnect/no-upstream, same-volume exclusion and graceful/quiescent restart. Startup through initial API probe2.728218s; sample research107.6MiB/256MiB,0.04% CPU,17 tasks; UI168.1MiB/512MiB,0.63% CPU,13 tasks. Tasks include threads, one principal application each. Samples are not peaks, benchmarks or F1 capacity. Local images retained for review; all exact owned runtime containers/networks/volumes cleaned. No owner/unrelated resource cleanup.
+
+Final SQLite harness report SHA-256: `7f2b98d72fa3015d95478938f967aa2634bacf56bc46a43dff727a65f25f5468`. Observed local filesystem stat: `ext2/ext3` (local Docker only). Infrastructure binary: `8755579b20172dc16756b3bfb27f1a362477f3ae295ef3a515280de81ee6a588`; test probe: `d20d5307883d1532593119f0668ffd4c5063d21682a751a77f04a0220540baee`.
+
+Final executable source/test hashes:
+
+- `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs`: `c3fa41261ac35d6037c1b92fabed9e89465f611afa52fbc81fc5f44603941e5b`.
+- `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchWriterOwnership.cs`: `fed3a3623d08996075195e1ebfd56bbda2b41f4be37bfae3a5bcd116cab00c2e`.
+- `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs`: `585443d9f3c50163609687ec397f9a73c921f246db7c712d06165a2da2fa422b`.
+- `tests/runtime/release_1_15/wp07_sqlite_fault_probe.cs`: `bd77fe9d80ad0eba7b3be2dfb1bd62369e8a929984116d9612d7a636dfd1296e`.
+- `eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1`: `2a9088bfea07168448907aceb2ccfe983fbe460dbf3b296500e71a840f6559e1`.
+
+Next: owner review of Outcome B and a SQLite-preserving research-host/storage decision. No existing F1 writer deployment is authorized or technically qualified; removing the boundary requires a separately reviewed supported mechanism and real takeover/storage evidence. No merge or issue closure. PUBLIC_RUNTIME_VERIFIED=False.

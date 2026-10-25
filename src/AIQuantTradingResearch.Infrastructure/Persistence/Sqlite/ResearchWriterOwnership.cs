@@ -7,6 +7,7 @@ internal sealed class ResearchWriterOwnership : IDisposable
     internal string DirectoryPath { get; }
     internal ResearchWriterOwnership(string directory)
     {
+        ResearchStorageBoundary.Validate(directory);
         DirectoryPath = Path.GetFullPath(directory);
         // Require an exclusive, non-symlink research directory, not a shared historical DB path.
         Directory.CreateDirectory(DirectoryPath);
