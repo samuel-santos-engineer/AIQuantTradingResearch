@@ -949,3 +949,78 @@ Final executable source/test hashes:
 - `eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1`: `2a9088bfea07168448907aceb2ccfe983fbe460dbf3b296500e71a840f6559e1`.
 
 Next: owner review of Outcome B and a SQLite-preserving research-host/storage decision. No existing F1 writer deployment is authorized or technically qualified; removing the boundary requires a separately reviewed supported mechanism and real takeover/storage evidence. No merge or issue closure. PUBLIC_RUNTIME_VERIFIED=False.
+
+
+## WP07 single-writer historical chart delivery (2026-10-25)
+
+**Outcome: working local Linux/Chrome BTC/ETH chart path, PASS_LOCAL_ONLY. Real-data acquisition and Azure staging remain NOT_RUN; PUBLIC_RUNTIME_VERIFIED=False.** Baseline is fresh merged PR #398/main `00e8b52bb93edfb8f418808705e414a61d9105f2`. Existing SQLite/WAL/crash/D5 witness and same-volume exclusion evidence from #398 is **accepted and reused**, not reopened. Owner now requires one writer and controlled stop/verify/start; no pooling, distributed coordination, cross-host fencing, automatic failover or host-power-loss tests were added or rerun. No #386/#387 changes imported.
+
+### Exact three-file increment
+
+1. New `eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1`: Windows PowerShell5.1 local operator Validate/Start/Stop; existing qualified immutable images, existing default local named volume, strict server-side HTTPS, loopback-only UI, no live-writer replacement, no volume initialization/deletion.
+2. Existing `docs/roadmap/release-1.15/prompters/release-1.15-wp07-azure-staging-readiness-runbook.md`: current owner scope, executable bootstrap/launch/replacement path and precise outstanding online decisions.
+3. This existing foundation evidence document: append only, historical prefix preserved.
+
+No application/backend/UI, schema, D5 algorithm, SQLite journal, storage boundary, package/project/Dockerfile or owner prompt changes. All authored text UTF-8/no BOM/LF/final newline; git diff --check and independent CRLF checks. Original owner checkout HEAD/status and **23** dirty/untracked file bytes/SHA-256 recorded and preserved in an isolated worktree.
+
+### Topology and implementation facts
+
+Use the already-owned workstation Docker Desktop Linux/amd64 engine and its existing local named-volume capability. This is a working **local** path, not an always-reachable research host or public staging. New launcher accepts only the local Windows named-pipe Docker context and qualified local image IDs; verifies platform/users and default local volume driver/no options without dumping private metadata. It reads an already supplied API key environment, does not retrieve credentials or generate/retrieve provider secrets. Research alone mounts the private data volume and PFX; UI receives only public CA and service key. Research network is internal; only Streamlit is published to127.0.0.1 at an operator-selected free port. Existing strict ResearchSnapshotClient authenticates and validates both instrument snapshots before UI health acceptance. No browser/upstream or provider acquisition is added.
+
+Default Action=Validate / absent -Execute makes no Docker mutation. Start -Execute refuses existing live session or any running container using the state volume, removes only its stopped session-owned containers/networks, creates one researcher and one UI, and records public identity/row-count evidence. Stop -Execute stops UI then research and verifies stopped. Retry/start preserves the named volume, D5 generation/epoch and all state; the launcher never creates or deletes the volume. Failed starts clean only newly created invocation-owned resources and preserve the supplied volume. Test harness later deletes **only its separately labeled disposable fixture volume**, never a real operator volume. Resource labels and running state are projected; no container secret environments or volume option values are read into diagnostics.
+
+The script uses the existing unpassworded-PFX local TLS profile with SAN wp07-research and CA validation; encrypted-PFX delivery is not added or qualified. Current default research HTTPS52731 and App Service storage denial remain untouched. No Azure-marker stripping or same-container fallback. The local tool is deliberately not a remote/public deployment tool.
+
+### Fresh Azure facts and concrete online blocker
+
+Read-only CLI inventory using existing authentication reconfirmed staging UI Running/HTTPS-only/image assigned, research Running shell/HTTPS-only false/no assigned image/no custom mount, both Always On false, existing plan F1. An initial boolean-projection query had Windows quoting errors; corrected separate image-presence projections succeeded without printing registry namespaces. No app setting values, credentials, registry authentication, Azure mutations, remote deployment, real provider calls or production operations.
+
+No suitable always-reachable existing research host was established. F1 remains blocked by retained ResearchStorageBoundary. The runbook gives one concrete next route: owner designates an already-owned reachable single Linux host with persistent local/block storage, TLS/DNS and manual stop/start, or explicitly authorizes the minimal single-instance compute/disk cost/topology change if none exists. This does **not** reopen generic durability research or require distributed fencing for this milestone. No resource, recurring price, tier change or deployment was selected/created.
+
+Real completed-observation acquisition is also **NOT_RUN / not authorized**. Existing TwelveDataMinuteCandleSource/ResearchIngestionService contracts remain the private source/commit path, not a newly activated polling runtime. The runbook documents a bounded authorized private BTC/USD+ETH/USD1min export -> existing production --research-initialize stdin/import -> closed consistent state -> fresh local named-volume seed -> HTTPS API/UI launch procedure. Configuration/API/HMAC/export remain private; no test exporter becomes operational initialization. After first seed, volume is sole active authority and the host copy is offline backup only. No actual real export, initial provider request, credentials read, continuous ingestion or real-data migration is claimed.
+
+### Executed focused local evidence
+
+Reused exact #398 local images (no build/rebuild/pull/push): research `sha256:284736e3d0c8b7cc1755141192eecd8611ffbd165f5c4b966cc8bbaa6e325fd5`; UI `sha256:828bc0a1236d378a40acff5bd5c74537b818cc0427418640f37ec6f1c90cae3a`. These are local IDs, not registry RepoDigests. Existing closed deterministic WP07 fixture state was copied only into a new task-owned disposable volume by daemon archive, UID1654/0700/0600, never image layers or public staging. Both instruments have1000 deterministic **test** candles and an intentional gap; these are not real acquired observations. Existing fake API key/CA/PFX used locally; no actual credentials retrieved. Fixture observation times are old and UI status is honestly stale.
+
+Commands exercised through Windows PowerShell5.1.26100.9711 (requested patch5.1.26100.9444 not separately available), existing Python/Chrome and Docker29.7.2:
+
+```powershell
+# Variables contain existing owned inputs; no secret argument values.
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 `
+  -ResearchImage $ResearchImage -UiImage $UiImage -StateVolume $FixtureVolume `
+  -TlsDirectory $FixtureTlsDirectory -Session $OwnedSession -Port $FreeLoopbackPort
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 -Action Start -Execute `
+  -ResearchImage $ResearchImage -UiImage $UiImage -StateVolume $FixtureVolume `
+  -TlsDirectory $FixtureTlsDirectory -Session $OwnedSession -Port $FreeLoopbackPort
+# Repeat Start while running: expected rejection, existing session unaffected.
+# Existing browser harness uses loopback URL and task-owned file control for a normal research stop/start.
+& $ExistingPython -B ./tests/runtime/release_1_15/wp07_browser_qualification.py
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 -Action Stop -Session $OwnedSession -Execute
+# Start again with same inputs; compare both public identity tuples and row counts, then Stop.
+$env:PYTHONPATH='python/presentation'
+& $ExistingPython -B -m unittest python.presentation.test_research_chart python.presentation.test_research_snapshot_client
+```
+
+| Check | Actual result |
+|---|---|
+| Default nonmutating preflight | PASS, exit0; no runtime resource creation |
+| API key absent | Expected FAIL/exit1 before start; no fallback |
+| New launcher to real C# HTTPS snapshots | PASS, exit0; BTC/USD1000 + ETH/USD1000, strict client |
+| Start over live writer/session | Expected FAIL/exit1; existing session preserved |
+| Existing real-Chrome container browser acceptance | PASS, exit0;7 reported browser cases |
+| Controlled full Stop/verify/Start | PASS, exit0; same public identity tuples and row counts for both instruments |
+| Final Stop and exact task cleanup | PASS; cleanupErrors empty; launcher never removed state volume |
+| Python chart/client regression | **52/52**, exit0,10.054s; expected bare-mode Streamlit warnings |
+| Immutable identity probe regression | PASS; old mappingproxy serialization raises TypeError, explicit public dict copy serializes successfully |
+| Windows PowerShell5.1 syntax / UTF-8 LF | PASS |
+
+Actual browser Chrome155.0.8059.86, Plotly.js4.1.1 / pinned Streamlit1.61.1 and Plotly Python7.1.0: BTC candles/SMA20/modebar and verified component; retained1000/gap shapes; supplied RSI14; ETH1000; normal research stop -> Disconnected/last-known with unchanged displayed closes; normal restart -> Connected with same closes; transformed educational labeling and no service key visible; no HTTP(S) browser requests to provider/research/CDN. Browser ran against the **new launcher**, not a Windows surrogate or solely the old runner. Existing unchanged UI behavior/controls reuse accepted prior qualification; no new hover/zoom-retention claim beyond executed browser cases. No general #398 fault matrix, SIGKILL/power-loss or cross-host experiment rerun.
+
+Initial launcher starts failed at the new snapshot probe while both containers were running. Root cause was JSON serialization of ResearchSnapshotClient's immutable identity mapping, not TLS or a service defect. Explicit dict copies of public identity fields corrected the new tool; standalone regression reproduced the old TypeError and successful correction. Added only safe exception-category and status/exit diagnostics; no raw exception payload/key/header logged. Both failed attempts cleaned their own containers/networks and retained supplied state; disposable harness volumes subsequently cleaned. Failed reports remain FAIL. Final full launcher/browser/replacement run passed.
+
+No .NET compilation or tests repeated because application code/images were unchanged; accepted #398: 137 Infrastructure/63 Application and SQLite fault results remain prior evidence, **not newly executed counts**. Known legacy Volume/Simulated activity hover assertion remains untouched and not rerun. No dependencies installed or upgraded. No Azure browser/runtime acceptance, provider acquisition, real-data bootstrap, registry digest publication or deployment occurred. No running preview was left unattended; operator can restart with the documented launcher after preparing owned inputs.
+
+Final chart-launch report SHA-256: `0425efde0dddd3ffd6d818a5bdec847009659d57dd89c362eafb0d66158855fd`; browser screenshot SHA-256: `a7adea3c1db4cf6085b2a0b51566c48bb6b28215232f65910258a29986578645` (owner-local chart.png, personal evidence paths omitted). Launcher SHA-256: `3952462af2afde378ad1dae8b11e0f81011b94fd607350cd7146a4c46288e8e5`.
+
+Next action: owner supplies/authorizes a bounded real completed BTC/ETH export and designates/authorizes a single reachable persistent research host plus exact staging deployment operations. Current local path works with disposable data; no live Azure/real-provider chart claim. One review PR, OPEN/UNMERGED; no issue closure. PUBLIC_RUNTIME_VERIFIED=False.

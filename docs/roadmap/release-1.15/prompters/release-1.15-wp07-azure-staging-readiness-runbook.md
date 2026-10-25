@@ -1,19 +1,17 @@
 # Release 1.15 WP07 - Azure staging readiness and operator runbook
 
-Date: 2026-10-25. Implementation baseline: merged PR #397, `fa0b17e5608fdabc44b8cb88d9a68340d70733b9`; prior Linux qualification from #395 retained in append-only evidence.
+Date: 2026-10-25. Implementation baseline: merged PR #398, `00e8b52bb93edfb8f418808705e414a61d9105f2`; prior Linux qualification from #395 retained in append-only evidence.
 
 **Outcome: preparation complete; deployment BLOCKED. PUBLIC_RUNTIME_VERIFIED=False.**
-This is a reviewable operator checklist, not deployment authority or Azure runtime acceptance. All new/modified text must remain UTF-8/LF. This increment blocks unsupported App Service writable storage and adds local fault qualification, preserving the prior transport/initializer; no dependency, schema, provider, Azure or production changes are included. PR #386/#387 are not imported. Issues #368/#369/#372/#373/#374 remain open for their own disposition.
+This is a reviewable operator checklist, not deployment authority or Azure runtime acceptance. All new/modified text must remain UTF-8/LF. This increment supplies a loopback-only operator launcher and chart acceptance, reusing the accepted #398 SQLite qualification and preserving its storage boundary; no dependency, schema, provider, Azure or production changes are included. PR #386/#387 are not imported. Issues #368/#369/#372/#373/#374 remain open for their own disposition.
 
 ## Exact publication scope
 
-1. New `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs`.
-2. `src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchWriterOwnership.cs`.
-3. New `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs`.
-4. New `tests/runtime/release_1_15/wp07_sqlite_fault_probe.cs` (test-only; mounted at runtime, never packaged).
-5. New `eng/docker/release-1.15/Invoke-Wp07SqliteQualification.ps1` (Windows PowerShell5.1; default preflight only).
-6. This existing runbook.
-7. Append-only `docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md`.
+1. New `eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1`.
+2. This existing runbook.
+3. Append-only `docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md`.
+
+Prior #398 boundary/fault artifacts remain unchanged; its accepted qualification is reused.
 
 No executable deployment script is necessary. The merged local qualification runner already defaults to non-mutating preflight; `-Execute` means **local Docker only**, never Azure. Commands below with placeholders are withheld operator steps, not commands executed during this review. Do not run them before the stated prerequisites and separate owner authorization.
 
@@ -176,3 +174,132 @@ The harness reuses the installed .NET10 compiler/reference assemblies and existi
 Fault marker is armed **after** constructor recovery. SIGKILL is issued only after observing the marker for: before-commit (uncommitted transaction should roll back); watermark-replace (DB committed, pending witness flushed, old witness still present; existing validated chain may advance witness); transform-before-commit (old D5 remains); transform-after-commit (new D5 activation ahead of old witness must reject recovery). This is interrupted process/transaction evidence with the host and disk still running, **not host power loss**. Reopen checks generation/version/D5/integrity and runs WAL checkpoint. Same-volume distinct containers test denial while owner lives and acquisition only after owner kill/wait. Distinct-volume writers deliberately both run, demonstrating absence of a global fence. Two simulated Azure instance markers must both fail before a new directory exists, even with local-qualification set. Read-only mount, mount mismatch, wrong UID, witness tampering and secret-output negatives remain fail-closed.
 
 All Azure deployment, registry publication, real acquisition, actual host failure, distributed lease/fencing and Azure durable storage acceptance remain BLOCKED/NOT_RUN. PUBLIC_RUNTIME_VERIFIED=False. Next owner decision is whether to authorize a SQLite-preserving research-hosting/storage adjustment; there is no F1 environment-variable workaround in this code.
+
+
+## Current chart-delivery increment: single writer, controlled replacement
+
+**Owner decision:** PR #398 local SQLite/WAL, process-crash, witness and same-volume exclusion evidence is accepted for this milestone. Exactly one research writer is required. Brief stop-before-start downtime is acceptable. Distributed coordination, pooling, cross-host fencing, automatic failover and host-power-loss tests are **not work for this increment**. Earlier compatibility/fault sections above explain the retained F1 limitation; they do not impose another general SQLite investigation or new gate.
+
+**Working local path:** the existing owned Windows workstation's Docker Desktop Linux/amd64 engine, existing qualified research/UI images and an existing default local Docker named volume. This uses existing local infrastructure without provisioning or additional cloud resources. The volume persists across normal container stops/replacements; host disk loss and public availability are not claimed. App Service F1 remains unsuitable for the current writable store, and ResearchStorageBoundary is not bypassed. No other suitable always-reachable Linux research host was established by this inspection.
+
+### Minimal launcher
+
+`eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1` is Windows PowerShell5.1 compatible. Default Action=Validate and absent -Execute are nonmutating Docker preflight. Start requires explicit -Execute, immutable local Linux/amd64 image IDs with1654:1654/12002:12002 users, an **existing** default local Docker volume, existing TLS material and an already supplied API key environment value. It never initializes, creates, deletes or overwrites the volume. It refuses a running container using that volume and refuses Start over its running session. No registry pull/build/provider request occurs.
+
+Prepare variables from operator-owned existing inputs. These commands were tested using disposable fixture state; no real export is currently available or authorized for acquisition:
+
+```powershell
+$ResearchImage='sha256:284736e3d0c8b7cc1755141192eecd8611ffbd165f5c4b966cc8bbaa6e325fd5'
+$UiImage='sha256:828bc0a1236d378a40acff5bd5c74537b818cc0427418640f37ec6f1c90cae3a'
+# Supply $StateVolume and $TlsDirectory privately, and choose an unused loopback port.
+# API key must already be in the process environment through a secure operator channel.
+# Do not type secret values in shell history, commit them, or retrieve Azure secrets here.
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 `
+  -ResearchImage $ResearchImage -UiImage $UiImage -StateVolume $StateVolume `
+  -TlsDirectory $TlsDirectory -Session aiq-r115-local-chart -Port 8501
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 -Action Start -Execute `
+  -ResearchImage $ResearchImage -UiImage $UiImage -StateVolume $StateVolume `
+  -TlsDirectory $TlsDirectory -Session aiq-r115-local-chart -Port 8501
+```
+
+On success open `http://127.0.0.1:8501` (or the chosen port). Research has no published host port. UI server calls `https://wp07-research:52731` on an internal Docker network with validated CA/hostname and X-API-Key. TLS directory must contain existing server.pfx and public ca.pem; the certificate must be current with SAN wp07-research, and this minimal launcher uses the existing unpassworded-PFX local profile. Research alone receives the PFX directory; UI receives only the CA file and service key. No provider/HMAC/private-state mount is given to UI. Provider acquisition is offline/separate; research has no external network in this local profile.
+
+Startup authenticates and validates both instrument snapshots using the **existing strict Python HTTPS client**, requires nonempty candles and records only public identities/counts. It then checks Streamlit health. Failed startup removes only resources created by that invocation, retaining the supplied state volume. Inspection projects only ownership labels/running state and non-secret image/volume metadata; no container environments or volume option values are dumped. Generic failure category/status may be recorded, never headers, keys or raw rows.
+
+### Real observations and one-time initialization
+
+**Actual acquisition NOT_RUN / not authorized.** Existing TwelveDataMinuteCandleSource requests UTC ascending1min windows, at most1000 observations per instrument, authenticates through an Authorization header, validates symbol/interval/timestamps/decimals and filters forming candles using completion grace. ResearchIngestionService is the existing bounded polling/commit path. Neither this launcher nor normal --research-snapshot-api startup invokes a live provider or polling loop. No legacy UI key is retrieved/reused and no test candle is represented as a real observation.
+
+Shortest real-data bootstrap: obtain an independently authorized private completed-minute export for BTC/USD and ETH/USD; normalize authentic rows into the existing initializer envelope documented above, preserving gaps, bounds and UTC. The source label is an operator assertion, not acquisition evidence. Do not fabricate data or mark classification ready below401 consecutive candles. Authorization for real acquisition must specify the existing account/secret channel and bounded requests/credits; no request is made through this increment.
+
+Run the **production** operator initializer once against a new protected private host directory (or retry the exact installed tuple). Configuration contains only the documented generation/keyEpoch/transformEpoch and distinct API/HMAC material. Input/export/config paths remain private, outside the repository. The following Windows PowerShell5.1 skeleton sends secrets through redirected stdin, never arguments:
+
+```powershell
+$psi=New-Object System.Diagnostics.ProcessStartInfo
+$psi.FileName='dotnet'
+$psi.Arguments='"'+(Join-Path $PublishedResearchDirectory 'AIQuantTradingResearch.Worker.dll')+'" --research-initialize'
+$psi.UseShellExecute=$false
+$psi.CreateNoWindow=$true
+$psi.WindowStyle=[System.Diagnostics.ProcessWindowStyle]::Hidden
+$psi.RedirectStandardInput=$true
+$psi.RedirectStandardError=$true
+$psi.EnvironmentVariables['AIQ_RESEARCH_PRIVATE_DIRECTORY']=$ProtectedPrivateDirectory
+$psi.EnvironmentVariables['AIQ_RESEARCH_IMPORT_FILE']=$AuthorizedCompletedObservationFile
+$p=[System.Diagnostics.Process]::Start($psi)
+$p.StandardInput.Write([IO.File]::ReadAllText($ProtectedConfigurationFile,[Text.Encoding]::UTF8))
+$p.StandardInput.Close()
+if(-not $p.WaitForExit(35000)){$p.Kill();throw 'Owned initializer deadline exceeded; preserve state for review.'}
+if($p.ExitCode -ne 0){throw 'Initialization rejected; preserve state and inspect generic diagnostics.'}
+$p.Dispose()
+```
+
+Use owner-restricted host directories/config files. Close the initializer before transferring state; do not copy a live DB. D5 is persisted in the private store/witness, not the UI; same API key must independently be supplied to both server roles. The initializer does not acquire data, store the API key or start polling. A partial import retries exactly or fails closed, as previously documented.
+
+For **first seeding only**, daemon-copy the entire closed initialized data directory into a **fresh** named volume with data/ owner1654 and modes0700/0600. Never seed over an existing volume or treat copy as a restart procedure. This bounded local recipe does not create an image layer or start a writer:
+
+```powershell
+$env:AIQ_SEED_VOLUME=$NewStateVolume
+$env:AIQ_SEED_IMAGE=$ResearchImage
+$env:AIQ_SEED_DIRECTORY=$ProtectedPrivateDirectory
+# Python below uses existing standard library; no dependencies or provider/network calls.
+```
+
+Execute this Python through the existing interpreter (stdin or an owner-local script), leaving all file content private:
+
+```python
+import os,subprocess,uuid,io,tarfile,json,re
+from pathlib import Path
+def docker(*args,data=None):
+    p=subprocess.run(['docker',*args],input=data,capture_output=True,timeout=30)
+    if p.returncode: raise RuntimeError('Owned seed operation failed; preserve volume for review')
+    return p.stdout
+volume=os.environ['AIQ_SEED_VOLUME']; image=os.environ['AIQ_SEED_IMAGE']
+assert re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',volume)
+assert re.fullmatch(r'sha256:[0-9a-f]{64}',image)
+context=json.loads(docker('context','inspect'))[0]
+assert context['Endpoints']['docker']['Host'].startswith('npipe://')
+folder=Path(os.environ['AIQ_SEED_DIRECTORY']); seed='aiq-private-seed-'+uuid.uuid4().hex
+if subprocess.run(['docker','volume','inspect','--format','{{.Name}}',volume],capture_output=True).returncode==0:
+    raise RuntimeError('Refusing to seed an existing volume')
+allowed={'research.sqlite','research.sqlite-wal','research.sqlite-shm','watermark.json','writer.lock','watermark.json.pending'}
+assert folder.is_dir() and not folder.is_symlink()
+assert (folder/'research.sqlite').is_file() and (folder/'watermark.json').is_file()
+assert all(p.is_file() and not p.is_symlink() and p.name in allowed for p in folder.iterdir())
+docker('volume','create','--label','aiq.local.research=true',volume)
+docker('create','--name',seed,'--label','aiq.private.seed='+seed,
+       '--mount','type=volume,source='+volume+',target=/private',image)
+try:
+    data=io.BytesIO()
+    with tarfile.open(fileobj=data,mode='w') as archive:
+        for p in [folder,*folder.iterdir()]:
+            item=archive.gettarinfo(str(p),arcname='data' if p==folder else 'data/'+p.name)
+            item.uid=item.gid=1654; item.uname=item.gname=''
+            item.mode=0o700 if p.is_dir() else 0o600
+            if p.is_file():
+                with p.open('rb') as f: archive.addfile(item,f)
+            else: archive.addfile(item)
+    docker('cp','-',seed+':/private',data=data.getvalue())
+finally:
+    # Exact random name created above; no volume/data deletion, even after failure.
+    docker('rm',seed)
+```
+
+This recipe is for the same already-selected local Docker Desktop endpoint; validate context before use, and do not target a remote daemon. It must not be run with WP07 fixture/test data as real public staging bootstrap. Failed seeding leaves its volume intact for operator review. After first seeding, the named volume is the sole active authority; the closed host directory is an offline backup only. Never launch a second researcher against that host copy. Existing qualified state requires **no copying or re-initialization** during normal restart.
+
+### Replacement, rollback and browser verification
+
+```powershell
+# Stop UI and research; success is returned only after both are confirmed stopped.
+& ./eng/docker/release-1.15/Invoke-Wp07LocalHistoricalChart.ps1 `
+  -Action Stop -Session aiq-r115-local-chart -Execute
+# Then Start with the same volume/tuple/key/CA and a qualified compatible image pair.
+# Repeat the Start command above; it removes only owned stopped containers/networks.
+```
+
+No parallel researcher, automatic restart/failover or copied second authority. An unrelated running user of the volume causes refusal. Keep the brief outage honest: existing UI retains last-known data when only research is interrupted; full pair replacement reloads the UI. Verify BTC/USD and ETH/USD, historical completed-minute UTC candles, C# SMA/RSI, gaps, selectors/hover/zoom/pan/modebar, truthful stale/readiness states and reconnect. Browser must not call the provider/research API or receive keys/raw DB. Stop-before-start and return of the original public snapshot identities/row counts were exercised locally.
+
+Rollback is stop/verify-stopped/start of the prior **compatible** image pair with the same authoritative volume, D5 tuple, certificate and service key. Never restore an older DB/witness independently, delete the volume, reset generation or silently change epochs. On mismatch, stop and preserve state for review. No real-data migration/rollback was executed here.
+
+### Remaining online decision, not another durability workstream
+
+The owned workstation now has a demonstrated loopback-only chart path; it is not an always-reachable research host for Azure staging. Existing F1 research remains blocked by the retained storage boundary. To get a real chart online, the owner must (1) authorize bounded real completed-observation acquisition or supply an already authorized export, and (2) designate an existing always-reachable Linux research host with persistent local/block storage, certificate/DNS and operator-controlled stop/start. None was established by the authorized staging inspection. If no such host exists, explicitly approve the minimal single-instance Linux compute/persistent-disk cost/topology adjustment already described above before provisioning. No distributed coordination, host-power-loss study, paid-resource purchase, public endpoint, registry push or deployment is authorized by this runbook. After that decision, separately authorize exact staging image/secret/config/endpoint changes and actual staging browser verification. PUBLIC_RUNTIME_VERIFIED=False.
