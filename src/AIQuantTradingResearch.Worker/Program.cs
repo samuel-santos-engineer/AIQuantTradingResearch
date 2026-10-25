@@ -12,6 +12,14 @@ using AIQuantTradingResearch.Application.Visualization;
 using AIQuantTradingResearch.Worker;
 using Microsoft.Extensions.DependencyInjection;
 
+// Explicit bounded operator diagnostic: no database/server/provider; generic booleans only.
+if (args.Contains("--research-storage-probe", StringComparer.Ordinal))
+{
+    if (args.Length != 1) return 1;
+    Console.WriteLine("WP11_STORAGE_PROBE " + System.Text.Json.JsonSerializer.Serialize(ResearchStorageBoundary.ProbeStaging()));
+    return 0;
+}
+
 // Explicit operator-only command. Secrets enter through bounded stdin, never arguments.
 if (args.Contains("--research-initialize", StringComparer.Ordinal))
     return args.Length == 1 ? await ResearchStateInitialization.RunAsync(Console.OpenStandardInput(), Console.Error,

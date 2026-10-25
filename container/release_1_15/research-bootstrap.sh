@@ -4,7 +4,7 @@ set -eu
 mode=${AIQ_RESEARCH_BOOTSTRAP_MODE:-serve}
 case "$mode" in
   diagnose)
-    printf 'WP10_READ_ONLY_DIAGNOSTIC\n'
+    printf 'WP11_BOUNDED_DIAGNOSTIC\n'
     # Print only numeric UID fields and selected mount metadata; never mount sources/options after fs type.
     awk '/^Uid:/ {print "UID_FIELDS",$2,$3,$4,$5}' /proc/self/status
     awk '$5 == "/" || $5 == "/tmp" || $5 == "/tmp/aiq-research" {
@@ -21,7 +21,9 @@ case "$mode" in
         awk 'NR==1 {print;exit}' "/sys/fs/cgroup/$limit"
       else printf 'CGROUP_LIMIT_UNAVAILABLE\n'; fi
     done
-    printf 'NO_WRITES_NO_IMPORT_NO_SERVER; PUBLIC_RUNTIME_VERIFIED=False\n'
+    # Exact opt-in allows only the bounded private write probe; never SQLite initialization.
+    dotnet /app/AIQuantTradingResearch.Worker.dll --research-storage-probe
+    printf 'NO_IMPORT_NO_DATABASE_NO_SERVER; PUBLIC_RUNTIME_VERIFIED=False\n'
     exit 0
     ;;
   operator-stdin)

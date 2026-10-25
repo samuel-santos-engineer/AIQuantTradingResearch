@@ -55,8 +55,10 @@ try:
   '--depsfile','/app/AIQuantTradingResearch.Worker.deps.json','/app/AIQuantTradingResearch.Infrastructure.Tests.dll',mode]
   p=run(args)
   assert p.returncode==(1 if startup else 0),name+' failed; status='+str(p.returncode)+'; probe='+p.stdout.decode(errors='replace')[:160]
-  if not startup:assert (b'PASS' in p.stdout if mode=='pass' else b'REJECTED' in p.stdout),name+' unexpected result'
+  if not startup:assert (b'PASS' in p.stdout if mode in ('pass','probe') else b'REJECTED' in p.stdout),name+' unexpected result'
   results[name]='PASS_LOCAL'
+ case('probe','probe')
+ case('probe-denied','probe-reject',change={'AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING':None})
  case('overlay','pass')
  case('default-denial',change={'AIQ_RESEARCH_STORAGE_SCOPE':None,'AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING':None})
  case('wrong-site',change={'WEBSITE_SITE_NAME':'production'})

@@ -144,4 +144,10 @@ public sealed class ResearchStorageBoundaryTests
         }
         finally { Directory.Delete(parent, true); }
     }
+    [Fact] public void DiagnosticHasOnlyFixedBooleanFieldsAndDoesNotAdmitLocalHost()
+    {
+        var result = ResearchStorageBoundary.ProbeStaging();
+        Assert.Equal("accepted,hostOptIn,kernel,linux,privateWritable,probeCleanup", string.Join(",", result.Keys.Order(StringComparer.Ordinal)));
+        Assert.False(result["accepted"]); Assert.False(result["hostOptIn"]); Assert.True(result["probeCleanup"]);
+    }
 }

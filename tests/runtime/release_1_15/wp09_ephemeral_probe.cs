@@ -12,6 +12,12 @@ internal static class EphemeralProbe
         var stage = "entry";
         try
         {
+            if (args[0] is "probe" or "probe-reject")
+            {
+                var report = ResearchStorageBoundary.ProbeStaging();
+                if (report["accepted"] != (args[0] == "probe") || !report["probeCleanup"] || Directory.Exists(directory)) return 2;
+                Console.WriteLine(args[0] == "probe" ? "PROBE_PASS" : "PROBE_REJECTED"); return 0;
+            }
             if (args[0] == "reject")
             {
                 try { using var unexpected = new SqliteResearchStateStore(directory, true); return 2; }

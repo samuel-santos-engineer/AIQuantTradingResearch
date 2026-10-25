@@ -65,7 +65,7 @@ def main():
                      *(['--read-only'] if mode=='diagnose' else []),research,ok=False)
             assert p.returncode==expected,name
             if mode=='diagnose':
-                assert b'UID_FIELDS 1654 1654 1654 1654' in p.stdout and b'NO_WRITES_NO_IMPORT_NO_SERVER' in p.stdout
+                assert b'UID_FIELDS 1654 1654 1654 1654' in p.stdout and b'NO_IMPORT_NO_DATABASE_NO_SERVER' in p.stdout
                 result['localDiagnostic']=p.stdout.decode().splitlines()
             result['cases'][name]='PASS_LOCAL'
         simple('diagnostic','diagnose',0)
