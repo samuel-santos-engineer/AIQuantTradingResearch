@@ -62,10 +62,14 @@ def main():
             p=docker('run','--name',c,'--label','aiq.owner='+owner,'--network','none','--cap-drop','ALL',
                      '--security-opt','no-new-privileges','--memory','256m','--pids-limit','64',
                      '--env','AIQ_RESEARCH_BOOTSTRAP_MODE='+mode,'--env','AIQ_RESEARCH_PRIVATE_DIRECTORY=/tmp/aiq-research',
-                     *(['--read-only'] if mode=='diagnose' else []),research,ok=False)
+                     *(['--read-only','--env','AIQ_WP11_ATTEMPT_NONCE='+'b'*32,
+                        '--env','AIQ_WP11_CANDIDATE_DIGEST=sha256:'+'a'*64] if mode=='diagnose' else []),research,ok=False)
             assert p.returncode==expected,name
             if mode=='diagnose':
-                assert b'UID_FIELDS 1654 1654 1654 1654' in p.stdout and b'NO_IMPORT_NO_DATABASE_NO_SERVER' in p.stdout
+                frame=json.loads(p.stdout)
+                assert frame['entrypoint']=='research-bootstrap/diagnose' and frame['uid']==[1654]*4
+                assert frame['nonce']=='b'*32 and frame['digest']=='sha256:'+'a'*64
+                assert frame['probe']['accepted'] is False and frame['probe']['probeCleanup'] is True
                 result['localDiagnostic']=p.stdout.decode().splitlines()
             result['cases'][name]='PASS_LOCAL'
         simple('diagnostic','diagnose',0)

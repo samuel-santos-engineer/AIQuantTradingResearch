@@ -79,6 +79,22 @@ class RollbackTests(unittest.TestCase):
         self.assertEqual(r,probe);self.assertTrue(uid);self.assertEqual(mounts['/']['filesystem'],'overlay')
         self.assertNotIn('PRIVATE_CANARY',json.dumps([r,uid,mounts]))
 
+    def test_early_exit_without_evidence_stays_incomplete_after_rollback(self):
+        with mock.patch.object(m,'window',return_value=None):r=m.execute_azure(self.root,self.plan)
+        self.assertTrue(r['rollbackVerified']);self.assertFalse(r['runtimeObserved']);self.assertEqual(r['result'],'INCOMPLETE')
+
+    def test_watchdog_requests_exact_target_stop(self):
+        m.save(self.root,'watchdog.json',{'stopAt':0})
+        with mock.patch.object(m.sys,'argv',['wp11','--state',str(self.root),'--watchdog']),mock.patch.object(m,'az',return_value=None) as az:
+            m.main()
+        self.assertEqual(az.call_args.args,('webapp','stop','-g',m.GROUP,'-n',m.APP,'-o','none'))
+        self.assertTrue(json.loads((self.root/'watchdog-fired.json').read_text())['stopRequested'])
+
+    def test_watchdog_stop_failure_is_not_reported_as_stopped(self):
+        m.save(self.root,'watchdog.json',{'stopAt':0})
+        with mock.patch.object(m.sys,'argv',['wp11','--state',str(self.root),'--watchdog']),mock.patch.object(m,'az',side_effect=TimeoutError()):m.main()
+        self.assertFalse(json.loads((self.root/'watchdog-fired.json').read_text())['stopRequested'])
+
 class StopVerificationTests(unittest.TestCase):
     def test_transient_read_failure_does_not_abandon_rollback(self):
         with mock.patch.object(m,'az',return_value=None),mock.patch.object(m,'site',side_effect=[TimeoutError(),{'state':'Stopped'}]),mock.patch.object(m.time,'sleep'):
@@ -109,5 +125,42 @@ class ImageIdentityTests(unittest.TestCase):
     def test_rootfs_mismatch_rejected(self):
         self.local['RootFS']['Layers']=['different']
         with self.assertRaises(RuntimeError):m.verify_published_identity(self.local,self.manifest,'sha256:index',self.path)
+
+class EvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.nonce='b'*32;self.digest='sha256:'+'a'*64
+        self.value={'version':1,'nonce':self.nonce,'digest':self.digest,'observedUtc':'2026-10-25T12:00:01Z',
+                    'entrypoint':'research-bootstrap/diagnose','uid':[1654]*4,'rootOverlay':True,'rootWritable':True,
+                    'probe':{k:True for k in m.PROBE_KEYS}}
+        self.started=m.dt.datetime(2026,10,25,12,tzinfo=m.dt.timezone.utc).timestamp()
+    def check(self,data=None,delay=2):
+        return m.validate_evidence(json.dumps(self.value).encode() if data is None else data,self.nonce,self.digest,self.started,self.started+delay)
+    def test_complete(self):self.assertTrue(self.check()['probe']['accepted'])
+    def test_bad_frames(self):
+        for data in (b'',b'{',b'\xff',b' '*4097):
+            with self.subTest(data_length=len(data)),self.assertRaises(ValueError):self.check(data)
+    def test_replay_mismatch_startup_and_inconsistency(self):
+        for key,value in [('nonce','c'*32),('digest','sha256:'+'c'*64),('observedUtc','2026-10-25T11:59:59Z'),('entrypoint',''),('uid',[0]*4),('rootWritable',False),('secret','forbidden')]:
+            original=self.value.copy();self.value[key]=value
+            with self.subTest(field=key),self.assertRaises(ValueError):self.check()
+            self.value=original
+    def test_logging_delay_and_future(self):
+        for delay in (0,61):
+            with self.subTest(delay=delay),self.assertRaises(ValueError):self.check(delay=delay)
+    def test_duplicate_fields(self):
+        with self.assertRaises(ValueError):self.check(json.dumps(self.value).replace('"version": 1','"version": 1, "version": 1').encode())
+    def test_preflight_blocks_before_publication_and_azure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);m.save(root,'publication-plan.json',{'imageId':self.digest})
+            with mock.patch.object(m.sys,'argv',['wp11','--state',directory,'--execute']),mock.patch.object(m,'publish') as publish,mock.patch.object(m,'execute_azure') as execute:
+                with self.assertRaisesRegex(RuntimeError,'prerequisite unqualified'):m.main()
+                publish.assert_not_called();execute.assert_not_called()
+    def test_watchdog_is_armed_before_startup_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);record={};watcher=mock.Mock()
+            with mock.patch.object(m.subprocess,'Popen',return_value=watcher),mock.patch.object(m,'start_app',side_effect=TimeoutError()):
+                with self.assertRaises(TimeoutError):m.window(root,record)
+            self.assertEqual(json.loads((root/'watchdog.json').read_text())['stopAt'],record['_started']+30)
+            self.assertIs(record['_watcher'],watcher)
 
 if __name__=='__main__':unittest.main()

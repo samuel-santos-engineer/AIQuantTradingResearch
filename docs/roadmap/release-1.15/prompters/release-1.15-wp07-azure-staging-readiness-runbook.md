@@ -685,3 +685,70 @@ python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_resear
 PASS_LOCAL:50 focused .NET tests,13 Linux smoke cases including admitted/denied probe and empty-directory cleanup,14 rollback/provenance/log-sanitization fault tests; PS5.1 syntax, UTF-8/LF and diff checks. A local probe smoke initially expected REJECTED for a successful PROBE_PASS marker; corrected the assertion only, then13 passed. No candle fixture/import/bootstrap or general crash/fault matrix was run in WP11.
 
 VERIFIED_AZURE_STAGING: only the actual publication/configuration/start/stop/rollback and protected log-retrieval observations above. Runtime UID, mounts, write eligibility and guard acceptance remain **UNVERIFIED**. No native/runtime/browser readiness inference. NOT_RUN: authentic data, service deployment, TLS/auth/browser/session acceptance. PUBLIC_RUNTIME_VERIFIED=False. Review the focused code/failure-evidence PR; any follow-up diagnostic requires a new narrow disposition and must first establish attributable application-output capture. Do not repeat the completed mutation, weaken WP09 or request paid infrastructure.
+
+
+### WP11 attributable-evidence amendment ? offline qualification only
+
+The original 24.125-second Azure control-plane window remains inconclusive: no
+attributable runtime frame was recovered. Delayed or empty platform log delivery,
+a container startup failure, and an early exit are hypotheses, not established
+causes. Control-plane start success and downloaded historical markers do not prove
+that the candidate entrypoint executed. Exact baseline rollback was independently
+verified after manual recovery; that history is unchanged.
+
+The diagnostic entrypoint now emits one bounded JSON frame containing version 1,
+a unique 128-bit attempt nonce, immutable candidate leaf digest, UTC observation
+second, the fixed `research-bootstrap/diagnose` entrypoint identifier, four numeric
+UID fields, root overlay/writability booleans, and the six fixed storage-probe
+booleans. Missing or malformed correlation is rejected before probing. No mount
+sources, environment values, database, API, imports or provider calls are emitted
+or initiated. The existing production storage guard and exact-site policy remain
+unchanged. Historical archive reduction is retained solely for inspection; the
+controller no longer accepts archive markers as runtime evidence.
+
+The validator requires strict UTF-8, at most 4,096 bytes, exact fields/types, no
+duplicate keys, matching nonce/digest, consistent guard/UID/mount conclusions,
+and `attempt start <= observation <= receipt` within 60 seconds. Receipt requires
+an independently authenticated private channel bound to the actual candidate
+execution and registry-qualified immutable leaf. The payload's digest is only
+self-reported correlation, not attestation. Clock skew or delayed receipt fails
+closed; a nonce must never be reused. No currently verified F1 private retrieval
+channel supplies this binding. Therefore an unconditional preflight blocks
+publication and Azure execution; no setting or operator claim can unlock it.
+There is no new public diagnostic endpoint or persistent evidence artifact.
+
+Offline verification:
+
+- `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -v`:
+  **24 passed**, exit 0. All 14 prior tests remain. New cases cover malformed,
+  missing, partial, oversized, replayed, mismatched, future/delayed and inconsistent
+  evidence; duplicate/private fields; preflight blocking; early exit without a
+  frame; startup failure after watchdog arming; watchdog stop success/failure.
+  Existing stop-confirmation and exact rollback failure tests remain passing.
+- Two actual Linux executions used only the cached research image, a read-only
+  bind of the amended shell, UID 1654, read-only root, dropped capabilities,
+  no-new-privileges and no network. Missing correlation: rejected, exit 1, empty
+  stdout. Valid correlation: exit 0, frame parsed by the strict validator, all
+  UID fields 1654, default storage denial and probe cleanup confirmed. These
+  prove local shell serialization/default denial only, not Azure source identity
+  or the fully opted-in Azure write boundary. No image was built or published.
+- The existing WP10 bootstrap fixture was adjusted to consume the new frame;
+  its import/endpoint suite was not rerun under this no-import amendment.
+- PowerShell wrapper unchanged; no new PowerShell syntax. Windows PowerShell
+  5.1.26100.9444 was not available for exact-build execution qualification.
+
+A later retry needs separate owner authority for the exact corrected image
+publication, named research staging target, at-most-60-second run, independent
+watchdog and exact rollback, plus a concrete private retrieval facility. Before
+removing the preflight block, that facility must demonstrate authenticated
+application-container source identity, independent immutable-image binding,
+bounded retrieval and timeout behavior, and observation/receipt freshness.
+A successful control-plane operation, HTTP 200, configuration echo or log marker
+alone is insufficient. Missing collection continues to require stop/restoration
+and an INCOMPLETE result; a failed stop/restore remains critical, never acceptance.
+The watchdog deadline is not proof of kernel termination or a hard cloud stop SLA.
+No such channel or Azure qualification was performed by this amendment.
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+PR #405 remains OPEN/UNMERGED; UI, production and provider operations untouched.

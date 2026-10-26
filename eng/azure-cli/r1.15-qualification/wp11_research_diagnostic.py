@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import zipfile
+import uuid
 
 APP='aiqr115researchstagingwus27f5eabb5'
 GROUP='rg-aiq-r112-wp05-wus2-7f5eabb5'
@@ -58,6 +59,7 @@ def put_settings(root,resource,values):
     az('rest','--method','put','--url',resource+'/config/appsettings?api-version='+API,
        '--body','@'+str(root/'settings-body.json'),'-o','none')
 
+# Legacy archive reduction is retained for historical inspection only; never acceptance.
 def parse_archive(path):
     # Raw archives stay in protected state. Return only fixed booleans/numeric conclusions.
     found=None;uid=None;total=0;mounts={}
@@ -82,6 +84,46 @@ def parse_archive(path):
                     if type(value) is dict and set(value)==keys and all(type(x) is bool for x in value.values()):found=value
     return found,uid,mounts
 
+EVIDENCE_KEYS={'version','nonce','digest','observedUtc','entrypoint','uid','rootOverlay','rootWritable','probe'}
+PROBE_KEYS={'linux','hostOptIn','kernel','privateWritable','accepted','probeCleanup'}
+
+def validate_evidence(data,nonce,digest,started,received):
+    """Validate a privately retrieved single frame; caller must establish its source.
+
+    Self-reported digest is correlation only, never independent image attestation.
+    No log archive, HTTP status or configuration value establishes source identity.
+    """
+    if type(data) is not bytes or len(data)>4096:raise ValueError('Evidence size/type')
+    def unique(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise ValueError('Duplicate evidence field')
+            result[key]=value
+        return result
+    value=json.loads(data.decode('utf-8',errors='strict'),object_pairs_hook=unique)
+    if type(value) is not dict or set(value)!=EVIDENCE_KEYS:raise ValueError('Evidence schema')
+    if type(value['version']) is not int or value['version']!=1:raise ValueError('Evidence version')
+    if not re.fullmatch('[0-9a-f]{32}',nonce) or value['nonce']!=nonce:raise ValueError('Attempt mismatch')
+    if not re.fullmatch('sha256:[0-9a-f]{64}',digest) or value['digest']!=digest:raise ValueError('Digest mismatch')
+    if value['entrypoint']!='research-bootstrap/diagnose':raise ValueError('Entrypoint missing')
+    stamp=value['observedUtc']
+    if type(stamp) is not str or not re.fullmatch(r'\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ',stamp):raise ValueError('Timestamp format')
+    observed=dt.datetime.fromisoformat(stamp.replace('Z','+00:00')).timestamp()
+    if not started<=observed<=received or not 0<=received-started<=60:raise ValueError('Stale/future evidence')
+    if type(value['uid']) is not list or len(value['uid'])!=4 or any(type(x) is not int or not 0<=x<=4294967295 for x in value['uid']):raise ValueError('UID schema')
+    if any(type(value[k]) is not bool for k in ('rootOverlay','rootWritable')):raise ValueError('Mount schema')
+    probe=value['probe']
+    if type(probe) is not dict or set(probe)!=PROBE_KEYS or any(type(x) is not bool for x in probe.values()):raise ValueError('Probe schema')
+    if probe['accepted'] and not (all(probe.values()) and value['uid']==[1654]*4 and value['rootOverlay'] and value['rootWritable']):raise ValueError('Inconsistent acceptance')
+    if probe['privateWritable'] and not probe['kernel']:raise ValueError('Inconsistent probe')
+    return value
+
+def capture_preflight():
+    # No verified private application-container retrieval facility exists on this app.
+    # Deliberately not unlockable by a setting, config file, log marker or CLI flag.
+    raise RuntimeError('INCOMPLETE: independent private evidence retrieval prerequisite unqualified; no publication or Azure execution')
+
+
 def window(root,record):
     started=time.monotonic();record['startedUtc']=dt.datetime.now(dt.timezone.utc).isoformat()
     save(root,'watchdog.json',{'stopAt':started+30})
@@ -90,20 +132,10 @@ def window(root,record):
                              stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,creationflags=flags)
     record['_watcher']=watcher;record['_started']=started
     start_app()
-    for attempt in range(4):
-        remaining=started+25-time.monotonic()
-        if remaining<=1:break
-        path=root/('candidate-logs-'+str(attempt)+'.zip')
-        try:
-            az('webapp','log','download','-g',GROUP,'-n',APP,'--log-file',str(path),timeout=min(8,remaining))
-            probe,uid,mounts=parse_archive(path)
-            if probe is not None:
-                record['guardAccepted']=probe['accepted'];record['linux']=probe['linux']
-                record['exactHostOptIn']=probe['hostOptIn'];record['kernelEligible']=probe['kernel']
-                record['privateWriteProbe']=probe['privateWritable'];record['probeCleanup']=probe['probeCleanup']
-                record['allUidFields1654']=uid;record['mountConclusions']=mounts;record['runtimeObserved']=True;break
-        except Exception:record['logReadFailures']=record.get('logReadFailures',0)+1
-        time.sleep(min(1,max(0,started+25-time.monotonic())))
+    # Future authorized integration must retrieve one bounded private frame, verify
+    # its execution/container digest independently, then call validate_evidence.
+    # The currently unqualified channel cannot produce runtime acceptance.
+    raise RuntimeError('INCOMPLETE: private evidence channel unavailable')
 
 def restore(root,resource,baseline,record):
     stopped_at=stop_verified()
@@ -144,7 +176,7 @@ def execute_azure(root,plan):
     if comparable(config())!=comparable(baseline['config']) or settings()!=baseline['settings']:raise RuntimeError('Baseline changed before mutation')
     if site()['state']!=baseline['site']['state']:raise RuntimeError('Baseline state changed')
     record={'PUBLIC_RUNTIME_VERIFIED':False,'target':APP,'runtimeObserved':False,'rollbackVerified':False,
-            'candidateDigest':plan['digest'],'providerRequests':0,'result':'INCOMPLETE'}
+            'candidateDigest':plan['digest'],'attemptNonce':uuid.uuid4().hex,'providerRequests':0,'result':'INCOMPLETE'}
     save(root,'execution-armed.json',{'target':APP,'phase':'before-first-stop'})
     try:
         stop_verified()
@@ -152,7 +184,8 @@ def execute_azure(root,plan):
         values={x['name']:x['value'] for x in baseline['settings']}
         values.update({'AIQ_RESEARCH_BOOTSTRAP_MODE':'diagnose','AIQ_RESEARCH_STORAGE_SCOPE':'azure-f1-staging-ephemeral',
                        'AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING':'1','AIQ_RESEARCH_EXPECTED_MOUNT_PATH':'/',
-                       'WEBSITES_ENABLE_APP_SERVICE_STORAGE':'false'})
+                       'WEBSITES_ENABLE_APP_SERVICE_STORAGE':'false',
+                       'AIQ_WP11_ATTEMPT_NONCE':record['attemptNonce'],'AIQ_WP11_CANDIDATE_DIGEST':plan['digest']})
         put_settings(root,resource,values)
         if 'logs' in baseline:az('webapp','log','config','-g',GROUP,'-n',APP,'--docker-container-logging','filesystem','-o','none')
         window(root,record)
@@ -239,6 +272,7 @@ def main():
     if not re.fullmatch(r'sha256:[0-9a-f]{64}',plan.get('imageId','')):raise SystemExit('Qualified candidate missing')
     if (root/'execution-armed.json').exists():raise SystemExit('Prior execution exists; reconcile without rerunning')
     if not args.execute:print('PREFLIGHT_ONLY; publication/Azure mutations NOT_RUN');return
+    capture_preflight() # Must precede publication and every Azure mutation.
     plan=publish(root,plan)
     result=execute_azure(root,plan);print(json.dumps(result))
     if not result.get('rollbackVerified'):raise SystemExit(2)
