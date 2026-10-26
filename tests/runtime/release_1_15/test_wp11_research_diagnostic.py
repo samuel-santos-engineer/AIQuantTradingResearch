@@ -1,6 +1,9 @@
 """Offline fault injection for fixed-target rollback controller, no Azure calls."""
 import importlib.util
 import json
+import io
+import tarfile
+import hashlib
 from pathlib import Path
 import tempfile
 import time
@@ -75,5 +78,36 @@ class RollbackTests(unittest.TestCase):
         r,uid,mounts=m.parse_archive(archive)
         self.assertEqual(r,probe);self.assertTrue(uid);self.assertEqual(mounts['/']['filesystem'],'overlay')
         self.assertNotIn('PRIVATE_CANARY',json.dumps([r,uid,mounts]))
+
+class StopVerificationTests(unittest.TestCase):
+    def test_transient_read_failure_does_not_abandon_rollback(self):
+        with mock.patch.object(m,'az',return_value=None),mock.patch.object(m,'site',side_effect=[TimeoutError(),{'state':'Stopped'}]),mock.patch.object(m.time,'sleep'):
+            self.assertIsInstance(m.stop_verified(),float)
+    def test_stop_transport_error_still_verifies_remote_state(self):
+        with mock.patch.object(m,'az',side_effect=TimeoutError()),mock.patch.object(m,'site',return_value={'state':'Stopped'}):
+            self.assertIsInstance(m.stop_verified(),float)
+    def test_never_claims_stop_when_running(self):
+        with mock.patch.object(m,'az',return_value=None),mock.patch.object(m,'site',return_value={'state':'Running'}),mock.patch.object(m.time,'sleep'):
+            with self.assertRaises(RuntimeError):m.stop_verified()
+
+class ImageIdentityTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.path=Path(self.temp.name)/'image.tar'
+        value={'os':'linux','architecture':'amd64','rootfs':{'diff_ids':['sha256:layer']},'config':{'User':'1654:1654'}}
+        data=json.dumps(value).encode();self.digest='sha256:'+hashlib.sha256(data).hexdigest()
+        with tarfile.open(self.path,'w') as tar:
+            for name,content in [('manifest.json',json.dumps([{'Config':'config.json'}]).encode()),('config.json',data)]:
+                info=tarfile.TarInfo(name);info.size=len(content);tar.addfile(info,io.BytesIO(content))
+        self.local={'Id':'sha256:index','Descriptor':{'mediaType':'application/vnd.oci.image.index.v1+json'},'RootFS':{'Layers':['sha256:layer']}}
+        self.manifest={'config':{'digest':self.digest}}
+    def test_containerd_index_and_independent_config_both_match(self):
+        m.verify_published_identity(self.local,self.manifest,'sha256:index',self.path)
+    def test_different_index_rejected_even_if_config_matches(self):
+        with self.assertRaises(RuntimeError):m.verify_published_identity(self.local,self.manifest,'sha256:wrong',self.path)
+    def test_different_config_rejected(self):
+        with self.assertRaises(RuntimeError):m.verify_published_identity(self.local,{'config':{'digest':'sha256:wrong'}},'sha256:index',self.path)
+    def test_rootfs_mismatch_rejected(self):
+        self.local['RootFS']['Layers']=['different']
+        with self.assertRaises(RuntimeError):m.verify_published_identity(self.local,self.manifest,'sha256:index',self.path)
 
 if __name__=='__main__':unittest.main()

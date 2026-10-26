@@ -1112,3 +1112,30 @@ Final checks PASS: strict UTF-8/no BOM/LF/final-newline for all7 changed paths, 
 - eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1
 - eng/docker/release-1.15/Invoke-Wp10BootstrapQualification.ps1
 - tests/runtime/release_1_15/wp10_bootstrap_qualification.py
+
+
+## WP11 actual diagnostic attempt and verified recovery - 2026-10-25
+
+**INCOMPLETE: compatibility unverified; exact baseline restored.** Owner-approved PR404 research-only diagnostic was executed once, after verifying merged baseline c300087aa250d86de24a64ed4bfe0805d3716c9d, approval comment, protected baseline, rights, existing public registry access and log retrieval. No prior diagnostic marker found. No UI/provider/import/paid-resource/production operation. One research upload; anonymous leaf digest `sha256:5b48f5d703acd7dca7e722ab9bc0028cbe8b80a3526c7a60800699785f6abed3` verified against the tested OCI index and independent config/rootfs/UID archive. Initial index-versus-config readback failed closed before Azure mutation; fixed with independent proof and no repeat push.
+
+Actual Azure start succeeded23:44:39.4309906Z; first stop succeeded23:45:03.555938Z:24.125s server-clock control-plane window. Local request at23:44:37.522609Z to stop event26.033s. Watchdog stop also succeeded23:45:08.4815716Z. The controller could not confirm its initial stop and returned rollback-unconfirmed before restoration. Mandatory recovery continued: verified research Stopped, restored baseline image/startup/logging/settings, restored original shell Running, then independently verified full configurable equality/state at23:47:38.711405Z. Only server-generated audit/ETag metadata excluded. No unresolved rollback. Protected original failure and independent recovery records retained.
+
+No attributable candidate UID/mount/guard output in archives or bounded retained-logstream check (zero bytes). No leaf digest reference recovered in logs. Baseline startup-failure indicator was already present; do not blame the attempt or claim filesystem incompatibility. No second diagnostic run occurred. Neither A nor B acceptance established; C/no-mutation would be false. WP11 not accepted, PUBLIC_RUNTIME_VERIFIED=False.
+
+Narrow code: actual guard-only CLI probe (no SQLite/service/provider), fixed-target publication/watchdog/finally rollback controller, negative/local tests. Post-live controller fix retries transient stop verification and distinguishes stop-ack timing; not requalified in Azure. No host guard/default/production policy or data-contract change. Private configuration, registry namespace, user identity/evidence roots and raw logs not published.
+
+PASS_LOCAL commands: cache-only restore; fresh offline publish; dotnet test Infrastructure.Tests --no-restore -c Release --filter FullyQualifiedName~ResearchStorageBoundaryTests (50 passed); Invoke-Wp09EphemeralQualification.ps1 -Execute (13 Linux cases, no candle rows); unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -v (14 passed). Original local probe marker assertion failed, corrected without policy changes. Windows PowerShell5.1 parser; exact9444 patch unavailable, installed9711. No broad SQLite/browser qualification or authentic-data work. See appended staging runbook section for exact timeline, artifacts, failures and controller limitations. Focused PR remains OPEN/UNMERGED.
+
+Final hygiene PASS: strict UTF-8/no BOM/LF/final-newline for all12 paths, append-only evidence/runbook, git diff --check. Owner HEAD/status and all29 dirty/untracked SHA256/lengths unchanged. No second diagnostic or UI action. Exact changed paths:
+- container/release_1_15/research-bootstrap.sh
+- docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md
+- docs/roadmap/release-1.15/prompters/release-1.15-wp07-azure-staging-readiness-runbook.md
+- eng/azure-cli/r1.15-qualification/Invoke-Wp11ResearchDiagnostic.ps1
+- eng/azure-cli/r1.15-qualification/wp11_research_diagnostic.py
+- eng/docker/release-1.15/Invoke-Wp09EphemeralQualification.ps1
+- src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs
+- src/AIQuantTradingResearch.Worker/Program.cs
+- tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs
+- tests/runtime/release_1_15/test_wp11_research_diagnostic.py
+- tests/runtime/release_1_15/wp09_ephemeral_probe.cs
+- tests/runtime/release_1_15/wp10_bootstrap_qualification.py

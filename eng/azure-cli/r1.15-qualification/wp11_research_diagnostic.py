@@ -2,6 +2,8 @@
 import argparse
 import datetime as dt
 import json
+import hashlib
+import tarfile
 import os
 from pathlib import Path
 import re
@@ -30,17 +32,20 @@ def logging_config():return az('webapp','log','show','-g',GROUP,'-n',APP,'-o','j
 
 def config():return az('webapp','config','show','-g',GROUP,'-n',APP,'-o','json')
 def settings():return az('webapp','config','appsettings','list','-g',GROUP,'-n',APP,'-o','json')
-def site():return az('webapp','show','-g',GROUP,'-n',APP,'-o','json',timeout=6)
+def site():return az('webapp','show','-g',GROUP,'-n',APP,'-o','json',timeout=15)
 def start_app():return az('webapp','start','-g',GROUP,'-n',APP,'-o','none',timeout=12)
 
 def stop_verified():
-    try:az('webapp','stop','-g',GROUP,'-n',APP,'-o','none',timeout=12)
-    except Exception:
-        if site()['state']=='Stopped':return
-        raise
-    for attempt in range(2):
-        if site()['state']=='Stopped':return
-        time.sleep(1)
+    acknowledged=None
+    try:
+        az('webapp','stop','-g',GROUP,'-n',APP,'-o','none',timeout=12)
+        acknowledged=time.monotonic()
+    except Exception:pass # Stop might have completed remotely; verification is still mandatory.
+    for attempt in range(3):
+        try:
+            if site()['state']=='Stopped':return acknowledged if acknowledged is not None else time.monotonic()
+        except Exception:pass # A short read failure must not abandon mandatory rollback.
+        if attempt<2:time.sleep(1)
     raise RuntimeError('Research stop not confirmed')
 
 def patch_config(root,resource,values):
@@ -101,9 +106,10 @@ def window(root,record):
         time.sleep(min(1,max(0,started+25-time.monotonic())))
 
 def restore(root,resource,baseline,record):
-    stop_verified()
+    stopped_at=stop_verified()
     if '_started' in record:
-        record['candidateElapsedSeconds']=round(time.monotonic()-record['_started'],3)
+        record['candidateElapsedSeconds']=round((stopped_at if stopped_at is not None else time.monotonic())-record['_started'],3)
+        record['elapsedBasis']='successful_stop_acknowledgment_then_verified_stopped'
         record['within60Seconds']=record['candidateElapsedSeconds']<=60
     (root/'watchdog.cancel').write_text('stop confirmed',encoding='utf-8')
     watcher=record.pop('_watcher',None)
@@ -162,12 +168,36 @@ def execute_azure(root,plan):
         save(root,'result.json',record)
     return record
 
+def verify_published_identity(local,manifest,registry_index,archive_path):
+    # Docker containerd exposes OCI index IDs; traditional stores expose config IDs.
+    if local.get('Descriptor',{}).get('mediaType')=='application/vnd.oci.image.index.v1+json':
+        if registry_index!=local['Id']:raise RuntimeError('Published OCI index differs from qualified local index')
+        matches=[]
+        with tarfile.open(archive_path) as archive:
+            for entry in json.load(archive.extractfile('manifest.json')):
+                data=archive.extractfile(entry['Config']).read();value=json.loads(data)
+                if value.get('os')=='linux' and value.get('architecture')=='amd64':
+                    if value['rootfs']['diff_ids']!=local['RootFS']['Layers'] or value['config']['User']!='1654:1654':
+                        raise RuntimeError('Qualified platform/rootfs/user mismatch')
+                    matches.append('sha256:'+hashlib.sha256(data).hexdigest())
+        if len(matches)!=1 or matches[0]!=manifest['config']['digest']:raise RuntimeError('Published config differs from independent local archive')
+    elif manifest['config']['digest']!=local['Id']:
+        raise RuntimeError('Published config differs from qualified local config')
+
 def publish(root,plan):
     if plan.get('digest'):return plan
     ref=plan['repository']+':'+plan['tag']
-    for args in (['tag',plan['imageId'],ref],['push',ref]):
-        p=subprocess.run(['docker',*args],capture_output=True,timeout=180)
-        if p.returncode:raise RuntimeError('Research publication blocked; no Azure mutation')
+    if not plan.get('pushed'):
+        for args in (['tag',plan['imageId'],ref],['push',ref]):
+            p=subprocess.run(['docker',*args],capture_output=True,timeout=180)
+            if p.returncode:raise RuntimeError('Research publication blocked; no Azure mutation')
+        plan['pushed']=True;save(root,'publication-plan.json',plan) # Never repeat a completed upload for readback.
+    p=subprocess.run(['docker','image','inspect',plan['imageId']],capture_output=True,timeout=15)
+    if p.returncode:raise RuntimeError('Qualified local artifact unavailable')
+    local=json.loads(p.stdout)[0]
+    p=subprocess.run(['docker','buildx','imagetools','inspect',ref,'--format','{{json .Manifest.Digest}}'],capture_output=True,timeout=30)
+    if p.returncode:raise RuntimeError('Registry index readback failed')
+    index_digest=json.loads(p.stdout)
     def manifest(ref):
         p=subprocess.run(['docker','buildx','imagetools','inspect',ref,'--raw'],capture_output=True,timeout=30)
         if p.returncode:raise RuntimeError('Registry readback failed')
@@ -181,7 +211,11 @@ def publish(root,plan):
         p=subprocess.run(['docker','buildx','imagetools','inspect',ref,'--format','{{json .Manifest.Digest}}'],capture_output=True,timeout=30)
         if p.returncode:raise RuntimeError('Digest readback failed')
         digest=json.loads(p.stdout)
-    if m['config']['digest']!=plan['imageId']:raise RuntimeError('Registry config does not match qualified image')
+    archive=root/'qualified-image.tar'
+    if local.get('Descriptor',{}).get('mediaType')=='application/vnd.oci.image.index.v1+json' and not archive.exists():
+        p=subprocess.run(['docker','image','save','-o',str(archive),plan['imageId']],capture_output=True,timeout=90)
+        if p.returncode:raise RuntimeError('Independent local artifact export failed')
+    verify_published_identity(local,m,index_digest,archive)
     immutable=plan['repository']+'@'+digest
     p=subprocess.run(['docker','--config',str(root/'anonymous-docker'),'manifest','inspect',immutable],capture_output=True,timeout=30)
     if p.returncode:raise RuntimeError('Anonymous Azure pull prerequisite failed')

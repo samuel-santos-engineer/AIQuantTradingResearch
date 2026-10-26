@@ -633,3 +633,55 @@ The requested diagnostic is only phase1. It cannot prove writable-state initiali
 ### Current result
 
 PASS_LOCAL: both images built, eleven local bootstrap cases; no actual private Azure channel proof. VERIFIED_AZURE_STAGING: management metadata only, no container/runtime/browser claim. BLOCKED_INPUT: absent approved private provider credential/export and account-specific credit/base-volume evidence; private Azure import channel not demonstrated. Acquisition0 requests/0 credits. NOT_RUN: registry publication, Azure mutations/restarts/import, actual research filesystem/TLS/API/browser acceptance, cold-start/session measurements. PUBLIC_RUNTIME_VERIFIED=False. One focused review PR, OPEN/UNMERGED; no production/paid infrastructure or WP closure.
+
+
+## WP11 executed diagnostic: INCOMPLETE, exact rollback verified (2026-10-25)
+
+Owner approval on PR404 authorized research-only publication, one <=60s diagnostic and mandatory baseline restoration. Baseline PR404 squash `c300087aa250d86de24a64ed4bfe0805d3716c9d` was verified. The UI app was never configured, restarted or published. No provider request/credit, observation export/import/bootstrap, production or paid-resource operation occurred.
+
+### Outcome and timing
+
+**Compatibility is NOT ESTABLISHED.** Neither accepted nor rejected WP09 runtime compatibility can be claimed: the collected archives and one bounded retained-logstream check returned no attributable candidate UID/mount/guard payload. The single existing startup-failure indicator was already present in the baseline archive; it is not attributed to this attempt. No guard was broadened and no second candidate run was made to regenerate evidence. A/B acceptance remains unmet; C (no mutation) would be inaccurate because publication and research-app mutations did occur.
+
+The app was restored, independently verified: original empty linuxFxVersion/startup, all app settings, logging configuration, original shell Running state, kind, plan and HTTPS/public-access properties. Configurable values compare exactly; only Azure-generated systemData/ETag audit metadata is excluded because it cannot be restored. Protected raw before/after captures remain private. **No unresolved rollback remains.**
+
+| Event | UTC evidence |
+| --- | --- |
+| Local candidate start request | 2026-10-25T23:44:37.522609Z |
+| Azure start succeeded | 2026-10-25T23:44:39.4309906Z |
+| First Azure candidate stop succeeded | 2026-10-25T23:45:03.555938Z |
+| Independent watchdog stop succeeded | 2026-10-25T23:45:08.4815716Z |
+| Recovery stop succeeded | 2026-10-25T23:45:43.0526432Z |
+| Independent full rollback verification | 2026-10-25T23:47:38.711405Z |
+
+Azure start-success to first stop-success spans **24.125s** on the same server clock. Local request to first Azure stop completion was26.033s. These are control-plane timing observations, not kernel process-lifetime telemetry. Later recovery operations did not constitute another candidate run. The initial controller failed short stop confirmation and returned criticalRollbackUnconfirmed before applying restoration; the independent stop watchdog had also requested stop. The agent continued mandatory recovery, verified Stopped, restored recorded config/logging/settings, returned the original shell to Running, then independently verified all baseline fields. The initial failure report is retained privately rather than overwritten by success.
+
+### Artifact identity and preflight
+
+One research artifact was uploaded once to the existing approved registry package; no UI image or existing tag was overwritten. Verified anonymous readback and config identity; candidate retained for review, not permanently deployed.
+- Published Linux/amd64 leaf digest used for the attempt: `sha256:5b48f5d703acd7dca7e722ab9bc0028cbe8b80a3526c7a60800699785f6abed3`.
+- Qualified local/published OCI index: `sha256:a09670d76db34c54fdcc4978c8156a57b493d4d8a43a87ef591ad3cc5e6d9858`.
+- Independently matched config: `sha256:d116ba82b37b4bfbff322e9cab98e4fc2ca7dec37d42b075c3a40ba5818a3a7c`.
+
+Initial readback compared index ID to config digest and blocked before any Azure mutation. Docker's containerd store exposes an OCI index as Image.Id here. Independent local image-save config/rootfs/UID verification plus exact published/local index equality proved identity; negative tests reject different index/config/rootfs. Publication resume skipped the completed push. No expected digest was changed to conceal mismatch.
+
+Before mutation: recorded approval, exact-app metadata/recent activity/protected log archive, no prior diagnostic marker, empty shell/zero settings, scoped wildcard write rights, known existing registry tag access and anonymous pull verified. A latest-tag lookup was absent, not an auth denial; the actual existing tag succeeded. Rollback state was captured privately with verified user/System-only DACL. Initial ACL identity translation/owner-audit privilege errors were corrected by DACL-only application and verified before publication or Azure changes. Baseline registry references, identities, settings, credentials, evidence roots and raw logs/payloads are not public.
+
+### Narrow implementation and safety fixes
+
+The merged WP10 shell only reported metadata, so the required actual guard answer needed a diagnostic-only CLI call. `--research-storage-probe` now returns fixed booleans from the unchanged real host/kernel/private-write guard, creates/removes only a new empty probe directory when needed, and never opens SQLite, initializes D5, imports or starts a service/provider. Infrastructure exposes only this bounded probe; validation methods/defaults remain unchanged. Shell metadata continues to omit backing paths, sources and environment values. Local denied diagnostic remains read-only; a complete explicit staging opt-in permits the zero-data write probe only.
+
+New fixed-target PS5.1/Python controller has nonmutating default, protected-state checks, immutable/anonymous publication verification, no repeat push, existing-execution refusal, a separate30s stop watchdog, and finally-style restoration of image/startup/settings/logging/state. Temporary filesystem container logging is restored; no logging service or storage resource was created. After the live stop-confirmation failure, bounded retry handling was added so transient metadata errors do not abandon rollback, and stop acknowledgment versus later confirmation timing is distinguished. These corrected controller behaviors are **locally tested, not rerun in Azure**. Exact baseline and runtime-output recovery are still mandatory; no accepted CLI submission or HTTP200 substitutes for proof.
+
+```powershell
+# Offline tests; no cloud requests.
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --filter FullyQualifiedName~ResearchStorageBoundaryTests
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -v
+# Nonmutating preflight only. Private state must have user/System-only DACL.
+& ./eng/azure-cli/r1.15-qualification/Invoke-Wp11ResearchDiagnostic.ps1 -ProtectedStateDirectory $ProtectedStateDirectory
+# The already-executed state is intentionally refused, including publication: do not rerun.
+```
+
+PASS_LOCAL:50 focused .NET tests,13 Linux smoke cases including admitted/denied probe and empty-directory cleanup,14 rollback/provenance/log-sanitization fault tests; PS5.1 syntax, UTF-8/LF and diff checks. A local probe smoke initially expected REJECTED for a successful PROBE_PASS marker; corrected the assertion only, then13 passed. No candle fixture/import/bootstrap or general crash/fault matrix was run in WP11.
+
+VERIFIED_AZURE_STAGING: only the actual publication/configuration/start/stop/rollback and protected log-retrieval observations above. Runtime UID, mounts, write eligibility and guard acceptance remain **UNVERIFIED**. No native/runtime/browser readiness inference. NOT_RUN: authentic data, service deployment, TLS/auth/browser/session acceptance. PUBLIC_RUNTIME_VERIFIED=False. Review the focused code/failure-evidence PR; any follow-up diagnostic requires a new narrow disposition and must first establish attributable application-output capture. Do not repeat the completed mutation, weaken WP09 or request paid infrastructure.
