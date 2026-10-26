@@ -4,8 +4,46 @@ using System.Runtime.Versioning;
 namespace AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 
 /// <summary>Default local boundary, with one explicit non-durable staging exception; never App Service durability.</summary>
-internal static class ResearchStorageBoundary
+public static class ResearchStorageBoundary
 {
+    /// <summary>Operator-only bounded probe; no SQLite, provider, secrets or public endpoint.</summary>
+    public static IReadOnlyDictionary<string, bool> ProbeStaging()
+    {
+        var result = new Dictionary<string, bool>
+        {
+            ["linux"] = OperatingSystem.IsLinux(), ["hostOptIn"] = false, ["kernel"] = false,
+            ["privateWritable"] = false, ["accepted"] = false, ["probeCleanup"] = true
+        };
+        var created = false;
+        try
+        {
+            if (!ValidateHost(Environment.GetEnvironmentVariable)) return result;
+            result["hostOptIn"] = true;
+            if (!OperatingSystem.IsLinux()) return result;
+            var lines = File.ReadLines("/proc/self/mountinfo").Take(4097).ToArray();
+            if (lines.Length > 4096) return result;
+            _ = ValidateLinux(StagingDirectory, lines, File.ReadAllText("/proc/self/status"), "/", true);
+            result["kernel"] = true;
+            created = !Directory.Exists(StagingDirectory);
+            Validate(StagingDirectory); // Unchanged real guard, including create/write/delete probe; never opens SQLite.
+            result["privateWritable"] = result["accepted"] = true;
+        }
+        catch { } // Only fixed booleans, never exception/path/settings interpolation.
+        finally
+        {
+            if (created)
+            {
+                try
+                {
+                    if (Directory.Exists(StagingDirectory) && !Directory.EnumerateFileSystemEntries(StagingDirectory).Any())
+                        Directory.Delete(StagingDirectory); // Exact new empty probe directory only; no recursive deletion.
+                    else if (Directory.Exists(StagingDirectory)) result["probeCleanup"] = false;
+                }
+                catch { result["probeCleanup"] = false; }
+            }
+        }
+        return result;
+    }
     private static readonly string[] AzureMarkers = ["WEBSITE_INSTANCE_ID", "WEBSITE_SITE_NAME", "WEBSITE_HOSTNAME", "WEBSITE_ROLE_INSTANCE_ID"];
     internal const string StagingScope = "azure-f1-staging-ephemeral";
     internal const string StagingDirectory = "/tmp/aiq-research";

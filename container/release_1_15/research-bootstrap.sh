@@ -4,24 +4,25 @@ set -eu
 mode=${AIQ_RESEARCH_BOOTSTRAP_MODE:-serve}
 case "$mode" in
   diagnose)
-    printf 'WP10_READ_ONLY_DIAGNOSTIC\n'
-    # Print only numeric UID fields and selected mount metadata; never mount sources/options after fs type.
-    awk '/^Uid:/ {print "UID_FIELDS",$2,$3,$4,$5}' /proc/self/status
-    awk '$5 == "/" || $5 == "/tmp" || $5 == "/tmp/aiq-research" {
-      for(i=7;i<=NF;i++) if($i=="-") {print "MOUNT",$3,"rootIsSlash="($4=="/"),$5,$6,$(i+1);break}
-    }' /proc/self/mountinfo
-    for directory in /tmp /tmp/aiq-research; do
-      if [ -L "$directory" ]; then printf 'PATH_SYMLINK\n';
-      elif [ -d "$directory" ]; then stat -c 'PATH_MODE %u %g %a' "$directory";
-      else printf 'PATH_ABSENT\n'; fi
-    done
-    for limit in memory.max cpu.max pids.max; do
-      if [ -r "/sys/fs/cgroup/$limit" ]; then
-        printf 'CGROUP_LIMIT %s ' "$limit"
-        awk 'NR==1 {print;exit}' "/sys/fs/cgroup/$limit"
-      else printf 'CGROUP_LIMIT_UNAVAILABLE\n'; fi
-    done
-    printf 'NO_WRITES_NO_IMPORT_NO_SERVER; PUBLIC_RUNTIME_VERIFIED=False\n'
+    # Correlation is not attestation: independently authenticated retrieval is required.
+    nonce=${AIQ_WP11_ATTEMPT_NONCE:-}
+    digest=${AIQ_WP11_CANDIDATE_DIGEST:-}
+    case "$nonce" in *[!0-9a-f]*|'') exit 1 ;; esac
+    [ "${#nonce}" -eq 32 ] || exit 1
+    case "$digest" in sha256:*) ;; *) exit 1 ;; esac
+    hex=${digest#sha256:}
+    case "$hex" in *[!0-9a-f]*|'') exit 1 ;; esac
+    [ "${#hex}" -eq 64 ] || exit 1
+    uid=$(awk '/^Uid:/ {printf "[%s,%s,%s,%s]",$2,$3,$4,$5}' /proc/self/status)
+    [ -n "$uid" ] || exit 1
+    mounts=$(awk '$5 == "/" {for(i=7;i<=NF;i++) if($i=="-") {
+      printf "\"rootOverlay\":%s,\"rootWritable\":%s", ($(i+1)=="overlay"?"true":"false"), ($6 ~ /(^|,)rw(,|$)/?"true":"false");exit}}' /proc/self/mountinfo)
+    [ -n "$mounts" ] || exit 1
+    # Captures only fixed booleans; no database/server/provider composition occurs.
+    probe=$(dotnet /app/AIQuantTradingResearch.Worker.dll --research-storage-probe)
+    case "$probe" in 'WP11_STORAGE_PROBE '*) probe=${probe#WP11_STORAGE_PROBE } ;; *) exit 1 ;; esac
+    printf '{"version":1,"nonce":"%s","digest":"%s","observedUtc":"%s","entrypoint":"research-bootstrap/diagnose","uid":%s,%s,"probe":%s}\n' \
+      "$nonce" "$digest" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$uid" "$mounts" "$probe"
     exit 0
     ;;
   operator-stdin)

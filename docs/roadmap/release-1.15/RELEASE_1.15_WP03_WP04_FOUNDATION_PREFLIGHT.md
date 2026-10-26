@@ -1112,3 +1112,286 @@ Final checks PASS: strict UTF-8/no BOM/LF/final-newline for all7 changed paths, 
 - eng/docker/release-1.15/Invoke-Wp07DualContainerQualification.ps1
 - eng/docker/release-1.15/Invoke-Wp10BootstrapQualification.ps1
 - tests/runtime/release_1_15/wp10_bootstrap_qualification.py
+
+
+## WP11 actual diagnostic attempt and verified recovery - 2026-10-25
+
+**INCOMPLETE: compatibility unverified; exact baseline restored.** Owner-approved PR404 research-only diagnostic was executed once, after verifying merged baseline c300087aa250d86de24a64ed4bfe0805d3716c9d, approval comment, protected baseline, rights, existing public registry access and log retrieval. No prior diagnostic marker found. No UI/provider/import/paid-resource/production operation. One research upload; anonymous leaf digest `sha256:5b48f5d703acd7dca7e722ab9bc0028cbe8b80a3526c7a60800699785f6abed3` verified against the tested OCI index and independent config/rootfs/UID archive. Initial index-versus-config readback failed closed before Azure mutation; fixed with independent proof and no repeat push.
+
+Actual Azure start succeeded23:44:39.4309906Z; first stop succeeded23:45:03.555938Z:24.125s server-clock control-plane window. Local request at23:44:37.522609Z to stop event26.033s. Watchdog stop also succeeded23:45:08.4815716Z. The controller could not confirm its initial stop and returned rollback-unconfirmed before restoration. Mandatory recovery continued: verified research Stopped, restored baseline image/startup/logging/settings, restored original shell Running, then independently verified full configurable equality/state at23:47:38.711405Z. Only server-generated audit/ETag metadata excluded. No unresolved rollback. Protected original failure and independent recovery records retained.
+
+No attributable candidate UID/mount/guard output in archives or bounded retained-logstream check (zero bytes). No leaf digest reference recovered in logs. Baseline startup-failure indicator was already present; do not blame the attempt or claim filesystem incompatibility. No second diagnostic run occurred. Neither A nor B acceptance established; C/no-mutation would be false. WP11 not accepted, PUBLIC_RUNTIME_VERIFIED=False.
+
+Narrow code: actual guard-only CLI probe (no SQLite/service/provider), fixed-target publication/watchdog/finally rollback controller, negative/local tests. Post-live controller fix retries transient stop verification and distinguishes stop-ack timing; not requalified in Azure. No host guard/default/production policy or data-contract change. Private configuration, registry namespace, user identity/evidence roots and raw logs not published.
+
+PASS_LOCAL commands: cache-only restore; fresh offline publish; dotnet test Infrastructure.Tests --no-restore -c Release --filter FullyQualifiedName~ResearchStorageBoundaryTests (50 passed); Invoke-Wp09EphemeralQualification.ps1 -Execute (13 Linux cases, no candle rows); unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -v (14 passed). Original local probe marker assertion failed, corrected without policy changes. Windows PowerShell5.1 parser; exact9444 patch unavailable, installed9711. No broad SQLite/browser qualification or authentic-data work. See appended staging runbook section for exact timeline, artifacts, failures and controller limitations. Focused PR remains OPEN/UNMERGED.
+
+Final hygiene PASS: strict UTF-8/no BOM/LF/final-newline for all12 paths, append-only evidence/runbook, git diff --check. Owner HEAD/status and all29 dirty/untracked SHA256/lengths unchanged. No second diagnostic or UI action. Exact changed paths:
+- container/release_1_15/research-bootstrap.sh
+- docs/roadmap/release-1.15/RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md
+- docs/roadmap/release-1.15/prompters/release-1.15-wp07-azure-staging-readiness-runbook.md
+- eng/azure-cli/r1.15-qualification/Invoke-Wp11ResearchDiagnostic.ps1
+- eng/azure-cli/r1.15-qualification/wp11_research_diagnostic.py
+- eng/docker/release-1.15/Invoke-Wp09EphemeralQualification.ps1
+- src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs
+- src/AIQuantTradingResearch.Worker/Program.cs
+- tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs
+- tests/runtime/release_1_15/test_wp11_research_diagnostic.py
+- tests/runtime/release_1_15/wp09_ephemeral_probe.cs
+- tests/runtime/release_1_15/wp10_bootstrap_qualification.py
+
+
+### WP11 attributable-evidence amendment ? offline qualification only
+
+The original 24.125-second Azure control-plane window remains inconclusive: no
+attributable runtime frame was recovered. Delayed or empty platform log delivery,
+a container startup failure, and an early exit are hypotheses, not established
+causes. Control-plane start success and downloaded historical markers do not prove
+that the candidate entrypoint executed. Exact baseline rollback was independently
+verified after manual recovery; that history is unchanged.
+
+The diagnostic entrypoint now emits one bounded JSON frame containing version 1,
+a unique 128-bit attempt nonce, immutable candidate leaf digest, UTC observation
+second, the fixed `research-bootstrap/diagnose` entrypoint identifier, four numeric
+UID fields, root overlay/writability booleans, and the six fixed storage-probe
+booleans. Missing or malformed correlation is rejected before probing. No mount
+sources, environment values, database, API, imports or provider calls are emitted
+or initiated. The existing production storage guard and exact-site policy remain
+unchanged. Historical archive reduction is retained solely for inspection; the
+controller no longer accepts archive markers as runtime evidence.
+
+The validator requires strict UTF-8, at most 4,096 bytes, exact fields/types, no
+duplicate keys, matching nonce/digest, consistent guard/UID/mount conclusions,
+and `attempt start <= observation <= receipt` within 60 seconds. Receipt requires
+an independently authenticated private channel bound to the actual candidate
+execution and registry-qualified immutable leaf. The payload's digest is only
+self-reported correlation, not attestation. Clock skew or delayed receipt fails
+closed; a nonce must never be reused. No currently verified F1 private retrieval
+channel supplies this binding. Therefore an unconditional preflight blocks
+publication and Azure execution; no setting or operator claim can unlock it.
+There is no new public diagnostic endpoint or persistent evidence artifact.
+
+Offline verification:
+
+- `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -v`:
+  **24 passed**, exit 0. All 14 prior tests remain. New cases cover malformed,
+  missing, partial, oversized, replayed, mismatched, future/delayed and inconsistent
+  evidence; duplicate/private fields; preflight blocking; early exit without a
+  frame; startup failure after watchdog arming; watchdog stop success/failure.
+  Existing stop-confirmation and exact rollback failure tests remain passing.
+- Two actual Linux executions used only the cached research image, a read-only
+  bind of the amended shell, UID 1654, read-only root, dropped capabilities,
+  no-new-privileges and no network. Missing correlation: rejected, exit 1, empty
+  stdout. Valid correlation: exit 0, frame parsed by the strict validator, all
+  UID fields 1654, default storage denial and probe cleanup confirmed. These
+  prove local shell serialization/default denial only, not Azure source identity
+  or the fully opted-in Azure write boundary. No image was built or published.
+- The existing WP10 bootstrap fixture was adjusted to consume the new frame;
+  its import/endpoint suite was not rerun under this no-import amendment.
+- PowerShell wrapper unchanged; no new PowerShell syntax. Windows PowerShell
+  5.1.26100.9444 was not available for exact-build execution qualification.
+
+A later retry needs separate owner authority for the exact corrected image
+publication, named research staging target, at-most-60-second run, independent
+watchdog and exact rollback, plus a concrete private retrieval facility. Before
+removing the preflight block, that facility must demonstrate authenticated
+application-container source identity, independent immutable-image binding,
+bounded retrieval and timeout behavior, and observation/receipt freshness.
+A successful control-plane operation, HTTP 200, configuration echo or log marker
+alone is insufficient. Missing collection continues to require stop/restoration
+and an INCOMPLETE result; a failed stop/restore remains critical, never acceptance.
+The watchdog deadline is not proof of kernel termination or a hard cloud stop SLA.
+No such channel or Azure qualification was performed by this amendment.
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+PR #405 remains OPEN/UNMERGED; UI, production and provider operations untouched.
+
+
+### WP11 private-channel capability qualification ? 2026-10-26
+
+PR #405 was rechecked at head `7e0d9a9493f285fe8518b070b9e2b71920da20b3`
+and main/base `c300087aa250d86de24a64ed4bfe0805d3716c9d`. GitHub reported
+MERGEABLE/CLEAN, with no reported status checks. No conflicts were reproduced,
+so no merge/rebase/force push or unrelated branch change was necessary. The
+previous false report cannot be assigned a cause from this observation alone.
+
+Actual read-only facts: exact research app enabled, Running, Linux; installed
+Azure CLI 2.89.1 lacks `webapp exec`. The cached candidate is linux/amd64,
+UID/GID 1654:1654, entrypoint `/bin/sh /app/research-bootstrap.sh`, no default
+command. `research-api.Dockerfile` matches this model; `research.Dockerfile` is
+an older fixture, not the research API image. The amended shell is not in the
+historically published image. No replacement image was built or published.
+
+Implemented `-InspectChannel` / `--inspect-channel` and a fixed-source SCM GET
+adapter using only the existing operator Entra session. It accepts only the
+exact research SCM HTTPS log-index/logstream URLs, validates TLS using system
+trust, disables proxies and redirects, limits reads to 32 KiB, uses two-second
+socket timeouts and an eight-second read budget checked between reads (one
+in-flight read can add up to two seconds). No raw body/token is printed or saved.
+The inspection fetches the log index only, never application log contents,
+publishing credentials, settings or process commands. Inspection and execution
+flags are mutually exclusive. Only a bounded allowlisted capability summary is
+returned. Offline frame extraction rejects missing/duplicate/truncated/wrong-
+source/stale/mismatched data and never returns execution qualification.
+
+One initial capability request failed without an established cause. Subsequent
+bounded inspections succeeded. The final actual observation was: existing
+operator session available, authenticated SCM index GET succeeded with recognized
+schema, anonymous GET explicitly denied (401/403), execution binding unqualified.
+This establishes a protected management read path at inspection time only. It
+proves neither logstream delivery reliability nor candidate execution. No stream
+or historical application log body was fetched in this task.
+
+| Candidate channel | Supported conclusion | Remaining obligation |
+|---|---|---|
+| Entra-authenticated SCM log index | Protected read access actually observed | Index is not execution output or immutable-image evidence |
+| SCM logstream/container logs | Bounded read adapter and extraction tested offline | Live delivery, exact container/attempt identity and resolved image binding unverified; SCM TLS is not container attestation |
+| Supported container terminal | Official docs distinguish main app from SCM | Installed CLI lacks command; no upgrade or remote command performed |
+| Detached exec output | Not selected | Request acceptance is not completion/output retrieval |
+
+The hard publication/execution block remains unconditional. Fixed source URLs,
+HTTP 200, a nonce frame, configured image digest, or a mock transport cannot
+qualify execution. Watchdog/finally rollback/critical failure behavior, production
+storage guard, WAL/D5/single-writer, TLS/auth and non-durable limits are unchanged.
+
+Verification: **40/40** focused Python tests passed on Windows and **40/40** in
+actual cached Linux Python, network disabled, non-root, read-only source/root and
+bounded disposable tmpfs. These are the same offline suite on two platforms,
+not 80 independent cases. **50/50** focused `ResearchStorageBoundaryTests` passed
+with `dotnet test ... --no-restore -c Release --filter FullyQualifiedName~ResearchStorageBoundaryTests`.
+Existing unrelated synthetic-test analyzer warnings remain. PowerShell parser
+passed on 5.1.26100.9711; exact 5.1.26100.9444 execution remains unqualified.
+UTF-8/no-BOM/LF and `git diff --check` passed; evidence docs append-only.
+Owner checkout HEAD/status and all 31 dirty/untracked file hashes preserved.
+
+**Single next action:** obtain renewed owner authority for one bounded channel-
+qualification experiment on the exact research staging app, including corrected
+image publication, maximum 60-second candidate window, independent watchdog and
+exact rollback. That experiment must attempt to collect independently sourced
+platform container/instance identity and resolved immutable-image evidence bound
+to the private nonce frame. If the platform cannot expose that association, the
+contract remains unmet; no acceptance or bypass follows. Reviewed integration
+of that evidence source is required before removing the hard block. No claim
+is made that a live retry alone will close the proof gap.
+
+Sources: [App Service container access](https://learn.microsoft.com/en-us/azure/app-service/configure-linux-open-ssh-session),
+[authentication methods](https://learn.microsoft.com/en-us/azure/app-service/deploy-authentication-types),
+[custom-container logs](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container).
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+No Azure writes, UI operations, provider calls, imports, deployment or merge.
+
+
+### WP12 decision and live-qualification preparation ? 2026-10-26
+
+**Disposition: BLOCKED for live qualification; preparation complete.** Rechecked
+PR #405 OPEN, MERGEABLE/CLEAN, exact head
+`1e420a7219d7886f5d7303db880a33945790ce8b`, base
+`c300087aa250d86de24a64ed4bfe0805d3716c9d`; isolated worktree clean.
+No provenance bypass, speculative transport implementation or further Azure
+inspection was justified: the preceding authenticated-index observation already
+establishes access, and the restored shell cannot qualify the amended candidate.
+No new Azure/SCM operation or candidate build was performed in WP12.
+
+Engineering decision: retain the bounded Entra-authenticated SCM adapter and hard
+execution/publication block. The preferred experiment would collect private
+container output together with independently platform-originated execution
+records, rather than introduce a public diagnostic route or an external service.
+Its trust model relies on Azure TLS/platform/operator integrity and registry
+content addressing; it is operational corroboration, not hardware/cryptographic
+runtime attestation. The following proof chain is required, not yet demonstrated:
+
+1. Registry-qualified linux/amd64 leaf manifest and independently matched local
+   config/rootfs establish the candidate artifact before publication/deployment.
+2. Platform-originated pull/start records must identify the **resolved leaf
+   digest**, exact instance and application-container execution ID. A desired
+   image setting or successful start acknowledgment is insufficient.
+3. The authenticated retrieval source must associate the diagnostic frame with
+   that **same execution ID**. A generic site log index or timestamped aggregate
+   stream does not establish this association. SCM's own container is distinct
+   from the main application container.
+4. The existing validator must verify a fresh, non-reused nonce, exact digest,
+   entrypoint, schema, size and observation/receipt window. A frame echoing those
+   values proves correlation only; it cannot replace steps 2 and 3.
+
+No currently observed facility supplies steps 2 and 3. If a bounded download or
+stream cannot expose them, return INCOMPLETE and keep the block. Using authenticated
+output plus configuration echo would be a narrower check of deployment intent,
+not the required execution/image provenance, and is not selected for acceptance.
+The current adapter supports exact raw JSON lines only; platform-prefixed output
+would require independently characterized, reviewed parsing, not guessed stripping.
+
+#### Preflight and rollback checklist for a separately approved experiment
+
+- Target only `aiqr115researchstagingwus27f5eabb5`, resource group
+  `rg-aiq-r112-wp05-wus2-7f5eabb5`, existing F1 plan
+  `asp-aiq-r112-wp05-wus2-7f5eabb5`. Verify resource IDs/plan/Linux and no concurrent
+  operator change. UI `aiqr112wp05wus27f5eabb5` is excluded from every operation.
+- Capture baseline image/startup, complete app settings including slot metadata,
+  full logging/configurable web configuration, original state and relevant site
+  metadata into access-controlled private state. Hash those captures; do not
+  publish their values or local paths. Re-read equality immediately before mutation.
+- Record exact source commit, corrected image config/rootfs, linux/amd64 leaf
+  digest, unique proposed tag, existing registry destination and anonymous pull
+  verification. Do not reuse the historical digest for changed code. All artifact
+  identifiers must be filled and reviewed **before** approval is executable.
+- Prequalify exact retrieval URLs, operator authorization, anonymous denial,
+  redirect/proxy/TLS rules, time and byte bounds, and platform execution-ID/digest
+  record format. Never grant a flag based solely on authenticated SCM index access.
+- Allocate one fresh attempt nonce and protected single-execution journal; refuse
+  reuse/retry. Check the independent watchdog can launch before start, and record
+  the exact stop deadline and watchdog failure signal. No background data task.
+- Proposed Azure writes: stop/confirm only research baseline; set exact immutable
+  candidate and diagnostic-only correlation/guard opt-ins; enable only required
+  bounded logging; start once. Poll bounded evidence. No API, provider, database,
+  import, UI, public endpoint, storage resource or paid infrastructure operation.
+- Stop immediately on absent/mismatched/stale/partial/duplicate output, startup or
+  collection failure, watchdog failure, or deadline. Independent watchdog requests
+  stop at 30 seconds; controller requests stop by its earlier collection deadline.
+  Verify stopped with bounded retries; never infer termination from request success.
+- In finally-style recovery, cancel/join watchdog only after stop confirmation;
+  restore exact image/startup, complete baseline settings and logging, and every
+  other changed configurable field. Restore original Running/Stopped state.
+  Independently re-read and compare against captured baseline; report sanitized
+  field names/booleans only. Audit timestamps/etags are not configurable rollback
+  fields. Persist failures privately; report critical rollback-unconfirmed when
+  equality or stopped state cannot be confirmed. Do not restart a candidate again.
+- The requested maximum is **60 seconds**, but asynchronous Azure stop plus a
+  client-side watchdog does not prove a hard kernel execution-time cap. Client
+  host/session loss and delayed control-plane completion remain unresolved risks;
+  neither guaranteed termination nor guaranteed rollback is established. Under
+  WP12's stop condition, this is an additional preflight blocker, not an implicit
+  waiver. No live execution is armed by this preparation.
+
+#### Exact proposed owner authorization ? NOT READY TO EXECUTE
+
+The following request is a review template, not an approval and not executable
+with unresolved fields: "Authorize publication of exactly corrected candidate
+`<reviewed immutable linux/amd64 leaf digest>` from `<reviewed source commit>`
+under `<reviewed unique tag in existing registry>`, separately from Azure writes.
+Authorize one research-only diagnostic attempt on the exact app/group/plan above,
+with a maximum 60-second window, pre-start independent stop watchdog, bounded
+private collection and mandatory exact rollback/independent equality verification
+as specified above. No UI/provider/import/production/new-resource activity. No
+second start or retry. Missing execution-ID/resolved-image association must remain
+INCOMPLETE; rollback uncertainty is critical."
+
+**Single next action:** resolve the live-experiment preflight with the owner using
+this concrete request, including the exact new artifact and retrieval association,
+and the unresolved hard-stop/rollback feasibility. Until those prerequisites are
+established and fresh explicit authority is received, do not publish, arm, mutate
+or remove the block. This report does not imply that approval alone establishes
+technical feasibility; failure to establish provenance or bounded stop remains a
+reason not to execute. No additional governance/licensing approval is requested.
+
+WP12 verification: existing focused controller suite **40 passed, exit 0** with
+`python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -q`.
+No application/controller/test code changed; prior Windows/Linux/.NET results
+remain historical evidence, not newly repeated qualification. Both documentation
+changes append-only, strict UTF-8/no BOM/LF and `git diff --check` passed. Owner
+HEAD/status and all 32 dirty/untracked file hashes preserved. PR left OPEN/UNMERGED.
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
