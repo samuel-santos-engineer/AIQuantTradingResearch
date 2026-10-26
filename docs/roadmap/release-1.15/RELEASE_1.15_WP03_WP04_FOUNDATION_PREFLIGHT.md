@@ -1206,3 +1206,79 @@ No such channel or Azure qualification was performed by this amendment.
 `AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
 `AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
 PR #405 remains OPEN/UNMERGED; UI, production and provider operations untouched.
+
+
+### WP11 private-channel capability qualification ? 2026-10-26
+
+PR #405 was rechecked at head `7e0d9a9493f285fe8518b070b9e2b71920da20b3`
+and main/base `c300087aa250d86de24a64ed4bfe0805d3716c9d`. GitHub reported
+MERGEABLE/CLEAN, with no reported status checks. No conflicts were reproduced,
+so no merge/rebase/force push or unrelated branch change was necessary. The
+previous false report cannot be assigned a cause from this observation alone.
+
+Actual read-only facts: exact research app enabled, Running, Linux; installed
+Azure CLI 2.89.1 lacks `webapp exec`. The cached candidate is linux/amd64,
+UID/GID 1654:1654, entrypoint `/bin/sh /app/research-bootstrap.sh`, no default
+command. `research-api.Dockerfile` matches this model; `research.Dockerfile` is
+an older fixture, not the research API image. The amended shell is not in the
+historically published image. No replacement image was built or published.
+
+Implemented `-InspectChannel` / `--inspect-channel` and a fixed-source SCM GET
+adapter using only the existing operator Entra session. It accepts only the
+exact research SCM HTTPS log-index/logstream URLs, validates TLS using system
+trust, disables proxies and redirects, limits reads to 32 KiB, uses two-second
+socket timeouts and an eight-second read budget checked between reads (one
+in-flight read can add up to two seconds). No raw body/token is printed or saved.
+The inspection fetches the log index only, never application log contents,
+publishing credentials, settings or process commands. Inspection and execution
+flags are mutually exclusive. Only a bounded allowlisted capability summary is
+returned. Offline frame extraction rejects missing/duplicate/truncated/wrong-
+source/stale/mismatched data and never returns execution qualification.
+
+One initial capability request failed without an established cause. Subsequent
+bounded inspections succeeded. The final actual observation was: existing
+operator session available, authenticated SCM index GET succeeded with recognized
+schema, anonymous GET explicitly denied (401/403), execution binding unqualified.
+This establishes a protected management read path at inspection time only. It
+proves neither logstream delivery reliability nor candidate execution. No stream
+or historical application log body was fetched in this task.
+
+| Candidate channel | Supported conclusion | Remaining obligation |
+|---|---|---|
+| Entra-authenticated SCM log index | Protected read access actually observed | Index is not execution output or immutable-image evidence |
+| SCM logstream/container logs | Bounded read adapter and extraction tested offline | Live delivery, exact container/attempt identity and resolved image binding unverified; SCM TLS is not container attestation |
+| Supported container terminal | Official docs distinguish main app from SCM | Installed CLI lacks command; no upgrade or remote command performed |
+| Detached exec output | Not selected | Request acceptance is not completion/output retrieval |
+
+The hard publication/execution block remains unconditional. Fixed source URLs,
+HTTP 200, a nonce frame, configured image digest, or a mock transport cannot
+qualify execution. Watchdog/finally rollback/critical failure behavior, production
+storage guard, WAL/D5/single-writer, TLS/auth and non-durable limits are unchanged.
+
+Verification: **40/40** focused Python tests passed on Windows and **40/40** in
+actual cached Linux Python, network disabled, non-root, read-only source/root and
+bounded disposable tmpfs. These are the same offline suite on two platforms,
+not 80 independent cases. **50/50** focused `ResearchStorageBoundaryTests` passed
+with `dotnet test ... --no-restore -c Release --filter FullyQualifiedName~ResearchStorageBoundaryTests`.
+Existing unrelated synthetic-test analyzer warnings remain. PowerShell parser
+passed on 5.1.26100.9711; exact 5.1.26100.9444 execution remains unqualified.
+UTF-8/no-BOM/LF and `git diff --check` passed; evidence docs append-only.
+Owner checkout HEAD/status and all 31 dirty/untracked file hashes preserved.
+
+**Single next action:** obtain renewed owner authority for one bounded channel-
+qualification experiment on the exact research staging app, including corrected
+image publication, maximum 60-second candidate window, independent watchdog and
+exact rollback. That experiment must attempt to collect independently sourced
+platform container/instance identity and resolved immutable-image evidence bound
+to the private nonce frame. If the platform cannot expose that association, the
+contract remains unmet; no acceptance or bypass follows. Reviewed integration
+of that evidence source is required before removing the hard block. No claim
+is made that a live retry alone will close the proof gap.
+
+Sources: [App Service container access](https://learn.microsoft.com/en-us/azure/app-service/configure-linux-open-ssh-session),
+[authentication methods](https://learn.microsoft.com/en-us/azure/app-service/deploy-authentication-types),
+[custom-container logs](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container).
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+No Azure writes, UI operations, provider calls, imports, deployment or merge.

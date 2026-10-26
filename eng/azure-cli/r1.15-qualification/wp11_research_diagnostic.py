@@ -12,6 +12,9 @@ import sys
 import time
 import zipfile
 import uuid
+import urllib.request
+import urllib.error
+import ssl
 
 APP='aiqr115researchstagingwus27f5eabb5'
 GROUP='rg-aiq-r112-wp05-wus2-7f5eabb5'
@@ -117,6 +120,90 @@ def validate_evidence(data,nonce,digest,started,received):
     if probe['accepted'] and not (all(probe.values()) and value['uid']==[1654]*4 and value['rootOverlay'] and value['rootWritable']):raise ValueError('Inconsistent acceptance')
     if probe['privateWritable'] and not probe['kernel']:raise ValueError('Inconsistent probe')
     return value
+
+SCM_ORIGIN='https://'+APP+'.scm.azurewebsites.net'
+SCM_INDEX=SCM_ORIGIN+'/api/logs/docker'
+SCM_STREAM=SCM_ORIGIN+'/api/logstream'
+
+class NoChannelRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self,req,fp,code,msg,headers,newurl):
+        raise ValueError('Private channel redirect rejected')
+
+def read_private_channel(url,token):
+    """Read only two fixed SCM paths. No proxy, redirects, raw output or disk writes.
+
+    TLS authenticates the SCM host, not the main container or candidate digest.
+    This intentionally does not supply execution binding or unlock the preflight.
+    """
+    if url not in (SCM_INDEX,SCM_STREAM):raise ValueError('Wrong private source')
+    if type(token) is not str or not token or any(c.isspace() for c in token):raise ValueError('Operator authentication unavailable')
+    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoChannelRedirect(),
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+    request=urllib.request.Request(url,headers={'Authorization':'Bearer '+token,'Accept':'application/json' if url==SCM_INDEX else 'text/plain','Accept-Encoding':'identity'},method='GET')
+    deadline=time.monotonic()+8
+    try:
+        with opener.open(request,timeout=2) as response:
+            if response.status!=200 or response.geturl()!=url:raise ValueError('Private source/status mismatch')
+            expected='application/json' if url==SCM_INDEX else 'text/plain'
+            if response.headers.get_content_type()!=expected:raise ValueError('Private channel content type')
+            chunks=[];size=0
+            while True:
+                if time.monotonic()>=deadline:raise ValueError('Private channel deadline')
+                # read1 avoids waiting for a full buffer on a delayed stream.
+                chunk=response.read1(min(4096,32769-size))
+                if not chunk:break
+                size+=len(chunk)
+                if size>32768:raise ValueError('Private channel output limit')
+                chunks.append(chunk)
+            if time.monotonic()>deadline:raise ValueError('Private channel deadline')
+            return b''.join(chunks)
+    except urllib.error.HTTPError as error:
+        category='authorization_denied' if error.code in (401,403) else 'http_unavailable'
+        raise ValueError(category) from None
+    except Exception:
+        # Never propagate URLs, headers, token, private log text or transport errors.
+        raise ValueError('Private evidence read unavailable or invalid') from None
+
+def anonymous_index_denied():
+    """Probe only access enforcement, never read or emit an anonymous body."""
+    opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoChannelRedirect(),
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+    try:
+        with opener.open(urllib.request.Request(SCM_INDEX,method='GET'),timeout=2):return False
+    except urllib.error.HTTPError as error:return error.code in (401,403)
+    except Exception:return False # Redirect/transport failure is not authorization proof.
+
+def inspect_private_channel():
+    """Capability GET only; never fetch publishing credentials or application logs."""
+    result={'anonymousIndexDenied':False,'operatorSessionAvailable':False,'failureCategory':'unavailable','authenticatedIndexRead':False,'indexSchemaRecognized':False,
+            'executionBindingQualified':False,'PUBLIC_RUNTIME_VERIFIED':False}
+    try:
+        # Existing operator session only, no login/credential discovery/fallback.
+        token=az('account','get-access-token','--resource','https://management.azure.com/','-o','json',timeout=10)['accessToken']
+        result['operatorSessionAvailable']=True
+        data=read_private_channel(SCM_INDEX,token)
+        result['authenticatedIndexRead']=True
+        value=json.loads(data.decode('utf-8',errors='strict'))
+        result['indexSchemaRecognized']=type(value) is list and all(type(x) is dict for x in value)
+        result['failureCategory']='none' if result['indexSchemaRecognized'] else 'index_schema'
+        result['anonymousIndexDenied']=anonymous_index_denied()
+    except ValueError as error:
+        if str(error) in ('authorization_denied','http_unavailable'):result['failureCategory']=str(error)
+    except Exception:pass
+    return result
+
+def candidate_from_private_stream(data,url,nonce,digest,started,received):
+    """Offline-testable extraction, not an execution-qualification decision.
+
+    Caller must use read_private_channel. A supplied URL or mock response is not
+    authentication proof. No platform container/image identity is present here.
+    Timestamp-prefixed or partial frames deliberately remain unsupported/rejected.
+    """
+    if url!=SCM_STREAM or type(data) is not bytes or len(data)>32768:raise ValueError('Wrong source/output bounds')
+    frames=[line for line in data.splitlines() if line.startswith(b'{')]
+    if len(frames)!=1:raise ValueError('Absent or duplicate diagnostic output')
+    value=validate_evidence(frames[0],nonce,digest,started,received)
+    return {'candidateFrame':value,'executionBindingQualified':False,'runtimeObserved':False}
 
 def capture_preflight():
     # No verified private application-container retrieval facility exists on this app.
@@ -257,8 +344,11 @@ def publish(root,plan):
     return plan
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--state',type=Path,required=True);parser.add_argument('--execute',action='store_true');parser.add_argument('--watchdog',action='store_true')
+    parser=argparse.ArgumentParser();parser.add_argument('--state',type=Path,required=True);parser.add_argument('--execute',action='store_true');parser.add_argument('--watchdog',action='store_true');parser.add_argument('--inspect-channel',action='store_true')
     args=parser.parse_args();root=args.state
+    if args.inspect_channel:
+        if args.execute or args.watchdog:raise SystemExit('Read-only inspection cannot execute')
+        print(json.dumps(inspect_private_channel()));return
     if args.watchdog:
         stop_at=json.loads((root/'watchdog.json').read_text())['stopAt']
         while time.monotonic()<stop_at:

@@ -1,7 +1,8 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$ProtectedStateDirectory,[switch]$Execute)
+param([Parameter(Mandatory=$true)][string]$ProtectedStateDirectory,[switch]$Execute,[switch]$InspectChannel)
 $ErrorActionPreference='Stop'
+if($Execute -and $InspectChannel){throw 'Read-only inspection cannot execute.'}
 $directory=Get-Item -LiteralPath $ProtectedStateDirectory
 $acl=$directory.GetAccessControl()
 $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User
@@ -11,5 +12,6 @@ foreach($rule in $rules){if($rule.AccessControlType -eq 'Allow' -and $rule.Ident
 $script=Join-Path $PSScriptRoot 'wp11_research_diagnostic.py'
 $arguments=@('-B',$script,'--state',$directory.FullName)
 if($Execute){$arguments+='--execute'}
+if($InspectChannel){$arguments+='--inspect-channel'}
 & python @arguments
 if($LASTEXITCODE -ne 0){throw 'WP11 diagnostic blocked or failed; review sanitized result and private rollback evidence.'}

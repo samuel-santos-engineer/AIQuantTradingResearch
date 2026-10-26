@@ -163,4 +163,83 @@ class EvidenceTests(unittest.TestCase):
             self.assertEqual(json.loads((root/'watchdog.json').read_text())['stopAt'],record['_started']+30)
             self.assertIs(record['_watcher'],watcher)
 
+class PrivateChannelTests(unittest.TestCase):
+    def setUp(self):
+        self.fixture=EvidenceTests();self.fixture.setUp()
+        self.data=json.dumps(self.fixture.value).encode()
+    def candidate(self,data=None,url=None):
+        f=self.fixture
+        return m.candidate_from_private_stream(self.data if data is None else data,m.SCM_STREAM if url is None else url,f.nonce,f.digest,f.started,f.started+2)
+    def response(self,data=b'[]',url=None,kind='application/json'):
+        response=mock.MagicMock();response.__enter__.return_value=response
+        response.status=200;response.geturl.return_value=m.SCM_INDEX if url is None else url
+        response.headers.get_content_type.return_value=kind;response.read1.side_effect=[data,b'']
+        opener=mock.Mock();opener.open.return_value=response
+        return opener
+    def test_authenticated_request_is_fixed_get_without_proxy_or_redirect(self):
+        opener=self.response()
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=opener) as build:
+            self.assertEqual(m.read_private_channel(m.SCM_INDEX,'offline-token'),b'[]')
+        request=opener.open.call_args.args[0]
+        self.assertEqual(request.get_method(),'GET');self.assertEqual(request.full_url,m.SCM_INDEX)
+        self.assertEqual(request.get_header('Authorization'),'Bearer offline-token')
+        self.assertEqual(build.call_args.args[0].proxies,{})
+        self.assertIsInstance(build.call_args.args[1],m.NoChannelRedirect)
+    def test_positive_frame_never_claims_execution_binding(self):
+        result=self.candidate()
+        self.assertFalse(result['executionBindingQualified']);self.assertFalse(result['runtimeObserved'])
+    def test_wrong_private_source_rejected_before_transport(self):
+        for url in ('http://'+m.APP+'.scm.azurewebsites.net/api/logstream',m.SCM_STREAM+'?extra=1','https://example.invalid/api/logstream'):
+            with self.subTest(url=url),mock.patch.object(m.urllib.request,'build_opener') as build:
+                with self.assertRaises(ValueError):m.read_private_channel(url,'offline-token')
+                with self.assertRaises(ValueError):self.candidate(url=url)
+                build.assert_not_called()
+    def test_empty_duplicate_and_truncated_output(self):
+        for data in (b'',self.data+b'\n'+self.data,self.data[:-1],b'platform log only'):
+            with self.subTest(length=len(data)),self.assertRaises(ValueError):self.candidate(data)
+    def test_delayed_and_skewed_channel_output(self):
+        f=self.fixture
+        for received in (f.started-1,f.started+61):
+            with self.assertRaises(ValueError):m.candidate_from_private_stream(self.data,m.SCM_STREAM,f.nonce,f.digest,f.started,received)
+    def test_nonce_and_digest_are_checked_in_channel(self):
+        for field in ('nonce','digest'):
+            value=self.fixture.value.copy();value[field]='wrong'
+            with self.assertRaises(ValueError):self.candidate(json.dumps(value).encode())
+    def test_wrong_response_source_or_content_type(self):
+        for opener in (self.response(url='https://example.invalid'),self.response(kind='text/html')):
+            with mock.patch.object(m.urllib.request,'build_opener',return_value=opener),self.assertRaises(ValueError):m.read_private_channel(m.SCM_INDEX,'offline-token')
+    def test_redirect_is_rejected(self):
+        with self.assertRaises(ValueError):m.NoChannelRedirect().redirect_request(None,None,302,'',{},'https://example.invalid')
+    def test_timeout_error_is_redacted(self):
+        opener=mock.Mock();opener.open.side_effect=TimeoutError('PRIVATE_CANARY offline-token')
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=opener),self.assertRaises(ValueError) as error:m.read_private_channel(m.SCM_INDEX,'offline-token')
+        self.assertNotIn('PRIVATE_CANARY',str(error.exception));self.assertNotIn('offline-token',str(error.exception))
+    def test_body_limit(self):
+        opener=self.response();opener.open.return_value.read1.side_effect=[b'x'*32769]
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=opener),self.assertRaises(ValueError):m.read_private_channel(m.SCM_INDEX,'offline-token')
+    def test_read_deadline(self):
+        opener=self.response()
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=opener),mock.patch.object(m.time,'monotonic',side_effect=[0,9]),self.assertRaises(ValueError):m.read_private_channel(m.SCM_INDEX,'offline-token')
+    def test_index_success_is_not_execution_qualification(self):
+        with mock.patch.object(m,'az',return_value={'accessToken':'offline-token'}),mock.patch.object(m,'read_private_channel',return_value=b'[]'),mock.patch.object(m,'anonymous_index_denied',return_value=True):
+            result=m.inspect_private_channel()
+        self.assertTrue(result['authenticatedIndexRead']);self.assertFalse(result['executionBindingQualified'])
+    def test_inspection_failure_exposes_no_credentials(self):
+        with mock.patch.object(m,'az',side_effect=RuntimeError('PRIVATE_CANARY')):
+            result=m.inspect_private_channel()
+        self.assertFalse(result['authenticatedIndexRead']);self.assertNotIn('PRIVATE_CANARY',json.dumps(result))
+    def test_readonly_mode_cannot_execute(self):
+        with mock.patch.object(m.sys,'argv',['wp11','--state','unused','--inspect-channel','--execute']),mock.patch.object(m,'inspect_private_channel') as inspect:
+            with self.assertRaises(SystemExit):m.main()
+            inspect.assert_not_called()
+
+    def test_anonymous_access_must_explicitly_be_denied(self):
+        for status in (401,403,500):
+            opener=mock.Mock();opener.open.side_effect=m.urllib.error.HTTPError(m.SCM_INDEX,status,'private',None,None)
+            with mock.patch.object(m.urllib.request,'build_opener',return_value=opener):self.assertEqual(m.anonymous_index_denied(),status in (401,403))
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=self.response()):self.assertFalse(m.anonymous_index_denied())
+    def test_auth_failure_category_is_sanitized(self):
+        opener=mock.Mock();opener.open.side_effect=m.urllib.error.HTTPError(m.SCM_INDEX,403,'PRIVATE_CANARY',None,None)
+        with mock.patch.object(m.urllib.request,'build_opener',return_value=opener),self.assertRaisesRegex(ValueError,'^authorization_denied$'):m.read_private_channel(m.SCM_INDEX,'offline-token')
+
 if __name__=='__main__':unittest.main()
