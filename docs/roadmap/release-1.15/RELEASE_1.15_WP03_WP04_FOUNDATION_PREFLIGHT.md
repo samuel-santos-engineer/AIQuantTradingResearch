@@ -1282,3 +1282,116 @@ Sources: [App Service container access](https://learn.microsoft.com/en-us/azure/
 `AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
 `AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
 No Azure writes, UI operations, provider calls, imports, deployment or merge.
+
+
+### WP12 decision and live-qualification preparation ? 2026-10-26
+
+**Disposition: BLOCKED for live qualification; preparation complete.** Rechecked
+PR #405 OPEN, MERGEABLE/CLEAN, exact head
+`1e420a7219d7886f5d7303db880a33945790ce8b`, base
+`c300087aa250d86de24a64ed4bfe0805d3716c9d`; isolated worktree clean.
+No provenance bypass, speculative transport implementation or further Azure
+inspection was justified: the preceding authenticated-index observation already
+establishes access, and the restored shell cannot qualify the amended candidate.
+No new Azure/SCM operation or candidate build was performed in WP12.
+
+Engineering decision: retain the bounded Entra-authenticated SCM adapter and hard
+execution/publication block. The preferred experiment would collect private
+container output together with independently platform-originated execution
+records, rather than introduce a public diagnostic route or an external service.
+Its trust model relies on Azure TLS/platform/operator integrity and registry
+content addressing; it is operational corroboration, not hardware/cryptographic
+runtime attestation. The following proof chain is required, not yet demonstrated:
+
+1. Registry-qualified linux/amd64 leaf manifest and independently matched local
+   config/rootfs establish the candidate artifact before publication/deployment.
+2. Platform-originated pull/start records must identify the **resolved leaf
+   digest**, exact instance and application-container execution ID. A desired
+   image setting or successful start acknowledgment is insufficient.
+3. The authenticated retrieval source must associate the diagnostic frame with
+   that **same execution ID**. A generic site log index or timestamped aggregate
+   stream does not establish this association. SCM's own container is distinct
+   from the main application container.
+4. The existing validator must verify a fresh, non-reused nonce, exact digest,
+   entrypoint, schema, size and observation/receipt window. A frame echoing those
+   values proves correlation only; it cannot replace steps 2 and 3.
+
+No currently observed facility supplies steps 2 and 3. If a bounded download or
+stream cannot expose them, return INCOMPLETE and keep the block. Using authenticated
+output plus configuration echo would be a narrower check of deployment intent,
+not the required execution/image provenance, and is not selected for acceptance.
+The current adapter supports exact raw JSON lines only; platform-prefixed output
+would require independently characterized, reviewed parsing, not guessed stripping.
+
+#### Preflight and rollback checklist for a separately approved experiment
+
+- Target only `aiqr115researchstagingwus27f5eabb5`, resource group
+  `rg-aiq-r112-wp05-wus2-7f5eabb5`, existing F1 plan
+  `asp-aiq-r112-wp05-wus2-7f5eabb5`. Verify resource IDs/plan/Linux and no concurrent
+  operator change. UI `aiqr112wp05wus27f5eabb5` is excluded from every operation.
+- Capture baseline image/startup, complete app settings including slot metadata,
+  full logging/configurable web configuration, original state and relevant site
+  metadata into access-controlled private state. Hash those captures; do not
+  publish their values or local paths. Re-read equality immediately before mutation.
+- Record exact source commit, corrected image config/rootfs, linux/amd64 leaf
+  digest, unique proposed tag, existing registry destination and anonymous pull
+  verification. Do not reuse the historical digest for changed code. All artifact
+  identifiers must be filled and reviewed **before** approval is executable.
+- Prequalify exact retrieval URLs, operator authorization, anonymous denial,
+  redirect/proxy/TLS rules, time and byte bounds, and platform execution-ID/digest
+  record format. Never grant a flag based solely on authenticated SCM index access.
+- Allocate one fresh attempt nonce and protected single-execution journal; refuse
+  reuse/retry. Check the independent watchdog can launch before start, and record
+  the exact stop deadline and watchdog failure signal. No background data task.
+- Proposed Azure writes: stop/confirm only research baseline; set exact immutable
+  candidate and diagnostic-only correlation/guard opt-ins; enable only required
+  bounded logging; start once. Poll bounded evidence. No API, provider, database,
+  import, UI, public endpoint, storage resource or paid infrastructure operation.
+- Stop immediately on absent/mismatched/stale/partial/duplicate output, startup or
+  collection failure, watchdog failure, or deadline. Independent watchdog requests
+  stop at 30 seconds; controller requests stop by its earlier collection deadline.
+  Verify stopped with bounded retries; never infer termination from request success.
+- In finally-style recovery, cancel/join watchdog only after stop confirmation;
+  restore exact image/startup, complete baseline settings and logging, and every
+  other changed configurable field. Restore original Running/Stopped state.
+  Independently re-read and compare against captured baseline; report sanitized
+  field names/booleans only. Audit timestamps/etags are not configurable rollback
+  fields. Persist failures privately; report critical rollback-unconfirmed when
+  equality or stopped state cannot be confirmed. Do not restart a candidate again.
+- The requested maximum is **60 seconds**, but asynchronous Azure stop plus a
+  client-side watchdog does not prove a hard kernel execution-time cap. Client
+  host/session loss and delayed control-plane completion remain unresolved risks;
+  neither guaranteed termination nor guaranteed rollback is established. Under
+  WP12's stop condition, this is an additional preflight blocker, not an implicit
+  waiver. No live execution is armed by this preparation.
+
+#### Exact proposed owner authorization ? NOT READY TO EXECUTE
+
+The following request is a review template, not an approval and not executable
+with unresolved fields: "Authorize publication of exactly corrected candidate
+`<reviewed immutable linux/amd64 leaf digest>` from `<reviewed source commit>`
+under `<reviewed unique tag in existing registry>`, separately from Azure writes.
+Authorize one research-only diagnostic attempt on the exact app/group/plan above,
+with a maximum 60-second window, pre-start independent stop watchdog, bounded
+private collection and mandatory exact rollback/independent equality verification
+as specified above. No UI/provider/import/production/new-resource activity. No
+second start or retry. Missing execution-ID/resolved-image association must remain
+INCOMPLETE; rollback uncertainty is critical."
+
+**Single next action:** resolve the live-experiment preflight with the owner using
+this concrete request, including the exact new artifact and retrieval association,
+and the unresolved hard-stop/rollback feasibility. Until those prerequisites are
+established and fresh explicit authority is received, do not publish, arm, mutate
+or remove the block. This report does not imply that approval alone establishes
+technical feasibility; failure to establish provenance or bounded stop remains a
+reason not to execute. No additional governance/licensing approval is requested.
+
+WP12 verification: existing focused controller suite **40 passed, exit 0** with
+`python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp11_research_diagnostic.py -q`.
+No application/controller/test code changed; prior Windows/Linux/.NET results
+remain historical evidence, not newly repeated qualification. Both documentation
+changes append-only, strict UTF-8/no BOM/LF and `git diff --check` passed. Owner
+HEAD/status and all 32 dirty/untracked file hashes preserved. PR left OPEN/UNMERGED.
+
+`AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
