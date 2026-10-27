@@ -296,12 +296,32 @@ class ViewportTests(unittest.TestCase):
         self.assertEqual(300, other.preset)
 
 
+class AvailabilityMessageTests(unittest.TestCase):
+    def test_missing_unreachable_authentication_and_timeout_have_distinct_messages(self):
+        states = ("DatasetMissing", "DatasetUnavailable", "Unreachable", "AuthenticationRejected", "TimedOut", "DatasetEmpty")
+        messages = [chart.availability_message(state) for state in states]
+        self.assertEqual(len(states), len(set(messages)))
+        self.assertTrue(all(messages))
+        self.assertIsNone(chart.availability_message("Ready"))
+        self.assertIsNone(chart.availability_message("PRIVATE_CANARY"))
+
+
 class StreamlitSmokeTests(unittest.TestCase):
     def app(self, client):
         from streamlit.testing.v1 import AppTest
         path = Path(chart.__file__).with_name("realtime_financial_visualization.py")
         app = AppTest.from_file(str(path), default_timeout=30)
         return app
+
+    def test_missing_dataset_renders_warning_without_a_fallback_chart(self):
+        client = FixtureClient()
+        client.fail.add("BTC/USD")
+        with patch.dict(os.environ, {"AIQ_RESEARCH_CHART": "1", "AIQ_RESEARCH_BASE_URL": "https://offline.invalid", "AIQ_RESEARCH_API_KEY": TEST_KEY}), patch.object(chart, "ResearchSnapshotClient", return_value=client), patch.object(client, "availability", return_value="DatasetMissing"):
+            app = self.app(client).run()
+            self.assertEqual([], list(app.exception))
+            self.assertTrue(any("dataset has not been initialized" in warning.value for warning in app.warning))
+            self.assertIsNone(client.snapshot("BTC/USD"))
+            self.assertEqual(["BTC/USD"], client.calls)
 
     def test_real_streamlit_instrument_controls_full_unchanged_and_no_key(self):
         client = FixtureClient()

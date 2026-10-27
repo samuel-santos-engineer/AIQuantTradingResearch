@@ -33,7 +33,7 @@ public sealed record ResearchSnapshotTransport
 
 public static class ResearchSnapshotEndpoint
 {
-    public static WebApplication Create(ResearchSnapshotSource source, string apiKey, X509Certificate2? certificate, int port = 0, IPAddress? listenAddress = null, ResearchSnapshotTransport? transport = null)
+    public static WebApplication Create(ResearchSnapshotSource? source, string apiKey, X509Certificate2? certificate, int port = 0, IPAddress? listenAddress = null, ResearchSnapshotTransport? transport = null)
     {
         var platformHttp = transport?.PlatformHttp == true;
         if (platformHttp && !IPAddress.Any.Equals(listenAddress)) throw new ArgumentException("Research configuration unavailable.");
@@ -82,7 +82,7 @@ public static class ResearchSnapshotEndpoint
                     buffer.Write(chunk, 0, count);
                 }
                 parsed = ResearchSnapshotJson.Request(buffer.ToArray());
-                var response = source.Read(parsed, deadline.Token);
+                var response = source?.Read(parsed, deadline.Token) ?? throw new ResearchSnapshotException("DATASET_NOT_READY");
                 deadline.Token.ThrowIfCancellationRequested();
                 context.Response.ContentType = "application/json; charset=utf-8"; context.Response.ContentLength = response.Length;
                 await context.Response.Body.WriteAsync(response, deadline.Token);
@@ -115,22 +115,31 @@ public static class ResearchSnapshotEndpoint
         context.Response.StatusCode = status; context.Response.ContentType = "application/json; charset=utf-8"; context.Response.ContentLength = bytes.Length;
         await context.Response.Body.WriteAsync(bytes, token);
     }
+    /// <summary>Missing state stays missing; operator initialization/restart is separate.</summary>
+    public static SqliteResearchStateStore? OpenExistingStore(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory) || !Path.IsPathFullyQualified(directory)) throw new ArgumentException("Research configuration unavailable.");
+        ResearchStorageBoundary.ValidateServiceDirectory(directory);
+        try { _ = File.GetAttributes(Path.Combine(directory, "research.sqlite")); }
+        catch (FileNotFoundException) { return null; }
+        catch (DirectoryNotFoundException) { return null; }
+        return new SqliteResearchStateStore(directory, true);
+    }
     public static async Task<int> RunAsync()
     {
         try
         {
             var directory = Environment.GetEnvironmentVariable("AIQ_RESEARCH_PRIVATE_DIRECTORY") ?? throw new ArgumentException();
-            if (!File.Exists(Path.Combine(directory, "research.sqlite"))) throw new ArgumentException();
             var key = Environment.GetEnvironmentVariable("AIQ_RESEARCH_API_KEY") ?? throw new ArgumentException();
             var transport = ResearchSnapshotTransport.FromSettings(Environment.GetEnvironmentVariable);
             using var certificate = transport.PlatformHttp ? null : X509CertificateLoader.LoadPkcs12FromFile(
                 Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException(),
                 Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PASSWORD"));
-            using var store = new SqliteResearchStateStore(directory, true);
-            store.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
+            using var store = OpenExistingStore(directory);
+            store?.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
             var addressText = Environment.GetEnvironmentVariable("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
             if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException();
-            await using var app = Create(new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText), transport);
+            await using var app = Create(store is null ? null : new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText), transport);
             await app.RunAsync(); return 0;
         }
         catch { Console.Error.WriteLine("Research snapshot service unavailable."); return 1; }

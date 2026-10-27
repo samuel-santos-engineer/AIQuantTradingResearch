@@ -31,6 +31,28 @@ class SnapshotUnavailable(Exception):
         super().__init__("Research snapshot unavailable.")
 
 
+def failure_reason(data, status, instrument, epoch):
+    """Only validated, bounded API error DTOs become user-visible fixed states."""
+    require(len(data) <= 4096)
+    value = parse(data)
+    fields(value, ("schemaVersion", "type", "instrument", "requestEpoch", "observedAt", "error"), True)
+    require(value["schemaVersion"] == "1.0" and value["type"] == "error")
+    timestamp(value["observedAt"], observation=True)
+    matched = value["instrument"] == instrument and value["requestEpoch"] == str(epoch)
+    unidentified = value["instrument"] is None and value["requestEpoch"] is None and status in (401, 429, 504)
+    require(matched or unidentified)
+    error = value["error"]
+    fields(error, ("code", "message", "retryAfterSeconds"), True)
+    require(error["message"] == "Request unavailable.")
+    retry = error["retryAfterSeconds"]
+    require(retry is None or type(retry) is int and retry == 1)
+    reasons = {(401, "UNAUTHORIZED"): "AuthenticationRejected", (503, "DATASET_NOT_READY"): "DatasetMissing",
+               (503, "DATA_UNAVAILABLE"): "DatasetUnavailable", (429, "RATE_LIMITED"): "RateLimited",
+               (504, "DEADLINE_EXCEEDED"): "TimedOut"}
+    require((status, error["code"]) in reasons)
+    return reasons[status, error["code"]]
+
+
 def require(test):
     if not test:
         raise SnapshotUnavailable()
@@ -331,6 +353,7 @@ class ResearchSnapshotClient:
         self._epochs = {}
         self._cache = {}
         self._connectivity = {}
+        self._availability = {}
         self._syncs = {}
         self._guard = threading.RLock()
         self._flight = threading.Lock()
@@ -340,6 +363,10 @@ class ResearchSnapshotClient:
     def connection_state(self, instrument):
         with self._guard:
             return ("Connected" if self._connectivity.get(instrument, False) else "Disconnected", self._syncs.get(instrument))
+
+    def availability(self, instrument):
+        with self._guard:
+            return self._availability.get(instrument, "NotObserved")
 
     def snapshot(self, instrument):
         with self._guard:
@@ -364,6 +391,7 @@ class ResearchSnapshotClient:
                 self.connected = True
                 self.last_successful_sync = dt.datetime.now(dt.timezone.utc)
                 self._connectivity[instrument] = True
+                self._availability[instrument] = "Ready" if result["candles"] else "DatasetEmpty"
                 self._syncs[instrument] = self.last_successful_sync
                 return freeze(copy.deepcopy(result))
             except (ValueError, TypeError, KeyError, OverflowError, UnicodeError, SnapshotUnavailable, decimal.InvalidOperation):
@@ -376,16 +404,19 @@ class ResearchSnapshotClient:
             request = self.begin(instrument)
             connection = None
             started = time.monotonic()
+            reason = "InvalidResponse"
             try:
                 connection = http.client.HTTPSConnection(self._host, self._port, timeout=self._timeout, context=self._ssl)
                 # Direct HTTPSConnection does not inherit proxies or follow redirects.
                 connection.connect()  # Native DNS may exceed timeout; accepted platform limitation.
-                require(time.monotonic() - started < self._timeout)
+                if time.monotonic() - started >= self._timeout:
+                    raise TimeoutError()
                 connection.sock.settimeout(max(0.001, self._timeout - (time.monotonic() - started)))
                 connection.request("POST", "/v1/research/snapshot", body=json.dumps(request, separators=(",", ":")).encode("utf-8"),
                                    headers={"Content-Type": "application/json", "X-API-Key": self._key, "Accept-Encoding": "identity"})
                 response = connection.getresponse()
-                require(response.status == 200)
+                require(response.status in (200, 401, 429, 503, 504))
+                limit = LIMIT if response.status == 200 else 4096
                 headers = response.getheaders()
                 for name in ("Content-Type", "Content-Encoding", "Content-Length"):
                     require(sum(k.lower() == name.lower() for k, _ in headers) <= 1)
@@ -393,23 +424,33 @@ class ResearchSnapshotClient:
                 require(media in ("application/json", "application/json;charset=utf-8"))
                 require(response.getheader("Content-Encoding", "identity").lower() == "identity")
                 length = response.getheader("Content-Length")
-                require(length is None or re.fullmatch(r"[0-9]+", length) is not None and int(length) <= LIMIT)
+                require(length is None or re.fullmatch(r"[0-9]+", length) is not None and int(length) <= limit)
                 body = bytearray()
                 while True:
                     remaining = self._timeout - (time.monotonic() - started)
-                    require(remaining > 0)
+                    if remaining <= 0:
+                        raise TimeoutError()
                     if connection.sock is not None:
                         connection.sock.settimeout(remaining)
-                    chunk = response.read1(min(8192, LIMIT + 1 - len(body)))
+                    chunk = response.read1(min(8192, limit + 1 - len(body)))
                     if not chunk:
                         break
                     body.extend(chunk)
-                    require(len(body) <= LIMIT)
+                    require(len(body) <= limit)
                 require(time.monotonic() - started <= self._timeout and (length is None or int(length) == len(body)))
+                if response.status != 200:
+                    reason = failure_reason(bytes(body), response.status, instrument, request["requestEpoch"])
+                    raise SnapshotUnavailable()
                 return self.accept(bytes(body), instrument, int(request["requestEpoch"]))
-            except (OSError, http.client.HTTPException, ValueError, TypeError, SnapshotUnavailable):
-                self.connected = False
-                self._connectivity[instrument] = False
+            except (OSError, http.client.HTTPException, ValueError, TypeError, SnapshotUnavailable) as error:
+                if isinstance(error, TimeoutError):
+                    reason = "TimedOut"
+                elif isinstance(error, OSError):
+                    reason = "Unreachable"
+                with self._guard:
+                    self.connected = False
+                    self._connectivity[instrument] = False
+                    self._availability[instrument] = reason
                 raise SnapshotUnavailable() from None
             finally:
                 if connection is not None:

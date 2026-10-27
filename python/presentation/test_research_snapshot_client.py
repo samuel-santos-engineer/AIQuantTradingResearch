@@ -304,5 +304,71 @@ class SnapshotTests(unittest.TestCase):
             self.assertEqual(before, self.client.snapshot("BTC/USD"))
 
 
+class AvailabilityTests(unittest.TestCase):
+    def error(self, code="DATASET_NOT_READY", instrument="BTC/USD", epoch="1"):
+        return wire(dict(schemaVersion="1.0", type="error", instrument=instrument, requestEpoch=epoch,
+                         observedAt="2026-10-23T12:01:15.000000Z",
+                         error=dict(code=code, message="Request unavailable.", retryAfterSeconds=1)))
+
+    def transport(self, client, data, status=503, error=None):
+        class Sock:
+            def settimeout(self, _): pass
+        class Response:
+            def __init__(self): self.body = data; self.status = status
+            def getheaders(self): return [("Content-Type", "application/json"), ("Content-Length", str(len(data)))]
+            def getheader(self, key, default=None): return dict(self.getheaders()).get(key, default)
+            def read1(self, n):
+                chunk, self.body = self.body[:n], self.body[n:]
+                return chunk
+        class Connection:
+            sock = Sock()
+            def __init__(self, *args, **kwargs): pass
+            def connect(self):
+                if error: raise error
+            def request(self, *args, **kwargs): pass
+            def getresponse(self): return Response()
+            def close(self): pass
+        with patch.object(m.http.client, "HTTPSConnection", Connection):
+            with self.assertRaises(m.SnapshotUnavailable): client.fetch("BTC/USD")
+
+    def test_validated_errors_are_distinct_without_response_text_leakage(self):
+        for status, code, state in ((503, "DATASET_NOT_READY", "DatasetMissing"), (503, "DATA_UNAVAILABLE", "DatasetUnavailable"),
+                                    (401, "UNAUTHORIZED", "AuthenticationRejected"), (429, "RATE_LIMITED", "RateLimited"),
+                                    (504, "DEADLINE_EXCEEDED", "TimedOut")):
+            client = m.ResearchSnapshotClient("https://offline.invalid", KEY)
+            self.transport(client, self.error(code), status)
+            self.assertEqual(state, client.availability("BTC/USD"))
+            self.assertEqual("NotObserved", client.availability("ETH/USD"))
+            self.assertIsNone(client.snapshot("BTC/USD"))
+
+    def test_bad_error_payloads_are_not_trusted(self):
+        for data in (b'not-json', self.error(instrument="ETH/USD"), self.error(epoch="9"), self.error(code="PRIVATE_CANARY"),
+                     self.error().replace(b'Request unavailable.', b'PRIVATE_CANARY'), self.error()+b' '*4096):
+            client = m.ResearchSnapshotClient("https://offline.invalid", KEY)
+            self.transport(client, data)
+            self.assertEqual("InvalidResponse", client.availability("BTC/USD"))
+
+    def test_unreachable_and_timeout_are_distinct(self):
+        for error, state in ((OSError("PRIVATE_CANARY"), "Unreachable"), (TimeoutError("PRIVATE_CANARY"), "TimedOut")):
+            client = m.ResearchSnapshotClient("https://offline.invalid", KEY)
+            self.transport(client, b'', error=error)
+            self.assertEqual(state, client.availability("BTC/USD"))
+
+    def test_failure_retains_last_good_but_never_calls_it_connected(self):
+        client = m.ResearchSnapshotClient("https://offline.invalid", KEY)
+        client.begin("BTC/USD"); client.accept(wire(full()), "BTC/USD", 1)
+        before = client.snapshot("BTC/USD")
+        self.transport(client, self.error(epoch="2"))
+        self.assertEqual(before, client.snapshot("BTC/USD"))
+        self.assertEqual("DatasetMissing", client.availability("BTC/USD"))
+        self.assertEqual("Disconnected", client.connection_state("BTC/USD")[0])
+
+    def test_ready_and_empty_are_not_health_or_current_market_claims(self):
+        for empty, state in ((False, "Ready"), (True, "DatasetEmpty")):
+            client = m.ResearchSnapshotClient("https://offline.invalid", KEY)
+            client.begin("BTC/USD"); client.accept(wire(full(empty)), "BTC/USD", 1)
+            self.assertEqual(state, client.availability("BTC/USD"))
+
+
 if __name__ == "__main__":
     unittest.main()
