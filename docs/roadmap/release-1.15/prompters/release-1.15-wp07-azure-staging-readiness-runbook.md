@@ -1047,3 +1047,83 @@ WP14 executed validation:
 - Installed project virtual environment, `PYTHONPATH=python/presentation`, `python -B -m unittest discover -s python/presentation -p test_research_chart.py -q`: **25 passed**, including Streamlit AppTest missing-state rendering/no fallback plus existing chart/viewport/indicator tests. Expected bare-mode ScriptRunContext warnings only.
 - Strict UTF-8/no BOM/LF and `git diff --check`: passed. No deployment script changed; no script execution, Docker build/Linux runtime qualification, actual browser acceptance or live staging HTTPS probe was performed. These local tests are not public runtime verification.
 - Owner checkout HEAD/status and all 34 dirty/untracked file hashes preserved; isolated branch only. Exact operational checklist retained privately with restricted ACLs and no actual secret values.
+
+
+### WP16 startup investigation and bounded process-health readiness
+
+WP16 performed read-only exact-research metadata, existing SCM log-file and
+historical control-plane event inspection. It did not change Azure configuration,
+logging, app state or images, access UI, retrieve publishing credentials, execute a
+remote command, make an application HTTPS probe, acquire provider data or import
+candles. Current read-only metadata reports the restored research app Running.
+Raw operational logs/digests/instance details remain in restricted private evidence.
+
+The platform records operationally correlate with the WP15 candidate image. They
+are not cryptographic execution attestation. Relative to the successful Start
+control-plane event, image pulling begins about +127 seconds, rollback Stop is
+acknowledged about +133 seconds, and the candidate is recorded running and then
+exiting with code 1 about +136 seconds. Thus the exit record follows rollback's
+Stop event. It must not be presented as proof that the application independently
+crashed or that a particular storage guard rejected startup. WP15's fixed idle wait
+plus one five-second health request ended before readiness was established. Cold
+startup observation was inadequate; a specific application failure is unproven.
+
+| Hypothesis | Evidence/confidence | What remains unknown |
+|---|---|---|
+| Premature readiness decision during cold startup | High: candidate running is recorded after rollback Stop; pull begins near health timeout window | First HTTP traffic may trigger/wait on cold startup, but exact trigger is not established |
+| Image/architecture/entrypoint defect | Lower likelihood: platform identifies candidate/start; exact image stays running in local Linux startup test | Local behavior is not Azure runtime qualification |
+| Intrinsic process failure | Unresolved: platform exit code 1 exists | Stop precedes exit; no attributable application stderr explains it |
+| Port/bind/TLS routing | Constructed deployment settings and code agree on fixed port, all-interface bind and platform TLS termination | Effective attempted container environment/routing not independently observed |
+| Storage/UID/mount/permissions/transport rejection | Unresolved; strict checks remain | No app stderr or runtime mount/UID observation; current rollback settings are not attempted settings |
+| Missing SQLite alone | Code supports guarded missing-state service; local exact-image test remains running | Azure guard acceptance still unverified; no fixture is proof of authentic state |
+
+Existing log files contain platform lifecycle records, not the required application
+stderr. Activity records are control-plane timestamps; they do not establish kernel
+termination timing. A mutable request-body scratch file was reused by rollback and
+cannot serve as an immutable snapshot of attempted settings. The investigation
+therefore relies on the preserved controller source for intended configuration,
+not that overwritten file, and makes no claim about effective Azure environment.
+
+Small operational fix: the existing staging readiness script gains explicit
+`-ProbeResearch`, invoking a standard-library anonymous HTTPS `/health` collector.
+No flag means no network. The collector starts health observation immediately,
+allows at most three attempts with up to 60 seconds each within a shared 180-second
+budget, and retries only transport/startup-gateway outcomes. It requires exact
+200/`Alive`, rejects redirects, authentication errors, malformed/oversized or
+encoded bodies and TLS errors. No credentials, snapshots, provider calls or Azure
+mutation occur. The PowerShell 5.1 parent bounds the owned child at 190 seconds
+and kills only that child if needed. Native DNS remains not hard-cancellable inside
+the worker; neither this control deadline nor control-plane Stop is a kernel bound.
+Only `PROCESS_ALIVE` is reported; dataset/chart acceptance remains NOT_RUN and
+PUBLIC_RUNTIME_VERIFIED remains false. Application snapshot requests do not gain
+retries. No storage/authentication policy or diagnostic block changes.
+
+Verification: `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp07_staging_readiness.py -v`
+passed **20 tests**, including all eight existing assessments/default/no-network/
+PowerShell parsing cases and twelve mocked timing/HTTPS/body/TLS/auth/deadline cases.
+One exact-image, network-disabled, no-published-port local Linux test used constructed
+metadata and an explicitly test-only key; process remained running after five
+seconds, no HTTP request was sent, and only the confirmed-owned container was removed.
+This is not evidence that the service answered health or that F1 guards passed.
+No .NET/application/client/indicator code changed; no broad application rerun was
+needed. UTF-8/no BOM/LF and `git diff --check` passed; runbook append-only.
+
+Next authority needed, not executed here: one research-only redeployment of the
+already published reviewed artifact, no rebuild/push, privately captured baseline
+and protected service configuration, unchanged guards, up to three anonymous health
+GETs within this bounded wait, then only one unauthenticated POST and two authenticated
+snapshot POSTs if health passes. Missing-state 503 must remain distinct from health.
+Restore/independently verify exact baseline on failure; no retry deployment loop.
+No UI changes/probes, provider requests/imports, production or paid resources.
+The prior one-request WP15 smoke authority is consumed and does not authorize these
+additional health attempts. UI deployment/browser acceptance remains a later step.
+
+`AZURE_DEPLOYMENT_NOT_RUN` for WP16; `AUTHENTIC_DATA_NOT_IMPORTED`;
+`PUBLIC_RUNTIME_VERIFIED=False`. Historical WP15 deployment/rollback remains recorded.
+
+Microsoft documents increased warm-up latency when an app is unloaded with Always
+On disabled ([App Service configuration](https://learn.microsoft.com/en-us/azure/app-service/configure-common)).
+This supports a cold-start hypothesis but does not prove the first-request trigger
+in this attempt. Platform/control-plane records have separate clocks and delivery
+paths; the recorded ordering is not a kernel-level causal trace. No plan upgrade
+or Always On configuration change is proposed.

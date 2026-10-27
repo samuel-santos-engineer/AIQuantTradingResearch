@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 # UTF-8/LF. Read-only, fixed staging targets. No settings values or credentials.
 [CmdletBinding()]
-param([switch]$InspectAzure,[switch]$ProbeUi)
+param([switch]$InspectAzure,[switch]$ProbeUi,[switch]$ProbeResearch)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 
@@ -88,10 +88,34 @@ function Get-Wp07PublicUiProbe([string]$Path) {
     }
 }
 
+function Invoke-Wp16ResearchReadiness {
+    # Only anonymous /health; no credentials, mutation, snapshot/provider request or UI access.
+    $script=Join-Path $PSScriptRoot '../../azure-cli/r1.15-qualification/wp16_research_readiness.py'
+    $start=New-Object Diagnostics.ProcessStartInfo
+    $start.FileName='python'
+    $start.Arguments='-B "'+$script+'" --execute'
+    $start.UseShellExecute=$false
+    $start.RedirectStandardOutput=$true
+    $start.RedirectStandardError=$true
+    $start.CreateNoWindow=$true
+    $start.WindowStyle=[Diagnostics.ProcessWindowStyle]::Hidden
+    $process=[Diagnostics.Process]::Start($start)
+    try {
+        $output=$process.StandardOutput.ReadToEndAsync()
+        $errors=$process.StandardError.ReadToEndAsync()
+        if(-not $process.WaitForExit(190000)){throw 'Research health collection deadline.'}
+        if($process.ExitCode -notin @(0,1) -or $output.Result.Length -gt 4096){throw 'Research health collection failed.'}
+        return ($output.Result | ConvertFrom-Json)
+    } finally {
+        try {if(-not $process.HasExited){$process.Kill();$null=$process.WaitForExit(5000)}}
+        finally {$process.Dispose()}
+    }
+}
+
 # Dot-sourcing imports only pure/helper definitions for offline tests, no operations.
 if($MyInvocation.InvocationName -eq '.'){return}
 try {
-    $report=[ordered]@{target='aiqr112wp05wus27f5eabb5';management='NOT_RUN';publicHttp='NOT_RUN';chartAcceptance='NOT_RUN';PUBLIC_RUNTIME_VERIFIED=$false}
+    $report=[ordered]@{target='aiqr112wp05wus27f5eabb5';management='NOT_RUN';publicHttp='NOT_RUN';researchHttp='NOT_RUN';chartAcceptance='NOT_RUN';PUBLIC_RUNTIME_VERIFIED=$false}
     if($InspectAzure) {
         $group='rg-aiq-r112-wp05-wus2-7f5eabb5'
         $uiName='aiqr112wp05wus27f5eabb5'
@@ -109,7 +133,9 @@ try {
     if($ProbeUi) {
         $report.publicHttp=@((Get-Wp07PublicUiProbe '/'),(Get-Wp07PublicUiProbe '/_stcore/health'))
     }
+    if($ProbeResearch){$report.target='research-process-health';$report.researchHttp=Invoke-Wp16ResearchReadiness}
     $report | ConvertTo-Json -Depth 6
+    if($ProbeResearch -and -not $report.researchHttp.processAlive){exit 1}
     exit 0
 } catch {
     # Never echo Azure stderr, full config, image names, response bodies or exceptions.
