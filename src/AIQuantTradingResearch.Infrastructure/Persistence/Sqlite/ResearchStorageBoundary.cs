@@ -44,6 +44,9 @@ public static class ResearchStorageBoundary
         }
         return result;
     }
+    /// <summary>Apply the unchanged host/kernel/private-directory guard without opening or creating SQLite.</summary>
+    public static void ValidateServiceDirectory(string directory) => Validate(directory);
+
     private static readonly string[] AzureMarkers = ["WEBSITE_INSTANCE_ID", "WEBSITE_SITE_NAME", "WEBSITE_HOSTNAME", "WEBSITE_ROLE_INSTANCE_ID"];
     internal const string StagingScope = "azure-f1-staging-ephemeral";
     internal const string StagingDirectory = "/tmp/aiq-research";

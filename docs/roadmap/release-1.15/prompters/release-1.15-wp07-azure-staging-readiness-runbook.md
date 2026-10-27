@@ -941,3 +941,109 @@ HEAD/status and all 32 dirty/untracked file hashes preserved. PR left OPEN/UNMER
 
 `AZURE_DIAGNOSTIC_NOT_RUN`; `F1_COMPATIBILITY_UNVERIFIED`;
 `AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+### WP14 HTTPS application integration ? 2026-10-27 (offline only)
+
+Owner direction: use the existing authenticated HTTPS/JSON application path,
+independently of diagnostic attestation. Diagnostic fail-closed behavior is unchanged.
+Existing Streamlit opt-in -> server-side `ResearchSnapshotClient` -> HTTPS POST
+`/v1/research/snapshot` -> committed C# research state/analytics -> validated public
+DTO -> existing Plotly chart. No new endpoint, dependency, provider adapter,
+synthetic fallback or Python indicator computation.
+
+Missing database previously stopped the process. Startup now applies the complete
+unchanged host/kernel/private-directory guard first, then opens only an existing
+database. Genuinely absent state creates no SQLite/schema/tuples/candles and yields
+503 `DATASET_NOT_READY` for authenticated, valid snapshot requests. Invalid paths,
+permissions, corrupt state and guard rejection remain fail-closed. Existing state
+still requires its D5/HMAC publication tuple and single-writer/WAL protection.
+
+| Observation | Meaning |
+|---|---|
+| GET `/health`: 200 `Alive` | Process only; not dataset readiness |
+| Authenticated snapshot: 503 `DATASET_NOT_READY` | Database absent at startup |
+| Valid snapshot, zero candles | No committed completed candles for instrument |
+| Valid snapshot, retained rows | Validated history; freshness is the DTO's own status |
+| Valid 503 `DATA_UNAVAILABLE` envelope | Reachable API, validated state unavailable |
+| Valid 401 envelope | Authentication rejected |
+| Timeout / transport error / invalid response | Distinct fixed client/UI states |
+
+Only strictly validated bounded error DTOs become UI explanations. Error responses
+are capped at 4,096 bytes; existing success limit, TLS verification, direct connection,
+no redirects/proxy, timeout and no-retry behavior remain. Native DNS is not hard-
+cancellable. Failures retain last-good history but mark it disconnected. Existing
+freshness and transformed-educational-value disclosure remain: authentic source
+candles are not a claim that transformed public prices are raw market quotes.
+A missing-state process does not hot-open later initialization; stop it, initialize
+privately under separate authority, then start it. Non-durable F1 replacement may
+lose all state; no fabricated auto-seeding or public initialization route exists.
+
+#### Future manual deployment/smoke sequence (redacted; NOT EXECUTED)
+
+Exact existing targets and non-secret setting values are retained in a separate
+private owner checklist. No credentials were accessed. All identifiers/artifacts
+below must be reviewed and supplied privately; do not execute placeholder commands.
+Use Windows PowerShell 5.1-compatible commands and UTF-8/LF for saved text.
+
+1. Separately approve the exact source commit and both immutable linux/amd64 image
+   digests. Reuse `research-api.Dockerfile` and `research-chart.Dockerfile` with their
+   existing offline publish/dependency contexts. No image build/publication here.
+2. Privately capture both apps' full configurable image/startup/settings/slot metadata,
+   logging, HTTPS-only and original state with restricted user/System access. Confirm
+   exact existing resource IDs and plan. Define rollback owner before any mutation.
+3. Research configuration must retain exact-site ephemeral guards, fixed private
+   directory, required UID/mount/role, explicit Azure transport opt-in and ingress
+   HTTPS-only enforcement. Backend HTTP is the existing explicit platform TLS-
+   termination mode, not end-to-end TLS into Kestrel. Failed guards stop deployment.
+4. UI opts into the existing research chart with an HTTPS base URL and shared API
+   key delivered privately to both server environments. No key in browser requests,
+   arguments, screenshots or public evidence. Preserve unrelated existing settings.
+5. Only after separate approval, apply reviewed images and protected settings files:
+
+   ```powershell
+   # Variables identify only reviewed existing staging targets/artifacts/private files.
+   az webapp config container set -g $rg -n $research --container-image-name $researchImage --output none
+   az webapp update -g $rg -n $research --https-only true --output none
+   az webapp config appsettings set -g $rg -n $research --settings "@$researchSettingsFile" --output none
+   az webapp config container set -g $rg -n $ui --container-image-name $uiImage --output none
+   az webapp config appsettings set -g $rg -n $ui --settings "@$uiSettingsFile" --output none
+   ```
+
+   These may recycle apps. Never run the diagnostic controller as a prerequisite.
+6. Bounded smoke: one research health GET, one unauthenticated snapshot POST (401),
+   one authenticated snapshot per supported instrument with schema 1.0, epoch 1,
+   null known identity. Use the existing strict server-side HTTPS client; no keys
+   in CLI arguments or browser. Missing state should yield 503 and the matching UI
+   warning; that verifies missing-state behavior, not public chart acceptance.
+7. Authentic private initialization is a separate unresolved delivery/authorization
+   prerequisite. WP14 makes no provider request or import, and does not invent an
+   Azure private-input channel. Prior acquisition limits are not permission to run.
+8. After separately authorized authentic initialization/restart, browser acceptance
+   must verify both instruments, <=1,000 completed minute candles, UTC/volume,
+   existing indicators/null warmup, refresh/retention, instrument isolation, zoom/
+   pan/Return to Live, disclosure, stale/disconnected states and no secret exposure.
+   A health response, empty chart or deterministic test fixture cannot pass acceptance.
+9. Rollback: stop affected named app(s) only; restore exact captured image/startup,
+   settings/slot metadata/logging/HTTPS-only and original app state; remove only
+   newly added settings. Independently re-read/compare. Configuration restoration
+   cannot restore lost ephemeral SQLite data. Report residual differences; no retry
+   acquisition/import or automatic redeployment.
+
+Next authority needed: reviewed exact artifacts, publication and deployment only to
+existing staging targets, protected configuration handling, exact rollback, the
+bounded health/401/two authenticated snapshot checks and browser observation.
+No provider/import/production/diagnostic activity. Private initialization must be
+separately available before authentic chart acceptance. No terminal/image-attestation
+or hard diagnostic stop gate is added to the application integration.
+
+`AZURE_DEPLOYMENT_NOT_RUN`; `AUTHENTIC_DATA_NOT_IMPORTED`;
+`PUBLIC_RUNTIME_VERIFIED=False`.
+
+WP14 executed validation:
+- `dotnet restore tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --source <existing-local-package-cache> -p:NuGetAudit=false --ignore-failed-sources`: reused cached packages only; no network restore or dependency changes.
+- `dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --filter "FullyQualifiedName~ResearchSnapshotEndpointTests|FullyQualifiedName~ResearchStorageBoundaryTests" --logger "console;verbosity=minimal"`: **73 passed**, 0 failed/skipped. Includes actual local TLS C# -> Python missing-state checks for both instruments and existing full/unchanged C# analytics checks. Initial sandbox run had seven certificate-import failures; normal-user rerun passed with no TLS-validation weakening. Existing unrelated synthetic-test analyzer warnings remain.
+- `python -B -m unittest python.presentation.test_research_snapshot_client -q`: **34 passed**. Error/authentication/body bounds, malformed data, timeout/unreachable distinction and retained disconnected cache covered.
+- Installed project virtual environment, `PYTHONPATH=python/presentation`, `python -B -m unittest discover -s python/presentation -p test_research_chart.py -q`: **25 passed**, including Streamlit AppTest missing-state rendering/no fallback plus existing chart/viewport/indicator tests. Expected bare-mode ScriptRunContext warnings only.
+- Strict UTF-8/no BOM/LF and `git diff --check`: passed. No deployment script changed; no script execution, Docker build/Linux runtime qualification, actual browser acceptance or live staging HTTPS probe was performed. These local tests are not public runtime verification.
+- Owner checkout HEAD/status and all 34 dirty/untracked file hashes preserved; isolated branch only. Exact operational checklist retained privately with restricted ACLs and no actual secret values.

@@ -234,6 +234,19 @@ def component_data(snapshot, state, session):
             "renderToken": json.dumps([snapshot["instrument"], dict(snapshot["identity"]), state.preset, state.overlays, state.panel, state.events, state.view.mount, state.view.command_epoch], sort_keys=True)}
 
 
+def availability_message(state):
+    return {
+        "DatasetMissing": "Research API is reachable, but its dataset has not been initialized. No candles are available.",
+        "DatasetEmpty": "Research API is reachable, but no completed candles have been committed for this instrument.",
+        "DatasetUnavailable": "Research API is reachable, but validated dataset state is unavailable.",
+        "AuthenticationRejected": "Research API rejected server-side authentication. Historical data is unavailable.",
+        "Unreachable": "Research API could not be reached. Historical data is unavailable.",
+        "TimedOut": "Research request timed out. Historical data is unavailable.",
+        "RateLimited": "Research API is busy. Use Refresh later; no automatic retry was made.",
+        "InvalidResponse": "Research API returned an invalid or unsupported response. Historical data is unavailable.",
+    }.get(state)
+
+
 def _render_content(auto_refresh=False):
     import streamlit as st
     st.title("Historical Crypto Research")
@@ -276,8 +289,12 @@ def _render_content(auto_refresh=False):
     snapshot = client.snapshot(instrument)
     connected, synced = client.connection_state(instrument)
     st.caption(connected + " | " + ("Live follow" if state.view.live else "Historical Exploration"))
+    message = availability_message(client.availability(instrument))
+    if message:
+        st.warning(message)
     if snapshot is None:
-        st.warning("Historical data unavailable. Refresh when the research service is available.")
+        if not message:
+            st.warning("Historical data unavailable. Refresh when the research service is available.")
         return
     status = snapshot["status"]
     st.caption("Research: " + status["research"] + " | Freshness at observation: " + status["freshness"] + " | Integrity: " + status["integrity"] + " | Classification: " + status["classificationValidity"])

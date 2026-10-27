@@ -68,6 +68,74 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         ["AIQ_RESEARCH_PLATFORM_HTTPS_ONLY"] = "1", ["AIQ_RESEARCH_BIND_ADDRESS"] = "0.0.0.0"
     };
     [Theory]
+    [InlineData("")]
+    [InlineData(".")]
+    public void MissingStateDoesNotPermitUnqualifiedDirectory(string directory) =>
+        Assert.Throws<ArgumentException>(() => ResearchSnapshotEndpoint.OpenExistingStore(directory));
+
+    [Fact]
+    public void MissingDatabaseIsNotCreatedByServiceStartup()
+    {
+        using var dir = new ResearchTestDirectory();
+        using var store = ResearchSnapshotEndpoint.OpenExistingStore(dir.Path);
+        Assert.Null(store);
+        Assert.False(File.Exists(Path.Combine(dir.Path, "research.sqlite")));
+    }
+
+    [Theory]
+    [InlineData("BTC/USD")]
+    [InlineData("ETH/USD")]
+    public async Task MissingDatasetIsAuthenticatedNotReadyWhileHealthIsOnlyAlive(string instrument)
+    {
+        using var cert = Certificate();
+        await using var app = ResearchSnapshotEndpoint.Create(null, Key, cert);
+        await app.StartAsync();
+        using var client = Client(app.Urls.Single(), cert);
+        Assert.Equal("Alive", await client.GetStringAsync("/health"));
+        using var denied = await client.PostAsync("/v1/research/snapshot", Body(instrument));
+        Assert.Equal(HttpStatusCode.Unauthorized, denied.StatusCode);
+        client.DefaultRequestHeaders.Add("X-API-Key", Key);
+        using var missing = await client.PostAsync("/v1/research/snapshot", Body(instrument));
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, missing.StatusCode);
+        using var error = JsonDocument.Parse(await missing.Content.ReadAsByteArrayAsync());
+        Assert.Equal("DATASET_NOT_READY", error.RootElement.GetProperty("error").GetProperty("code").GetString());
+        Assert.Equal(instrument, error.RootElement.GetProperty("instrument").GetString());
+        Assert.False(error.RootElement.TryGetProperty("candles", out _));
+        var ca = Path.Combine(Path.GetTempPath(), "aiq-wp14-ca-" + Guid.NewGuid().ToString("N") + ".pem");
+        try
+        {
+            await File.WriteAllTextAsync(ca, cert.ExportCertificatePem(), new UTF8Encoding(false));
+            var script = """
+                import sys
+                from python.presentation.research_snapshot_client import ResearchSnapshotClient, SnapshotUnavailable
+                client = ResearchSnapshotClient(sys.argv[1], sys.argv[2], ca_file=sys.argv[3])
+                try:
+                    client.fetch(sys.argv[4])
+                    raise AssertionError('Missing dataset unexpectedly succeeded')
+                except SnapshotUnavailable:
+                    pass
+                assert client.availability(sys.argv[4]) == 'DatasetMissing'
+                assert client.snapshot(sys.argv[4]) is None
+                print('HTTPS missing-dataset client PASS')
+                """;
+            var start = new ProcessStartInfo("python") { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true, WorkingDirectory = FindRoot() };
+            foreach (var argument in new[] { "-B", "-c", script, app.Urls.Single(), Key, ca, instrument }) start.ArgumentList.Add(argument);
+            using var process = Process.Start(start)!;
+            var stdout = process.StandardOutput.ReadToEndAsync(); var stderr = process.StandardError.ReadToEndAsync();
+            using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            try { await process.WaitForExitAsync(deadline.Token); } catch { process.Kill(true); throw; }
+            Assert.True(process.ExitCode == 0, await stderr);
+            Assert.Contains("HTTPS missing-dataset client PASS", await stdout);
+        }
+        finally { File.Delete(ca); }
+        using var invalid = await client.PostAsync("/v1/research/snapshot", Body("OTHER/USD"));
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, invalid.StatusCode);
+        using var tooLarge = await client.PostAsync("/v1/research/snapshot", new StringContent(new string('x', 5000), Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, tooLarge.StatusCode);
+        await app.StopAsync();
+    }
+
+    [Theory]
     [InlineData("AIQ_RESEARCH_TRANSPORT", "http")]
     [InlineData("WEBSITE_SITE_NAME", "other")]
     [InlineData("WEBSITE_HOSTNAME", "other.azurewebsites.net")]
