@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 # UTF-8/LF. Read-only, fixed staging targets. No settings values or credentials.
 [CmdletBinding()]
-param([switch]$InspectAzure,[switch]$ProbeUi,[switch]$ProbeResearch)
+param([switch]$InspectAzure,[switch]$ProbeUi,[switch]$ProbeResearch,[switch]$LocalPreflight)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 
@@ -89,11 +89,13 @@ function Get-Wp07PublicUiProbe([string]$Path) {
 }
 
 function Invoke-Wp16ResearchReadiness {
+    param([switch]$Offline)
     # Only anonymous /health; no credentials, mutation, snapshot/provider request or UI access.
     $script=Join-Path $PSScriptRoot '../../azure-cli/r1.15-qualification/wp16_research_readiness.py'
     $start=New-Object Diagnostics.ProcessStartInfo
     $start.FileName='python'
-    $start.Arguments='-B "'+$script+'" --execute'
+    $start.Arguments='-B "'+$script+'"'
+    if(-not $Offline){$start.Arguments+=' --execute'}
     $start.UseShellExecute=$false
     $start.RedirectStandardOutput=$true
     $start.RedirectStandardError=$true
@@ -115,6 +117,13 @@ function Invoke-Wp16ResearchReadiness {
 # Dot-sourcing imports only pure/helper definitions for offline tests, no operations.
 if($MyInvocation.InvocationName -eq '.'){return}
 try {
+    if($LocalPreflight) {
+        if($InspectAzure -or $ProbeUi -or $ProbeResearch){throw 'Conflicting preflight mode.'}
+        $local=Invoke-Wp16ResearchReadiness -Offline
+        if($local.result -ne 'NOT_RUN' -or $local.processAlive -ne $false -or $local.PUBLIC_RUNTIME_VERIFIED -ne $false){throw 'Local collector preflight failed.'}
+        Write-Output '{"result":"LOCAL_PREFLIGHT_PASS","PUBLIC_RUNTIME_VERIFIED":false}'
+        exit 0
+    }
     $report=[ordered]@{target='aiqr112wp05wus27f5eabb5';management='NOT_RUN';publicHttp='NOT_RUN';researchHttp='NOT_RUN';chartAcceptance='NOT_RUN';PUBLIC_RUNTIME_VERIFIED=$false}
     if($InspectAzure) {
         $group='rg-aiq-r112-wp05-wus2-7f5eabb5'
