@@ -6,7 +6,7 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 try {
     $helper=Join-Path $PSScriptRoot '../../azure-cli/r1.15-qualification/wp19_operator_handoff.py'
-    $python=Get-Command python -CommandType Application -ErrorAction Stop
+    $python=Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1
     $arguments=@('-B',$helper)
     if(-not $ApproveLiveAttempt -or [string]::IsNullOrWhiteSpace($ApprovalReference) -or [string]::IsNullOrWhiteSpace($ControllerPath) -or [string]::IsNullOrWhiteSpace($ApprovedImageDigest)){throw 'Live approval incomplete.'}
     $arguments+=@('--approve-live-attempt','--approval-reference',$ApprovalReference,'--approved-image-digest',$ApprovedImageDigest,'--controller',$ControllerPath)

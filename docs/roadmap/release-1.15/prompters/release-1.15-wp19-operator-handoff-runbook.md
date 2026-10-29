@@ -109,3 +109,14 @@ used to make scripts run. Scripts remain for owner review in an open/unmerged PR
 
 `AZURE_DEPLOYMENT_NOT_RUN` (WP19); `RESEARCH_PROCESS_ALIVE=UNVERIFIED`;
 `AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+Operator follow-up: the original wrapper returned LOCAL_ARGUMENT_OR_INTERPRETER_ERROR.
+A read-only command-resolution check found two Python application matches, making
+`$python.Source` an array that PowerShell cannot invoke with `&`. Both wrappers now
+select the first application in ordinary PATH order, consistent with normal Python
+resolution; no interpreter/policy override is introduced. A regression check verifies
+one string executable equal to the first normal match. Updated qualification:
+19 handoff tests plus 19 WP18 tests pass. The operator must rerun the offline entry;
+successful full script execution remains unverified under the Codex host's Restricted
+policy. No live action was performed for this correction.

@@ -130,6 +130,15 @@ class OperatorHandoffTests(unittest.TestCase):
             for forbidden in ("Set-ExecutionPolicy", "Invoke-Expression", "-ExecutionPolicy", "az webapp", "http.client", "urllib"):
                 self.assertNotIn(forbidden, source)
 
+    def test_multiple_python_matches_select_one_path_without_override(self):
+        command = "$all=@(Get-Command python -CommandType Application -ErrorAction Stop);$selected=Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1;@{selectedCount=@($selected).Count;sourceIsString=($selected.Source -is [string]);firstPath=($selected.Source -eq $all[0].Source)}|ConvertTo-Json"
+        p = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command], capture_output=True, text=True, timeout=15)
+        self.assertEqual(p.returncode, 0)
+        value = json.loads(p.stdout)
+        self.assertEqual(value, {"selectedCount": 1, "sourceIsString": True, "firstPath": True})
+        for label in ("offline", "live"):
+            self.assertIn("Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1", M.SCRIPTS[label].read_text())
+
     def test_real_ps51_parse_metadata_and_blocked_file_route(self):
         self.assertEqual(os.name, "nt", "Windows operator qualification required")
         value = M.metadata()  # Read-only inspection, not execution of script contents.

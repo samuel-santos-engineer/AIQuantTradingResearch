@@ -6,7 +6,7 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2.0
 try {
     $helper=Join-Path $PSScriptRoot '../../azure-cli/r1.15-qualification/wp19_operator_handoff.py'
-    $python=Get-Command python -CommandType Application -ErrorAction Stop
+    $python=Get-Command python -CommandType Application -ErrorAction Stop | Select-Object -First 1
     $arguments=@('-B',$helper)
     if($ReportPath){$arguments+=@('--report-path',$ReportPath)}
     & $python.Source @arguments
