@@ -141,8 +141,8 @@ class ControllerTests(unittest.TestCase):
 
     def test_standalone_recovery_after_crash_and_repeat_is_safe(self):
         b=baseline();h=R.sha(R.encoded(b))
-        R.save_new(self.directory/'baseline.json',{'approval':self.approval,'controllerPid':12345,'baseline':b,'baselineHash':h,'approvalHash':R.sha(R.encoded(self.approval))})
-        R.save_new(self.directory/'consumed.json',{'attemptId':self.ident,'baselineHash':h,'approvalHash':R.sha(R.encoded(self.approval)),'controllerPid':12345})
+        R.save_new(self.directory/'baseline.json',{'approval':self.approval,'controllerPid':12345,'controllerCreated':42,'baseline':b,'baselineHash':h,'approvalHash':R.sha(R.encoded(self.approval))})
+        R.save_new(self.directory/'consumed.json',{'attemptId':self.ident,'baselineHash':h,'approvalHash':R.sha(R.encoded(self.approval)),'controllerPid':12345,'controllerCreated':42})
         # Recovery does not require controller source to exist.
         with mock.patch.dict(R.FILES,{'controller':Path(self.temp.name)/'missing-controller.py'}),mock.patch.object(R,'controller_inactive',return_value=True):
             for _ in range(2):self.assertTrue(R.recover(self.directory,self.adapter)['rollbackVerified'])
@@ -154,7 +154,7 @@ class ControllerTests(unittest.TestCase):
         value['baseline']['site']['id']=R.SITE+'/slots/UI';path.write_text(json.dumps(value))
         with self.assertRaises(R.Blocked):R.recover(self.directory,self.adapter)
 
-    def test_external_recovery_refuses_active_controller_or_reused_pid(self):
+    def test_external_recovery_refuses_active_controller(self):
         self.run_attempt()
         self.adapter.reset_mock()
         with mock.patch.object(R,'controller_inactive',return_value=False),self.assertRaises(R.Blocked):R.recover(self.directory,self.adapter)
@@ -239,6 +239,8 @@ class ControllerTests(unittest.TestCase):
         api=mock.Mock();api.OpenProcess.return_value=100;api.TerminateProcess.return_value=True
         with mock.patch.object(R,'_process_api',return_value=api),mock.patch.object(R,'_creation',return_value=43):QUIESCE(self.directory)
         api.TerminateProcess.assert_not_called();api.CloseHandle.assert_called_with(100)
+        with mock.patch.object(R,'_process_api',return_value=api),mock.patch.object(R,'_creation',return_value=43):
+            self.assertTrue(R.controller_inactive({'controllerPid':123,'controllerCreated':42}))
         api.reset_mock();api.OpenProcess.return_value=100;api.TerminateProcess.return_value=True;api.WaitForSingleObject.side_effect=[258,0]
         with mock.patch.object(R,'_process_api',return_value=api),mock.patch.object(R,'_creation',return_value=42):QUIESCE(self.directory)
         api.TerminateProcess.assert_called_once_with(100,125)
@@ -296,6 +298,21 @@ class ControllerTests(unittest.TestCase):
         for summary in (b'Ran 0 tests\nOK', b'Ran 32 tests\nFAILED', b''):
             with mock.patch.object(C.subprocess,'run',return_value=subprocess.CompletedProcess([],0,b'',summary)),mock.patch.object(C.WP19,'offline_report',return_value={'result':'OFFLINE_PREFLIGHT_PASS'}):
                 self.assertFalse(C.offline_report()['privateControllerQualified'])
+
+    def test_preparation_acl_command_parses_and_template_is_disabled(self):
+        real_run=subprocess.run
+        def inspect_command(command,**kwargs):
+            text=command[-1].replace("'","''")
+            parser="$t=$null;$e=$null;[Management.Automation.Language.Parser]::ParseInput('"+text+"',[ref]$t,[ref]$e)|Out-Null;@{errors=$e.Count}|ConvertTo-Json"
+            result=real_run(['powershell.exe','-NoProfile','-NonInteractive','-Command',parser],capture_output=True,text=True,timeout=15)
+            self.assertEqual(result.returncode,0);self.assertEqual(json.loads(result.stdout)['errors'],0)
+            return subprocess.CompletedProcess(command,0,b'',b'')
+        with mock.patch.dict(os.environ,{'LOCALAPPDATA':self.temp.name}),mock.patch.object(C.subprocess,'run',side_effect=inspect_command),mock.patch.object(R,'private_directory'),mock.patch.object(R,'Azure') as az:
+            value=C.prepare_private_attempt()
+        directory=Path(self.temp.name)/'AIQ-WP21'/value['attemptId']
+        approval=R.load(directory/'approval.json')
+        self.assertFalse(approval['explicitLiveApproval']);self.assertFalse(approval['allowRecovery']);az.assert_not_called()
+        self.assertFalse((directory/'consumed.json').exists())
 
     def test_prepare_mode_never_calls_azure_or_live_mode(self):
         with mock.patch.object(C,'prepare_private_attempt',return_value={'result':'PRIVATE_ATTEMPT_PREPARED_NOT_AUTHORIZED','liveAttemptReady':False}),mock.patch.object(R,'Azure') as az,mock.patch.object(C,'run') as deploy,contextlib.redirect_stdout(io.StringIO()):

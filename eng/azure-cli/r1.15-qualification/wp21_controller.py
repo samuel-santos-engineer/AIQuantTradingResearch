@@ -25,9 +25,10 @@ def run(directory, approval, adapter, gate=WP19.WP18.preflight, observer=R.healt
     R.require(32 <= len(key) <= 256 and all('!' <= c <= '~' for c in key), "PRIVATE_SERVICE_KEY_UNAVAILABLE")
     R.require(adapter.capture() == baseline, "PREWRITE_BASELINE_DRIFT")
     R.authorization(approval, directory)  # Refuse expiry/code changes during baseline reads.
-    envelope = {"approval": approval, "controllerPid": os.getpid(), "baseline": baseline, "baselineHash": R.sha(R.encoded(baseline)), "approvalHash": R.sha(R.encoded(approval))}
+    identity=R.worker_identity(os.getpid())
+    envelope = {"approval": approval, "controllerPid": identity["pid"], "controllerCreated": identity["created"], "baseline": baseline, "baselineHash": R.sha(R.encoded(baseline)), "approvalHash": R.sha(R.encoded(approval))}
     R.save_new(directory/"baseline.json", envelope)
-    R.save_new(directory/"consumed.json", {"attemptId": approval["attemptId"], "baselineHash": envelope["baselineHash"], "approvalHash": envelope["approvalHash"], "controllerPid": os.getpid()})
+    R.save_new(directory/"consumed.json", {"attemptId": approval["attemptId"], "baselineHash": envelope["baselineHash"], "approvalHash": envelope["approvalHash"], "controllerPid": identity["pid"], "controllerCreated": identity["created"]})
     result = {"result": "INCOMPLETE", "RESEARCH_PROCESS_ALIVE": "UNVERIFIED", "AUTHENTIC_DATA_NOT_IMPORTED": True,
               "PUBLIC_RUNTIME_VERIFIED": False, "snapshots": {}, "attemptId": approval["attemptId"]}
     try:
@@ -103,6 +104,8 @@ def offline_report():
 def prepare_private_attempt():
     # Fresh operator-owned directory only; never modifies historical WP17 evidence.
     parent=Path(os.environ["LOCALAPPDATA"])/"AIQ-WP21"
+    R.require(os.name=="nt" and parent.is_absolute() and not parent.drive.startswith("\\"),"LOCAL_APPDATA_REQUIRED")
+    R.require(not any(p.is_symlink() or p.is_junction() for p in reversed((parent,*parent.parents))),"LOCAL_APPDATA_REPARSE_POINT_DENIED")
     parent.mkdir(parents=True,exist_ok=True)
     directory=parent/str(uuid.uuid4());directory.mkdir()
     literal=str(directory).replace("'","''")

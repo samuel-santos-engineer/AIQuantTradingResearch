@@ -96,6 +96,26 @@ attempt. A generic `--execute`, report, merge or approval-reference string is no
 sufficient. The record is a human authorization statement, not an authentication
 mechanism against its owner.
 
+After the separate explicit authority for the prepared UUID, the owner can update
+only its unused disabled template with UTF-8/LF (do not run this under WP21):
+
+```powershell
+$dir = $env:AIQ_WP21_ATTEMPT_DIRECTORY
+if ((Test-Path -LiteralPath (Join-Path $dir 'consumed.json')) -or (Test-Path -LiteralPath (Join-Path $dir 'baseline.json'))) { throw 'Attempt already reserved; stop.' }
+$approvalPath = Join-Path $dir 'approval.json'
+$approval = Get-Content -Raw -Encoding UTF8 -LiteralPath $approvalPath | ConvertFrom-Json
+# Confirm this attemptId, target, image and code hashes match the explicit owner decision.
+$approval.explicitLiveApproval = $true
+$approval.allowRecovery = $true
+$approval.issuedUtc = [DateTime]::UtcNow.ToString('o')
+$approval.expiresUtc = [DateTime]::UtcNow.AddMinutes(30).ToString('o')
+$text = ($approval | ConvertTo-Json -Depth 8).Replace("`r`n","`n") + "`n"
+[IO.File]::WriteAllText($approvalPath, $text, [Text.UTF8Encoding]::new($false))
+```
+
+Do not silently replace code fingerprints with changed files. Any new review is a
+new decision; consumed state/baseline is never edited by this procedure.
+
 No private key is supplied in arguments or reports. The controller requires either
 an already configured research-only service key in the privately captured baseline,
 or an existing secure operator-to-process memory channel `AIQ_WP21_SERVICE_KEY`.
@@ -159,9 +179,11 @@ Unchanged connection strings/slot inventory/plan metadata must still match;
 unexpected external drift there is critical rather than deleting resources or
 changing unrelated configuration. Audit files are new-only per recovery call.
 Repeated recovery uses the same immutable baseline safely and does not deploy the
-candidate. A current controller PID blocks external recovery to avoid racing its
-writes. After a hard crash the PID must be inactive; PID reuse intentionally fails
-closed for owner review. Do not edit the record to defeat that check.
+candidate. An active controller blocks external recovery to avoid racing its writes.
+Windows process creation time distinguishes the original controller from a reused
+PID; unrelated reused processes are neither killed nor treated as the controller.
+An unverifiable process identity fails closed. Do not edit the record to defeat
+that check.
 
 The controller catches timeout, partial-deploy and interrupt paths and always calls
 recovery. This cannot survive a hard process/host kill: independent recovery is
@@ -182,8 +204,8 @@ python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp18_resear
 python -B -m unittest test_wp07_staging_readiness.ResearchHealthWaitTests -q
 ```
 
-37 WP21, 19 WP19, 19 WP18 and 12 WP16 Python tests passed on the main-based checkout
-(87 total). Separately, all 18 tests on the still-unmerged WP20 branch passed without
+38 WP21, 19 WP19, 19 WP18 and 12 WP16 Python tests passed on the main-based checkout
+(88 total). Separately, all 18 tests on the still-unmerged WP20 branch passed without
 modifying that branch. They are not represented as merged-main tests. Earlier test
 assertions expected a different exception/redaction string and were corrected to
 check actual validator rejection/fixed output; a WP16 test invocation from the wrong

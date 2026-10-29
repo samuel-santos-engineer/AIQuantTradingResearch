@@ -62,9 +62,10 @@ def load(path):
 
 def private_directory(path):
     require(sys.version_info >= (3,12), "PYTHON_312_OR_NEWER_REQUIRED")
-    require(os.name == "nt" and path.is_absolute() and path.is_dir() and not path.drive.startswith("\\"), "PRIVATE_DIRECTORY_REQUIRED")
+    require(os.name == "nt" and path.is_absolute() and not path.drive.startswith("\\"), "PRIVATE_DIRECTORY_REQUIRED")
     expected = Path(os.environ["LOCALAPPDATA"]) / "AIQ-WP21" / path.name
-    require(path == expected and not any(p.is_symlink() or p.is_junction() for p in (path, *path.parents)), "FIXED_LOCAL_PRIVATE_DIRECTORY_REQUIRED")
+    require(path == expected and not any(p.is_symlink() or p.is_junction() for p in reversed((path, *path.parents))), "FIXED_LOCAL_PRIVATE_DIRECTORY_REQUIRED")
+    require(path.is_dir(), "PRIVATE_DIRECTORY_REQUIRED")
     # Owner/System only, including inherited ACEs; no ACL modification.
     literal = str(path).replace("'", "''")
     command = "$ErrorActionPreference='Stop';$me=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$a=Get-Acl -LiteralPath '" + literal + "';$bad=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier])|Where-Object {$_.AccessControlType -eq 'Allow' -and $_.IdentityReference.Value -notin @($me,'S-1-5-18')});@{safe=($bad.Count -eq 0 -and $a.GetOwner([Security.Principal.SecurityIdentifier]).Value -in @($me,'S-1-5-18'))}|ConvertTo-Json"
@@ -286,21 +287,26 @@ def envelope(directory):
     authorization(approval, directory, recovery=True)
     require(value["baselineHash"] == sha(encoded(value["baseline"])) and value["approvalHash"] == sha(encoded(approval)), "BASELINE_OR_APPROVAL_HASH_MISMATCH")
     marker = load(directory/"consumed.json")
-    require(set(marker) == {"attemptId", "baselineHash", "approvalHash", "controllerPid"} and marker["approvalHash"] == value["approvalHash"] and marker["attemptId"] == approval["attemptId"] and marker["baselineHash"] == value["baselineHash"] and type(marker["controllerPid"]) is int and 0 < marker["controllerPid"] <= 2147483647 and marker["controllerPid"] == value["controllerPid"], "ATTEMPT_MARKER_MISMATCH")
+    require(set(marker) == {"attemptId", "baselineHash", "approvalHash", "controllerPid", "controllerCreated"} and marker["approvalHash"] == value["approvalHash"] and marker["attemptId"] == approval["attemptId"] and marker["baselineHash"] == value["baselineHash"] and type(marker["controllerPid"]) is int and 0 < marker["controllerPid"] <= 2147483647 and marker["controllerPid"] == value["controllerPid"] and type(marker["controllerCreated"]) is int and marker["controllerCreated"]>0 and marker["controllerCreated"] == value["controllerCreated"], "ATTEMPT_MARKER_MISMATCH")
     validate_baseline(value["baseline"])
     return value
 
 
 def controller_inactive(marker):
-    command = "@{inactive=($null -eq (Get-Process -Id " + str(marker["controllerPid"]) + " -ErrorAction SilentlyContinue))}|ConvertTo-Json"
-    p = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command], capture_output=True, timeout=15)
-    return p.returncode == 0 and json.loads(p.stdout).get("inactive") is True
+    import ctypes as ct
+    k=_process_api();handle=k.OpenProcess(0x1000|0x00100000,False,marker["controllerPid"])
+    if not handle:
+        require(ct.get_last_error()==87,"CONTROLLER_STATE_UNVERIFIED")
+        return True
+    try:
+        return _creation(k,handle) != marker["controllerCreated"] or k.WaitForSingleObject(handle,0)==0
+    finally:k.CloseHandle(handle)
 
 
 def recover(directory, adapter, controller_cleanup=False):
     value = envelope(directory)
     marker = load(directory/"consumed.json")
-    require(marker["controllerPid"] == os.getpid() if controller_cleanup else controller_inactive(marker), "ACTIVE_CONTROLLER_OR_PID_REUSE_REQUIRES_REVIEW")
+    require((marker["controllerPid"] == os.getpid() and worker_identity(os.getpid())["created"] == marker["controllerCreated"]) if controller_cleanup else controller_inactive(marker), "ACTIVE_CONTROLLER_OR_UNVERIFIED_IDENTITY")
     restored = False
     try:
         quiesce_workers(directory)
