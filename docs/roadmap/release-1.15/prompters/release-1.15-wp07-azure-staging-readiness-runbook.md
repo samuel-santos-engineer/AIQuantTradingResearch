@@ -1127,3 +1127,93 @@ This supports a cold-start hypothesis but does not prove the first-request trigg
 in this attempt. Platform/control-plane records have separate clocks and delivery
 paths; the recorded ordering is not a kernel-level causal trace. No plan upgrade
 or Always On configuration change is proposed.
+
+
+### WP18: mandatory local script-launch gate before research deployment
+
+WP17 applied the research candidate but Windows PowerShell rejected the real
+`powershell.exe -NoProfile -NonInteractive -File <readiness-script> -ProbeResearch`
+invocation before its Python collector launched. No health request occurred; this
+was not evidence of Azure startup failure. Original image/startup, settings,
+logging, HTTPS-only, slots and Running state were independently restored. That
+single deployment attempt is consumed.
+
+There was no repository deployment orchestrator: WP17 used a protected private
+operator controller. The following launcher is now the sole supported entry for a
+future separately approved research-only controller. It supersedes direct operator
+controller invocation and the unguarded mutation examples above. Calling the
+controller directly or issuing Azure commands manually is outside this workflow;
+this gate is not an Azure authorization boundary and cannot prevent those actions.
+No Azure/controller implementation or private historical controller is changed.
+
+Safe offline command from the repository root (no credentials or live requests):
+
+```powershell
+python -B eng/azure-cli/r1.15-qualification/wp18_research_launcher.py
+```
+
+The gate inspects Windows PowerShell 5.1's effective policy and precedence:
+MachinePolicy, UserPolicy, Process, CurrentUser, LocalMachine. Undefined scopes
+fall back to Windows Restricted. A reported permissive value alone is insufficient.
+It invokes the actual readiness script using the same `-File` route with
+`-LocalPreflight`, which launches the real Python helper without `--execute`.
+Conflicting live flags are rejected. Neither this path nor its helper requests
+Azure, HTTP, service keys, provider data or a database. Missing interpreters,
+blocked/unsigned scripts, malformed output, timeouts and inconsistent policies
+refuse locally with a sanitized error. An effective Bypass is not accepted.
+
+Only after review/merge and fresh explicit live authority may an operator invoke:
+
+```powershell
+# $approvedController is the absolute path to the separately reviewed private controller.
+python -B eng/azure-cli/r1.15-qualification/wp18_research_launcher.py --execute-controller $approvedController
+```
+
+This route unconditionally reruns the gate before invoking that controller with
+`--execute`; there is no cached-success, skip or force option. The approved private
+controller must still enforce the exact research target, existing immutable image,
+complete privately captured/currently compared baseline and exclusive single-attempt
+record. It must preserve UID/storage/authentication/transport guards, start the
+unchanged three-attempt/180-second health collection immediately, use the
+190-second collector parent bound, and permit the one unauthenticated/two
+instrument snapshot checks only after valid health. Restore and independently
+compare the exact baseline and original state after the attempt, including success.
+The gate does not provide these Azure controls or qualify that controller; they
+remain prerequisites to each separately approved deployment. No UI, provider,
+import, publication, production or paid-resource action is authorized here.
+
+On `PREFLIGHT_BLOCKED`, do not deploy or retry through another interpreter. The
+owner/administrator should inspect `Get-ExecutionPolicy -List` and
+`Get-ExecutionPolicy` in the intended operator account, review applicable Group
+Policy and script provenance/signatures, and arrange an approved signed script
+where required. Group Policy takes precedence over local preferences. There is no
+automatic policy change, bypass, registry/profile edit or signing workaround.
+After administrator-approved remediation, rerun the exact offline command. No
+execution-policy change at any scope is authorized by WP18.
+
+Offline evidence: 19 new launcher tests passed, including policy precedence,
+restrictive policy, blocked child, missing Python/PowerShell, parser compatibility,
+redaction, CLI deployment prevention and repeated mandatory gating; 12 existing
+Python health tests passed unchanged. Commands:
+
+```powershell
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp18_research_launcher.py -v
+# From tests/runtime/release_1_15:
+python -B -m unittest test_wp07_staging_readiness.ResearchHealthWaitTests -v
+```
+
+Actual operator host: Windows PowerShell 5.1.26100.9711; all five scopes Undefined,
+effective Restricted. Real script launch was refused, and the standalone launcher
+returned exit 1 with `LOCAL_SCRIPT_LAUNCH_BLOCKED`, before any controller invocation.
+This is a verified safe failure, not a successful collector dry-run. Successful
+script/helper execution under an allowed policy remains unverified on this host;
+permissive/signed-policy success and child-failure cases are mocked offline tests.
+Exact requested build 5.1.26100.9444 is not installed. Existing legacy PowerShell
+assessment tests that launch using a policy override were not run under WP18;
+the new parser and real-route tests use no override. An initial new test assertion
+incorrectly matched the permitted policy-query command; that assertion was
+corrected and the full 19-test suite passed. No runtime code was changed for it.
+UTF-8 without BOM/LF and diff checks are required before commit/PR.
+
+`AZURE_DEPLOYMENT_NOT_RUN` (WP18); `RESEARCH_PROCESS_ALIVE=UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED`; `PUBLIC_RUNTIME_VERIFIED=False`.
