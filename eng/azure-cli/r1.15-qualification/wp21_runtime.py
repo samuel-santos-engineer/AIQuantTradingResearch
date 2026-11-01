@@ -174,6 +174,10 @@ def quiesce_workers(directory):
 
 
 class Azure:
+    def transport(self, arguments):
+        # Default live/recovery behavior remains the original CLI implementation.
+        return cli(arguments)
+
     def request(self, method, suffix="", body=None, resource=SITE, kind=None):
         require(resource in (SITE, PLAN), "RESOURCE_NOT_ALLOWED")
         require((method, suffix, resource) in {
@@ -190,7 +194,7 @@ class Azure:
                 payload["kind"]=kind
             args += ["--body",json.dumps(payload)]
         args += ["-o", "none" if method in ("patch", "put") or suffix in ("/stop", "/start") else "json"]
-        return cli(args)
+        return self.transport(args)
 
     def capture(self):
         site = self.request("get");p = site["properties"]

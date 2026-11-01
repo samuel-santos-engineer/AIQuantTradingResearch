@@ -259,3 +259,107 @@ No live approval is granted by this handoff or a successful read-only result.
 `liveAttemptReady=false`; `liveControllerInvoked=false`;
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## WP26 - conservative worker transport diagnostics
+
+Baseline: merged WP24 `0ac12a38b034ab4bf64fdcb0d8ca3d566773d1b9`.
+The WP25 operator reached `FIRST_CAPTURE_SITE` / `AZURE_TRANSPORT_FAILURE` after
+passing offline/preflight and disabled preparation. Preserve that historical attempt
+and all earlier private records; do not inspect, reuse, arm, extend or reset them.
+The service-key check was not reached, so presence is unverified.
+
+### Fields and trust boundary
+
+Reports add `transportFailureCategory` and `httpStatus`. A successful full capture
+has null diagnostics. Existing failed-stage/category and key-checked semantics stay
+unchanged. Non-transport local/schema failures have null transport metadata. An
+untyped exception at a request boundary yields `UNKNOWN`. An observation write
+failure clears transport metadata and overrides any previous verification success.
+
+The closed transport enum is:
+
+| Value | Proven evidence |
+| --- | --- |
+| CLI_EXECUTABLE_UNAVAILABLE | Fixed installed CLI interpreter file is unavailable |
+| WORKER_LAUNCH_FAILURE | OS raises OSError while launching the fixed interpreter |
+| PARENT_TIMEOUT | communicate raises TimeoutExpired at the unchanged 45-second limit |
+| WORKER_NONZERO_EXIT | Worker process return code is nonzero or unverified |
+| INVALID_WORKER_OUTPUT | Zero-exit output is oversized, not valid JSON or not an object |
+| WORKER_IO_FAILURE | OSError during worker communication |
+| UNKNOWN | No narrower typed cause, ownership/journal failure or uncertain cleanup |
+
+`httpStatus` is ALWAYS null in this implementation. The unchanged WP21 bridge
+returns baseline JSON on success and exits on failure without a status envelope.
+It cannot provide reliable status metadata to the parent. Neither arbitrary body
+fields named httpStatus, stderr, exit codes 401/403, nor exception text are HTTP
+status evidence. Code 124 alone does not prove the watchdog fired. No authentication
+versus RBAC claim is made. No extra ARM request or protocol change is added to
+obtain status. A future protocol change would need separate implementation review.
+
+### Compatibility and bounds
+
+The only shared WP21 change is an overridable `Azure.transport(arguments)` method;
+its default delegates to the original `cli(arguments)` unchanged. Existing request
+signatures and response shapes remain intact. Live/recovery continue to use the
+old CLI, old bridge and old exceptions. WP21 controller/recovery source files are
+unchanged. The read-only subclass overrides only the transport dispatch, retaining
+its exact eight-operation allowlist and capture validation. The runtime file hash
+necessarily changes; newly prepared templates use the current identity. Historical
+identities/approvals must never be updated to match it.
+
+The diagnostic adapter reuses the fixed CLI interpreter, unchanged bridge and
+40-second watchdog, ownership record before stdin/request dispatch, 45-second parent
+wait, owned-child kill and five-second cleanup wait. It sends payloads through stdin,
+never OS arguments or temporary secret files. It does not print worker streams,
+raw exceptions or response values. Failure cleanup is not a request retry. No code
+path adds requests beyond the original two captures; strict equality, freshness,
+F1/target/region/Running/slots, disabled approval and persistence checks remain.
+
+### Offline evidence and limits
+
+Use the four unittest commands in the WP24 section above. Results: 43 combined
+WP26/WP24/WP22 tests, 38 WP21, 19 WP19 and 19 WP18: 119 tests passed.
+Ten new mocked tests cover supported worker categories, null status fallback,
+ambiguous exit/status values, parent timeout/owned cleanup, malformed/bounded output,
+ownership-before-dispatch, stdin-only payloads, sanitized report/file propagation,
+exact operation order and default WP21 transport compatibility. Existing strict
+comparison/redaction/freshness/write-failure regressions remain in place.
+
+One initial status-spoofing test accidentally mocked its own diagnostic helper
+recursively; the test was corrected to retain the real function reference. No
+product validation or expected result was weakened. Azure, HTTP and CLI worker
+boundaries were mocked; no real Azure request or private historical file was read.
+No PowerShell file changed or operator -File execution is claimed. All four changed
+text files pass UTF-8/LF/no-BOM and diff checks. Host policy must not be bypassed.
+
+### One operator inspection - only after PR review and merge
+
+From the clean reviewed merged checkout in the already authorized Windows
+PowerShell 5.1/Azure CLI session, use the existing entries directly. Do not use old
+WP23/WP25 wrappers that omit the new transport fields. Stop if a gate fails; do not
+retry, change policy/identity or inspect the old UUID.
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Offline qualification failed; stop.' }
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp21ControllerQualification.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Operator preflight failed; stop.' }
+$prepared = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -PreparePrivateAttempt | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $prepared.attemptPrepared -ne $true -or $prepared.approvalEnabled -ne $false) { throw 'Disabled preparation failed; stop.' }
+$env:AIQ_WP21_ATTEMPT_DIRECTORY = Join-Path (Join-Path $env:LOCALAPPDATA 'AIQ-WP21') $prepared.attemptId
+$inspection = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -InspectAzureReadOnly | ConvertFrom-Json
+$inspectionExit = $LASTEXITCODE
+$inspection | Select-Object result,attemptId,failedStage,failureCategory,transportFailureCategory,httpStatus,azureBaselineVerified,serviceKeyChannelChecked,serviceKeyChannelAvailable,approvalEnabled,liveControllerInvoked,liveAttemptReady,RESEARCH_PROCESS_ALIVE,AUTHENTIC_DATA_NOT_IMPORTED,PUBLIC_RUNTIME_VERIFIED | ConvertTo-Json
+if ($inspectionExit -ne 0) { throw 'Inspection blocked; stop; share sanitized JSON only.' }
+```
+
+Only prepare one new disabled UUID when ready to perform the single inspection
+within its 15-minute window. Return only the final selected JSON; never private
+paths, streams, approval/observation files, environment dumps, tokens or key values.
+No live approval, mutation, provider/import, health/browser probe, deployment or UI
+change is authorized. A read-only result is not an immutable live rollback baseline.
+
+`approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
+`RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
+`PUBLIC_RUNTIME_VERIFIED=False`.

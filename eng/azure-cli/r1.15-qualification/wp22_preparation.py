@@ -61,6 +61,8 @@ def category(error, stage):
     if not stage.startswith(("FIRST_CAPTURE_", "SECOND_CAPTURE_", "BASELINE_COMPARISON")):
         return "LOCAL_PREREQUISITE_UNVERIFIED"
     if isinstance(error, (subprocess.TimeoutExpired, TimeoutError)): return "AZURE_READ_TIMEOUT"
+    if isinstance(error, TransportFailure) and error.transport_category=="PARENT_TIMEOUT":
+        return "AZURE_READ_TIMEOUT"
     if isinstance(error, R.Blocked):
         code = error.args[0] if len(error.args) == 1 and type(error.args[0]) is str else None
         return CODE_CATEGORIES.get(code, "UNCLASSIFIED_FAILURE")
@@ -70,7 +72,68 @@ def category(error, stage):
     return "UNCLASSIFIED_FAILURE"
 
 
+TRANSPORT_CATEGORIES = frozenset({"CLI_EXECUTABLE_UNAVAILABLE", "WORKER_LAUNCH_FAILURE",
+    "PARENT_TIMEOUT", "WORKER_NONZERO_EXIT", "INVALID_WORKER_OUTPUT", "WORKER_IO_FAILURE", "UNKNOWN"})
+
+
+class TransportFailure(R.Blocked):
+    def __init__(self, value):
+        self.transport_category=value if type(value) is str and value in TRANSPORT_CATEGORIES else "UNKNOWN"
+        # The unchanged worker protocol does not expose trustworthy HTTP status.
+        self.http_status=None
+        super().__init__("AZURE_CLI_UNAVAILABLE" if self.transport_category=="CLI_EXECUTABLE_UNAVAILABLE"
+            else "AZURE_OPERATION_FAILED")
+
+
+def diagnostic_cli(arguments):
+    """Read-only caller only. Never decode stderr or infer status from worker text."""
+    interpreter=Path(os.environ.get("ProgramFiles", r"C:\Program Files"))/"Microsoft SDKs/Azure/CLI2/python.exe"
+    if not interpreter.is_file(): raise TransportFailure("CLI_EXECUTABLE_UNAVAILABLE")
+    directory=Path(os.environ["AIQ_WP21_ATTEMPT_DIRECTORY"])
+    try:
+        child=subprocess.Popen([str(interpreter),"-I","-c",R.BRIDGE],stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+            creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
+    except OSError:
+        raise TransportFailure("WORKER_LAUNCH_FAILURE") from None
+    failure="UNKNOWN"
+    try:
+        identity=R.worker_identity(child.pid)
+        R.save_new(directory/("management-worker-"+str(uuid.uuid4())+".json"),identity)
+        # Ownership must be persisted before any request is supplied.
+        try:
+            output,unused_errors=child.communicate(input=R.encoded(arguments+["--only-show-errors"]),timeout=45)
+        except subprocess.TimeoutExpired:
+            failure="PARENT_TIMEOUT";raise
+        except OSError:
+            failure="WORKER_IO_FAILURE";raise
+        if type(child.returncode) is not int or child.returncode != 0:
+            failure="WORKER_NONZERO_EXIT";raise TransportFailure(failure)
+        failure="INVALID_WORKER_OUTPUT"
+        if not isinstance(output,bytes) or len(output)>8*1024*1024:
+            raise TransportFailure(failure)
+        value=json.loads(output)
+        if not isinstance(value,dict): raise TransportFailure(failure)
+        return value
+    except Exception:
+        try:
+            if child.poll() is None:
+                child.kill();child.communicate(timeout=5)
+        except Exception:
+            # Cleanup cannot be claimed from incomplete process API evidence.
+            failure="UNKNOWN"
+        raise TransportFailure(failure) from None
+    except BaseException:
+        # Preserve interruption semantics while still cleaning only our owned child.
+        if child.poll() is None:
+            child.kill();child.communicate(timeout=5)
+        raise
+
+
 class ReadOnlyAzure(R.Azure):
+    def transport(self, arguments):
+        return diagnostic_cli(arguments)
+
     def __init__(self):
         self.capture_prefix = "FIRST_CAPTURE_"
         self.stage = lambda value: None
@@ -118,7 +181,8 @@ def report():
     return dict(result="PREPARATION_INCOMPLETE", attemptPrepared=False,
         offlinePreflightPassed=False, azureBaselineVerified=False,
         serviceKeyChannelAvailable=False, serviceKeyChannelChecked=False,
-        failedStage=None, failureCategory=None, approvalEnabled=False,
+        failedStage=None, failureCategory=None, transportFailureCategory=None, httpStatus=None,
+        approvalEnabled=False,
         liveControllerInvoked=False, liveAttemptReady=False,
         RESEARCH_PROCESS_ALIVE="UNVERIFIED", AUTHENTIC_DATA_NOT_IMPORTED=True,
         PUBLIC_RUNTIME_VERIFIED=False, AZURE_DEPLOYMENT_NOT_RUN=True)
@@ -172,6 +236,13 @@ def inspect(directory, adapter=None, gate=None):
         stage=value
 
     def fail(error):
+        # No arbitrary error evidence, messages or attributes are copied.
+        result["transportFailureCategory"]=(error.transport_category if isinstance(error,TransportFailure)
+            and error.transport_category in TRANSPORT_CATEGORIES else
+            "UNKNOWN" if stage.startswith(("FIRST_CAPTURE_","SECOND_CAPTURE_"))
+            and not stage.endswith(("RESPONSE_VALIDATION","VALIDATION")) else None)
+        result["httpStatus"]=None
+        if stage=="OBSERVATION_WRITE": result["transportFailureCategory"]=None
         result.update(result="AZURE_BASELINE_UNVERIFIED",azureBaselineVerified=False,
             failedStage=stage,failureCategory=category(error,stage),
             failureReason="PREREQUISITE_OR_AZURE_CAPTURE_UNVERIFIED")

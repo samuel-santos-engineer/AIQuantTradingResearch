@@ -13,6 +13,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[3]/"eng/azure-cli/r1.15-q
 import wp22_preparation as P
 from test_wp21_controller import baseline
 R=P.R
+DIAGNOSTIC_CLI=P.diagnostic_cli
 
 class PreparationTests(unittest.TestCase):
     def setUp(self):
@@ -325,5 +326,138 @@ class DiagnosticTests(unittest.TestCase):
             self.assertEqual(P.main(["--inspect-azure-read-only"]),1)
         self.assertNotIn(canary,output.getvalue());self.assertLess(len(output.getvalue()),4096)
         self.assertFalse(json.loads(output.getvalue())["liveControllerInvoked"])
+
+class TransportTests(unittest.TestCase):
+    setUp = PreparationTests.setUp
+    wire = DiagnosticTests.wire
+
+    def worker(self, output=b'{}', code=0):
+        child=mock.Mock();child.pid=321;child.returncode=code
+        child.poll.return_value=code
+        child.communicate.return_value=(output,b"SECRET_CANARY status=403 /private/path")
+        return child
+
+    def call(self, child, arguments=None):
+        with mock.patch.dict(os.environ,{"AIQ_WP21_ATTEMPT_DIRECTORY":str(self.directory)}), \
+             mock.patch.object(Path,"is_file",return_value=True), \
+             mock.patch.object(P.subprocess,"Popen",return_value=child) as start, \
+             mock.patch.object(R,"worker_identity",return_value={"pid":321,"created":42}):
+            value=DIAGNOSTIC_CLI(arguments or ['rest','--method','get','--url','FIXED'])
+        return value,start
+
+    def failure(self,child,expected):
+        with self.assertRaises(P.TransportFailure) as caught:self.call(child)
+        self.assertEqual(caught.exception.transport_category,expected)
+        self.assertIsNone(caught.exception.http_status)
+        return caught.exception
+
+    def test_executable_missing_and_launch_failure(self):
+        with mock.patch.object(Path,"is_file",return_value=False), \
+             mock.patch.object(P.subprocess,"Popen") as start,self.assertRaises(P.TransportFailure) as caught:
+            P.diagnostic_cli([])
+        self.assertEqual(caught.exception.transport_category,"CLI_EXECUTABLE_UNAVAILABLE");start.assert_not_called()
+        with mock.patch.object(Path,"is_file",return_value=True), \
+             mock.patch.dict(os.environ,{"AIQ_WP21_ATTEMPT_DIRECTORY":str(self.directory)}), \
+             mock.patch.object(P.subprocess,"Popen",side_effect=OSError("SECRET_CANARY 401")), \
+             self.assertRaises(P.TransportFailure) as caught:P.diagnostic_cli([])
+        self.assertEqual(caught.exception.transport_category,"WORKER_LAUNCH_FAILURE")
+
+    def test_nonzero_exit_including_ambiguous_watchdog(self):
+        for code in (1,124,401,403,-1):
+            with self.subTest(code=code):
+                child=self.worker(b'{"httpStatus":403,"secret":"SECRET_CANARY"}',code)
+                self.failure(child,"WORKER_NONZERO_EXIT")
+                self.assertEqual(child.communicate.call_count,1)
+
+    def test_invalid_empty_oversize_and_nonobject_output(self):
+        for output in (b'',b'SECRET_CANARY status=401',b'null',b'[]',b'"403"',b'\xff',b'x'*(8*1024*1024+1)):
+            self.failure(self.worker(output),"INVALID_WORKER_OUTPUT")
+
+    def test_timeout_terminates_only_owned_worker_without_retry(self):
+        child=self.worker();child.poll.return_value=None
+        child.communicate.side_effect=[P.subprocess.TimeoutExpired("SECRET_CANARY",45,output=b"401"), (b'',b'')]
+        error=self.failure(child,"PARENT_TIMEOUT")
+        child.kill.assert_called_once_with()
+        self.assertEqual(child.communicate.call_count,2)
+        self.assertEqual(child.communicate.call_args.kwargs,{"timeout":5})
+        self.assertEqual(P.category(error,"FIRST_CAPTURE_SITE"),"AZURE_READ_TIMEOUT")
+
+    def test_worker_io_failure_and_cleanup_uncertainty(self):
+        child=self.worker();child.poll.return_value=None
+        child.communicate.side_effect=[OSError("SECRET_CANARY"),(b'',b'')]
+        self.failure(child,"WORKER_IO_FAILURE");child.kill.assert_called_once()
+        child=self.worker();child.poll.return_value=None
+        child.communicate.side_effect=P.subprocess.TimeoutExpired("SECRET_CANARY",45)
+        self.failure(child,"UNKNOWN")
+
+    def test_ownership_failure_no_request_dispatched(self):
+        child=self.worker();child.poll.return_value=None
+        with mock.patch.object(R,"save_new",side_effect=OSError("SECRET_CANARY")):
+            self.failure(child,"UNKNOWN")
+        child.kill.assert_called_once()
+        self.assertEqual(child.communicate.call_args.kwargs,{"timeout":5})
+        self.assertEqual(child.communicate.call_count,1)
+
+    def test_success_request_body_stdin_and_original_timeout_watchdog(self):
+        child=self.worker(b'{"properties":{}}')
+        value,start=self.call(child,['rest','--method','post','--url','FIXED','--body','SECRET_CANARY'])
+        self.assertEqual(value,{"properties":{}})
+        self.assertNotIn('SECRET_CANARY',str(start.call_args))
+        self.assertIn(b'SECRET_CANARY',child.communicate.call_args.kwargs['input'])
+        self.assertEqual(child.communicate.call_args.kwargs['timeout'],45)
+        self.assertEqual(start.call_args.args[0][-1],R.BRIDGE)
+        self.assertIn('threading.Timer(40',R.BRIDGE)
+        self.assertEqual(len(list(self.directory.glob('management-worker-*.json'))),1)
+
+    def test_typed_metadata_propagated_stdout_and_observation_without_secret(self):
+        import contextlib,io
+        for name in P.TRANSPORT_CATEGORIES:
+            output=io.StringIO()
+            with mock.patch.dict(os.environ,{"AIQ_WP21_ATTEMPT_DIRECTORY":str(self.directory)}), \
+                 mock.patch.object(P,"diagnostic_cli",side_effect=P.TransportFailure(name)) as call, \
+                 mock.patch.object(P.C.WP19,"offline_report",return_value={"result":"OFFLINE_PREFLIGHT_PASS"}), \
+                 contextlib.redirect_stdout(output):
+                self.assertEqual(P.main(["--inspect-azure-read-only"]),1)
+            value=json.loads(output.getvalue())
+            self.assertEqual(value['failedStage'],'FIRST_CAPTURE_SITE')
+            self.assertEqual(value['transportFailureCategory'],name)
+            self.assertIsNone(value['httpStatus'])
+            self.assertFalse(value['serviceKeyChannelChecked']);self.assertFalse(value['approvalEnabled'])
+            self.assertFalse(value['liveControllerInvoked']);self.assertFalse(value['liveAttemptReady'])
+            self.assertLess(len(output.getvalue()),4096);self.assertEqual(call.call_count,1)
+        for path in self.directory.glob('wp22-observation-*.json'):
+            value=R.load(path);self.assertIn(value['transportFailureCategory'],P.TRANSPORT_CATEGORIES)
+            self.assertIsNone(value['httpStatus']);self.assertNotIn('SECRET_CANARY',path.read_text())
+
+    def test_spoofed_unsupported_statuses_never_become_metadata(self):
+        for status in (401,403,200,0,999,True,'401',None):
+            # Structured JSON from ARM is baseline data, not a transport envelope.
+            child=self.worker(json.dumps({'httpStatus':status,'message':'SECRET_CANARY 403'}).encode())
+            with mock.patch.object(P,'diagnostic_cli',side_effect=lambda args:self.call(child,args)[0]), \
+                 mock.patch.object(P.C.WP19,'offline_report',return_value={'result':'OFFLINE_PREFLIGHT_PASS'}):
+                result=P.inspect(self.directory,P.ReadOnlyAzure())
+            self.assertIsNone(result['httpStatus'])
+            self.assertIsNone(result['transportFailureCategory'])  # local schema validation
+            self.assertEqual(result['failureCategory'],'AZURE_RESPONSE_SCHEMA_MISMATCH')
+            self.assertNotIn('SECRET_CANARY',json.dumps(result))
+
+    def test_live_default_transport_unchanged_and_readonly_inventory(self):
+        with mock.patch.object(R,'cli',return_value={'old':'contract'}) as old, \
+             mock.patch.object(P,'diagnostic_cli',return_value={'new':'contract'}) as diagnostic:
+            self.assertEqual(R.Azure().request('get'),{'old':'contract'})
+            old.assert_called_once();diagnostic.assert_not_called()
+            self.assertEqual(P.ReadOnlyAzure().request('get'),{'new':'contract'})
+            self.assertEqual(old.call_count,1);diagnostic.assert_called_once()
+        wire=self.wire();calls=[]
+        def transport(args):
+            method=args[args.index('--method')+1];url=args[args.index('--url')+1]
+            op=next(op for op in P.READS if op[0]==method and url=='https://management.azure.com'+op[2]+op[1]+'?api-version='+R.API)
+            calls.append(op);return copy.deepcopy(wire[op])
+        with mock.patch.object(P,'diagnostic_cli',side_effect=transport), \
+             mock.patch.object(P.C.WP19,'offline_report',return_value={'result':'OFFLINE_PREFLIGHT_PASS'}):
+            value=P.inspect(self.directory,P.ReadOnlyAzure())
+        self.assertTrue(value['azureBaselineVerified']);self.assertIsNone(value['transportFailureCategory'])
+        self.assertIsNone(value['httpStatus']);self.assertEqual(calls,list(P.REQUEST_NAMES)*2)
+        self.assertFalse((self.directory/'baseline.json').exists());self.assertFalse((self.directory/'consumed.json').exists())
 
 if __name__=="__main__":unittest.main()
