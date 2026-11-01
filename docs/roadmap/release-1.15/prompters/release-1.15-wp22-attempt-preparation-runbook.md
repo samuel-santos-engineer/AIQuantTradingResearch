@@ -150,3 +150,112 @@ process health, authentic data, filesystem durability or production readiness.
 
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`; live deployment/public activation remain NO-GO.
+
+
+## WP24 diagnostic correction - owner review required
+
+Implementation baseline: merged WP22 `5cc708a9a2035e95988edf1a2ad4104460ba202b`.
+The WP23 operator passed offline/preflight gates and prepared a disabled UUID, but
+Azure inspection failed with an undifferentiated category. That historical attempt
+is preserved: do not inspect it again, extend it, arm it or reuse its records.
+`serviceKeyChannelAvailable=false` in that earlier failure meant unverified.
+
+WP24 changes only the read-only inspector, its tests and this runbook. The WP21
+runtime/transport, live controller, recovery, identities, image, time limits,
+read-only operation allowlist and two-capture equality remain unchanged. No Azure
+request, private-attempt file access, policy change or live command was performed.
+
+### Diagnostic schema
+
+Reports add `failedStage`, `failureCategory` and `serviceKeyChannelChecked`.
+Success has null diagnostics. All flags indicating approval/live readiness remain
+false. A missing usable key after the check has `serviceKeyChannelChecked=true`
+and `serviceKeyChannelAvailable=false`; an earlier failure has both false. Presence
+and shape do not prove authenticated validity. Observation-write failure changes the
+result to `AZURE_BASELINE_UNVERIFIED`, sets baseline verification false and returns
+`OBSERVATION_WRITE` / `OBSERVATION_PERSISTENCE_FAILED`; no write retry occurs.
+A failed filesystem write may leave an incomplete observation; stdout failure is
+not overridden by an earlier success value. Historical evidence is never rewritten.
+
+Stages are fixed enums:
+
+- `PRIVATE_ATTEMPT_TEMPLATE`, `OPERATOR_PREFLIGHT`.
+- `FIRST_CAPTURE_` or `SECOND_CAPTURE_`, followed by `SITE`, `PLAN`, `WEB`,
+  `APP_SETTINGS`, `CONNECTION_STRINGS`, `LOGS`, `SLOT_FLAGS` or `SLOTS` for the
+  actual transport boundary. The same suffix plus `_RESPONSE_VALIDATION` means
+  transport returned and the response is being decoded/validated locally.
+- `FIRST_CAPTURE_VALIDATION`, `SECOND_CAPTURE_VALIDATION` for full baseline checks.
+- `BASELINE_COMPARISON`, `POST_CAPTURE_TEMPLATE_RECHECK`, `SERVICE_KEY_CHANNEL_CHECK`,
+  `OBSERVATION_WRITE`.
+- Entry setup failures outside inspection use `PRIVATE_ATTEMPT_PREPARATION` or
+  `OFFLINE_QUALIFICATION` as appropriate.
+
+Closed categories: `LOCAL_PREREQUISITE_UNVERIFIED`, `AZURE_CLI_UNAVAILABLE`,
+`AZURE_TRANSPORT_FAILURE`, `AZURE_RESOURCE_RESPONSE_INVALID`,
+`AZURE_RESPONSE_SCHEMA_MISMATCH`, `AZURE_TARGET_OR_PLAN_MISMATCH`,
+`AZURE_BASELINE_DRIFT`, `AZURE_READ_TIMEOUT`, `AZURE_BASELINE_INCOMPLETE`,
+`OBSERVATION_PERSISTENCE_FAILED`, `UNCLASSIFIED_FAILURE`.
+
+Classification uses exception types and exact existing internal Blocked codes.
+It never parses raw Azure errors, subprocess stderr, response bodies or exception
+strings. The unchanged WP21 bridge discards HTTP status; 401/403 cannot be reliably
+distinguished. `AZURE_TRANSPORT_FAILURE` may include authentication, authorization,
+HTTP or worker failures; do not infer which. A parent-observed timeout is reported
+as `AZURE_READ_TIMEOUT`; a child watchdog exit without typed status remains a
+transport failure. No new request or retry is added to diagnose these cases.
+
+### Offline evidence
+
+Command from repository root:
+
+```powershell
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp22_preparation.py -q
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp21_controller.py -q
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp19_operator_handoff.py -q
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp18_research_launcher.py -q
+```
+
+Results: 33 WP24/WP22 tests, 38 WP21, 19 WP19 and 19 WP18 passed: 109 total.
+The 14 new test methods include parameterized failures at all 16 request boundaries
+and all 16 response-validation boundaries, both aggregate validation stages, schema
+and target/region/F1 failures, drift, template and preflight stages, key checked vs
+unchecked, conservative classification of fabricated 401/403 text, timeout, unknown
+errors, observation-write failure and secret-canary stdout/file redaction. The
+original 19 WP22 tests remain intact. Exact successful operation order/count and
+capture equivalence with WP21 are checked. Azure/HTTP boundaries are mocked.
+
+No PowerShell file changed; no actual operator -File run is claimed. UTF-8/LF and
+`git diff --check` apply to all three changed files. Existing owner checkout and
+private historical attempts remain untouched in an isolated worktree.
+
+### Operator handoff - only after PR review and merge
+
+Use a clean checkout of the reviewed merged code, in the existing authorized
+Windows PowerShell 5.1/Azure session. Do not use the old WP23 checkout or the
+untracked WP23 wrapper: it suppresses the new diagnostic fields. No wrapper or
+PowerShell modification is necessary; call the existing WP22 entry directly.
+Do not change execution policy or identity if a command is blocked.
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Offline checks failed' }
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp21ControllerQualification.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Operator preflight failed' }
+$prepared = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -PreparePrivateAttempt | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $prepared.attemptPrepared -ne $true -or $prepared.approvalEnabled -ne $false) { throw 'Disabled preparation failed' }
+$env:AIQ_WP21_ATTEMPT_DIRECTORY = Join-Path (Join-Path $env:LOCALAPPDATA 'AIQ-WP21') $prepared.attemptId
+$inspection = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -InspectAzureReadOnly | ConvertFrom-Json
+$inspectionExit = $LASTEXITCODE
+$inspection | Select-Object result,attemptId,failedStage,failureCategory,azureBaselineVerified,serviceKeyChannelChecked,serviceKeyChannelAvailable,approvalEnabled,liveControllerInvoked,liveAttemptReady,RESEARCH_PROCESS_ALIVE,AUTHENTIC_DATA_NOT_IMPORTED,PUBLIC_RUNTIME_VERIFIED | ConvertTo-Json
+if ($inspectionExit -ne 0) { throw 'Read-only inspection blocked; return sanitized JSON only' }
+```
+
+Prepare one NEW disabled UUID and perform one inspection within its 15-minute
+window. Stop on failure; do not retry or inspect the historical UUID. Share only
+that final sanitized JSON, never private paths, approval/observation contents,
+worker journals, tokens, configuration values, environment dumps or raw errors.
+No live approval is granted by this handoff or a successful read-only result.
+
+`liveAttemptReady=false`; `liveControllerInvoked=false`;
+`RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
+`PUBLIC_RUNTIME_VERIFIED=False`.
