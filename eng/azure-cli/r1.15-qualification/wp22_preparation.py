@@ -17,22 +17,108 @@ READS = frozenset({("get", "", R.SITE), ("get", "", R.PLAN),
     ("get", "/config/slotConfigNames", R.SITE), ("get", "/slots", R.SITE)})
 
 
+# All externally visible diagnostics are fixed enums, never exception text.
+REQUEST_NAMES = {
+    ("get", "", R.SITE): "SITE", ("get", "", R.PLAN): "PLAN",
+    ("get", "/config/web", R.SITE): "WEB",
+    ("post", "/config/appsettings/list", R.SITE): "APP_SETTINGS",
+    ("post", "/config/connectionstrings/list", R.SITE): "CONNECTION_STRINGS",
+    ("get", "/config/logs", R.SITE): "LOGS",
+    ("get", "/config/slotConfigNames", R.SITE): "SLOT_FLAGS",
+    ("get", "/slots", R.SITE): "SLOTS"}
+STAGES = frozenset({"PRIVATE_ATTEMPT_TEMPLATE", "PRIVATE_ATTEMPT_PREPARATION", "OFFLINE_QUALIFICATION",
+    "OPERATOR_PREFLIGHT", "BASELINE_COMPARISON",
+    "POST_CAPTURE_TEMPLATE_RECHECK", "SERVICE_KEY_CHANNEL_CHECK", "OBSERVATION_WRITE"} |
+    {prefix+name+suffix for prefix in ("FIRST_CAPTURE_", "SECOND_CAPTURE_")
+     for name in REQUEST_NAMES.values() for suffix in ("", "_RESPONSE_VALIDATION")} |
+    {prefix+"VALIDATION" for prefix in ("FIRST_CAPTURE_", "SECOND_CAPTURE_")})
+CATEGORIES = frozenset({"LOCAL_PREREQUISITE_UNVERIFIED", "AZURE_CLI_UNAVAILABLE",
+    "AZURE_TRANSPORT_FAILURE", "AZURE_RESOURCE_RESPONSE_INVALID", "AZURE_RESPONSE_SCHEMA_MISMATCH",
+    "AZURE_TARGET_OR_PLAN_MISMATCH", "AZURE_BASELINE_DRIFT", "AZURE_READ_TIMEOUT",
+    "AZURE_BASELINE_INCOMPLETE", "OBSERVATION_PERSISTENCE_FAILED", "UNCLASSIFIED_FAILURE"})
+# Match only known internal Blocked codes; never parse Azure/stderr/error bodies.
+CODE_CATEGORIES = {
+    "AZURE_CLI_UNAVAILABLE": "AZURE_CLI_UNAVAILABLE",
+    "AZURE_OPERATION_FAILED": "AZURE_TRANSPORT_FAILURE",
+    "COMPLETE_RESPONSE_REQUIRED": "AZURE_RESOURCE_RESPONSE_INVALID",
+    "PLAN_REGION_DRIFT": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "RESOURCE_DRIFT": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "REGION_DRIFT": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "EXISTING_F1_REQUIRED": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "HOST_KIND_UNSUPPORTED": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "BASELINE_TARGET_MISMATCH": "AZURE_TARGET_OR_PLAN_MISMATCH",
+    "BASELINE_DRIFT": "AZURE_BASELINE_DRIFT",
+    **{code: "AZURE_BASELINE_INCOMPLETE" for code in (
+        "INCOMPLETE_BASELINE", "BASELINE_STATE_INVALID", "BASELINE_STARTUP_MISSING",
+        "BASELINE_SETTINGS_INVALID", "BASELINE_METADATA_MISSING",
+        "BASELINE_CONNECTION_METADATA_UNVERIFIED", "BASELINE_SLOT_FLAGS_MISSING",
+        "BASELINE_LOGGING_MISSING", "BASELINE_HOST_UNVERIFIED", "BASELINE_STARTUP_UNVERIFIED",
+        "BASELINE_SLOT_METADATA_UNVERIFIED", "BASELINE_LOGGING_UNVERIFIED")}}
+
+
+def category(error, stage):
+    if stage == "OBSERVATION_WRITE": return "OBSERVATION_PERSISTENCE_FAILED"
+    if not stage.startswith(("FIRST_CAPTURE_", "SECOND_CAPTURE_", "BASELINE_COMPARISON")):
+        return "LOCAL_PREREQUISITE_UNVERIFIED"
+    if isinstance(error, (subprocess.TimeoutExpired, TimeoutError)): return "AZURE_READ_TIMEOUT"
+    if isinstance(error, R.Blocked):
+        code = error.args[0] if len(error.args) == 1 and type(error.args[0]) is str else None
+        return CODE_CATEGORIES.get(code, "UNCLASSIFIED_FAILURE")
+    if isinstance(error, (KeyError, TypeError, ValueError, AttributeError)):
+        return "AZURE_RESPONSE_SCHEMA_MISMATCH"
+    if isinstance(error, OSError): return "AZURE_TRANSPORT_FAILURE"
+    return "UNCLASSIFIED_FAILURE"
+
+
 class ReadOnlyAzure(R.Azure):
+    def __init__(self):
+        self.capture_prefix = "FIRST_CAPTURE_"
+        self.stage = lambda value: None
+
     def request(self, method, suffix="", body=None, resource=R.SITE, kind=None):
-        R.require((method, suffix, resource) in READS and body is None and kind is None,
+        operation=(method, suffix, resource)
+        R.require(operation in READS and body is None and kind is None,
                   "READ_ONLY_OPERATION_REQUIRED")
+        name=self.capture_prefix+REQUEST_NAMES[operation]
+        self.stage(name)
         value=super().request(method, suffix, resource=resource)
+        self.stage(name+"_RESPONSE_VALIDATION")
         R.require(isinstance(value,dict) and not value.get("nextLink"), "COMPLETE_RESPONSE_REQUIRED")
         if resource==R.PLAN:
             R.require(''.join(c for c in value["location"].lower() if c.isalnum())=="westus2",
                       "PLAN_REGION_DRIFT")
         return value
 
+    def capture(self):
+        # Same eight operations and validations as WP21. Only the read-only
+        # subclass is instrumented; live deployment/recovery are untouched.
+        site=self.request("get");p=site["properties"]
+        R.require(site["id"].lower()==R.SITE.lower() and p["serverFarmId"].lower()==R.PLAN.lower(), "RESOURCE_DRIFT")
+        R.require(site["kind"] in ("app,linux,container", "app,linux"), "HOST_KIND_UNSUPPORTED")
+        R.require(''.join(c for c in site["location"].lower() if c.isalnum())=="westus2", "REGION_DRIFT")
+        plan=self.request("get",resource=R.PLAN)
+        R.require(plan["id"].lower()==R.PLAN.lower() and plan["sku"]["name"]=="F1", "EXISTING_F1_REQUIRED")
+        # Site extraction is attributed to its response, not the preceding plan GET.
+        self.stage(self.capture_prefix+"SITE_RESPONSE_VALIDATION")
+        value={"site": {"id":site["id"], "kind":site["kind"], "location":site["location"],
+            **{k:p[k] for k in ("serverFarmId","state","httpsOnly","publicNetworkAccess")}},
+            "plan":{"id":plan["id"],"sku":plan["sku"]}}
+        for key,method,route in (("web","get","/config/web"),
+                ("settings","post","/config/appsettings/list"),
+                ("connections","post","/config/connectionstrings/list"),
+                ("logs","get","/config/logs"),("slotFlags","get","/config/slotConfigNames")):
+            value[key]=self.request(method,route)["properties"]
+        value["slots"]=self.request("get","/slots")["value"]
+        self.stage(self.capture_prefix+"VALIDATION")
+        R.validate_baseline(value)
+        return value
+
 
 def report():
     return dict(result="PREPARATION_INCOMPLETE", attemptPrepared=False,
         offlinePreflightPassed=False, azureBaselineVerified=False,
-        serviceKeyChannelAvailable=False, approvalEnabled=False,
+        serviceKeyChannelAvailable=False, serviceKeyChannelChecked=False,
+        failedStage=None, failureCategory=None, approvalEnabled=False,
         liveControllerInvoked=False, liveAttemptReady=False,
         RESEARCH_PROCESS_ALIVE="UNVERIFIED", AUTHENTIC_DATA_NOT_IMPORTED=True,
         PUBLIC_RUNTIME_VERIFIED=False, AZURE_DEPLOYMENT_NOT_RUN=True)
@@ -78,27 +164,55 @@ def complete(b):
 
 def inspect(directory, adapter=None, gate=None):
     result=report()
+    stage="PRIVATE_ATTEMPT_TEMPLATE"
+
+    def set_stage(value):
+        nonlocal stage
+        R.require(value in STAGES, "INVALID_DIAGNOSTIC_STAGE")
+        stage=value
+
+    def fail(error):
+        result.update(result="AZURE_BASELINE_UNVERIFIED",azureBaselineVerified=False,
+            failedStage=stage,failureCategory=category(error,stage),
+            failureReason="PREREQUISITE_OR_AZURE_CAPTURE_UNVERIFIED")
+
     try:
         template(directory)
         result.update(attemptPrepared=True,attemptId=directory.name)
+        set_stage("OPERATOR_PREFLIGHT")
         gate=gate or C.WP19.offline_report
         R.require(gate().get("result")=="OFFLINE_PREFLIGHT_PASS", "OPERATOR_PREFLIGHT_REQUIRED")
         result["offlinePreflightPassed"]=True
         adapter=adapter or ReadOnlyAzure()
-        first=adapter.capture();complete(first)
-        second=adapter.capture();complete(second)
-        R.require(first==second,"BASELINE_DRIFT")
-        template(directory)  # Recheck freshness/code/disabled flags after bounded reads.
-        key=os.environ.get("AIQ_WP21_SERVICE_KEY") or first["settings"].get("AIQ_RESEARCH_API_KEY","")
+        if isinstance(adapter,ReadOnlyAzure): adapter.stage=set_stage
+        captures=[]
+        for prefix in ("FIRST_CAPTURE_", "SECOND_CAPTURE_"):
+            # Injection seam for offline tests; real requests overwrite this stage.
+            set_stage(prefix+"VALIDATION")
+            if isinstance(adapter,ReadOnlyAzure): adapter.capture_prefix=prefix
+            current=adapter.capture()
+            set_stage(prefix+"VALIDATION");complete(current)
+            captures.append(current)
+        set_stage("BASELINE_COMPARISON")
+        R.require(captures[0]==captures[1],"BASELINE_DRIFT")
+        set_stage("POST_CAPTURE_TEMPLATE_RECHECK")
+        template(directory)
+        set_stage("SERVICE_KEY_CHANNEL_CHECK")
+        key=os.environ.get("AIQ_WP21_SERVICE_KEY") or captures[0]["settings"].get("AIQ_RESEARCH_API_KEY","")
         result["serviceKeyChannelAvailable"]=isinstance(key,str) and 32<=len(key)<=256 and all('!'<=c<='~' for c in key)
+        result["serviceKeyChannelChecked"]=True
         result.update(result="READ_ONLY_BASELINE_VERIFIED_NOT_AUTHORIZED",azureBaselineVerified=True)
-    except Exception:
-        # Never publish exception messages, configuration values, settings names or paths.
-        result.update(result="AZURE_BASELINE_UNVERIFIED",failureReason="PREREQUISITE_OR_AZURE_CAPTURE_UNVERIFIED")
+    except Exception as error:
+        fail(error)
     result["observedUtc"]=R.utc().isoformat()
     if result["attemptPrepared"]:
-        # New-only sanitized observation; never a live rollback baseline or consumed marker.
-        R.save_new(directory/("wp22-observation-"+str(uuid.uuid4())+".json"),result)
+        set_stage("OBSERVATION_WRITE")
+        try:
+            R.require(len(R.encoded(result))<=4096,"REPORT_TOO_LARGE")
+            R.save_new(directory/("wp22-observation-"+str(uuid.uuid4())+".json"),result)
+        except Exception as error:
+            # A failed write is not retried and cannot produce a success report.
+            fail(error)
     return result
 
 
@@ -108,6 +222,8 @@ def main(argv=None):
     modes.add_argument("--prepare-private-attempt",action="store_true")
     modes.add_argument("--inspect-azure-read-only",action="store_true")
     args=parser.parse_args(argv)
+    entry_stage=("PRIVATE_ATTEMPT_PREPARATION" if args.prepare_private_attempt else
+                 "PRIVATE_ATTEMPT_TEMPLATE" if args.inspect_azure_read_only else "OFFLINE_QUALIFICATION")
     try:
         if args.prepare_private_attempt:
             prepared=C.prepare_private_attempt()
@@ -129,7 +245,8 @@ def main(argv=None):
         print(data.decode("utf-8"))
         return 0 if value["result"] in ("OFFLINE_TESTS_PASS","PRIVATE_ATTEMPT_PREPARED_NOT_AUTHORIZED","READ_ONLY_BASELINE_VERIFIED_NOT_AUTHORIZED") else 1
     except Exception:
-        value=report();value.update(result="PREPARATION_BLOCKED",failureReason="LOCAL_PREREQUISITE_UNVERIFIED")
+        value=report();value.update(result="PREPARATION_BLOCKED",failureReason="LOCAL_PREREQUISITE_UNVERIFIED",
+            failedStage=entry_stage,failureCategory="LOCAL_PREREQUISITE_UNVERIFIED")
         print(json.dumps(value));return 1
 
 
