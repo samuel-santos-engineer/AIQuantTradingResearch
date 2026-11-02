@@ -1,6 +1,6 @@
 # Release 1.15 WP37 - Research image deployment preflight
 
-Status: PREPARED FOR SEPARATE OWNER APPLY APPROVAL. Azure deployment NOT performed; Azure health UNVERIFIED. Date: 2026-11-02. UTF-8/LF/no BOM mandatory.
+Status: OWNER-APPROVED APPLY EXECUTED ONCE; configuration readback passed, anonymous health REJECTED, final current state UNVERIFIED. Attempt STOPPED; no retry or automatic recovery. The actual-result section below supersedes pre-approval checkpoints. Date: 2026-11-02. UTF-8/LF/no BOM mandatory.
 
 Baseline: current main containing merged PR #424, `9196ba26893a80f79111318a88f3d7ad509f3ca1`. Work is isolated from the owner's dirty checkout. Reviewed the merged WP36 helper, PowerShell wrapper, runbook and tests. No redundant controller, new dependencies, application changes, image rebuild/repush or historical private-record access.
 
@@ -80,3 +80,43 @@ Changed paths:
 Excluded UI app `aiqr112wp05wus27f5eabb5` is untouched. Settings save is not repeated. PR remains OPEN/UNMERGED; merge is not deployment approval. No owner Apply approval received at this report checkpoint.
 
 `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Actual owner-approved Apply outcome
+
+The owner separately approved the exact live operation and reviewed Python Apply, including the bounded anonymous health observation and stop-without-recovery condition. Reviewed branch/head before execution: PR #425 OPEN at `eb8936aaadc7c2d41d32f759377a85e0d7f79247`, clean isolated worktree. No settings-save approval was reused as image approval.
+
+Executed once:
+
+```text
+python -B eng/azure-cli/r1.15-qualification/wp36_research_deploy.py --action Apply --approve-exact-research-deploy --owner-key-present --owner-runtime-settings-confirmed
+```
+
+Actual result: inherited helper enum `WP36_BLOCKED`, `failedStage=ANONYMOUS_HEALTH`, `failureReason=HEALTH_REJECTED`, `azureDeployed=true`, `azureHealth=UNVERIFIED`, `azureMayHaveChanged=true`, `manualRecoveryRequired=true`, `currentState=UNVERIFIED`. The execution tool reported nonzero exit 1. This is a failed overall qualification, not a successful working deployment.
+
+| Phase | Actual evidence |
+| --- | --- |
+| Fresh registry/metadata preflight | PASS; expected immutable image/Linux-amd64 and initial empty Code mode, HTTPS-only false, Running Linux F1 |
+| Sanitized original snapshot | Saved locally before mutation; no key/settings values or full configuration archive |
+| Image/startup PATCH | Azure accepted; helper progressed beyond this stage |
+| HTTPS-only PATCH | Azure accepted; helper progressed beyond this stage |
+| Explicit restart | Exactly one POST completed; no restart loop |
+| Configuration readback | PASS; expected immutable classic image and platform HTTPS-only true; metadata validator required Running/Linux F1/exact target/plan/startup-empty at that readback |
+| Anonymous HTTPS health | FAILED with `HEALTH_REJECTED`; no 200 `Alive` acceptance |
+| Final current-state inspection after health failure | UNVERIFIED; helper caught inspection failure and did not expose its details |
+| Automatic retry/recovery | NONE; stopped as authorized |
+
+The health classifier rejects redirects (301/302/303/307/308) and authentication/access statuses (401/403) under `HEALTH_REJECTED`. The exact observed status was not retained in this helper's report. Do not invent a particular redirect, authentication challenge or F1 quota cause. No response body, headers or secrets were printed. There was no additional health request after the terminal result.
+
+The last confirmed configuration is the requested immutable image with empty startup and platform HTTPS-only true; its readback also confirmed Running on the existing Linux F1 plan. **That is last-confirmed state, not verified final/current state.** No current health or process-alive claim follows from it. The final metadata inspection was inconclusive and no further query was issued after the stopped attempt.
+
+Azure accepted the configuration transition on this exact F1 resource, so there is no evidence of a configuration-API rejection for F1. This does not establish successful image pull, healthy runtime startup or complete F1 runtime compatibility. The local image/registry evidence remains distinct from Azure health failure.
+
+No settings API, key read/rewrite, SettingsApply, slot/logging/plan/UI mutation, registry push, image rebuild, authenticated endpoint or provider operation occurred in this attempt. Configuration updates may have implicitly recycled the app, in addition to the single explicitly approved restart.
+
+### Required owner disposition
+
+Manual owner review is required; no automatic rollback has been performed or claimed. Do not rerun Apply: the expected initial mode/HTTPS state has changed and the drift guard should stop a repeat. No recovery has been authorized by this outcome.
+
+A proposed next authority can narrowly permit sanitized read-only current app/mode/state inspection and collection of the exact anonymous health status/redirect classification, without following redirects, settings/key reads, explicit restart or other mutation. That diagnostic was **not executed** after this failure. Any recovery or further live request needs separate owner disposition under the WP37 stop condition. Original sanitized metadata was empty Code mode/startup, HTTPS-only false, Running; restoring Code mode remains unproven and must not be assumed safe or complete.
+
+PR #425 remains OPEN/UNMERGED. This evidence-only update does not alter the failed helper or repeat qualification. Prior **38 fake-only tests** and UTF-8/LF checks still apply; no new code change warrants repeating tests. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
