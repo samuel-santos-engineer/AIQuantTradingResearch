@@ -33,9 +33,9 @@ SETTINGS = {
 
 
 class Blocked(Exception):
-    def __init__(self, reason, code=None):
+    def __init__(self, reason, code=None, http_status=None):
         super().__init__(reason)
-        self.reason, self.code = reason, code
+        self.reason, self.code, self.http_status = reason, code, http_status
 
 
 def require(condition, reason):
@@ -102,23 +102,27 @@ class Azure:
         except (ValueError, UnicodeError):
             raise Blocked("AZURE_METADATA_INVALID") from None
 
-    def inspect(self):
+    def inspect(self, require_running=True):
         site = self.request("get", query="{id:id,kind:kind,location:location,plan:properties.serverFarmId,state:properties.state,httpsOnly:properties.httpsOnly}")
         plan_meta = self.request("get", resource=PLAN, query="{id:id,location:location,linux:properties.reserved,sku:sku.name}")
         web = self.request("get", suffix="/config/web", query="{empty:properties.linuxFxVersion == '',classic:starts_with(not_null(properties.linuxFxVersion, ''), 'DOCKER|'),sidecar:properties.linuxFxVersion == 'sitecontainers',candidate:properties.linuxFxVersion == 'DOCKER|" + IMAGE + "',startupEmpty:properties.appCommandLine == ''}")
-        return validate_metadata(site, plan_meta, web)
+        return validate_metadata(site, plan_meta, web, require_running=require_running)
 
 
-def validate_metadata(site, plan_meta, web):
+def validate_metadata(site, plan_meta, web, require_running=True):
     require(isinstance(site, dict) and isinstance(plan_meta, dict) and isinstance(web, dict), "METADATA_INVALID")
     require(str(site.get("id", "")).lower() == SITE.lower() and str(site.get("plan", "")).lower() == PLAN.lower() and str(plan_meta.get("id", "")).lower() == PLAN.lower(), "EXACT_TARGET_PLAN_REQUIRED")
     require(site.get("kind") in ("app,linux", "app,linux,container") and plan_meta.get("linux") is True and plan_meta.get("sku") == "F1", "LINUX_F1_REQUIRED")
     require(all(re.sub("[^a-z0-9]", "", str(x).lower()) == "westus2" for x in (site.get("location"), plan_meta.get("location"))), "REGION_MISMATCH")
-    require(type(site.get("httpsOnly")) is bool and site.get("state") == "Running", "STATE_UNVERIFIED")
+    require(type(site.get("httpsOnly")) is bool and site.get("state") in
+            ("Running", "Stopped", "QuotaExceeded", "Starting", "Stopping", "Unknown"), "STATE_UNVERIFIED")
+    if require_running:
+        require(site["state"] != "QuotaExceeded", "AZURE_QUOTA_EXCEEDED")
+        require(site["state"] == "Running", "STATE_UNVERIFIED")
     require(all(type(web.get(k)) is bool for k in ("empty", "classic", "sidecar", "candidate", "startupEmpty")), "HOSTING_UNVERIFIED")
     require(not web["sidecar"] and web["startupEmpty"] and (web["empty"] and not web["classic"] and not web["candidate"] or web["candidate"] and web["classic"] and not web["empty"]), "MODE_OR_STARTUP_INCOMPATIBLE")
     return {"target": APP, "resourceId": SITE, "plan": PLAN.rsplit("/", 1)[-1], "linux": True, "sku": "F1", "region": "West US 2",
-            "state": "Running", "mode": "EXPECTED_CLASSIC_IMAGE" if web["candidate"] else "EMPTY_CODE_MODE",
+            "state": site["state"], "mode": "EXPECTED_CLASSIC_IMAGE" if web["candidate"] else "EMPTY_CODE_MODE",
             "httpsOnly": site["httpsOnly"], "startupEmpty": True, "nonsecretSettingNames": sorted(SETTINGS)}
 
 
@@ -206,19 +210,22 @@ def bounded_health_probe(timeout):
 def observe_health(budget=180, clock=time.monotonic, sleep=time.sleep, probe=bounded_health_probe):
     require(0 < budget <= 180, "HEALTH_BUDGET_INVALID")
     deadline = clock() + budget
+    last_status = None
     while clock() < deadline:
         remaining = deadline - clock()
         if remaining <= 0:
             break
         status, body = probe(min(8, remaining))
+        if status is not None:
+            last_status = status
         if clock() <= deadline and valid_health(status, body):
             return {"status": 200, "body": "Alive"}
         if status in (301, 302, 303, 307, 308, 401, 403):
-            raise Blocked("HEALTH_REJECTED")
+            raise Blocked("HEALTH_REJECTED", http_status=status)
         remaining = deadline - clock()
         if remaining > 0:
             sleep(min(2, remaining))
-    raise Blocked("HEALTH_NOT_VERIFIED")
+    raise Blocked("HEALTH_NOT_VERIFIED", http_status=last_status)
 
 
 def execute(action, approved=False, key_present=False, settings_confirmed=False, azure=None, health=observe_health, registry=verify_registry):
@@ -268,10 +275,11 @@ def execute(action, approved=False, key_present=False, settings_confirmed=False,
         result.update(result="WP36_BLOCKED", failedStage=stage,
                       failureReason=error.reason if isinstance(error, Blocked) else "LOCAL_OR_METADATA_FAILURE",
                       azureErrorCode=error.code if isinstance(error, Blocked) else None,
+                      healthHttpStatus=error.http_status if isinstance(error, Blocked) else None,
                       azureMayHaveChanged=mutated, manualRecoveryRequired=mutated)
         if mutated:
             try:
-                result["currentState"] = azure.inspect()
+                result["currentState"] = azure.inspect(require_running=False)
             except Exception:
                 result["currentState"] = "UNVERIFIED"
         return result, 2

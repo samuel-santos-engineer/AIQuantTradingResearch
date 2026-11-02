@@ -1,6 +1,6 @@
 # Release 1.15 WP37 - Research image deployment preflight
 
-Status: OWNER-APPROVED APPLY EXECUTED ONCE; configuration readback passed, anonymous health REJECTED, final current state UNVERIFIED. Attempt STOPPED; no retry or automatic recovery. The actual-result section below supersedes pre-approval checkpoints. Date: 2026-11-02. UTF-8/LF/no BOM mandatory.
+Status: OWNER-APPROVED APPLY EXECUTED ONCE; configuration readback passed. Subsequent authorized read-only investigation confirmed HTTP 403 and recurring QuotaExceeded; no healthy serving established. Attempt STOPPED; no retry or automatic recovery. The actual-result section below supersedes pre-approval checkpoints. Date: 2026-11-02. UTF-8/LF/no BOM mandatory.
 
 Baseline: current main containing merged PR #424, `9196ba26893a80f79111318a88f3d7ad509f3ca1`. Work is isolated from the owner's dirty checkout. Reviewed the merged WP36 helper, PowerShell wrapper, runbook and tests. No redundant controller, new dependencies, application changes, image rebuild/repush or historical private-record access.
 
@@ -120,3 +120,46 @@ Manual owner review is required; no automatic rollback has been performed or cla
 A proposed next authority can narrowly permit sanitized read-only current app/mode/state inspection and collection of the exact anonymous health status/redirect classification, without following redirects, settings/key reads, explicit restart or other mutation. That diagnostic was **not executed** after this failure. Any recovery or further live request needs separate owner disposition under the WP37 stop condition. Original sanitized metadata was empty Code mode/startup, HTTPS-only false, Running; restoring Code mode remains unproven and must not be assumed safe or complete.
 
 PR #425 remains OPEN/UNMERGED. This evidence-only update does not alter the failed helper or repeat qualification. Prior **38 fake-only tests** and UTF-8/LF checks still apply; no new code change warrants repeating tests. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Follow-up investigation authorized by "continue to fix"
+
+No new mutation, restart, settings/key read, rollback, rebuild, push, provider call or paid resource was performed. The following are subsequent read-only observations; they supersede only the earlier unknown current-state/status fields, not the original attempt history.
+
+- Exact research app: `state=QuotaExceeded`, `usageState=Exceeded`, `availabilityState=Normal`, `enabled=true`, `kind=app,linux,container`.
+- Config still matches the approved immutable image and empty startup; no sidecar. Platform HTTPS-only is true.
+- Anonymous `/health`: **HTTP 403**, no redirect. A bounded body classification matched the platform site-disabled/stopped page, not an IP-forbidden page or authentication challenge. No raw HTML/headers were published.
+
+### Quota evidence and reset experiment (read-only)
+
+The site usage endpoint returned mostly sentinel limits (`-1`) and an unhelpful zero filesystem limit. It did not establish the exceeded allowance; the exact existing plan's read-only usage endpoint supplied finite limits instead. Plan-reported values:
+
+| Counter | Observed current | Reported limit | Interpretation |
+| --- | ---: | ---: | --- |
+| `WPStopRequests` | 17 | 15 | Exceeded counter |
+| `CpuTime` | 2 ms | 3,600,000 ms | Below limit as reported |
+| `CpuTimeShortPeriod` | 0 ms | 180,000 ms | Below limit as reported |
+| `BytesSent` | 2,105 | 173,015,040 | Below limit |
+| `MaxMemoryWorkingSetShortPeriod` | 0 | 1,073,741,824 | Below limit as reported |
+| `FileSystemStorage` | 696,320 | 1,073,741,824 | Below limit |
+
+These are plan-reported counters, not proof of which process/app generated every stop. Do not infer daily CPU exhaustion, silently convert sentinel limits into enforced quotas, or assert the research application itself crashed without startup evidence.
+
+Azure reported the stop-counter reset at 23:00 on 2026-11-02. After that boundary, a read-only check observed `WPStopRequests=0/15`, app `Running`, usage `Normal`, HTTPS-only true. **No stop/start/restart or other recovery caused this transition.** The first anonymous health request timed out. A subsequent bounded read-only cold-start health observation terminated with HEALTH_REJECTED. The next targeted state/quota check found `WPStopRequests=26/15`, app `QuotaExceeded/Exceeded`, HTTP 403 with the site-disabled classification. Next reported reset: 2026-11-03 00:00:00. Waiting for one reset therefore did not resolve the recurring stops.
+
+[Microsoft's quota documentation](https://learn.microsoft.com/azure/app-service/web-sites-monitor) explains quota enforcement and HTTP 403 in Free/Shared plans. Our particular counter/limits and natural reset are direct API evidence; the documentation does not by itself explain why this app/plan repeatedly records stop requests. Do not promise another reset or an explicit restart will fix it. The startup/stop cause remains unresolved.
+
+### Startup diagnostic access and blocker
+
+The documented ARM container-log read action was unavailable before reset and timed out (20-second bound) on a later attempt; no raw log file was downloaded or retained. One timeout surfaced only command/resource metadata, not log content. No publishing credentials or Kudu credentials were requested.
+
+Read-only detector discovery found Linux startup/deployment detectors. Initial schema/classification reads of `LinuxAppDown` and `DeploymentFailureAnalysisLinux` returned datasets but did not establish a startup cause. The fixed scans did not find the application's fixed startup-failure message, image-pull denial, permission failure or architecture failure; absence of a match is not evidence those causes are excluded.
+
+**Automatic approval review rejected the next selected detector-summary read**, stating that new authenticated diagnostic queries need specific authorization and conflict with the retained query restriction. No workaround or alternate read of those summaries was attempted. Owner approval was requested for exactly two existing detector GETs: `/detectors/LinuxAppDown` and `/detectors/DeploymentFailureAnalysisLinux`, API `2023-12-01`, on the exact research resource. Only selected redacted Status/Message/Title/Description summaries would be shown; no raw tables, settings, keys or mutations. Those reads remain pending at this report checkpoint.
+
+### Offline observability corrections, not a runtime fix
+
+The helper now retains the exact rejected/last health HTTP status in `healthHttpStatus`. Failure inspection permits reporting an actual non-Running state such as QuotaExceeded instead of rejecting it merely because Apply requires Running. Normal preflight still requires Running and now gives a fixed `AZURE_QUOTA_EXCEEDED` reason when applicable, preventing a mutation/restart attempt against a quota-blocked app. Target/plan/region/image checks remain enforced. No live Apply or settings action was rerun to verify this correction.
+
+`python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp36_research_deploy.py -q`: **42 passed**, fake-only, exit 0. Four added tests cover quota preflight rejection, non-Running failure evidence, exact status retention and failed-Apply status/current-state reporting with no extra mutations. UTF-8/LF/no BOM and diff checks precede commit. Same three WP37 paths; no application/runtime artifact change.
+
+Current outcome: **NOT FIXED**; exact image and HTTPS-only assigned, recurring stop-request quota exhaustion and HTTP 403 confirmed, underlying stop/startup cause pending authorized diagnostics. No upgrade, repeated deployment, extra restart or automatic recovery. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.

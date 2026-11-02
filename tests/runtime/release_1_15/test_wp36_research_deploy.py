@@ -264,6 +264,40 @@ class Wp37DeadlineTests(unittest.TestCase):
             probe.assert_called_once()
 
 
+class Wp37FailureEvidenceTests(unittest.TestCase):
+    def test_quota_is_blocked_before_mutation(self):
+        site, plan, web = metadata(); site["state"] = "QuotaExceeded"
+        with self.assertRaisesRegex(wp36.Blocked, "AZURE_QUOTA_EXCEEDED"):
+            wp36.validate_metadata(site, plan, web)
+
+    def test_failure_inspection_can_report_actual_nonrunning_state(self):
+        site, plan, web = metadata()
+        for state in ("QuotaExceeded", "Stopped", "Starting"):
+            site["state"] = state
+            with self.subTest(state=state):
+                result = wp36.validate_metadata(site, plan, web, require_running=False)
+                self.assertEqual(result["state"], state)
+                self.assertFalse(result["httpsOnly"])
+
+    def test_exact_rejected_health_status_is_retained(self):
+        for status in (302, 401, 403):
+            with self.subTest(status=status), self.assertRaises(wp36.Blocked) as caught:
+                wp36.observe_health(probe=lambda timeout: (status, b""))
+            self.assertEqual(caught.exception.http_status, status)
+
+    def test_failed_apply_reports_status_and_nonrunning_current_state(self):
+        azure = DeployTests().fake_azure()
+        current = DeployTests().snapshot(True); current["state"] = "QuotaExceeded"
+        azure.inspect.side_effect = [DeployTests().snapshot(), DeployTests().snapshot(True), current]
+        with tempfile.TemporaryDirectory() as owned, patch.object(wp36.tempfile, "mkdtemp", return_value=owned):
+            result, code = wp36.execute("Apply", True, True, True, azure=azure,
+                health=Mock(side_effect=wp36.Blocked("HEALTH_REJECTED", http_status=403)), registry=lambda: {})
+        self.assertEqual(code, 2); self.assertEqual(result["healthHttpStatus"], 403)
+        self.assertEqual(result["currentState"]["state"], "QuotaExceeded")
+        self.assertEqual(azure.request.call_count, 3)
+        self.assertEqual(azure.inspect.call_args.kwargs, {"require_running": False})
+
+
 class FakeSettings:
     def __init__(self):
         self.values = {"AIQ_RESEARCH_API_KEY": "FAKE_SECRET_CANARY", "privateUnrelated": "FAKE_UNRELATED_CANARY", "WEBSITES_PORT": "old"}
