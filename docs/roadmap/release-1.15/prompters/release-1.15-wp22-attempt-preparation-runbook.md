@@ -442,3 +442,57 @@ credential values, configuration or approval/observation files. No deployment or
 live approval is granted. `approvalEnabled=false`; `liveControllerInvoked=false`;
 `liveAttemptReady=false`; `RESEARCH_PROCESS_ALIVE=UNVERIFIED`;
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Installed CLI request compatibility correction
+
+After WP28 stopped at FIRST_CAPTURE_SITE / WORKER_REPORTED_FAILURE / REQUEST,
+offline inspection of the installed CLI exposed a reproducible pre-network defect.
+Its send_raw_request parses headers as a list of strings. The prior dictionary
+caused ValueError before profile construction or HTTP sending. The helper also
+requires cli_ctx.data['command']; direct get_default_cli usage must initialize it.
+Neither defect implies an Azure identity, permission or credential failure.
+
+Owner authorized the correction. Both the original WP21 bridge and the read-only
+diagnostic bridge now pass `headers=['Content-Type=application/json']` and set the
+fixed `cli.data['command']='rest'` before send_raw_request. No CLI invoke() or
+command-history path is added. No authentication bypass, new token channel, HTTP
+status protocol, request/target change, retry, timeout change or weaker validation
+is introduced. Controller/recovery source remains unchanged; the shared runtime
+bridge changes only these compatibility arguments. Its identity hash changes, so
+all historical templates remain untouched and must never be rewritten or reused.
+
+### Offline evidence
+
+48 inspector/compatibility tests, 38 WP21, 19 WP19 and 19 WP18 passed: 124 total.
+The added installed-CLI regression executes BOTH exact worker strings against the
+actual installed send_raw_request in the fixed CLI interpreter. CLI context/profile,
+token acquisition and HTTP sending are fake; socket connect and DNS are forbidden.
+The checks assert successful payloads, exact header conversion, fixed command
+metadata, one mocked send per worker and no fake-token disclosure. This test skips
+on hosts without the installed Windows CLI; it actually ran and passed here.
+Existing fake-CLI stage tests also assert the expected header list and command.
+No real login, credential acquisition, Azure request or private-attempt access
+occurred. No execution-policy change or operator -File execution is claimed.
+
+All four changed files pass UTF-8/LF/no-BOM, Python syntax and diff checks. No
+PowerShell file, dependency, controller or recovery source change is required.
+This is an offline compatibility fix, not a claim that the Azure baseline or
+service-key channel is verified. HTTP status remains null. Any later failure must
+be interpreted only from the fixed stage/category evidence.
+
+### Next operator check - only after owner review and merge
+
+Use the existing direct-entry handoff in the structured worker-stage section,
+from the reviewed merged checkout. Run offline qualification and operator preflight
+before preparing ONE new disabled UUID, then perform ONE read-only inspection
+within 15 minutes. Return the selected sanitized JSON including workerStage. Older
+wrappers may omit diagnostics or reject the new transport enum; do not use them.
+Preserve the WP28 and earlier historical attempts. Do not repeat an old inspection,
+change policy/identity/RBAC, expose configuration or arm a template.
+
+A successful read-only capture still requires a fresh baseline before any separately
+authorized live operation. No live approval or deployment is granted here.
+`approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
+`RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
+`PUBLIC_RUNTIME_VERIFIED=False`.

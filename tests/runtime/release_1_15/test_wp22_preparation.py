@@ -476,10 +476,12 @@ class WorkerStageTests(unittest.TestCase):
         core=types.ModuleType('azure.cli.core')
         def initialize():
             if case=='INITIALIZATION':raise RuntimeError('SECRET_CANARY /private/path')
-            return object()
+            return types.SimpleNamespace(data={})
         core.get_default_cli=initialize
         util=types.ModuleType('azure.cli.core.util')
         def request(*args,**kwargs):
+            self.assertEqual(kwargs['headers'],['Content-Type=application/json'])
+            self.assertEqual(args[0].data['command'],'rest')
             calls.append(True)
             if case=='REQUEST':raise RuntimeError('SECRET_CANARY status=403')
             def decode():
@@ -543,5 +545,59 @@ class WorkerEnvelopeTests(unittest.TestCase):
             self.assertEqual(value['transportFailureCategory'],'WORKER_REPORTED_FAILURE')
             self.assertIsNone(value['httpStatus']);self.assertFalse(value['serviceKeyChannelChecked'])
         self.assertEqual(len(list(self.directory.glob('wp22-observation-*.json'))),len(P.WORKER_STAGES))
+
+class InstalledCliCompatibilityTests(unittest.TestCase):
+    def test_both_exact_workers_against_installed_cli_with_fake_auth_and_http(self):
+        interpreter=Path(os.environ.get('ProgramFiles',r'C:\Program Files'))/'Microsoft SDKs/Azure/CLI2/python.exe'
+        if not interpreter.is_file():self.skipTest('Installed Windows Azure CLI interpreter unavailable')
+        # Execute actual installed send_raw_request, never actual login/profile/token/HTTP.
+        probe = r"""
+import contextlib,io,json,logging,socket,sys,types
+from unittest import mock
+logging.disable(logging.CRITICAL)
+bridges=json.load(sys.stdin)
+from azure.cli.core.util import send_raw_request
+import requests
+class Timer:
+ def __init__(self,*args):pass
+ def start(self):pass
+class FakeProfile:
+ def __init__(self,*args,**kwargs):pass
+ def get_raw_token(self,*args,**kwargs):return (('Bearer','OFFLINE_FAKE_TOKEN',None),None,None)
+results=[]
+for bridge in bridges:
+ ctx=types.SimpleNamespace(data={},cloud=types.SimpleNamespace(endpoints=types.SimpleNamespace(
+  resource_manager='https://management.azure.com/',active_directory_resource_id='https://management.azure.com/')))
+ response=requests.Response();response.status_code=200;response._content=b'{"properties":{}}'
+ response.reason='OK';response.headers['Content-Type']='application/json'
+ output=io.StringIO();code=0
+ with mock.patch('azure.cli.core.get_default_cli',return_value=ctx), \
+      mock.patch('azure.cli.core._profile.Profile',FakeProfile), \
+      mock.patch('azure.cli.core.util.get_az_rest_user_agent',return_value='offline-test'), \
+      mock.patch('azure.cli.core.telemetry.set_user_agent'), \
+      mock.patch('azure.cli.core.util._log_request'),mock.patch('azure.cli.core.util._log_response'), \
+      mock.patch('requests.Session.send',return_value=response) as send, \
+      mock.patch('socket.socket.connect',side_effect=AssertionError('NETWORK_FORBIDDEN')), \
+      mock.patch('socket.getaddrinfo',side_effect=AssertionError('DNS_FORBIDDEN')), \
+      mock.patch('threading.Timer',Timer), \
+      mock.patch.object(sys,'stdin',io.StringIO(json.dumps(['rest','--method','get','--url',
+       'https://management.azure.com/subscriptions/00000000-0000-0000-0000-000000000000/FIXED']))), \
+      contextlib.redirect_stdout(output):
+  try:exec(compile(bridge,'exact-worker','exec'),{})
+  except SystemExit as error:code=error.code
+ value=json.loads(output.getvalue())
+ payload=value['payload'] if 'protocol' in value else value
+ assert code==0 and payload=={'properties':{}} and send.call_count==1
+ assert ctx.data['command']=='rest'
+ assert send.call_args.args[0].headers['Content-Type']=='application/json'
+ assert 'OFFLINE_FAKE_TOKEN' not in output.getvalue()
+ results.append(True)
+print(json.dumps({'workersPassed':len(results),'networkMocked':True,'profileMocked':True}))
+"""
+        result=P.subprocess.run([str(interpreter),'-I','-B','-c',probe],
+            input=json.dumps([R.BRIDGE,P.DIAGNOSTIC_BRIDGE]).encode(),capture_output=True,timeout=30)
+        # Never echo raw stdout/stderr on assertion failure.
+        self.assertEqual(result.returncode,0,'Installed helper compatibility failed; raw streams withheld')
+        self.assertEqual(json.loads(result.stdout),{'workersPassed':2,'networkMocked':True,'profileMocked':True})
 
 if __name__=="__main__":unittest.main()

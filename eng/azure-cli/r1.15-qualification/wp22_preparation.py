@@ -90,8 +90,9 @@ try:
  from azure.cli.core import get_default_cli
  from azure.cli.core.util import send_raw_request
  cli=get_default_cli()
+ cli.data['command']='rest'
  stage='REQUEST'
- r=send_raw_request(cli,method,url,headers={'Content-Type':'application/json'},body=body)
+ r=send_raw_request(cli,method,url,headers=['Content-Type=application/json'],body=body)
  stage='RESPONSE_VALIDATION'
  if type(r.status_code) is not int or not 200<=r.status_code<300 or len(r.content)>8388608:raise ValueError()
  stage='RESPONSE_DECODING'

@@ -100,7 +100,9 @@ from azure.cli.core.util import send_raw_request
 try:
  a=json.load(sys.stdin);method=a[a.index('--method')+1];url=a[a.index('--url')+1]
  body=a[a.index('--body')+1] if '--body' in a else None
- r=send_raw_request(get_default_cli(),method,url,headers={'Content-Type':'application/json'},body=body)
+ cli=get_default_cli()
+ cli.data['command']='rest'
+ r=send_raw_request(cli,method,url,headers=['Content-Type=application/json'],body=body)
  if not 200<=r.status_code<300 or len(r.content)>8388608:sys.exit(1)
  json.dump(r.json() if r.content else None,sys.stdout)
 except BaseException:sys.exit(1)
