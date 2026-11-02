@@ -4,6 +4,7 @@
 param(
     [ValidateSet('Plan','Build')][string]$Action = 'Plan',
     [switch]$F1FeasibilityConfirmed,
+    [switch]$PrepareApprovedCompatibilityAttempt,
     [string]$Python = 'python'
 )
 Set-StrictMode -Version Latest
@@ -13,5 +14,6 @@ $entry = Join-Path $root 'eng/azure-cli/r1.15-qualification/wp35_research_image.
 $arguments = @('-B', $entry, '--repository', $root)
 if ($Action -eq 'Build') { $arguments += '--build' }
 if ($F1FeasibilityConfirmed) { $arguments += '--f1-feasibility-confirmed' }
+if ($PrepareApprovedCompatibilityAttempt) { $arguments += '--prepare-approved-compatibility-attempt' }
 & $Python @arguments
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

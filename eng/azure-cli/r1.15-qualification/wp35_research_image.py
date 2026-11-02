@@ -22,7 +22,7 @@ def plan(commit):
         "entrypoint": ["/bin/sh", "/app/research-bootstrap.sh"],
         "servingCommand": ["dotnet", "/app/AIQuantTradingResearch.Worker.dll", "--research-snapshot-api"],
         "port": 52731, "user": "1654:1654",
-        "buildRequires": ["EXACT_TARGET_F1_CONVERSION_FEASIBILITY_EVIDENCE", "LOCAL_DOCKER_LINUX_AMD64", "CACHED_PINNED_BASE", "CACHED_DOTNET_PACKAGES_AND_RUNTIME_PACKS"],
+        "buildRequires": ["F1_FEASIBILITY_EVIDENCE_OR_OWNER_APPROVED_REVERSIBLE_ATTEMPT", "LOCAL_DOCKER_LINUX_AMD64", "CACHED_PINNED_BASE", "CACHED_DOTNET_PACKAGES_AND_RUNTIME_PACKS"],
         "registryPublished": False, "azureDeployed": False, "health": "UNVERIFIED",
         "liveAttemptReady": False, "AUTHENTIC_DATA_NOT_IMPORTED": True, "PUBLIC_RUNTIME_VERIFIED": False,
     }
@@ -31,8 +31,8 @@ def plan(commit):
 def recipe(source, context, empty_feed):
     project = str(source / PROJECT)
     return [
-        ["dotnet", "restore", project, "--runtime", "linux-x64", "--source", str(empty_feed), "--configfile", str(source / "wp35-offline.config"), "-p:NuGetAudit=false"],
-        ["dotnet", "publish", project, "--configuration", "Release", "--runtime", "linux-x64", "--self-contained", "false", "--no-restore", "-p:ContinuousIntegrationBuild=true", "--output", str(context / "research")],
+        ["dotnet", "restore", project, "--source", str(empty_feed), "--configfile", str(source / "wp35-offline.config"), "-p:NuGetAudit=false", "-p:SelfContained=false", "-p:UseAppHost=false"],
+        ["dotnet", "publish", project, "--configuration", "Release", "--self-contained", "false", "--no-restore", "-p:ContinuousIntegrationBuild=true", "-p:UseAppHost=false", "--output", str(context / "research")],
     ]
 
 
@@ -112,18 +112,20 @@ def main(argv=None):
     parser.add_argument("--repository", type=Path, required=True)
     parser.add_argument("--build", action="store_true")
     parser.add_argument("--f1-feasibility-confirmed", action="store_true")
+    parser.add_argument("--prepare-approved-compatibility-attempt", action="store_true")
     args = parser.parse_args(argv)
     try:
         commit = run(["git", "rev-parse", "HEAD"], args.repository).decode("ascii").strip()
         record = plan(commit)
         code = 0
         if args.build:
-            if not args.f1_feasibility_confirmed:
+            if not (args.f1_feasibility_confirmed or args.prepare_approved_compatibility_attempt):
                 record["result"] = "BUILD_BLOCKED_F1_FEASIBILITY_REQUIRED"
                 code = 2
             else:
                 # An operator assertion is not independent Azure compatibility proof.
-                record["feasibilityBasis"] = "OPERATOR_CONFIRMATION_REQUIRES_REVIEWED_EVIDENCE"
+                record["feasibilityBasis"] = ("OWNER_APPROVED_REVERSIBLE_ATTEMPT_COMPATIBILITY_UNVERIFIED"
+                    if args.prepare_approved_compatibility_attempt else "OPERATOR_CONFIRMATION_REQUIRES_REVIEWED_EVIDENCE")
                 code = build(args.repository, record)
     except (OSError, ValueError, subprocess.TimeoutExpired):
         record = {"result": "LOCAL_PREFLIGHT_BLOCKED", "liveAttemptReady": False, "AUTHENTIC_DATA_NOT_IMPORTED": True, "PUBLIC_RUNTIME_VERIFIED": False}

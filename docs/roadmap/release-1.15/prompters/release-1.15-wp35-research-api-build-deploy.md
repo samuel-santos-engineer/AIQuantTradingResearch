@@ -59,17 +59,17 @@ powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Invoke
 
 The Python standard-library implementation exports the current committed tree with `git archive` into a new owned temporary directory, excluding all untracked owner files and the working directory's local edits. It rejects traversal/symlink archive entries. Review/commit intended source changes first. It stages only the published research files and exact bootstrap/Dockerfile into the image context.
 
-It checks the cached pinned Linux/amd64 ASP.NET base, restores from an explicitly empty local package feed with cleared sources and NuGet auditing disabled (existing global package/runtime caches only), publishes Release `linux-x64` framework-dependent output with `--no-restore`, checks .NET 10 runtime metadata and Linux SQLite native library, and builds with `--platform linux/amd64 --pull=false --network=none`. Missing caches stop; no download fallback. Intermediate source/output is owned temporary storage, not owner state. No real key is an input, build argument or layer.
+It checks the cached pinned Linux/amd64 ASP.NET base, restores from an explicitly empty local package feed with cleared sources and NuGet auditing disabled (existing global package/runtime caches only), publishes portable Release .NET DLL output with `--no-restore`, `SelfContained=false` and `UseAppHost=false` (Linux native SQLite assets and final Linux/amd64 image are checked), checks .NET 10 runtime metadata and Linux SQLite native library, and builds with `--platform linux/amd64 --pull=false --network=none`. Missing caches stop; no download fallback. Intermediate source/output is owned temporary storage, not owner state. No real key is an input, build argument or layer.
 
 It writes a nonsecret context SHA-256 manifest and result, then validates image OS/architecture, UID, entrypoint, exposed port and default bind. The local commit-qualified tag is `aiq-wp35-research:<full-source-commit>`. Local image ID is a configuration digest, **not** a registry manifest digest. A built result deliberately remains `LOCAL_IMAGE_BUILT_RUNTIME_UNQUALIFIED`, with health unverified and no registry digest. Outputs/images are retained for review; no cleanup targets unrelated resources.
 
-This is reproducible packaging intent (pinned base, source commit, closed context, offline inputs and manifest), not a proven bit-for-bit image reproducibility claim. No serving image was built in WP35 because feasibility is unresolved. Initial Docker inspection returned pipe access denied; the subsequent owner-authorized access retry succeeded (details below). SDK `10.0.103` is installed. No alternate identity, installation or policy bypass was attempted.
+This is reproducible packaging intent (pinned base, source commit, closed context, offline inputs and manifest), not a proven bit-for-bit image reproducibility claim. Initial preparation stopped before building because feasibility was unresolved. The later owner-approved reversible-attempt amendment and local qualification below supersede that initial result. Initial Docker inspection returned pipe access denied; the subsequent owner-authorized access retry succeeded (details below). SDK `10.0.103` is installed. No alternate identity, installation or policy bypass was attempted.
 
-## Future local runtime qualification - pending, not executed
+## Local runtime qualification procedure
 
 Before publication, use the built serving image with only a clearly fake 64-lowercase-hex test key and bounded owned resources. Existing WP07 local HTTPS fixtures and transport tests remain available; they are not Azure attestation. Alternatively a separately reviewed local emulation of the existing Azure HTTP/storage guards must be explicitly identified as emulation, never actual platform evidence.
 
-Use a disposable writable private directory with correct Linux ownership, no real database/import, loopback-only published port and no provider acquisition. Verify PID command includes `--research-snapshot-api`, UID 1654, bind/port 52731 and anonymous HTTP health 200 `Alive`; enforce a bounded readiness deadline and remove only the created container/storage/network. An Azure HTTP guard cannot simply be omitted to force startup: normal local transport requires HTTPS certificate settings; the existing Azure transport also requires exact platform markers and private storage/kernel checks. This step is pending rather than replaced with fake test success. Preserve the existing separate UI/research development containers.
+Use a disposable writable private directory with correct Linux ownership, no real database/import, loopback-only published port and no provider acquisition. Verify PID command includes `--research-snapshot-api`, UID 1654, bind/port 52731 and anonymous HTTP health 200 `Alive`; enforce a bounded readiness deadline and remove only the created container/storage/network. An Azure HTTP guard cannot simply be omitted to force startup: normal local transport requires HTTPS certificate settings; the existing Azure transport also requires exact platform markers and private storage/kernel checks. The later actual local qualification below implements the emulated HTTP case; it does not attest to Azure. Preserve the existing separate UI/research development containers.
 
 ## Publication proposal - separate approval required
 
@@ -94,7 +94,7 @@ An executable Azure mutation/recovery path is intentionally **not implemented or
 
 ## Actual qualification
 
-- `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp35_research_image.py -v`: 9 passed, exit 0. Fake metadata, mocked build/context/image verification, strict source identity, no default Docker execution, feasibility gate, offline command flags, suppressed tool failures and no push/Azure path. Mocked build is not image/runtime acceptance.
+- `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp35_research_image.py -v`: 10 passed, exit 0 after the amendment below. Fake metadata, mocked build/context/image verification, strict source identity, no default Docker execution, feasibility gate, offline command flags, suppressed tool failures and no push/Azure path. Mocked build is not image/runtime acceptance.
 - `python -B eng/azure-cli/r1.15-qualification/wp35_research_image.py --repository .`: `PLAN_ONLY`, exit 0. No image built.
 - Windows PowerShell `5.1.26100.9711` AST parse: zero errors. Exact older requested build `5.1.26100.9444` unavailable. `.ps1 -File` Plan runtime execution: blocked by execution policy (exit 1); no bypass. Python tests do not establish actual PowerShell runtime qualification.
 - Initial Docker info: access denied to local engine pipe. After explicit owner session approval, retry succeeded: context `desktop-linux`, engine `29.7.2`, Linux `x86_64`. Exact pinned ASP.NET base inspect succeeded: Linux/amd64, image ID `sha256:e4b445f93a5deeb6bd7de300febceb8dd7e481ac65ccf1b474eddc3642a3010f`. Docker access and this cached input are no longer blockers. No build, publish, pull or container start occurred; the feasibility-before-build condition remains unresolved.
@@ -105,3 +105,40 @@ Changed files: `eng/docker/release-1.15/Invoke-Wp35ResearchImage.ps1`, `eng/azur
 Image built: NO. Registry publication: NO. Azure deployment/restart: NO. `/health`: UNVERIFIED. F1 exact-resource conversion and rollback: UNVERIFIED.
 
 `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Owner-authorized reversible-attempt preparation - subsequent evidence
+
+The owner authorized a reversible compatibility attempt with fresh baseline and recovery safeguards. This permits preparing the candidate without pretending F1 compatibility has already been established. Added `-PrepareApprovedCompatibilityAttempt` / `--prepare-approved-compatibility-attempt` for this case; output records `OWNER_APPROVED_REVERSIBLE_ATTEMPT_COMPATIBILITY_UNVERIFIED`. Default Plan remains unchanged; missing both feasibility evidence and attempt authorization still blocks Build. This local flag never enables registry/Azure operations. The new regression test verifies the distinction.
+
+Actual local build command (Python packaging implementation, no PowerShell policy bypass):
+
+```text
+python -B eng/azure-cli/r1.15-qualification/wp35_research_image.py --repository . --build --prepare-approved-compatibility-attempt
+```
+
+Initial RID restore failed offline with NU1101 for `Microsoft.AspNetCore.App.Runtime.linux-x64`, `Microsoft.NETCore.App.Runtime.linux-x64`, and `Microsoft.NETCore.App.Host.linux-x64`. Explicit framework-dependent/no-apphost flags alone did not remove RID pack downloads. Corrected the recipe to portable framework-dependent publishing, matching the existing DLL-based container entrypoint, with no apphost and no runtime substitution. No package downloads or source/project/dependency changes. The portable publish contains Linux SQLite native assets; final image inspection confirms Linux/amd64.
+
+Actual successful result:
+
+- Source commit exported: `c1653dc2075b20f35fd1b31a0f41096e6ae7e354` (serving source unchanged; packaging amendments were local at execution).
+- Local image ID: `sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`.
+- Local tag: `aiq-wp35-research:c1653dc2075b20f35fd1b31a0f41096e6ae7e354`.
+- This is a local configuration ID, not a registry manifest digest. Registry digest remains unknown.
+- Offline restore, Release publish, context manifest, Docker build and image contract inspection succeeded; no pulls or networked restore/build.
+
+Actual local runtime qualification used this exact image and only a fake all-zero 64-character key. Created a UUID-owned internal Docker network and nonprivileged container with capabilities dropped, no-new-privileges, 512 MiB memory and 128 PID limit. Platform site/host/role flags were explicit fake local emulation values; private writable storage was the disposable container's own `/tmp/aiq-research`. No data import, bind mount, real key or external provider call.
+
+The first host-loopback attempt failed before HTTP with an empty Docker port mapping (`IndexError`) on the internal network; owned resources were cleaned up. The successful retry published no host port, then used `/bin/bash` TCP on **container loopback** to send `GET /health HTTP/1.0` with Host localhost and Connection close. A 35-second readiness budget and 10-second command timeouts bounded the test. It returned HTTP 200 with body exactly `Alive`. `/proc/1/cmdline` matched `dotnet /app/AIQuantTradingResearch.Worker.dll --research-snapshot-api`; `id -u` returned `1654`. Owner-label verification preceded exact container removal; the owned network was removed. Cleanup PASS. This qualifies local startup/anonymous HTTP only, not Azure HTTPS, key authentication, persistence, data or public readiness.
+
+The owner-approved compatibility attempt has not changed Azure: the existing controller's deploy path can prefer a process key and writes full app settings, so it is not safe to reuse unchanged for a preserve-existing-key-only attempt. A fresh protected baseline and reviewed preserving recovery procedure remain required before the Azure step. No historical attempt was reused or sensitive baseline captured here.
+
+Exact proposed registry mutation, awaiting its separately required approval:
+
+```text
+docker tag sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp35-c1653dc2075b20f35fd1b31a0f41096e6ae7e354
+docker push ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp35-c1653dc2075b20f35fd1b31a0f41096e6ae7e354
+```
+
+After explicit approval, verify existing registry permission without exposing tokens, push only this candidate, then read back and record the immutable registry manifest digest and architecture. Registry publication remains NO until actually performed. The owner was asked about these exact operations separately; reversible-attempt approval was not silently extended to a registry push.
+
+Current status: local image built YES; local anonymous health PASS; registry publication NO; Azure deployment NO; Azure `/health` UNVERIFIED; F1 compatibility UNVERIFIED. Ten offline tests pass. PowerShell AST recheck and UTF-8/LF checks precede commit. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.

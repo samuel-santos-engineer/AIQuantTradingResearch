@@ -36,8 +36,12 @@ class PackagingTests(unittest.TestCase):
         self.assertIn("--source", restore)
         self.assertIn("--configfile", restore)
         self.assertIn("-p:NuGetAudit=false", restore)
+        self.assertIn("-p:SelfContained=false", restore)
+        self.assertIn("-p:UseAppHost=false", restore)
+        self.assertIn("-p:UseAppHost=false", publish)
         self.assertIn("--no-restore", publish)
-        self.assertIn("linux-x64", publish)
+        self.assertNotIn("--runtime", restore)
+        self.assertNotIn("--runtime", publish)
         self.assertEqual(publish[publish.index("--self-contained") + 1], "false")
 
     def test_default_only_reads_git(self):
@@ -55,6 +59,13 @@ class PackagingTests(unittest.TestCase):
             self.assertEqual(json.loads(output.getvalue())["result"], "BUILD_BLOCKED_F1_FEASIBILITY_REQUIRED")
             self.assertEqual(run.call_count, 1)
             build.assert_not_called()
+
+    def test_approved_attempt_does_not_claim_feasibility(self):
+        with patch.object(wp35, "run", return_value=COMMIT.encode()), patch.object(wp35, "build", return_value=0) as build:
+            with redirect_stdout(io.StringIO()):
+                self.assertEqual(wp35.main(["--repository", str(ROOT), "--build", "--prepare-approved-compatibility-attempt"]), 0)
+            self.assertEqual(build.call_args.args[1]["feasibilityBasis"], "OWNER_APPROVED_REVERSIBLE_ATTEMPT_COMPATIBILITY_UNVERIFIED")
+            self.assertFalse(build.call_args.args[1]["azureDeployed"])
 
     def test_failed_tool_output_is_not_disclosed(self):
         with patch.object(wp35.subprocess, "run") as execute:
