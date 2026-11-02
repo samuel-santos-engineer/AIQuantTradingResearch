@@ -103,7 +103,7 @@ try {
     $activeGate = 'WP22_OFFLINE_TESTS'
     $step = Invoke-JsonEntry $wp22
     if ($step.ExitCode -ne 0 -or $step.Value.result -ne 'OFFLINE_TESTS_PASS' -or
-        $step.Value.offlineTests -lt 51) { throw 'OFFLINE_TESTS_FAILED' }
+        $step.Value.offlineTests -lt 54) { throw 'OFFLINE_TESTS_FAILED' }
     Add-Gate $activeGate 'PASS'
 
     $activeGate = 'WP21_OFFLINE_AND_OPERATOR_PREFLIGHT'

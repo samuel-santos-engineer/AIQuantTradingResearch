@@ -565,3 +565,46 @@ is not claimed. UTF-8/LF/no-BOM, Python syntax and diff checks passed.
 `approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Nullable slot metadata compatibility correction
+
+The next operator observation identified BASELINE_SLOT_METADATA_UNVERIFIED. It did
+not disclose the actual values/types. No historical private records were accessed.
+Microsoft's [SlotConfigNames SDK reference](https://learn.microsoft.com/sv-se/python/api/azure-mgmt-web/azure.mgmt.web.models.slotconfignames?view=azure-python)
+declares app_setting_names and connection_string_names as `list[str] | None`.
+The previous read-only completeness guard incorrectly required lists exclusively.
+
+The guard now permits an explicit JSON null or a list containing only strings for
+each required field. Both field names are STILL required. Missing fields, strings,
+dictionaries, booleans, numbers or lists with non-string entries are rejected.
+Nothing is normalized: null and [] remain distinct. Full original slot metadata is
+retained for strict two-capture comparison and original restoration payloads.
+Tests prove a null-to-empty-list change causes BASELINE_DRIFT and the existing
+restore method passes null values unchanged when restoring metadata. No runtime,
+controller/recovery, target, freshness, request, timeout or approval behavior changes.
+
+This fixes the supported nullable shape; it does not claim the old private response
+was null. A genuinely malformed value still fails with the same fixed rule. The
+next authorized observation is required to establish actual Azure qualification.
+Do not retry or reuse the last failed UUID or any earlier attempt.
+
+Offline results: 54 inspector tests + 38 WP21 + 19 WP19 + 19 WP18 = 130 passed,
+exit 0, no skips here. Three added methods test all null/empty/populated combinations,
+raw restoration payload preservation, missing/malformed values and strict drift.
+The single PowerShell entry now requires at least 54 inspector tests. PowerShell
+5.1 parsing, UTF-8/LF/no-BOM and diff checks pass. No Azure operation or actual
+operator -File execution occurred during this correction.
+
+The single-run invocation in the reviewed checkout remains:
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Invoke-Wp29ReadOnlyQualification.ps1 -InspectAzureReadOnly
+```
+
+It creates one fresh disabled attempt, performs one inspection and returns only
+sanitized diagnostics. Stop on failure without retry. Never expose private paths,
+configuration, tokens, approval/observation records or key material.
+`approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
+`RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
+`PUBLIC_RUNTIME_VERIFIED=False`.

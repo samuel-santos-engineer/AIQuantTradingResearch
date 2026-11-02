@@ -271,8 +271,10 @@ def complete(b):
         s["publicNetworkAccess"] in (None,"Enabled","Disabled"), "BASELINE_HOST_UNVERIFIED")
     R.require(all(isinstance(b["web"][k],str) for k in ("linuxFxVersion","appCommandLine")),
               "BASELINE_STARTUP_UNVERIFIED")
-    R.require(all(isinstance(b["slotFlags"][k],list) and
-        all(isinstance(x,str) for x in b["slotFlags"][k])
+    # Azure's SlotConfigNames model allows explicit null lists. Preserve the
+    # original value for exact comparison/restoration; never normalize to [].
+    R.require(all(b["slotFlags"][k] is None or (isinstance(b["slotFlags"][k],list) and
+        all(isinstance(x,str) for x in b["slotFlags"][k]))
         for k in ("appSettingNames","connectionStringNames")), "BASELINE_SLOT_METADATA_UNVERIFIED")
     R.require(all(isinstance(b["logs"][k],dict) for k in
         ("applicationLogs","httpLogs","detailedErrorMessages","failedRequestsTracing")),

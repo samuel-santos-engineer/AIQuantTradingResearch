@@ -654,4 +654,50 @@ class ValidationRuleTests(unittest.TestCase):
             result=self.inspect()
         self.assertEqual(result['failedStage'],'OBSERVATION_WRITE');self.assertIsNone(result['validationRule'])
 
+class NullableSlotMetadataTests(unittest.TestCase):
+    setUp=PreparationTests.setUp
+    inspect=PreparationTests.inspect
+
+    def test_explicit_null_empty_and_populated_lists_preserved(self):
+        for first in (None,[],['sticky']):
+            for second in (None,[],['connection']):
+                b=baseline();b['slotFlags']={'appSettingNames':first,'connectionStringNames':second}
+                original=copy.deepcopy(b)
+                self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+                result=self.inspect()
+                self.assertTrue(result['azureBaselineVerified'])
+                self.assertIsNone(result['validationRule']);self.assertEqual(b,original)
+                # Existing restore passes original metadata through without normalization.
+                calls=[]
+                def request(method,suffix='',body=None,resource=R.SITE,kind=None):
+                    calls.append((method,suffix,copy.deepcopy(body)))
+                    return {'properties':{}}  # Different: force restore's original payload.
+                adapter=R.Azure()
+                with mock.patch.object(adapter,'stop'),mock.patch.object(adapter,'request',side_effect=request):
+                    adapter.restore(b)
+                self.assertIn(('put','/config/slotConfigNames',original['slotFlags']),calls)
+
+    def test_missing_or_malformed_metadata_remains_rejected(self):
+        for field in ('appSettingNames','connectionStringNames'):
+            for bad in ('not-a-list',{},True,1,[None],[1],['valid',{}]):
+                b=baseline();b['slotFlags'][field]=bad
+                self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+                result=self.inspect();self.assertFalse(result['azureBaselineVerified'])
+                self.assertEqual(result['validationRule'],'BASELINE_SLOT_METADATA_UNVERIFIED')
+            b=baseline();del b['slotFlags'][field]
+            self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+            result=self.inspect();self.assertFalse(result['azureBaselineVerified'])
+            self.assertEqual(result['validationRule'],'BASELINE_SLOT_FLAGS_MISSING')
+
+    def test_null_empty_drift_is_not_hidden(self):
+        for field in ('appSettingNames','connectionStringNames'):
+            first=baseline();first['slotFlags'][field]=None
+            second=copy.deepcopy(first);second['slotFlags'][field]=[]
+            self.adapter.capture.side_effect=[first,second]
+            result=self.inspect()
+            self.assertFalse(result['azureBaselineVerified'])
+            self.assertEqual(result['failureCategory'],'AZURE_BASELINE_DRIFT')
+            self.assertEqual(result['failedStage'],'BASELINE_COMPARISON')
+            self.assertFalse(result['serviceKeyChannelChecked'])
+
 if __name__=="__main__":unittest.main()
