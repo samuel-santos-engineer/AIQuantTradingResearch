@@ -600,4 +600,104 @@ print(json.dumps({'workersPassed':len(results),'networkMocked':True,'profileMock
         self.assertEqual(result.returncode,0,'Installed helper compatibility failed; raw streams withheld')
         self.assertEqual(json.loads(result.stdout),{'workersPassed':2,'networkMocked':True,'profileMocked':True})
 
+class ValidationRuleTests(unittest.TestCase):
+    setUp=PreparationTests.setUp
+    inspect=PreparationTests.inspect
+
+    def test_real_validation_failures_both_capture_passes(self):
+        cases=[
+            ('INCOMPLETE_BASELINE',lambda b:b.pop('web')),
+            ('BASELINE_TARGET_MISMATCH',lambda b:b['site'].update(id='other')),
+            ('BASELINE_STATE_INVALID',lambda b:b['site'].update(httpsOnly=None)),
+            ('BASELINE_STARTUP_MISSING',lambda b:b['web'].pop('appCommandLine')),
+            ('BASELINE_SETTINGS_INVALID',lambda b:b.update(settings=None)),
+            ('BASELINE_METADATA_MISSING',lambda b:b.update(slots=[{}])),
+            ('BASELINE_CONNECTION_METADATA_UNVERIFIED',lambda b:b.update(connections={'private':{'value':None,'type':'Custom'}})),
+            ('BASELINE_SLOT_FLAGS_MISSING',lambda b:b['slotFlags'].pop('appSettingNames')),
+            ('BASELINE_LOGGING_MISSING',lambda b:b['logs'].pop('httpLogs')),
+            ('BASELINE_HOST_UNVERIFIED',lambda b:b['site'].update(state='Stopped')),
+            ('BASELINE_STARTUP_UNVERIFIED',lambda b:b['web'].update(appCommandLine=None)),
+            ('BASELINE_SLOT_METADATA_UNVERIFIED',lambda b:b['slotFlags'].update(appSettingNames='malformed')),
+            ('BASELINE_LOGGING_UNVERIFIED',lambda b:b['logs'].update(httpLogs=None))]
+        self.assertEqual({code for code,_ in cases},P.VALIDATION_RULES)
+        for second in (False,True):
+            for code,mutate in cases:
+                b=baseline();mutate(b)
+                self.adapter.capture.side_effect=[baseline(),b] if second else [b]
+                with self.subTest(second=second,rule=code):
+                    result=self.inspect()
+                    self.assertEqual(result['validationRule'],code)
+                    self.assertEqual(result['failedStage'],'SECOND_CAPTURE_VALIDATION' if second else 'FIRST_CAPTURE_VALIDATION')
+                    self.assertFalse(result['azureBaselineVerified']);self.assertFalse(result['serviceKeyChannelChecked'])
+                    self.assertFalse(result['approvalEnabled']);self.assertFalse(result['liveControllerInvoked'])
+                    self.assertEqual(self.adapter.capture.call_count,2 if second else 1)
+                self.adapter.capture.reset_mock()
+        self.assertFalse((self.directory/'baseline.json').exists());self.assertFalse((self.directory/'consumed.json').exists())
+
+    def test_unknown_exception_and_nonvalidation_codes_never_disclosed(self):
+        for error in (R.Blocked('SECRET_CANARY /private/path'),RuntimeError('BASELINE_SETTINGS_INVALID SECRET_CANARY')):
+            self.adapter.capture.side_effect=error
+            result=self.inspect();self.assertIsNone(result['validationRule'])
+            self.assertNotIn('SECRET_CANARY',json.dumps(result))
+        with mock.patch.object(P,'template',side_effect=R.Blocked('BASELINE_SETTINGS_INVALID')):
+            result=self.inspect();self.assertIsNone(result['validationRule'])
+
+    def test_rule_observation_and_success_null(self):
+        b=baseline();b['settings']={'SECRET_SETTING_CANARY':None};self.adapter.capture.side_effect=[b]
+        result=self.inspect();self.assertEqual(result['validationRule'],'BASELINE_SETTINGS_INVALID')
+        path=next(self.directory.glob('wp22-observation-*.json'))
+        self.assertEqual(R.load(path)['validationRule'],'BASELINE_SETTINGS_INVALID')
+        self.assertNotIn('SECRET_SETTING_CANARY',path.read_text())
+        self.adapter.capture.side_effect=lambda:baseline()
+        self.assertIsNone(self.inspect()['validationRule'])
+        with mock.patch.object(R,'save_new',side_effect=OSError('SECRET_CANARY')):
+            result=self.inspect()
+        self.assertEqual(result['failedStage'],'OBSERVATION_WRITE');self.assertIsNone(result['validationRule'])
+
+class NullableSlotMetadataTests(unittest.TestCase):
+    setUp=PreparationTests.setUp
+    inspect=PreparationTests.inspect
+
+    def test_explicit_null_empty_and_populated_lists_preserved(self):
+        for first in (None,[],['sticky']):
+            for second in (None,[],['connection']):
+                b=baseline();b['slotFlags']={'appSettingNames':first,'connectionStringNames':second}
+                original=copy.deepcopy(b)
+                self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+                result=self.inspect()
+                self.assertTrue(result['azureBaselineVerified'])
+                self.assertIsNone(result['validationRule']);self.assertEqual(b,original)
+                # Existing restore passes original metadata through without normalization.
+                calls=[]
+                def request(method,suffix='',body=None,resource=R.SITE,kind=None):
+                    calls.append((method,suffix,copy.deepcopy(body)))
+                    return {'properties':{}}  # Different: force restore's original payload.
+                adapter=R.Azure()
+                with mock.patch.object(adapter,'stop'),mock.patch.object(adapter,'request',side_effect=request):
+                    adapter.restore(b)
+                self.assertIn(('put','/config/slotConfigNames',original['slotFlags']),calls)
+
+    def test_missing_or_malformed_metadata_remains_rejected(self):
+        for field in ('appSettingNames','connectionStringNames'):
+            for bad in ('not-a-list',{},True,1,[None],[1],['valid',{}]):
+                b=baseline();b['slotFlags'][field]=bad
+                self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+                result=self.inspect();self.assertFalse(result['azureBaselineVerified'])
+                self.assertEqual(result['validationRule'],'BASELINE_SLOT_METADATA_UNVERIFIED')
+            b=baseline();del b['slotFlags'][field]
+            self.adapter.capture.side_effect=lambda:copy.deepcopy(b)
+            result=self.inspect();self.assertFalse(result['azureBaselineVerified'])
+            self.assertEqual(result['validationRule'],'BASELINE_SLOT_FLAGS_MISSING')
+
+    def test_null_empty_drift_is_not_hidden(self):
+        for field in ('appSettingNames','connectionStringNames'):
+            first=baseline();first['slotFlags'][field]=None
+            second=copy.deepcopy(first);second['slotFlags'][field]=[]
+            self.adapter.capture.side_effect=[first,second]
+            result=self.inspect()
+            self.assertFalse(result['azureBaselineVerified'])
+            self.assertEqual(result['failureCategory'],'AZURE_BASELINE_DRIFT')
+            self.assertEqual(result['failedStage'],'BASELINE_COMPARISON')
+            self.assertFalse(result['serviceKeyChannelChecked'])
+
 if __name__=="__main__":unittest.main()
