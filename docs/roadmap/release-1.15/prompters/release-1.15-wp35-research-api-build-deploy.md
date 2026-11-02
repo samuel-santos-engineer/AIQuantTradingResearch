@@ -61,7 +61,7 @@ The Python standard-library implementation exports the current committed tree wi
 
 It checks the cached pinned Linux/amd64 ASP.NET base, restores from an explicitly empty local package feed with cleared sources and NuGet auditing disabled (existing global package/runtime caches only), publishes portable Release .NET DLL output with `--no-restore`, `SelfContained=false` and `UseAppHost=false` (Linux native SQLite assets and final Linux/amd64 image are checked), checks .NET 10 runtime metadata and Linux SQLite native library, and builds with `--platform linux/amd64 --pull=false --network=none`. Missing caches stop; no download fallback. Intermediate source/output is owned temporary storage, not owner state. No real key is an input, build argument or layer.
 
-It writes a nonsecret context SHA-256 manifest and result, then validates image OS/architecture, UID, entrypoint, exposed port and default bind. The local commit-qualified tag is `aiq-wp35-research:<full-source-commit>`. Local image ID is a configuration digest, **not** a registry manifest digest. A built result deliberately remains `LOCAL_IMAGE_BUILT_RUNTIME_UNQUALIFIED`, with health unverified and no registry digest. Outputs/images are retained for review; no cleanup targets unrelated resources.
+It writes a nonsecret context SHA-256 manifest and result, then validates image OS/architecture, UID, entrypoint, exposed port and default bind. The local commit-qualified tag is `aiq-wp35-research:<full-source-commit>`. Local image ID alone is not registry publication evidence; the Docker containerd store may identify an OCI index. Registry readback must establish the immutable identity and platform manifest explicitly. A built result deliberately remains `LOCAL_IMAGE_BUILT_RUNTIME_UNQUALIFIED`, with health unverified and no registry digest. Outputs/images are retained for review; no cleanup targets unrelated resources.
 
 This is reproducible packaging intent (pinned base, source commit, closed context, offline inputs and manifest), not a proven bit-for-bit image reproducibility claim. Initial preparation stopped before building because feasibility was unresolved. The later owner-approved reversible-attempt amendment and local qualification below supersede that initial result. Initial Docker inspection returned pipe access denied; the subsequent owner-authorized access retry succeeded (details below). SDK `10.0.103` is installed. No alternate identity, installation or policy bypass was attempted.
 
@@ -123,7 +123,7 @@ Actual successful result:
 - Source commit exported: `c1653dc2075b20f35fd1b31a0f41096e6ae7e354` (serving source unchanged; packaging amendments were local at execution).
 - Local image ID: `sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`.
 - Local tag: `aiq-wp35-research:c1653dc2075b20f35fd1b31a0f41096e6ae7e354`.
-- This is a local configuration ID, not a registry manifest digest. Registry digest remains unknown.
+- At build time this was only a local Docker ID; registry identity was not assumed. Subsequent approved publication/readback below establishes that it is the OCI index digest in this Docker store.
 - Offline restore, Release publish, context manifest, Docker build and image contract inspection succeeded; no pulls or networked restore/build.
 
 Actual local runtime qualification used this exact image and only a fake all-zero 64-character key. Created a UUID-owned internal Docker network and nonprivileged container with capabilities dropped, no-new-privileges, 512 MiB memory and 128 PID limit. Platform site/host/role flags were explicit fake local emulation values; private writable storage was the disposable container's own `/tmp/aiq-research`. No data import, bind mount, real key or external provider call.
@@ -142,3 +142,28 @@ docker push ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp35-c1653dc20
 After explicit approval, verify existing registry permission without exposing tokens, push only this candidate, then read back and record the immutable registry manifest digest and architecture. Registry publication remains NO until actually performed. The owner was asked about these exact operations separately; reversible-attempt approval was not silently extended to a registry push.
 
 Current status: local image built YES; local anonymous health PASS; registry publication NO; Azure deployment NO; Azure `/health` UNVERIFIED; F1 compatibility UNVERIFIED. Ten offline tests pass. PowerShell AST recheck and UTF-8/LF checks precede commit. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Exact owner-approved registry publication - completed
+
+The owner explicitly approved the proposed image/tag/push/readback. Executed the exact `docker tag` and `docker push` commands above using existing registry authentication; no login/token/credential output or new registry was used. Push exit 0.
+
+Registry readback commands (both exit 0):
+
+```text
+docker buildx imagetools inspect ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp35-c1653dc2075b20f35fd1b31a0f41096e6ae7e354
+docker manifest inspect --verbose ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f
+```
+
+Confirmed immutable registry identity:
+
+- OCI index digest: `sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`.
+- Linux/amd64 runtime manifest: `sha256:fb9aab67753be84ca3300876fa4ed4d669ab0d897beb49f3fb8f2eae58b9b012`.
+- Runtime configuration digest: `sha256:a6f38d9b9d99ad979354b596423a957ffcc0cacacc7bcbcd80ca5b4eaac2dd1c`.
+- The additional unknown/unknown manifest is an attestation referencing the Linux/amd64 manifest, not another runnable architecture.
+- Future candidate reference: existing registry repository plus `@sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`. No historical WP21 digest substitution.
+
+The registry index matching the locally qualified Docker ID is now established by readback, not inferred from the ID. No separate anonymous registry pull-access claim is made by authenticated Docker readback.
+
+Latest status supersedes earlier pre-publication checkpoints: image built YES; local health PASS; registry publication and digest readback YES; Azure deployment/restart NO; Azure `/health` UNVERIFIED. The reversible Azure attempt is owner-authorized but not technically ready: it still needs a fresh complete protected baseline and key-preserving execution/recovery path. Do not use the old controller's key override or expose key-bearing settings through Codex. No baseline/key reads, provider calls or UI changes occurred.
+
+`liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
