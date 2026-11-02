@@ -496,3 +496,72 @@ authorized live operation. No live approval or deployment is granted here.
 `approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Exact baseline validation-rule diagnostic and single-run entry
+
+The WP29 operator result reached FIRST_CAPTURE_VALIDATION / AZURE_BASELINE_INCOMPLETE.
+Its report did not contain the specific rule. No retrospective rule can be inferred
+reliably, and this correction does not access the historical private attempt.
+Preserve it unchanged and do not retry or reuse it.
+
+The report now includes nullable `validationRule`. Only exact existing internal
+Blocked codes from FIRST_CAPTURE_VALIDATION or SECOND_CAPTURE_VALIDATION are
+exposed, from this closed set:
+
+- INCOMPLETE_BASELINE: expected baseline categories differ.
+- BASELINE_TARGET_MISMATCH: site/plan identity mismatch.
+- BASELINE_STATE_INVALID: state, HTTPS-only type or F1 SKU check failed.
+- BASELINE_STARTUP_MISSING: required startup fields absent.
+- BASELINE_SETTINGS_INVALID: settings are not a string-valued dictionary.
+- BASELINE_METADATA_MISSING: connection/slot metadata shape or nonempty slot inventory.
+- BASELINE_CONNECTION_METADATA_UNVERIFIED: connection value/type metadata invalid.
+- BASELINE_SLOT_FLAGS_MISSING: required slot flag categories absent.
+- BASELINE_LOGGING_MISSING: required logging categories absent.
+- BASELINE_HOST_UNVERIFIED: Running/kind/region/public-network check failed.
+- BASELINE_STARTUP_UNVERIFIED: startup values are not strings.
+- BASELINE_SLOT_METADATA_UNVERIFIED: slot-flag values are not string lists.
+- BASELINE_LOGGING_UNVERIFIED: logging category values are not objects.
+
+These are diagnostic rule labels, not permission to relax the check. Unknown/raw
+exceptions and non-validation stages return null. Success returns null. Observation
+write failure overrides prior results and clears the rule. No setting names/values,
+connection strings, private paths, raw exceptions or bodies are disclosed.
+
+### One PowerShell invocation after review/merge
+
+The reviewed checkout now contains Invoke-Wp29ReadOnlyQualification.ps1, preserving
+all existing worker fields plus validationRule. It defaults to its own repository
+root rather than a stale temporary checkout. No helper is copied and no Python or
+Azure validation is bypassed. Default execution remains offline only. The explicit
+switch below runs offline checks/preflight, prepares one NEW disabled UUID and makes
+one read-only inspection. It stops on failure; cleanup communication is not a retry.
+
+From the clean reviewed merged repository root, in the owner's already-authorized
+Windows PowerShell 5.1/Azure session:
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Invoke-Wp29ReadOnlyQualification.ps1 -InspectAzureReadOnly
+```
+
+Do not use the earlier untracked copy against the stale WP29 checkout; it lacks
+validationRule. This PR supplies the complete single-run entry for the reviewed
+checkout. Return only its sanitized final JSON, especially failedStage,
+failureCategory and validationRule. Do not retry on failure or alter a historical
+attempt. No operator execution, Azure call or private-record access occurred during
+this implementation. The next real rule remains pending owner observation.
+
+### Offline evidence
+
+51 inspector tests (including the installed-CLI mocked compatibility test), 38 WP21,
+19 WP19 and 19 WP18 passed: 127 total, exit 0, no skips here. Three new test methods
+exercise all 13 actual failing rule checks in both capture passes, unknown/error
+redaction, observation persistence, successful null rules and write-failure override.
+Existing strict inventory, freshness, two-capture equality, worker timeout/redaction
+and no-live-record tests remain. WP21 runtime/controller/recovery are unchanged.
+The single entry parses in Windows PowerShell 5.1.26100.9711; runtime -File execution
+is not claimed. UTF-8/LF/no-BOM, Python syntax and diff checks passed.
+
+`approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
+`RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
+`PUBLIC_RUNTIME_VERIFIED=False`.

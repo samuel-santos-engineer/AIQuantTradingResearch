@@ -56,6 +56,14 @@ CODE_CATEGORIES = {
         "BASELINE_SLOT_METADATA_UNVERIFIED", "BASELINE_LOGGING_UNVERIFIED")}}
 
 
+VALIDATION_RULES = frozenset({
+    "INCOMPLETE_BASELINE", "BASELINE_TARGET_MISMATCH", "BASELINE_STATE_INVALID",
+    "BASELINE_STARTUP_MISSING", "BASELINE_SETTINGS_INVALID", "BASELINE_METADATA_MISSING",
+    "BASELINE_CONNECTION_METADATA_UNVERIFIED", "BASELINE_SLOT_FLAGS_MISSING",
+    "BASELINE_LOGGING_MISSING", "BASELINE_HOST_UNVERIFIED", "BASELINE_STARTUP_UNVERIFIED",
+    "BASELINE_SLOT_METADATA_UNVERIFIED", "BASELINE_LOGGING_UNVERIFIED"})
+
+
 def category(error, stage):
     if stage == "OBSERVATION_WRITE": return "OBSERVATION_PERSISTENCE_FAILED"
     if not stage.startswith(("FIRST_CAPTURE_", "SECOND_CAPTURE_", "BASELINE_COMPARISON")):
@@ -225,7 +233,8 @@ def report():
     return dict(result="PREPARATION_INCOMPLETE", attemptPrepared=False,
         offlinePreflightPassed=False, azureBaselineVerified=False,
         serviceKeyChannelAvailable=False, serviceKeyChannelChecked=False,
-        failedStage=None, failureCategory=None, transportFailureCategory=None, workerStage=None, httpStatus=None,
+        failedStage=None, failureCategory=None, validationRule=None,
+        transportFailureCategory=None, workerStage=None, httpStatus=None,
         approvalEnabled=False,
         liveControllerInvoked=False, liveAttemptReady=False,
         RESEARCH_PROCESS_ALIVE="UNVERIFIED", AUTHENTIC_DATA_NOT_IMPORTED=True,
@@ -280,6 +289,10 @@ def inspect(directory, adapter=None, gate=None):
         stage=value
 
     def fail(error):
+        # Match exact internal codes only; never disclose arbitrary exception text.
+        code=error.args[0] if isinstance(error,R.Blocked) and len(error.args)==1 and type(error.args[0]) is str else None
+        result["validationRule"]=(code if stage in ("FIRST_CAPTURE_VALIDATION","SECOND_CAPTURE_VALIDATION")
+            and code in VALIDATION_RULES else None)
         # No arbitrary error evidence, messages or attributes are copied.
         result["transportFailureCategory"]=(error.transport_category if isinstance(error,TransportFailure)
             and error.transport_category in TRANSPORT_CATEGORIES else
