@@ -9,7 +9,7 @@ No live approval, deployment, provider request or application HTTPS probe.
 #>
 [CmdletBinding()]
 param(
-    [string]$RepositoryRoot = (Join-Path $PSScriptRoot '../../..'),
+    [string]$RepositoryRoot,
     [switch]$PreparePrivateAttempt,
     [switch]$InspectAzureReadOnly
 )
@@ -86,6 +86,11 @@ function Add-Gate {
 try {
     if ($PSVersionTable.PSVersion.Major -ne 5 -or $PSVersionTable.PSVersion.Minor -ne 1) {
         throw 'WINDOWS_POWERSHELL_51_REQUIRED'
+    }
+    # Resolve script-relative defaults in the body, after script initialization.
+    if ([string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+        if ([string]::IsNullOrWhiteSpace($PSCommandPath)) { throw 'SCRIPT_PATH_UNAVAILABLE' }
+        $RepositoryRoot = Join-Path (Split-Path -Parent $PSCommandPath) '../../..'
     }
     $root = (Resolve-Path -LiteralPath $RepositoryRoot).Path
     $entries = Join-Path $root 'eng/docker/release-1.15'
