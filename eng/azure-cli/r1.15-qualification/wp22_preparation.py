@@ -73,13 +73,45 @@ def category(error, stage):
 
 
 TRANSPORT_CATEGORIES = frozenset({"CLI_EXECUTABLE_UNAVAILABLE", "WORKER_LAUNCH_FAILURE",
-    "PARENT_TIMEOUT", "WORKER_NONZERO_EXIT", "INVALID_WORKER_OUTPUT", "WORKER_IO_FAILURE", "UNKNOWN"})
+    "PARENT_TIMEOUT", "WORKER_NONZERO_EXIT", "INVALID_WORKER_OUTPUT", "WORKER_IO_FAILURE", "WORKER_REPORTED_FAILURE", "UNKNOWN"})
+
+
+WORKER_STAGES = frozenset({"INPUT", "INITIALIZATION", "REQUEST", "RESPONSE_VALIDATION", "RESPONSE_DECODING"})
+WORKER_PROTOCOL = "aiq-arm-readonly-worker-v1"
+# Read-only worker only; the WP21 live/recovery bridge stays byte-for-byte unchanged.
+DIAGNOSTIC_BRIDGE = """import sys,json,logging,threading,os
+t=threading.Timer(40,lambda:os._exit(124));t.daemon=True;t.start()
+logging.disable(logging.CRITICAL)
+stage='INPUT'
+try:
+ a=json.load(sys.stdin);method=a[a.index('--method')+1];url=a[a.index('--url')+1]
+ body=a[a.index('--body')+1] if '--body' in a else None
+ stage='INITIALIZATION'
+ from azure.cli.core import get_default_cli
+ from azure.cli.core.util import send_raw_request
+ cli=get_default_cli()
+ stage='REQUEST'
+ r=send_raw_request(cli,method,url,headers={'Content-Type':'application/json'},body=body)
+ stage='RESPONSE_VALIDATION'
+ if type(r.status_code) is not int or not 200<=r.status_code<300 or len(r.content)>8388608:raise ValueError()
+ stage='RESPONSE_DECODING'
+ payload=r.json()
+ if not isinstance(payload,dict):raise ValueError()
+except BaseException:
+ json.dump({'protocol':'aiq-arm-readonly-worker-v1','ok':False,'workerStage':stage,'payload':None},sys.stdout)
+else:
+ json.dump({'protocol':'aiq-arm-readonly-worker-v1','ok':True,'workerStage':None,'payload':payload},sys.stdout)
+"""
 
 
 class TransportFailure(R.Blocked):
-    def __init__(self, value):
+    def __init__(self, value, worker_stage=None):
         self.transport_category=value if type(value) is str and value in TRANSPORT_CATEGORIES else "UNKNOWN"
-        # The unchanged worker protocol does not expose trustworthy HTTP status.
+        self.worker_stage=worker_stage if type(worker_stage) is str and worker_stage in WORKER_STAGES else None
+        if self.transport_category=="WORKER_REPORTED_FAILURE" and self.worker_stage is None:
+            self.transport_category="UNKNOWN"
+        if self.transport_category!="WORKER_REPORTED_FAILURE": self.worker_stage=None
+        # Worker stages do not claim an HTTP status or auth/RBAC diagnosis.
         self.http_status=None
         super().__init__("AZURE_CLI_UNAVAILABLE" if self.transport_category=="CLI_EXECUTABLE_UNAVAILABLE"
             else "AZURE_OPERATION_FAILED")
@@ -91,7 +123,7 @@ def diagnostic_cli(arguments):
     if not interpreter.is_file(): raise TransportFailure("CLI_EXECUTABLE_UNAVAILABLE")
     directory=Path(os.environ["AIQ_WP21_ATTEMPT_DIRECTORY"])
     try:
-        child=subprocess.Popen([str(interpreter),"-I","-c",R.BRIDGE],stdin=subprocess.PIPE,
+        child=subprocess.Popen([str(interpreter),"-I","-c",DIAGNOSTIC_BRIDGE],stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,stderr=subprocess.PIPE,
             creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
     except OSError:
@@ -113,16 +145,27 @@ def diagnostic_cli(arguments):
         if not isinstance(output,bytes) or len(output)>8*1024*1024:
             raise TransportFailure(failure)
         value=json.loads(output)
-        if not isinstance(value,dict): raise TransportFailure(failure)
-        return value
-    except Exception:
+        if (not isinstance(value,dict) or set(value)!={"protocol","ok","workerStage","payload"}
+                or value["protocol"]!=WORKER_PROTOCOL or type(value["ok"]) is not bool):
+            raise TransportFailure(failure)
+        if value["ok"] is False:
+            if value["payload"] is not None or type(value["workerStage"]) is not str or value["workerStage"] not in WORKER_STAGES:
+                raise TransportFailure(failure)
+            raise TransportFailure("WORKER_REPORTED_FAILURE",value["workerStage"])
+        if value["workerStage"] is not None or not isinstance(value["payload"],dict):
+            raise TransportFailure(failure)
+        return value["payload"]
+    except Exception as error:
+        worker_stage=None
+        if isinstance(error,TransportFailure) and error.transport_category=="WORKER_REPORTED_FAILURE":
+            failure=error.transport_category;worker_stage=error.worker_stage
         try:
             if child.poll() is None:
                 child.kill();child.communicate(timeout=5)
         except Exception:
             # Cleanup cannot be claimed from incomplete process API evidence.
             failure="UNKNOWN"
-        raise TransportFailure(failure) from None
+        raise TransportFailure(failure,worker_stage) from None
     except BaseException:
         # Preserve interruption semantics while still cleaning only our owned child.
         if child.poll() is None:
@@ -181,7 +224,7 @@ def report():
     return dict(result="PREPARATION_INCOMPLETE", attemptPrepared=False,
         offlinePreflightPassed=False, azureBaselineVerified=False,
         serviceKeyChannelAvailable=False, serviceKeyChannelChecked=False,
-        failedStage=None, failureCategory=None, transportFailureCategory=None, httpStatus=None,
+        failedStage=None, failureCategory=None, transportFailureCategory=None, workerStage=None, httpStatus=None,
         approvalEnabled=False,
         liveControllerInvoked=False, liveAttemptReady=False,
         RESEARCH_PROCESS_ALIVE="UNVERIFIED", AUTHENTIC_DATA_NOT_IMPORTED=True,
@@ -241,8 +284,11 @@ def inspect(directory, adapter=None, gate=None):
             and error.transport_category in TRANSPORT_CATEGORIES else
             "UNKNOWN" if stage.startswith(("FIRST_CAPTURE_","SECOND_CAPTURE_"))
             and not stage.endswith(("RESPONSE_VALIDATION","VALIDATION")) else None)
+        result["workerStage"]=(error.worker_stage if isinstance(error,TransportFailure)
+            and error.transport_category=="WORKER_REPORTED_FAILURE" else None)
         result["httpStatus"]=None
-        if stage=="OBSERVATION_WRITE": result["transportFailureCategory"]=None
+        if stage=="OBSERVATION_WRITE":
+            result["transportFailureCategory"]=None;result["workerStage"]=None
         result.update(result="AZURE_BASELINE_UNVERIFIED",azureBaselineVerified=False,
             failedStage=stage,failureCategory=category(error,stage),
             failureReason="PREREQUISITE_OR_AZURE_CAPTURE_UNVERIFIED")

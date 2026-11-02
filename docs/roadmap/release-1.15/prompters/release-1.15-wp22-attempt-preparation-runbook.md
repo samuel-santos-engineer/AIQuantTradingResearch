@@ -363,3 +363,82 @@ change is authorized. A read-only result is not an immutable live rollback basel
 `approvalEnabled=false`; `liveControllerInvoked=false`; `liveAttemptReady=false`;
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Structured read-only worker-stage follow-up
+
+Owner authorized this correction after WP27 returned `FIRST_CAPTURE_SITE`,
+`AZURE_TRANSPORT_FAILURE`, `WORKER_NONZERO_EXIT`, null HTTP status and an unchecked
+key channel. Preserve that historical disabled attempt and every earlier record;
+no historical private attempt is accessed or reused by this implementation.
+
+The read-only worker now uses a separate, versioned internal envelope with exactly
+`protocol`, `ok`, `workerStage` and `payload`. Successful payloads remain ARM objects
+in process memory. A handled failure returns no payload and one fixed stage:
+
+| workerStage | Operation at failure |
+| --- | --- |
+| INPUT | Decode/extract the fixed worker request |
+| INITIALIZATION | Import CLI modules or construct the CLI context |
+| REQUEST | Execute send_raw_request; includes its internal authentication/transport behavior |
+| RESPONSE_VALIDATION | Check returned status type/range and existing response-size bound |
+| RESPONSE_DECODING | Decode response JSON and require an object |
+
+The public report adds nullable `workerStage`. A valid failure envelope produces
+`transportFailureCategory=WORKER_REPORTED_FAILURE`, the fixed stage and unchanged
+`failureCategory=AZURE_TRANSPORT_FAILURE`. Success has null diagnostics. Unknown
+stages, extra envelope fields, wrong protocol, non-boolean ok, secret-bearing failure
+payloads and contradictory success/stage combinations are rejected as invalid
+worker output. Nonzero/unstructured process exits retain their prior categories
+and null workerStage. Observation-write failure still clears diagnostics and fails
+closed. No raw exception, response body or stream enters sanitized failure evidence.
+
+`httpStatus` stays null. REQUEST includes possible CLI authentication/RBAC/HTTP
+errors without distinguishing them. RESPONSE_VALIDATION does not by itself prove an
+HTTP rejection: malformed status metadata or response size may also fail there.
+The report identifies the executing stage, not an independently proven root cause.
+
+WP21's original BRIDGE, runtime, controller and recovery files are unchanged.
+Only the read-only subclass selects this separate envelope-speaking worker; the
+shared default CLI behavior remains intact. The same fixed interpreter, stdin
+payload, ownership journal before dispatch, 40-second watchdog, 45-second parent
+wait and five-second cleanup apply. No retry, additional ARM operation or weaker
+baseline/target/plan/freshness/approval check was introduced. A fresh live rollback
+baseline remains the responsibility of a separately authorized live controller.
+
+Offline verification: 47 inspector tests, 38 WP21, 19 WP19 and 19 WP18 passed
+(123 total). The four new methods exercise the exact worker string with fake CLI
+modules and network connections blocked, every fixed worker stage, successful
+payload preservation, strict parent-envelope rejection and sanitized report/file
+propagation. Prior timeout, inventory, strict comparison, redaction and recovery
+regressions remain. UTF-8/LF/no-BOM, Python syntax and diff checks passed. No actual
+Azure request, operator -File run or private-attempt access is claimed.
+
+### Operator handoff after review and merge only
+
+Use the reviewed merged checkout and the existing direct PowerShell entries, not
+older wrappers that omit workerStage or reject the new transport enum. In the
+already authorized Windows PowerShell 5.1/Azure session, perform the offline and
+preflight commands first. Prepare one NEW disabled UUID only when ready for one
+read-only inspection within its 15-minute window. Do not retry on failure, change
+policy/identity, reuse the WP27 attempt or arm the template.
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Offline qualification failed; stop.' }
+powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp21ControllerQualification.ps1
+if ($LASTEXITCODE -ne 0) { throw 'Operator preflight failed; stop.' }
+$prepared = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -PreparePrivateAttempt | ConvertFrom-Json
+if ($LASTEXITCODE -ne 0 -or $prepared.attemptPrepared -ne $true -or $prepared.approvalEnabled -ne $false) { throw 'Disabled preparation failed; stop.' }
+$env:AIQ_WP21_ATTEMPT_DIRECTORY = Join-Path (Join-Path $env:LOCALAPPDATA 'AIQ-WP21') $prepared.attemptId
+$inspection = powershell.exe -NoProfile -NonInteractive -File .\eng\docker\release-1.15\Test-Wp22AttemptPreparation.ps1 -InspectAzureReadOnly | ConvertFrom-Json
+$inspectionExit = $LASTEXITCODE
+$inspection | Select-Object result,attemptId,failedStage,failureCategory,transportFailureCategory,workerStage,httpStatus,azureBaselineVerified,serviceKeyChannelChecked,serviceKeyChannelAvailable,approvalEnabled,liveControllerInvoked,liveAttemptReady,RESEARCH_PROCESS_ALIVE,AUTHENTIC_DATA_NOT_IMPORTED,PUBLIC_RUNTIME_VERIFIED | ConvertTo-Json
+if ($inspectionExit -ne 0) { throw 'Inspection blocked; stop; share sanitized JSON only.' }
+```
+
+Return only that selected JSON. Never print private paths, raw worker output,
+credential values, configuration or approval/observation files. No deployment or
+live approval is granted. `approvalEnabled=false`; `liveControllerInvoked=false`;
+`liveAttemptReady=false`; `RESEARCH_PROCESS_ALIVE=UNVERIFIED`;
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
