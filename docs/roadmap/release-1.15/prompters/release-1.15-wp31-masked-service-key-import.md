@@ -171,3 +171,23 @@ and runtime qualification remain necessary. `approvalEnabled=false`;
 `liveControllerInvoked=false`; `liveAttemptReady=false`;
 `RESEARCH_PROCESS_ALIVE=UNVERIFIED`; `AUTHENTIC_DATA_NOT_IMPORTED=True`;
 `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Owner fake-test failure: disposal assertion corrected
+
+The owner executed the fake-input suite and received OFFLINE_HELPER_TESTS_FAILED.
+The generic report did not identify its exact assertion. Offline .NET probes using
+one fake character showed that SecureString.Length after Dispose does not throw on
+Windows PowerShell 5.1.26100.9711. The original assertion expected an exception and
+was invalid. SecureStringToBSTR on that disposed fake buffer DOES reject conversion.
+The test now verifies conversion rejection and zero/frees any pointer should it
+unexpectedly succeed. No production-helper behavior or safety assertion is weakened.
+
+The executable fake test now reports a fixed failedTestStage and completedCases
+count on failure, never raw exception messages or fake key contents. The helper
+and its statuses remain unchanged. A full -File rerun is still blocked by Codex
+host policy, without bypass; the owner must rerun the same fake-only test command.
+This probe establishes the test defect, not the historical exact failed assertion
+or complete helper runtime qualification. Do not import a real key until the full
+13-case fake suite passes. No actual secret, Azure request or private attempt was
+accessed. Source is UTF-8/LF; both scripts parse in PowerShell 5.1.
