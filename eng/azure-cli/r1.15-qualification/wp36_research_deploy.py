@@ -1,10 +1,13 @@
-"""Small research-only deploy path. No settings/credential reads or settings writes."""
+"""Separate research image and approved ten-setting actions; no secret output."""
 import argparse
 import datetime as dt
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
+import shutil
+import sys
 import subprocess
 import tempfile
 import time
@@ -233,15 +236,177 @@ def execute(action, approved=False, key_present=False, settings_confirmed=False,
         return result, 2
 
 
+
+def settings_plan():
+    return {"result": "SETTINGS_PLAN_ONLY", "target": APP, "subscription": SUB,
+            "settingNames": sorted(SETTINGS), "saveInvocations": 0, "settingsSaved": False,
+            "imageDeployInvoked": False, "explicitRestartInvoked": False, "healthProbed": False,
+            "liveAttemptReady": False, "AUTHENTIC_DATA_NOT_IMPORTED": True, "PUBLIC_RUNTIME_VERIFIED": False}
+
+
+def verify_installed_merge():
+    # Installed CLI code only, fake data, no authentication/network or real settings.
+    import azure.cli.core
+    from azure.cli.command_modules.appservice import custom
+    from types import SimpleNamespace
+    from unittest.mock import patch
+    require(azure.cli.core.__version__ == "2.89.1", "SETTINGS_PRESERVATION_UNVERIFIED")
+    baseline = {"AIQ_RESEARCH_API_KEY": "FAKE_KEY", "unrelated": "FAKE_UNRELATED", "WEBSITES_PORT": "old"}
+    state = SimpleNamespace(properties=dict(baseline))
+    writes = []
+    def read(*args):
+        require(args[3] == "list_application_settings", "SETTINGS_PRESERVATION_UNVERIFIED")
+        return state
+    def write(*args):
+        require(args[3] == "update_application_settings", "SETTINGS_PRESERVATION_UNVERIFIED")
+        writes.append(dict(args[4].properties))
+        return args[4]
+    # No slot API is permitted by this fake client. --settings must leave slot_result empty.
+    client = SimpleNamespace(web_apps=object())
+    with patch.object(custom, "_generic_site_operation", read), patch.object(custom, "_generic_settings_operation", write), patch.object(custom, "web_client_factory", return_value=client), patch.object(custom, "is_centauri_functionapp", return_value=False):
+        custom.update_app_settings(SimpleNamespace(cli_ctx=object()), GROUP, APP,
+                                   settings=[k + "=" + v for k, v in SETTINGS.items()])
+    expected = dict(baseline); expected.update(SETTINGS)
+    require(writes == [expected], "SETTINGS_PRESERVATION_UNVERIFIED")
+    return azure.cli.core.__version__
+
+
+class SettingsAdapter:
+    def __init__(self):
+        # Only instantiated in the installed CLI interpreter, after explicit settings approval.
+        import logging
+        logging.disable(logging.CRITICAL)  # Worker-local only: no SDK body/error logging.
+        from azure.cli.core import get_default_cli
+        from azure.cli.core.commands.client_factory import get_mgmt_service_client
+        from azure.cli.core.profiles import ResourceType
+        self.client = get_mgmt_service_client(get_default_cli(), ResourceType.MGMT_APPSERVICE,
+            subscription_id=SUB, retry_total=0, connection_timeout=10, read_timeout=10)
+
+    def metadata(self):
+        return Azure().inspect()  # Exact identity/plan/mode; no registry/health calls.
+
+    def private_settings(self):
+        # Real values stay in this worker RAM, never on stdout, files or interprocess JSON.
+        response = self.client.web_apps.list_application_settings(GROUP, APP, logging_enable=False)
+        values = response.properties
+        require(isinstance(values, dict) and all(isinstance(k, str) and (v is None or isinstance(v, str)) for k, v in values.items()), "SETTINGS_PRESERVATION_UNVERIFIED")
+        return dict(values)
+
+    def flags(self):
+        value = self.client.web_apps.list_slot_configuration_names(GROUP, APP, logging_enable=False)
+        result = {name: getattr(value, name) for name in ("app_setting_names", "connection_string_names", "azure_storage_config_names")}
+        require(all(v is None or isinstance(v, list) and all(isinstance(x, str) for x in v) for v in result.values()), "SETTINGS_PRESERVATION_UNVERIFIED")
+        return result  # Preserve null/list and order; no normalization.
+
+    def save(self):
+        args = [sys.executable, "-IBm", "azure.cli", "webapp", "config", "appsettings", "set",
+                "--subscription", SUB, "--resource-group", GROUP, "--name", APP,
+                "--settings", *[k + "=" + v for k, v in SETTINGS.items()],
+                "--only-show-errors", "--output", "none"]
+        # Direct installed CLI Python equals az.cmd's entrypoint, without a cmd child
+        # surviving a timeout. Only nonsecret arguments; no --slot-settings or JSON flags.
+        try:
+            completed = subprocess.run(args, capture_output=True, timeout=90, env={**os.environ,
+                "AZURE_CORE_COLLECT_TELEMETRY": "false", "AZURE_LOGGING_ENABLE_LOG_FILE": "false",
+                "AZURE_CORE_ONLY_SHOW_ERRORS": "true", "AZURE_LOG_LEVEL": "critical"})
+        except subprocess.TimeoutExpired:
+            raise Blocked("SETTINGS_SAVE_TIMEOUT_UNCERTAIN") from None
+        except OSError:
+            raise Blocked("SETTINGS_SAVE_UNAVAILABLE") from None
+        require(completed.returncode == 0, "SETTINGS_SAVE_FAILED_OR_UNCERTAIN")
+        # Never forward or persist stdout/stderr, even on failure.
+
+
+def execute_settings(approved=False, adapter=None, cli_probe=verify_installed_merge):
+    result = settings_plan()
+    before = after = None
+    stage = "SETTINGS_APPROVAL"
+    attempted = False
+    try:
+        require(approved, "EXPLICIT_SETTINGS_APPROVAL_REQUIRED")
+        stage = "INSTALLED_CLI_MERGE_PROOF"
+        result["cliVersion"] = cli_probe()
+        adapter = adapter or SettingsAdapter()
+        stage = "TARGET_PREFLIGHT"
+        metadata = adapter.metadata()
+        stage = "PRIVATE_PRESERVATION_PREFLIGHT"
+        before = adapter.private_settings()
+        flags = adapter.flags()
+        require("AIQ_RESEARCH_API_KEY" in before and isinstance(before["AIQ_RESEARCH_API_KEY"], str) and bool(before["AIQ_RESEARCH_API_KEY"]), "KEY_NAME_ABSENT_OR_UNVERIFIED")
+        # An orphan sticky name would make a newly created --settings entry sticky.
+        require(not (set(SETTINGS) - set(before)) & set(flags["app_setting_names"] or []), "SETTINGS_PRESERVATION_UNVERIFIED")
+        stage = "SETTINGS_SAVE"
+        attempted = True
+        result["saveInvocations"] = 1
+        adapter.save()  # Exactly once, no automatic retry or rollback.
+        result["saveConfirmed"] = True
+        stage = "PRIVATE_POST_SAVE_VERIFICATION"
+        after = adapter.private_settings()
+        checks = {
+            "tenValuesVerified": all(after.get(k) == v for k, v in SETTINGS.items()),
+            "keyNamePresent": "AIQ_RESEARCH_API_KEY" in after,
+            "keyValueUnchanged": before["AIQ_RESEARCH_API_KEY"] == after.get("AIQ_RESEARCH_API_KEY"),
+            "unrelatedEntriesUnchanged": {k: v for k, v in before.items() if k not in SETTINGS} == {k: v for k, v in after.items() if k not in SETTINGS},
+            "exactEntryNamesPreserved": set(after) == set(before) | set(SETTINGS),
+            "slotFlagsUnchanged": flags == adapter.flags(),
+            "hostingHttpsPlanUnchanged": metadata == adapter.metadata(),
+        }
+        result["checks"] = checks
+        require(all(checks.values()), "SETTINGS_PRESERVATION_UNVERIFIED")
+        result.update(result="settings saved", settingsSaved=True)
+        return result, 0
+    except Exception as error:
+        result.update(result="SETTINGS_BLOCKED", failedStage=stage,
+            failureReason=error.reason if isinstance(error, Blocked) else "SETTINGS_PRESERVATION_UNVERIFIED",
+            azureMayHaveChanged=attempted, automaticRetry=False)
+        return result, 2
+    finally:
+        # Best-effort reference clearing, not a guarantee of cryptographic memory erasure.
+        if isinstance(before, dict):
+            before.clear()
+        if isinstance(after, dict):
+            after.clear()
+
+
+def launch_settings_worker():
+    # No sensitive values pass between processes. The worker prints only sanitized results.
+    az = shutil.which("az.cmd")
+    if not az:
+        return {**settings_plan(), "result": "SETTINGS_BLOCKED", "failureReason": "INSTALLED_CLI_UNAVAILABLE"}, 2
+    interpreter = Path(az).resolve().parent.parent / "python.exe"
+    try:
+        completed = subprocess.run([str(interpreter), "-IB", str(Path(__file__).resolve()),
+            "--action", "SettingsApply", "--approve-research-settings-save", "--settings-worker"],
+            capture_output=True, timeout=480)
+        result = json.loads(completed.stdout)
+        # Child is the same reviewed implementation; never echo unexpected raw output.
+        require(isinstance(result, dict) and result.get("result") in ("settings saved", "SETTINGS_BLOCKED"), "SETTINGS_WORKER_UNVERIFIED")
+        return result, completed.returncode
+    except Exception:
+        return {**settings_plan(), "result": "SETTINGS_BLOCKED", "failureReason": "SETTINGS_WORKER_UNVERIFIED_NO_RETRY", "azureMayHaveChanged": True}, 2
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--action", choices=("Plan", "Inspect", "Apply"), default="Plan")
+    parser.add_argument("--action", choices=("Plan", "Inspect", "Apply", "SettingsPlan", "SettingsApply"), default="Plan")
     parser.add_argument("--approve-exact-research-deploy", action="store_true")
     parser.add_argument("--owner-key-present", action="store_true")
     parser.add_argument("--owner-runtime-settings-confirmed", action="store_true")
+    parser.add_argument("--approve-research-settings-save", action="store_true")
+    parser.add_argument("--settings-worker", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
-    result, code = execute(args.action, args.approve_exact_research_deploy, args.owner_key_present,
-                           args.owner_runtime_settings_confirmed)
+    if args.action == "SettingsPlan":
+        result, code = settings_plan(), 0
+    elif args.action == "SettingsApply":
+        if not args.approve_research_settings_save:
+            result, code = execute_settings(False)
+        elif args.settings_worker:
+            result, code = execute_settings(True)
+        else:
+            result, code = launch_settings_worker()
+    else:
+        result, code = execute(args.action, args.approve_exact_research_deploy, args.owner_key_present,
+                               args.owner_runtime_settings_confirmed)
     print(json.dumps(result))
     return code
 

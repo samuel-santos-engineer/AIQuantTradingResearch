@@ -2,6 +2,7 @@
 from contextlib import redirect_stdout
 import importlib.util
 import io
+import copy
 import json
 from pathlib import Path
 import tempfile
@@ -194,6 +195,130 @@ class DeployTests(unittest.TestCase):
         self.assertIn("#Requires -Version 5.1", s)
         self.assertNotIn("ExecutionPolicy", s)
         self.assertNotIn("AIQ_RESEARCH_API_KEY", s)
+
+
+class FakeSettings:
+    def __init__(self):
+        self.values = {"AIQ_RESEARCH_API_KEY": "FAKE_SECRET_CANARY", "privateUnrelated": "FAKE_UNRELATED_CANARY", "WEBSITES_PORT": "old"}
+        self.sticky = {"app_setting_names": ["AIQ_RESEARCH_API_KEY", "privateUnrelated", "WEBSITES_PORT"],
+                       "connection_string_names": None, "azure_storage_config_names": []}
+        self.saved = 0
+        self.snapshot = DeployTests().snapshot()
+
+    def metadata(self):
+        return copy.deepcopy(self.snapshot)
+
+    def private_settings(self):
+        return dict(self.values)
+
+    def flags(self):
+        return copy.deepcopy(self.sticky)
+
+    def save(self):
+        self.saved += 1
+        self.values.update(wp36.SETTINGS)
+
+
+class SettingsTests(unittest.TestCase):
+    def run_settings(self, adapter, approved=True):
+        stdout, stderr = io.StringIO(), io.StringIO()
+        from contextlib import redirect_stderr
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            result, code = wp36.execute_settings(approved, adapter, lambda: "2.89.1")
+            print(json.dumps(result))
+        self.assertNotIn("FAKE_SECRET_CANARY", stdout.getvalue() + stderr.getvalue())
+        self.assertNotIn("FAKE_UNRELATED_CANARY", stdout.getvalue() + stderr.getvalue())
+        return result, code
+
+    def test_settings_plan_no_io_and_approval_is_separate(self):
+        with patch.object(wp36, "launch_settings_worker") as worker, redirect_stdout(io.StringIO()):
+            self.assertEqual(wp36.main(["--action", "SettingsPlan"]), 0)
+            self.assertEqual(wp36.main(["--action", "SettingsApply", "--approve-exact-research-deploy"]), 2)
+            worker.assert_not_called()
+        with patch.object(wp36, "execute") as deploy, patch.object(wp36, "launch_settings_worker", return_value=(wp36.settings_plan(), 0)), redirect_stdout(io.StringIO()):
+            self.assertEqual(wp36.main(["--action", "SettingsApply", "--approve-research-settings-save"]), 0)
+            deploy.assert_not_called()
+
+    def test_merge_preserves_key_unrelated_and_all_flags(self):
+        adapter = FakeSettings(); flags = copy.deepcopy(adapter.sticky)
+        result, code = self.run_settings(adapter)
+        self.assertEqual(code, 0); self.assertEqual(result["result"], "settings saved")
+        self.assertTrue(all(result["checks"].values()))
+        self.assertEqual(adapter.saved, 1)
+        self.assertEqual(adapter.values["AIQ_RESEARCH_API_KEY"], "FAKE_SECRET_CANARY")
+        self.assertEqual(adapter.values["privateUnrelated"], "FAKE_UNRELATED_CANARY")
+        self.assertEqual(adapter.sticky, flags)
+        self.assertTrue(all(adapter.values[k] == v for k, v in wp36.SETTINGS.items()))
+        self.assertFalse(result["imageDeployInvoked"]); self.assertFalse(result["explicitRestartInvoked"])
+        self.assertFalse(result["healthProbed"])
+
+    def test_missing_key_stops_before_save(self):
+        adapter = FakeSettings(); del adapter.values["AIQ_RESEARCH_API_KEY"]
+        result, code = self.run_settings(adapter)
+        self.assertEqual(code, 2); self.assertEqual(adapter.saved, 0)
+        self.assertEqual(result["failureReason"], "KEY_NAME_ABSENT_OR_UNVERIFIED")
+
+    def test_orphan_sticky_new_name_stops_before_save(self):
+        adapter = FakeSettings(); adapter.sticky["app_setting_names"].append("AIQ_RESEARCH_BOOTSTRAP_MODE")
+        result, code = self.run_settings(adapter)
+        self.assertEqual(code, 2); self.assertEqual(adapter.saved, 0)
+        self.assertEqual(result["failureReason"], "SETTINGS_PRESERVATION_UNVERIFIED")
+
+    def test_probe_failure_prevents_any_azure_access(self):
+        adapter = Mock()
+        result, code = wp36.execute_settings(True, adapter, Mock(side_effect=wp36.Blocked("SETTINGS_PRESERVATION_UNVERIFIED")))
+        self.assertEqual(code, 2); adapter.metadata.assert_not_called(); adapter.save.assert_not_called()
+
+    def test_no_settings_read_before_approval(self):
+        adapter = Mock()
+        result, code = wp36.execute_settings(False, adapter, Mock())
+        self.assertEqual(code, 2); adapter.private_settings.assert_not_called(); adapter.metadata.assert_not_called()
+
+    def test_post_save_mismatch_never_claims_saved(self):
+        for defect in ("key", "unrelated", "flag", "value", "mode", "extra"):
+            adapter = FakeSettings()
+            original = adapter.save
+            def bad_save():
+                original()
+                if defect == "key": adapter.values["AIQ_RESEARCH_API_KEY"] = "changed"
+                if defect == "unrelated": adapter.values["privateUnrelated"] = "changed"
+                if defect == "flag": adapter.sticky["app_setting_names"] = []
+                if defect == "value": adapter.values["WEBSITES_PORT"] = "wrong"
+                if defect == "mode": adapter.snapshot["httpsOnly"] = True
+                if defect == "extra": adapter.values["unexpected"] = "new"
+            adapter.save = bad_save
+            with self.subTest(defect=defect):
+                result, code = self.run_settings(adapter)
+                self.assertEqual(code, 2); self.assertFalse(result["settingsSaved"])
+                self.assertEqual(adapter.saved, 1); self.assertTrue(result["azureMayHaveChanged"])
+
+    def test_timeout_and_error_do_not_retry_or_echo(self):
+        for error in (wp36.Blocked("SETTINGS_SAVE_TIMEOUT_UNCERTAIN"), ValueError("FAKE_SECRET_CANARY")):
+            adapter = FakeSettings(); adapter.save = Mock(side_effect=error)
+            result, code = self.run_settings(adapter)
+            self.assertEqual(code, 2); adapter.save.assert_called_once()
+            self.assertTrue(result["azureMayHaveChanged"]); self.assertFalse(result["automaticRetry"])
+
+    def test_save_command_exact_scope_values_and_output_none(self):
+        adapter = object.__new__(wp36.SettingsAdapter)
+        with patch.object(wp36.subprocess, "run", return_value=Mock(returncode=0)) as run:
+            adapter.save()
+        args = run.call_args.args[0]
+        self.assertEqual(args[1:7], ["-IBm", "azure.cli", "webapp", "config", "appsettings", "set"])
+        for name, value in (("--subscription", wp36.SUB), ("--resource-group", wp36.GROUP), ("--name", wp36.APP), ("--output", "none")):
+            self.assertEqual(args[args.index(name) + 1], value)
+        start = args.index("--settings") + 1
+        self.assertEqual(args[start:start+10], [k + "=" + v for k, v in wp36.SETTINGS.items()])
+        for forbidden in ("--slot-settings", "--debug", "--verbose", "AIQ_RESEARCH_API_KEY", "FAKE_SECRET_CANARY"):
+            self.assertNotIn(forbidden, args)
+        self.assertEqual(run.call_args.kwargs["timeout"], 90)
+        self.assertEqual(run.call_args.kwargs["env"]["AZURE_LOGGING_ENABLE_LOG_FILE"], "false")
+
+    def test_native_cli_timeout_is_sanitized(self):
+        adapter = object.__new__(wp36.SettingsAdapter)
+        with patch.object(wp36.subprocess, "run", side_effect=wp36.subprocess.TimeoutExpired("FAKE_SECRET_CANARY", 90)):
+            with self.assertRaisesRegex(wp36.Blocked, "^SETTINGS_SAVE_TIMEOUT_UNCERTAIN$"):
+                adapter.save()
 
 
 if __name__ == "__main__":
