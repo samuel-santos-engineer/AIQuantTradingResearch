@@ -331,7 +331,13 @@ class TransportTests(unittest.TestCase):
     setUp = PreparationTests.setUp
     wire = DiagnosticTests.wire
 
-    def worker(self, output=b'{}', code=0):
+    def worker(self, output=b'{}', code=0, raw=False):
+        if not raw:
+            try:
+                payload=json.loads(output)
+                if isinstance(payload,dict):
+                    output=json.dumps({'protocol':P.WORKER_PROTOCOL,'ok':True,'workerStage':None,'payload':payload}).encode()
+            except (ValueError,UnicodeError):pass
         child=mock.Mock();child.pid=321;child.returncode=code
         child.poll.return_value=code
         child.communicate.return_value=(output,b"SECRET_CANARY status=403 /private/path")
@@ -371,7 +377,7 @@ class TransportTests(unittest.TestCase):
 
     def test_invalid_empty_oversize_and_nonobject_output(self):
         for output in (b'',b'SECRET_CANARY status=401',b'null',b'[]',b'"403"',b'\xff',b'x'*(8*1024*1024+1)):
-            self.failure(self.worker(output),"INVALID_WORKER_OUTPUT")
+            self.failure(self.worker(output,raw=True),"INVALID_WORKER_OUTPUT")
 
     def test_timeout_terminates_only_owned_worker_without_retry(self):
         child=self.worker();child.poll.return_value=None
@@ -405,8 +411,8 @@ class TransportTests(unittest.TestCase):
         self.assertNotIn('SECRET_CANARY',str(start.call_args))
         self.assertIn(b'SECRET_CANARY',child.communicate.call_args.kwargs['input'])
         self.assertEqual(child.communicate.call_args.kwargs['timeout'],45)
-        self.assertEqual(start.call_args.args[0][-1],R.BRIDGE)
-        self.assertIn('threading.Timer(40',R.BRIDGE)
+        self.assertEqual(start.call_args.args[0][-1],P.DIAGNOSTIC_BRIDGE)
+        self.assertIn('threading.Timer(40',P.DIAGNOSTIC_BRIDGE)
         self.assertEqual(len(list(self.directory.glob('management-worker-*.json'))),1)
 
     def test_typed_metadata_propagated_stdout_and_observation_without_secret(self):
@@ -414,7 +420,7 @@ class TransportTests(unittest.TestCase):
         for name in P.TRANSPORT_CATEGORIES:
             output=io.StringIO()
             with mock.patch.dict(os.environ,{"AIQ_WP21_ATTEMPT_DIRECTORY":str(self.directory)}), \
-                 mock.patch.object(P,"diagnostic_cli",side_effect=P.TransportFailure(name)) as call, \
+                 mock.patch.object(P,"diagnostic_cli",side_effect=P.TransportFailure(name,"REQUEST" if name=="WORKER_REPORTED_FAILURE" else None)) as call, \
                  mock.patch.object(P.C.WP19,"offline_report",return_value={"result":"OFFLINE_PREFLIGHT_PASS"}), \
                  contextlib.redirect_stdout(output):
                 self.assertEqual(P.main(["--inspect-azure-read-only"]),1)
@@ -459,5 +465,83 @@ class TransportTests(unittest.TestCase):
         self.assertTrue(value['azureBaselineVerified']);self.assertIsNone(value['transportFailureCategory'])
         self.assertIsNone(value['httpStatus']);self.assertEqual(calls,list(P.REQUEST_NAMES)*2)
         self.assertFalse((self.directory/'baseline.json').exists());self.assertFalse((self.directory/'consumed.json').exists())
+
+class WorkerStageTests(unittest.TestCase):
+    def execute_worker(self, case):
+        import contextlib,io,types
+        class Timer:
+            def __init__(self,*args):pass
+            def start(self):pass
+        calls=[]
+        core=types.ModuleType('azure.cli.core')
+        def initialize():
+            if case=='INITIALIZATION':raise RuntimeError('SECRET_CANARY /private/path')
+            return object()
+        core.get_default_cli=initialize
+        util=types.ModuleType('azure.cli.core.util')
+        def request(*args,**kwargs):
+            calls.append(True)
+            if case=='REQUEST':raise RuntimeError('SECRET_CANARY status=403')
+            def decode():
+                if case=='RESPONSE_DECODING':raise ValueError('SECRET_CANARY')
+                return {'properties':{}}
+            return types.SimpleNamespace(status_code=403 if case=='RESPONSE_VALIDATION' else 200,
+                content=b'{}',json=decode)
+        util.send_raw_request=request
+        modules={'azure':types.ModuleType('azure'),'azure.cli':types.ModuleType('azure.cli'),
+            'azure.cli.core':core,'azure.cli.core.util':util}
+        source='INVALID_SECRET_CANARY' if case=='INPUT' else json.dumps(['rest','--method','get','--url','FIXED'])
+        output=io.StringIO()
+        with mock.patch.dict(sys.modules,modules),mock.patch('threading.Timer',Timer), \
+             mock.patch('logging.disable'),mock.patch.object(sys,'stdin',io.StringIO(source)), \
+             mock.patch('socket.socket.connect',side_effect=AssertionError('NETWORK_DISABLED')), \
+             contextlib.redirect_stdout(output):
+            exec(compile(P.DIAGNOSTIC_BRIDGE,'readonly-worker','exec'),{})
+        self.assertNotIn('SECRET_CANARY',output.getvalue())
+        self.assertLess(len(output.getvalue()),4096)
+        return json.loads(output.getvalue()),calls
+
+    def test_exact_worker_stages_with_fake_cli_and_network_disabled(self):
+        for stage in P.WORKER_STAGES:
+            value,calls=self.execute_worker(stage)
+            self.assertEqual(value,{'protocol':P.WORKER_PROTOCOL,'ok':False,'workerStage':stage,'payload':None})
+            self.assertEqual(len(calls),0 if stage in ('INPUT','INITIALIZATION') else 1)
+
+    def test_success_envelope_preserves_payload(self):
+        value,calls=self.execute_worker('SUCCESS')
+        self.assertEqual(value,{'protocol':P.WORKER_PROTOCOL,'ok':True,'workerStage':None,'payload':{'properties':{}}})
+        self.assertEqual(len(calls),1)
+
+
+class WorkerEnvelopeTests(unittest.TestCase):
+    setUp=PreparationTests.setUp
+    worker=TransportTests.worker
+    call=TransportTests.call
+    failure=TransportTests.failure
+    def test_parent_accepts_only_fixed_failure_stages(self):
+        for stage in P.WORKER_STAGES:
+            value={'protocol':P.WORKER_PROTOCOL,'ok':False,'workerStage':stage,'payload':None}
+            error=self.failure(self.worker(json.dumps(value).encode(),raw=True),'WORKER_REPORTED_FAILURE')
+            self.assertEqual(error.worker_stage,stage)
+        bad=[{'protocol':P.WORKER_PROTOCOL,'ok':False,'workerStage':'SECRET_CANARY','payload':None},
+            {'protocol':P.WORKER_PROTOCOL,'ok':False,'workerStage':'REQUEST','payload':{'secret':'SECRET_CANARY'}},
+            {'protocol':'unknown','ok':False,'workerStage':'REQUEST','payload':None},
+            {'protocol':P.WORKER_PROTOCOL,'ok':True,'workerStage':'REQUEST','payload':{}},
+            {'protocol':P.WORKER_PROTOCOL,'ok':1,'workerStage':None,'payload':{}},
+            {'protocol':P.WORKER_PROTOCOL,'ok':False,'workerStage':'REQUEST','payload':None,'extra':'SECRET_CANARY'}]
+        for value in bad:self.failure(self.worker(json.dumps(value).encode(),raw=True),'INVALID_WORKER_OUTPUT')
+
+    def test_worker_stage_reaches_sanitized_report_and_observation(self):
+        import contextlib,io
+        for stage in P.WORKER_STAGES:
+            output=io.StringIO()
+            with mock.patch.dict(os.environ,{'AIQ_WP21_ATTEMPT_DIRECTORY':str(self.directory)}), \
+                 mock.patch.object(P,'diagnostic_cli',side_effect=P.TransportFailure('WORKER_REPORTED_FAILURE',stage)), \
+                 mock.patch.object(P.C.WP19,'offline_report',return_value={'result':'OFFLINE_PREFLIGHT_PASS'}), \
+                 contextlib.redirect_stdout(output):self.assertEqual(P.main(['--inspect-azure-read-only']),1)
+            value=json.loads(output.getvalue());self.assertEqual(value['workerStage'],stage)
+            self.assertEqual(value['transportFailureCategory'],'WORKER_REPORTED_FAILURE')
+            self.assertIsNone(value['httpStatus']);self.assertFalse(value['serviceKeyChannelChecked'])
+        self.assertEqual(len(list(self.directory.glob('wp22-observation-*.json'))),len(P.WORKER_STAGES))
 
 if __name__=="__main__":unittest.main()
