@@ -163,3 +163,23 @@ The helper now retains the exact rejected/last health HTTP status in `healthHttp
 `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp36_research_deploy.py -q`: **42 passed**, fake-only, exit 0. Four added tests cover quota preflight rejection, non-Running failure evidence, exact status retention and failed-Apply status/current-state reporting with no extra mutations. UTF-8/LF/no BOM and diff checks precede commit. Same three WP37 paths; no application/runtime artifact change.
 
 Current outcome: **NOT FIXED**; exact image and HTTPS-only assigned, recurring stop-request quota exhaustion and HTTP 403 confirmed, underlying stop/startup cause pending authorized diagnostics. No upgrade, repeated deployment, extra restart or automatic recovery. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+## Specifically approved detector reads - completed
+
+The owner subsequently approved the exact `LinuxAppDown` and `DeploymentFailureAnalysisLinux` detector GETs, API `2023-12-01`, on the same research app. Both completed within their 20-second bounds. Only selected redacted summary fields were exposed; no raw tables, settings, key material, image changes, restart or other mutation.
+
+Actual selected findings:
+
+- `DeploymentFailureAnalysisLinux`: Success; as of **2026-11-02 23:00:00 UTC**, no Configuration Checks, Uploaded Package Validations or Package Mounting Checks issues found.
+- `LinuxAppDown`: a top-level application-exceptions section with an empty Description, and an organic availability/SLA summary. No specific exception was reported in the selected fields. The mere presence of the section is not proof an exception occurred.
+- A follow-up read of the **same approved LinuxAppDown endpoint** inspected nested Status/Message/Title/Description summary fields, still without raw table output. It supplied only a performance/availability title and a link-description directing the reader to the Application Insights Failures blade; no error/cause.
+
+These checkpointed generic deployment checks do not prove a healthy Docker startup, successful runtime pull, process survival or current HTTP health. They do not explain the previously observed stop-request quota exhaustion. No additional anonymous health request or quota/state query ran during this detector-only step. The last observed health/state remain HTTP 403 and recurring QuotaExceeded; do not present older observations as freshly sampled.
+
+The previous automatic-review block on these two selected reads is resolved by the explicit owner approval. Their results are inconclusive rather than a basis for speculative source/runtime changes. No application correction was made from them, and there is no new healthy-serving claim.
+
+Next proposed diagnostic scope, **pending approval**: three existing detector GETs on the same app, `LinuxLogViewer`, `LinuxRunningContainersPerHost`, and `LinuxAppDown2`, API `2023-12-01`, 20 seconds each, selected redacted startup/error summaries only. No raw table output, settings/key access, logging configuration changes, restart or other mutation. No such query has run at this checkpoint. These need specific additional authority because the current approval names only the two completed detectors.
+
+Evidence-only update to the existing WP37 document/PR; no code changes or new test run. Prior **42 fake-only tests** remain the actual code validation. UTF-8/LF/no BOM and `git diff --check` checked before commit. PR #425 remains OPEN/UNMERGED.
+
+`liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
