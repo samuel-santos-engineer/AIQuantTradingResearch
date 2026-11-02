@@ -54,6 +54,16 @@ def plan():
     }
 
 
+def cli_entrypoint():
+    az = shutil.which("az.cmd")
+    require(bool(az), "AZURE_CLI_UNAVAILABLE")
+    interpreter = Path(az).resolve().parent.parent / "python.exe"
+    require(interpreter.is_file(), "AZURE_CLI_UNAVAILABLE")
+    # az.cmd delegates to this exact interpreter. Direct launch makes timeout kill
+    # the CLI process itself, without leaving a cmd.exe child issuing a late write.
+    return [str(interpreter), "-IBm", "azure.cli"]
+
+
 class Azure:
     def request(self, method, resource=SITE, suffix="", body=None, query=None):
         allowed = {("get", SITE, ""), ("get", SITE, "/config/web"), ("get", PLAN, ""),
@@ -67,7 +77,7 @@ class Azure:
             require(body == {"properties": {"httpsOnly": True}}, "DELTA_NOT_ALLOWED")
         else:
             require(body is None, "DELTA_NOT_ALLOWED")
-        args = ["az.cmd", "rest", "--method", method, "--url", "https://management.azure.com" + resource + suffix + "?api-version=" + API, "--only-show-errors", "--output", "json" if method == "get" else "none"]
+        args = [*cli_entrypoint(), "rest", "--subscription", SUB, "--method", method, "--url", "https://management.azure.com" + resource + suffix + "?api-version=" + API, "--only-show-errors", "--output", "json" if method == "get" else "none"]
         if query:
             args += ["--query", query]
         if body is not None:
@@ -153,29 +163,58 @@ def valid_health(status, body):
     return type(status) is int and status == 200 and body == b"Alive"
 
 
-def observe_health(budget=180, clock=time.monotonic, sleep=time.sleep, opener=None):
+
+HEALTH_PROBE_CODE = r"""
+import json, urllib.request, urllib.error
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+result = {"status": None, "bodyMatches": False}
+try:
+    request = urllib.request.Request("https://aiqr115researchstagingwus27f5eabb5.azurewebsites.net/health", headers={"Accept": "text/plain"}, method="GET")
+    with urllib.request.build_opener(NoRedirect()).open(request, timeout=8) as response:
+        result = {"status": response.status, "bodyMatches": response.read(6) == b"Alive"}
+except urllib.error.HTTPError as error:
+    result["status"] = error.code
+    error.close()
+except (OSError, urllib.error.URLError):
+    pass
+print(json.dumps(result))
+"""
+
+
+def bounded_health_probe(timeout):
+    require(0 < timeout <= 8, "HEALTH_REQUEST_BUDGET_INVALID")
+    try:
+        # Whole process includes DNS/TLS/header/body work; no shell or children.
+        completed = subprocess.run([sys.executable, "-IB", "-c", HEALTH_PROBE_CODE],
+                                   capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        return None, b""
+    except OSError:
+        raise Blocked("HEALTH_PROBE_UNAVAILABLE") from None
+    try:
+        require(completed.returncode == 0, "HEALTH_PROBE_UNAVAILABLE")
+        value = json.loads(completed.stdout)
+        require(set(value) == {"status", "bodyMatches"} and type(value["bodyMatches"]) is bool and
+                (value["status"] is None or type(value["status"]) is int), "HEALTH_PROBE_INVALID")
+        return value["status"], b"Alive" if value["bodyMatches"] else b""
+    except (ValueError, TypeError):
+        raise Blocked("HEALTH_PROBE_INVALID") from None
+
+
+def observe_health(budget=180, clock=time.monotonic, sleep=time.sleep, probe=bounded_health_probe):
     require(0 < budget <= 180, "HEALTH_BUDGET_INVALID")
-    opener = opener or urllib.request.build_opener(NoRedirect())  # Normal TLS validation.
     deadline = clock() + budget
-    last_status = None
     while clock() < deadline:
         remaining = deadline - clock()
         if remaining <= 0:
             break
-        try:
-            request = urllib.request.Request(HEALTH, headers={"Accept": "text/plain"}, method="GET")
-            with opener.open(request, timeout=min(8, remaining)) as response:
-                last_status = response.status
-                body = response.read(6)
-                if clock() <= deadline and valid_health(last_status, body):
-                    return {"status": 200, "body": "Alive"}
-        except urllib.error.HTTPError as error:
-            last_status = error.code
-            error.close()
-            if last_status in (301, 302, 303, 307, 308, 401, 403):
-                raise Blocked("HEALTH_REJECTED") from None
-        except (OSError, urllib.error.URLError):
-            pass
+        status, body = probe(min(8, remaining))
+        if clock() <= deadline and valid_health(status, body):
+            return {"status": 200, "body": "Alive"}
+        if status in (301, 302, 303, 307, 308, 401, 403):
+            raise Blocked("HEALTH_REJECTED")
         remaining = deadline - clock()
         if remaining > 0:
             sleep(min(2, remaining))
@@ -204,6 +243,8 @@ def execute(action, approved=False, key_present=False, settings_confirmed=False,
         if action == "Inspect":
             result["result"] = "METADATA_VERIFIED_NO_MUTATION"
             return result, 0
+        stage = "PRE_APPLY_DRIFT_CHECK"
+        require(snapshot["mode"] == "EMPTY_CODE_MODE" and snapshot["httpsOnly"] is False, "PRE_APPLY_METADATA_DRIFT")
         stage = "SANITIZED_SNAPSHOT"
         directory = Path(tempfile.mkdtemp(prefix="aiq-wp36-snapshot-"))
         (directory / "before.json").write_text(json.dumps({"observedUtc": dt.datetime.now(dt.timezone.utc).isoformat(), **snapshot}, indent=2) + "\n", encoding="utf-8", newline="\n")
