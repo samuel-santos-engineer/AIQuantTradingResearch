@@ -85,6 +85,20 @@ public sealed class TwelveDataMinuteCandleSourceTests
         using var handler = new Handler(Valid) { Delay = true };using var source = new TwelveDataMinuteCandleSource(handler, Key, true, TimeSpan.FromMilliseconds(30));
         await Assert.ThrowsAsync<ResearchUnavailableException>(() => source.ReadCompletedAsync(ResearchTestDirectory.Request()));Assert.Equal(1, handler.Calls);
     }
+    [Theory] [InlineData("duplicate")] [InlineData("descending")] [InlineData("unaligned")] [InlineData("ohlc")]
+    public async Task InvalidRowSequencesNeverBecomeObservations(string mutation)
+    {
+        var root=System.Text.Json.Nodes.JsonNode.Parse(Valid)!;
+        var rows=root["values"]!.AsArray();
+        if(mutation=="duplicate") rows.Add(rows[0]!.DeepClone());
+        if(mutation=="descending") { rows.Add(rows[0]!.DeepClone());rows[0]!["datetime"]="2026-10-01 00:01:00"; }
+        if(mutation=="unaligned") rows[0]!["datetime"]="2026-10-01 00:00:01";
+        if(mutation=="ohlc") rows[0]!["low"]="102";
+        using var handler=new Handler(root.ToJsonString());using var source=new TwelveDataMinuteCandleSource(handler,Key,true);
+        await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal(1,handler.Calls);
+    }
+
     private sealed class Handler(string json) : HttpMessageHandler
     {
         internal int Calls;internal string Uri = "";internal string Authorization = "";internal HttpStatusCode Status = HttpStatusCode.OK;

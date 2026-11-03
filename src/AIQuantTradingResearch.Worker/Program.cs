@@ -20,6 +20,19 @@ if (args.Contains("--research-storage-probe", StringComparer.Ordinal))
     return 0;
 }
 
+if (args.Contains("--research-prepare-local", StringComparer.Ordinal))
+{
+    try { if (args.Length != 1) return 1; ResearchLocalHistory.Prepare(Environment.GetEnvironmentVariable("AIQ_WP39_LOCAL_DIRECTORY")!); return 0; }
+    catch { Console.Error.WriteLine("Local preparation unavailable."); return 1; }
+}
+if (args.Contains("--research-verify-local", StringComparer.Ordinal))
+    return args.Length == 1 ? ResearchLocalHistory.VerifyCommand(Environment.GetEnvironmentVariable("AIQ_WP39_BUNDLE_DIRECTORY")) : 1;
+
+// One-shot operator acquisition: provider approval must be granted separately; never startup.
+if (args.Contains("--research-acquire-local", StringComparer.Ordinal))
+    return args.Length == 1 ? await ResearchLocalHistory.RunAsync(Console.OpenStandardInput(), Console.Error,
+        Environment.GetEnvironmentVariable("AIQ_WP39_BUNDLE_DIRECTORY")) : 1;
+
 // Explicit operator-only command. Secrets enter through bounded stdin, never arguments.
 if (args.Contains("--research-initialize", StringComparer.Ordinal))
     return args.Length == 1 ? await ResearchStateInitialization.RunAsync(Console.OpenStandardInput(), Console.Error,

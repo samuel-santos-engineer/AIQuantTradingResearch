@@ -23,6 +23,14 @@ def fixture_mode():
     return os.environ.get("AIQ_LOCAL_RESEARCH_FIXTURE") == "1"
 
 
+def provenance_label():
+    if fixture_mode():
+        return FIXTURE_DISCLOSURE
+    if os.environ.get("AIQ_LOCAL_RESEARCH_PROVENANCE") == "ObservedProvider":
+        return "Locally imported provider observations - operator-controlled provenance; transformed educational values."
+    return "Local observation provenance not independently verified."
+
+
 PRESETS = (100, 300, 1000)
 OVERLAYS = ("SMA20", "EMA20", "Bollinger bands")
 
@@ -261,6 +269,7 @@ def _render_content(auto_refresh=False):
     st.title("Historical Crypto Research")
     if fixture_mode():
         st.warning(FIXTURE_DISCLOSURE)
+    st.caption(provenance_label())
     st.caption(DISCLOSURE + " Completed one-minute candles; educational research, no trade execution.")
     instrument = st.radio("Instrument", ("BTC/USD", "ETH/USD"), horizontal=True, key="r115_instrument")
     if "r115_session" not in st.session_state:
