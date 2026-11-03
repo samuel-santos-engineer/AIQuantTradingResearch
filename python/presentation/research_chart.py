@@ -16,6 +16,13 @@ import uuid
 from research_snapshot_client import ResearchSnapshotClient, SnapshotUnavailable
 
 DISCLOSURE = "Transformed educational values - not actual BTC/USD or ETH/USD prices."
+FIXTURE_DISCLOSURE = "SYNTHETIC TEST FIXTURE - no authentic market data imported."
+
+
+def fixture_mode():
+    return os.environ.get("AIQ_LOCAL_RESEARCH_FIXTURE") == "1"
+
+
 PRESETS = (100, 300, 1000)
 OVERLAYS = ("SMA20", "EMA20", "Bollinger bands")
 
@@ -206,6 +213,8 @@ def build_figure(snapshot, state):
                          xaxis_rangeslider_visible=False)
     figure.update_yaxes(title_text="Transformed price", row=1, col=1)
     figure.update_yaxes(title_text="Volume", row=2, col=1)
+    if fixture_mode():
+        figure.update_layout(title=snapshot["instrument"] + " - " + FIXTURE_DISCLOSURE)
     return json.loads(figure.to_json())
 
 
@@ -250,6 +259,8 @@ def availability_message(state):
 def _render_content(auto_refresh=False):
     import streamlit as st
     st.title("Historical Crypto Research")
+    if fixture_mode():
+        st.warning(FIXTURE_DISCLOSURE)
     st.caption(DISCLOSURE + " Completed one-minute candles; educational research, no trade execution.")
     instrument = st.radio("Instrument", ("BTC/USD", "ETH/USD"), horizontal=True, key="r115_instrument")
     if "r115_session" not in st.session_state:

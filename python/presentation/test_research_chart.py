@@ -395,5 +395,16 @@ class StreamlitSmokeTests(unittest.TestCase):
             self.assertEqual(["BTC/USD"], second.calls)
 
 
+class LocalFixtureDisclosureTests(unittest.TestCase):
+    def test_fixture_is_explicit_and_not_the_default(self):
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertFalse(chart.fixture_mode())
+        with patch.dict(os.environ, {"AIQ_LOCAL_RESEARCH_FIXTURE": "1"}):
+            self.assertTrue(chart.fixture_mode())
+            figure = chart.build_figure(fixture(), chart.InstrumentView())
+            self.assertIn("SYNTHETIC TEST FIXTURE", figure["layout"]["title"]["text"])
+            self.assertIn("no authentic", figure["layout"]["title"]["text"])
+
+
 if __name__ == "__main__":
     unittest.main()
