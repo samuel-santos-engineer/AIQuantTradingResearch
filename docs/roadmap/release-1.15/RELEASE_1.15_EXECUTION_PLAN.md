@@ -60,3 +60,10 @@ WP03 #369 owns single-writer SQLite/recovery across any research-app replacement
 **Security boundary:** A research Web App DNS name does not mean it has private ingress. External unauthorized requests to research endpoints must be rejected; no raw candles/keys/storage or admin operations in public API; HTTPS service authentication is required. Do not assume free-plan private endpoints, VNet features or dedicated compute. Fail closed on unsupported F1 security rather than invent paid resources or anonymously expose the research service.
 
 **Qualification and gates:** The exact paired image digests, cross-app conformance and per-site browser tests replace one-image qualification. Existing source/contract/fixture approvals, G-B0–G-B7 and `PUBLIC_RUNTIME_VERIFIED=False` remain. No new licensing prerequisite, provider call, deployment, PR merge or WP02 source-path approval follows from this amendment.
+
+
+## WP38 - local Docker implementation progress
+
+Owner-authorized WP38 continues implementation and local qualification independently of Azure F1 availability. The existing two-container architecture, authenticated TLS snapshot contract, private C# research and Streamlit components remain effective. Local Docker delivery is valid milestone progress; Azure public qualification is not a prerequisite to local implementation. Azure activation and full release acceptance remain separate decisions.
+
+Track evidence in three distinct states: **implemented**, **locally qualified**, **publicly qualified**. WP38 provides a fixture-only end-to-end chart; it does not qualify authentic observations or complete all Release 1.15 acceptance requirements. Azure F1 deployment/stop-request attribution remains **deferred and unresolved**, neither passed nor waived. See [WP38 local runbook](prompters/release-1.15-wp38-local-docker-chart.md). `liveAttemptReady=false`, `AUTHENTIC_DATA_NOT_IMPORTED=True`, `PUBLIC_RUNTIME_VERIFIED=False`.
