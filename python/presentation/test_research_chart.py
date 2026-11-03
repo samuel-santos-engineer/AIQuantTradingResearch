@@ -396,6 +396,14 @@ class StreamlitSmokeTests(unittest.TestCase):
 
 
 class LocalFixtureDisclosureTests(unittest.TestCase):
+    def test_observation_provenance_never_overrides_fixture_label(self):
+        with patch.dict(os.environ, {"AIQ_LOCAL_RESEARCH_FIXTURE": "1", "AIQ_LOCAL_RESEARCH_PROVENANCE": "ObservedProvider"}):
+            self.assertIn("SYNTHETIC", chart.provenance_label())
+        with patch.dict(os.environ, {"AIQ_LOCAL_RESEARCH_FIXTURE": "0", "AIQ_LOCAL_RESEARCH_PROVENANCE": "ObservedProvider"}):
+            self.assertIn("operator-controlled", chart.provenance_label())
+        with patch.dict(os.environ, {}, clear=True):
+            self.assertIn("not independently verified", chart.provenance_label())
+
     def test_fixture_is_explicit_and_not_the_default(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertFalse(chart.fixture_mode())
