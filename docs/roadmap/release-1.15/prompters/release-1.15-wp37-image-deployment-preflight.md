@@ -183,3 +183,59 @@ Next proposed diagnostic scope, **pending approval**: three existing detector GE
 Evidence-only update to the existing WP37 document/PR; no code changes or new test run. Prior **42 fake-only tests** remain the actual code validation. UTF-8/LF/no BOM and `git diff --check` checked before commit. PR #425 remains OPEN/UNMERGED.
 
 `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
+
+
+## Local Docker investigation - owner-authorized follow-up
+
+Scope: local investigation only, against PR #425 starting head `8d31b55e44f4e87f429665c021b67d2ceac2362c`, base `9196ba26893a80f79111318a88f3d7ad509f3ca1`. The owner declined additional Azure detector reads. **Zero Azure requests, authentication, settings reads, health probes or mutations ran in this follow-up.** No registry requests, pulls, builds, tags, pushes or deployment ran. No real key, owner key-generation script, private attempt or dataset was accessed. All authored files are UTF-8/LF/no BOM.
+
+### Reproducible local procedure and environment
+
+Added `tests/runtime/release_1_15/wp37_local_startup.py`, a bounded Python/Docker harness with fake process-only authentication input and disposable self-signed localhost TLS material. It uses the already installed `cryptography` library in the existing CLI Python interpreter solely for offline certificate creation; it does not import Azure CLI, authenticate or call Azure. No dependency was installed. Certificate verification remains enabled and trusts only this temporary fixture. No PowerShell script or policy change is required.
+
+Commands (Windows PowerShell 5.1-compatible invocation):
+
+```powershell
+& "$env:ProgramFiles\Microsoft SDKs\Azure\CLI2\python.exe" -IB tests/runtime/release_1_15/wp37_local_startup.py
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp36_research_deploy.py -v
+docker ps -a --filter name=aiq-wp37-local- --format '{{.Names}}'
+git diff --check
+```
+
+Docker Engine `29.7.2`, context `desktop-linux`, Linux/amd64. Exact cached OCI index `sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`; previously recorded runtime manifest `sha256:fb9aab67753be84ca3300876fa4ed4d669ab0d897beb49f3fb8f2eae58b9b012` (not re-fetched). Local image inspection confirms amd64, user `1654:1654`, entrypoint `/bin/sh /app/research-bootstrap.sh`. Every healthy container independently confirmed PID 1 command `dotnet /app/AIQuantTradingResearch.Worker.dll --research-snapshot-api` and UID/GID `1654:1654`.
+
+Each case uses a random owned container name, `--pull=never`, `--restart=no`, explicit memory/CPU limits, a read-only disposable certificate mount, and dynamic host publication restricted to `127.0.0.1` for container port `52731`. Docker operations have 30-second subprocess deadlines, readiness has a 25-second loop with one-second request timeouts, and shutdown uses `docker stop --time 10`. Cleanup removes only the exact owned name in `finally`; final enumeration found **no remaining investigation containers**. Temporary certificate material was removed by the temporary-directory context. Other containers/processes were untouched.
+
+### Settings fidelity and unavoidable local differences
+
+Of the ten approved nonsecret Azure settings, the harness matches bootstrap `serve`, bind `0.0.0.0`, private directory `/tmp/aiq-research`, and expected mount `/`. Container port `52731` is published explicitly; `WEBSITES_PORT` is a platform routing hint and was not set. `WEBSITES_ENABLE_APP_SERVICE_STORAGE=false` and `AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1` are platform-only settings and were not asserted locally. Transport is supported `local-https` rather than Azure platform-terminated HTTP, storage scope is `local-qualification` rather than staging, and the staging opt-in is absent in healthy runs. A missing-certificate case tests local TLS configuration failure, not an Azure certificate requirement.
+
+**No WEBSITE host/site/instance/role marker was fabricated.** Consequently, exact Azure HTTP transport authorization and staging-only storage checks (role, overlay mount/propagation constraints, private-directory safety probe) cannot be faithfully qualified here. The local expected-mount check was exercised. Independently, the running unprivileged process identity successfully created mode-0700 `/tmp/aiq-research`, wrote and removed an empty probe there. This proves local writability, not Azure durability or the staging-specific private-file guard. No SQLite database was created or opened and no authenticated snapshot route was probed.
+
+### Actual results
+
+Completed matrix command: **exit 0, nine cases passed**. All five healthy cases returned anonymous HTTPS status **200**, exact five-byte body **Alive**, then repeated the same check twice with two-second intervals while independently confirming the container remained Running. Timing includes Docker launch/inspection overhead. These are short bounded survival checks, not long-duration reliability evidence.
+
+| Case | CPU / memory limit | Ready seconds | Shutdown seconds | Sampled memory | Sampled CPU | Exit / OOM / restarts |
+| --- | --- | --- | --- | --- | --- | --- |
+| Baseline 1 | 1 / 512 MiB | 1.455 | 0.462 | 23.25 MiB | 0.10% | 0 / false / 0 |
+| Baseline 2 | 1 / 512 MiB | 1.132 | 0.621 | 19.52 MiB | 0.05% | 0 / false / 0 |
+| Baseline 3 | 1 / 512 MiB | 1.123 | 0.492 | 19.41 MiB | 0.12% | 0 / false / 0 |
+| Constrained 1 | 0.25 / 256 MiB | 2.394 | 0.426 | 20.33 MiB | 0.57% | 0 / false / 0 |
+| Constrained 2 | 0.25 / 256 MiB | 2.187 | 0.621 | 20.54 MiB | 0.40% | 0 / false / 0 |
+
+Resource figures are single Docker stats samples after readiness (15 reported tasks per healthy case), **not peak startup memory, cumulative CPU budgets or F1 measurements**. Constrained startup was slower but still served successfully. The normal entrypoint replaces the shell with dotnet; SIGTERM shutdown completed without forced-kill exit status.
+
+Four negative starts at 0.25 CPU / 256 MiB each passed: wrong expected mount, absent local PFX, staging opt-in without platform identity, and invalid bootstrap mode. Each stopped without readiness, exit **1**, OOM false, restart count zero. The first three emitted only fixed `Research snapshot service unavailable.`; invalid mode emitted fixed `Research bootstrap unavailable`. No exception, environment values or secret material entered committed evidence. Guards were not weakened.
+
+The first harness run reached its negative cases but failed at the harness's own assumption that an already-exited container still has a published-port entry (`KeyError: 52731/tcp`). This was a **test-harness defect**, corrected to allow absent port metadata for rejected starts only. The complete subsequent nine-case matrix above passed. It is not evidence of an application fix. Existing deployment helper tests also passed: **42 tests, exit 0**, fake-only/mocked, no external calls.
+
+### Root cause and disposition
+
+**Azure startup/stop-request root cause: UNRESOLVED. No reproducible application defect or application fix.** Static startup review and local results found no evidence of wrong entrypoint/API mode, unexpected default background Worker, port/bind error, initialization loop, local permission failure, missing runtime file, or broken normal signal handling under these conditions. Invalid configurations correctly reject startup; their existence does not establish that Azure has any of those conditions.
+
+This adds only the local harness and this evidence section. Application/bootstrap/Dockerfile, authentication, storage semantics, UI, plan, settings and immutable registry artifact remain unchanged. Do not interpret local success as Azure F1 compatibility, public readiness, authenticated API acceptance, or resolution of `WPStopRequests` exhaustion.
+
+A future **separately authorized** Azure investigation would need attributable startup/exit evidence to distinguish platform recycling/quota or shared-plan activity from image-pull failure and exact transport/storage guard rejection. Current selected detector summaries do not distinguish them. Stop for owner review; do not run additional Azure diagnostics or another deployment from this result. PR #425 stays OPEN/UNMERGED.
+
+`liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
