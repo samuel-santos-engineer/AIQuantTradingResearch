@@ -173,7 +173,9 @@ class DeployTests(unittest.TestCase):
         response.read.return_value = b"Alive"
         opener.open.return_value.__enter__ = Mock(return_value=response)
         opener.open.return_value.__exit__ = Mock(return_value=False)
-        self.assertEqual(wp36.observe_health(opener=opener), {"status": 200, "body": "Alive"})
+        with patch.object(wp36.urllib.request, "build_opener", return_value=opener), redirect_stdout(io.StringIO()) as output:
+            exec(wp36.HEALTH_PROBE_CODE, {})
+        self.assertEqual(json.loads(output.getvalue()), {"status": 200, "bodyMatches": True})
         request = opener.open.call_args.args[0]
         self.assertEqual(request.full_url, wp36.HEALTH)
         self.assertIsNone(request.get_header("X-api-key"))
@@ -182,9 +184,9 @@ class DeployTests(unittest.TestCase):
 
     def test_health_failure_is_bounded(self):
         now = [0.0]
-        opener = Mock(); opener.open.side_effect = OSError("FAKE_PRIVATE_DETAILS")
+        probe = Mock(return_value=(None, b""))
         with self.assertRaisesRegex(wp36.Blocked, "HEALTH_NOT_VERIFIED"):
-            wp36.observe_health(budget=3, clock=lambda: now[0], sleep=lambda seconds: now.__setitem__(0, now[0] + seconds), opener=opener)
+            wp36.observe_health(budget=3, clock=lambda: now[0], sleep=lambda seconds: now.__setitem__(0, now[0] + seconds), probe=probe)
         self.assertEqual(now[0], 3)
 
     def test_redirects_are_not_followed(self):
@@ -195,6 +197,105 @@ class DeployTests(unittest.TestCase):
         self.assertIn("#Requires -Version 5.1", s)
         self.assertNotIn("ExecutionPolicy", s)
         self.assertNotIn("AIQ_RESEARCH_API_KEY", s)
+
+
+class Wp37DeadlineTests(unittest.TestCase):
+    def test_drifted_mode_or_https_stops_before_write(self):
+        for change in ({"mode": "EXPECTED_CLASSIC_IMAGE"}, {"httpsOnly": True}):
+            azure = Mock(); snapshot = DeployTests().snapshot(); snapshot.update(change)
+            azure.inspect.return_value = snapshot
+            with self.subTest(change=change):
+                result, code = wp36.execute("Apply", True, True, True, azure=azure, registry=lambda: {})
+                self.assertEqual(code, 2)
+                self.assertEqual(result["failureReason"], "PRE_APPLY_METADATA_DRIFT")
+                azure.request.assert_not_called()
+
+    def test_cli_uses_direct_interpreter_and_pinned_subscription(self):
+        done = Mock(returncode=0)
+        with patch.object(wp36, "cli_entrypoint", return_value=["owned-cli-python.exe", "-IBm", "azure.cli"]), patch.object(wp36.subprocess, "run", return_value=done) as run:
+            wp36.Azure().request("patch", body={"properties": {"httpsOnly": True}})
+        args = run.call_args.args[0]
+        self.assertEqual(args[:4], ["owned-cli-python.exe", "-IBm", "azure.cli", "rest"])
+        self.assertEqual(args[args.index("--subscription") + 1], wp36.SUB)
+        self.assertFalse(run.call_args.kwargs.get("shell", False))
+        self.assertEqual(run.call_args.kwargs["timeout"], 25)
+
+    def test_whole_health_process_has_remaining_deadline(self):
+        done = Mock(returncode=0, stdout=b'{"status":200,"bodyMatches":true}')
+        with patch.object(wp36.subprocess, "run", return_value=done) as run:
+            self.assertEqual(wp36.bounded_health_probe(.25), (200, b"Alive"))
+        self.assertEqual(run.call_args.kwargs["timeout"], .25)
+        self.assertEqual(run.call_args.args[0][-1], wp36.HEALTH_PROBE_CODE)
+        self.assertFalse(run.call_args.kwargs.get("shell", False))
+
+    def test_whole_request_timeout_is_pending_without_output_disclosure(self):
+        with patch.object(wp36.subprocess, "run", side_effect=wp36.subprocess.TimeoutExpired("FAKE_PRIVATE_CANARY", 8)):
+            self.assertEqual(wp36.bounded_health_probe(8), (None, b""))
+
+    def test_late_alive_is_not_accepted(self):
+        now = [0.0]
+        def late_probe(timeout):
+            self.assertEqual(timeout, 3)
+            now[0] += 3.01
+            return 200, b"Alive"
+        with self.assertRaisesRegex(wp36.Blocked, "HEALTH_NOT_VERIFIED"):
+            wp36.observe_health(budget=3, clock=lambda: now[0], probe=late_probe)
+
+    def test_final_request_uses_remaining_budget_and_no_extra_request(self):
+        now = [0.0]; timeouts = []
+        def probe(timeout):
+            timeouts.append(timeout); now[0] += timeout
+            return None, b""
+        with self.assertRaisesRegex(wp36.Blocked, "HEALTH_NOT_VERIFIED"):
+            wp36.observe_health(budget=11, clock=lambda: now[0], sleep=lambda seconds: now.__setitem__(0, now[0] + seconds), probe=probe)
+        self.assertEqual(timeouts, [8, 1]); self.assertEqual(now[0], 11)
+
+    def test_malformed_worker_result_cannot_pass(self):
+        for data in (b'{}', b'{"status":200,"bodyMatches":"true"}', b'{"status":200,"bodyMatches":true,"extra":1}', b'invalid'):
+            with self.subTest(data=data), patch.object(wp36.subprocess, "run", return_value=Mock(returncode=0, stdout=data)):
+                with self.assertRaises(wp36.Blocked):
+                    wp36.bounded_health_probe(8)
+
+    def test_redirect_or_auth_response_is_not_retried(self):
+        for status in (301, 302, 307, 401, 403):
+            probe = Mock(return_value=(status, b""))
+            with self.subTest(status=status), self.assertRaisesRegex(wp36.Blocked, "HEALTH_REJECTED"):
+                wp36.observe_health(probe=probe)
+            probe.assert_called_once()
+
+
+class Wp37FailureEvidenceTests(unittest.TestCase):
+    def test_quota_is_blocked_before_mutation(self):
+        site, plan, web = metadata(); site["state"] = "QuotaExceeded"
+        with self.assertRaisesRegex(wp36.Blocked, "AZURE_QUOTA_EXCEEDED"):
+            wp36.validate_metadata(site, plan, web)
+
+    def test_failure_inspection_can_report_actual_nonrunning_state(self):
+        site, plan, web = metadata()
+        for state in ("QuotaExceeded", "Stopped", "Starting"):
+            site["state"] = state
+            with self.subTest(state=state):
+                result = wp36.validate_metadata(site, plan, web, require_running=False)
+                self.assertEqual(result["state"], state)
+                self.assertFalse(result["httpsOnly"])
+
+    def test_exact_rejected_health_status_is_retained(self):
+        for status in (302, 401, 403):
+            with self.subTest(status=status), self.assertRaises(wp36.Blocked) as caught:
+                wp36.observe_health(probe=lambda timeout: (status, b""))
+            self.assertEqual(caught.exception.http_status, status)
+
+    def test_failed_apply_reports_status_and_nonrunning_current_state(self):
+        azure = DeployTests().fake_azure()
+        current = DeployTests().snapshot(True); current["state"] = "QuotaExceeded"
+        azure.inspect.side_effect = [DeployTests().snapshot(), DeployTests().snapshot(True), current]
+        with tempfile.TemporaryDirectory() as owned, patch.object(wp36.tempfile, "mkdtemp", return_value=owned):
+            result, code = wp36.execute("Apply", True, True, True, azure=azure,
+                health=Mock(side_effect=wp36.Blocked("HEALTH_REJECTED", http_status=403)), registry=lambda: {})
+        self.assertEqual(code, 2); self.assertEqual(result["healthHttpStatus"], 403)
+        self.assertEqual(result["currentState"]["state"], "QuotaExceeded")
+        self.assertEqual(azure.request.call_count, 3)
+        self.assertEqual(azure.inspect.call_args.kwargs, {"require_running": False})
 
 
 class FakeSettings:
