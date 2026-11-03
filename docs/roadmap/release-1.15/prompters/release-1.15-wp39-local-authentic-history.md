@@ -126,3 +126,14 @@ python -B eng/docker/release-1.15/wp38_prepare_local.py --output "$env:TEMP/aiq-
 12. This runbook.
 
 No actual response/account capability or end-to-end authentic path has been qualified. Cached-image/package preparation is reproducible on this qualified local environment, not a new clean-machine dependency installer. The private evidence chain assumes the owner protects the local directory; it is not independently signed provider evidence. Exact-idempotent import is supported; historical extension/correction uses the existing WP03 ingestion service, not destructive re-import. Partially initialized state remains private and blocked for review; no unsafe automatic reset was introduced. Azure role/storage/transport/quota causes remain deferred and unresolved, not failures of the local fixture slice. PR stays OPEN/UNMERGED.
+
+
+## Owner-approved continuation - 2026-11-03
+
+The owner explicitly approved continuing the bounded two-request provider attempt described in PR #427. That approval is retained; another approval of the same attempt is not required. A presence-only check of the supported process channel returned **PROVIDER_CHANNEL_AVAILABLE=False**. No key value was printed, read from another store, requested in chat or obtained from Azure. No provider request, import, image rebuild or Docker startup ran in this continuation.
+
+Operational status: **PROVIDER_ATTEMPT_APPROVED_BLOCKED_PRIVATE_CHANNEL**. Earlier AWAITING_OWNER_PROVIDER_APPROVAL entries describe the implementation-review checkpoint; they do not revoke the subsequent approval. The existing requirement to confirm base-asset-volume semantics remains unverified, and no claim of actual account/history capabilities is made.
+
+Next step: make the already-supported private provider process channel available to the process executing the documented owner command, or execute that command in an owner-controlled session where the channel is privately configured. Do not paste the key into chat, a command literal, clipboard, logs or screenshots. This continuation did not search other environment names, credential stores, private files or cloud configuration for a key. Existing cleaned qualification manifests are not runnable sessions: a new Prepare is needed before an owner acquisition.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
