@@ -80,3 +80,7 @@ Merged #427 baseline `c69832585a44c6253063b60d26d48b8ae487db26` was freshly publ
 ## WP41 - controlled verification Phase A
 
 Verified merged #428 at `7c92eb98b8e9fe7d204375cf43c3e11f3f68a5e7`. Fresh offline runtime/images and valid TLS prepared, fresh assembly identity and missing-approval zero-send diagnostic confirmed. All 167 focused tests passed (84 C#, 22 workflow, 61 chart/client). Status **AWAITING_NEW_OWNER_PROVIDER_APPROVAL**; Phases B/C NOT RUN. Zero provider/Azure requests; no authentic bundle/import, session startup or browser acceptance. See [WP41 runbook and exact single-attempt approval checkpoint](prompters/release-1.15-wp41-controlled-verification.md). No new architecture/licensing gate. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+### WP41 - separately approved attempt stopped
+
+Following separate explicit owner approval and successful immediate prechecks, exactly one Acquire invocation failed exit 1: response_parse, BTC/USD, HTTP 200, requestsStarted=1, responsesReceived=1, outcomeUnknown=false, INVALID_PROVIDER_PAYLOAD, bundlePublished=false. ETH/USD was not requested. Bundle/receipt/private SQLite/qualification remain absent; no import/start/verify/browser or retry. Actual payload defect and consumed credits are not established. Status **ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE**; approval consumed, stop for owner review. PR #429 evidence updated; no source change or Azure operation. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

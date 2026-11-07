@@ -1,6 +1,6 @@
 # WP41 - controlled authentic acquisition and local verification
 
-Status: **AWAITING_NEW_OWNER_PROVIDER_APPROVAL**. Phase A only completed on 2026-11-07. Phases B/C NOT RUN.
+Status: **ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE**. Phase A completed; Phase B executed once on 2026-11-07 after separate explicit owner approval. Phase C NOT RUN.
 
 ## Baseline and actual scope
 
@@ -74,4 +74,20 @@ Mutation inventory: this new WP41 runbook and append-only WP41 status in `docs/r
 
 Implemented/offline-qualified is not authentic local or public acceptance. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
 
-**AWAITING_NEW_OWNER_PROVIDER_APPROVAL**. No new approval was received in Phase A.
+## Separately approved Phase B outcome
+
+After Phase A and PR #429, owner explicitly replied "approved.continue" to the exact single-invocation checkpoint. Immediately before execution, clean PR head `e810503d5d17180556bca4801403f70f4b23c73d`, published assembly hashes, image/manifest identities, protected directory ACL, actual TLS validity, absent bundle/receipt/SQLite/qualification and absence of session containers were rechecked successfully.
+
+Exactly one existing Acquire invocation executed with the established Windows User provider setting mapped temporarily to the process channel; finally restored its previous value. No credential or raw provider body/header/exception was printed or retained as review evidence. The only reported failure envelope was:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"response_parse","instrument":"BTC/USD","httpStatus":200,"requestsStarted":1,"responsesReceived":1,"outcomeUnknown":false,"failureCode":"INVALID_PROVIDER_PAYLOAD","bundlePublished":false}
+```
+
+Acquire exit: **1**. Invocations: **1**. One send and one HTTP response observed for BTC/USD; ETH/USD was not requested. The HTTP 200 response did not pass the existing provider-payload parser. These fields do not identify the raw content, exact payload defect, key/account condition or credits consumed; no further diagnosis or response reconstruction was attempted. HTTP success is not acquisition success.
+
+Presence-only checks after failure: bundle **absent**, import receipt **absent**, private SQLite **absent**, qualification **absent**. Import, Start, Verify and browser checks **NOT RUN**. No retry, provider probe, Azure operation, registry publication or production-code change. Preparation/private evidence and owned images preserved; no session was started. This approval is consumed.
+
+The Phase A table above is historical offline evidence; its zero-provider row applies only to Phase A. Overall WP41 now includes the one approved send/response reported here. The earlier approval proposal remains a record, not permission for another attempt. New investigation or a new provider attempt requires further owner direction; no automatic retry is authorized.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. **STOPPED AFTER ACQUISITION FAILURE - OWNER REVIEW REQUIRED**.
