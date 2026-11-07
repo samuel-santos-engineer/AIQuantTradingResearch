@@ -142,6 +142,22 @@ raise SystemExit(0 if mode=='success' else 1)
             self.assertEqual(0,caught.exception.diagnostic['requestsStarted'])
             self.assertFalse(caught.exception.diagnostic['outcomeUnknown'])
 
+    def test_wp42_fixed_codes_round_trip_and_reject_external_text(self):
+        codes = ('INVALID_JSON_ENCODING','INVALID_PAYLOAD_SHAPE','PROVIDER_ERROR_ENVELOPE',
+                 'INVALID_PROVIDER_STATUS','PROVIDER_SYMBOL_MISMATCH','PROVIDER_INTERVAL_MISMATCH',
+                 'PROVIDER_TIMEZONE_MISMATCH','INVALID_CANDLE_COLLECTION','PAYLOAD_SIZE_LIMIT',
+                 'INVALID_CANDLE_TIMESTAMP','INVALID_OHLC_ENCODING')
+        for code in codes:
+            with self.subTest(code=code):
+                value=self.valid(); value.update(failureCode=code,failedStage='response_parse')
+                raw=json.dumps(value).encode()
+                self.assertEqual(value,workflow.child_failure(raw).diagnostic)
+                with self.assertRaises(workflow.AcquisitionFailure) as caught:self.stub('valid',diagnostic=value)
+                self.assertEqual(value,caught.exception.diagnostic)
+                self.assertNotIn(self.CANARY,''.join(traceback.format_exception(caught.exception)))
+                value['failureCode']=code+self.CANARY
+                self.check_unknown(workflow.child_failure(json.dumps(value).encode()),'CHILD_DIAGNOSTIC_INVALID')
+
     def test_owned_fake_child_diagnostic_survives_parent_without_freeform_output(self):
         with self.assertRaises(workflow.AcquisitionFailure) as caught:self.stub('valid')
         self.assertEqual(self.valid(),caught.exception.diagnostic)

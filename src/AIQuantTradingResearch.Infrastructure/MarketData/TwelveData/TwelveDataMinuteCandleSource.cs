@@ -11,7 +11,8 @@ public enum TwelveDataReadEvent
 {
     Preflight, RequestStarted, ResponseReceived, ResponseParse, ObservationValidation,
     VolumeUnconfirmed, InvalidPrivateInput, HttpFailure, InvalidHeaders, InvalidPayload, InvalidMetadata,
-    InvalidObservation, InvalidVolume, TransportFailure, Timeout, Cancelled, Unknown
+    InvalidObservation, InvalidVolume, TransportFailure, Timeout, Cancelled, Unknown, InvalidJson, InvalidShape, ProviderErrorEnvelope,
+    InvalidStatus, SymbolMismatch, IntervalMismatch, TimezoneMismatch, InvalidCandles, PayloadTooLarge, InvalidTimestamp, InvalidOhlc
 }
 public readonly record struct TwelveDataReadDiagnostic(TwelveDataReadEvent Event, ResearchInstrument Instrument, int? HttpStatus = null);
 
@@ -63,39 +64,67 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
             Signal(stage, (int)response.StatusCode);
             if (!response.IsSuccessStatusCode) Reject(TwelveDataReadEvent.HttpFailure);
             if (response.RequestMessage?.RequestUri != message.RequestUri ||
-                response.Content.Headers.ContentLength > MaximumResponseBytes || response.Content.Headers.ContentEncoding.Count != 0 ||
+                response.Content.Headers.ContentEncoding.Count != 0 ||
                 response.Content.Headers.ContentType?.MediaType != "application/json" ||
                 (response.Content.Headers.ContentType.CharSet is string charset && !string.Equals(charset, "utf-8", StringComparison.OrdinalIgnoreCase))) Reject(TwelveDataReadEvent.InvalidHeaders);
+            if (response.Content.Headers.ContentLength > MaximumResponseBytes) Reject(TwelveDataReadEvent.PayloadTooLarge);
             using var stream = await response.Content.ReadAsStreamAsync(deadline.Token).ConfigureAwait(false);
             using var bytes = new MemoryStream(); var buffer = new byte[4096]; int count;
             while ((count = await stream.ReadAsync(buffer, deadline.Token).ConfigureAwait(false)) != 0)
             {
-                if (bytes.Length + count > MaximumResponseBytes) Reject(TwelveDataReadEvent.InvalidPayload);
+                if (bytes.Length + count > MaximumResponseBytes) Reject(TwelveDataReadEvent.PayloadTooLarge);
                 bytes.Write(buffer, 0, count);
             }
             stage = TwelveDataReadEvent.ResponseParse; Signal(stage);
-            var text = new UTF8Encoding(false, true).GetString(bytes.ToArray());
-            using var doc = JsonDocument.Parse(text, new JsonDocumentOptions { MaxDepth = 8 });
-            Unique(doc.RootElement);
+            JsonDocument parsed;
+            try
+            {
+                var text = new UTF8Encoding(false, true).GetString(bytes.ToArray());
+                parsed = JsonDocument.Parse(text, new JsonDocumentOptions { MaxDepth = 8 });
+            }
+            catch (Exception e) when (e is JsonException or DecoderFallbackException)
+            { Reject(TwelveDataReadEvent.InvalidJson); throw; }
+            using var doc = parsed;
+            try { Unique(doc.RootElement); }
+            catch (ResearchUnavailableException) { Reject(TwelveDataReadEvent.InvalidShape); throw; }
             var root = doc.RootElement;
-            if (root.GetProperty("status").GetString() != "ok") Reject(TwelveDataReadEvent.InvalidPayload);
-            var meta = root.GetProperty("meta");
-            if (meta.GetProperty("symbol").GetString() != symbol || meta.GetProperty("interval").GetString() != "1min" ||
-                meta.GetProperty("exchange_timezone").GetString() != "UTC") Reject(TwelveDataReadEvent.InvalidMetadata);
-            var values = root.GetProperty("values");
-            if (values.ValueKind != JsonValueKind.Array || values.GetArrayLength() > 1000) Reject(TwelveDataReadEvent.InvalidPayload);
+            if (root.ValueKind != JsonValueKind.Object) Reject(TwelveDataReadEvent.InvalidShape);
+            if (!root.TryGetProperty("status", out var status) || status.ValueKind != JsonValueKind.String)
+                Reject(TwelveDataReadEvent.InvalidStatus);
+            // Recognize only the fixed structural marker; never inspect provider code/message text.
+            if (status.GetString() == "error") Reject(TwelveDataReadEvent.ProviderErrorEnvelope);
+            if (status.GetString() != "ok") Reject(TwelveDataReadEvent.InvalidStatus);
+            if (!root.TryGetProperty("meta", out var meta) || meta.ValueKind != JsonValueKind.Object ||
+                !meta.TryGetProperty("symbol", out var metaSymbol) || metaSymbol.ValueKind != JsonValueKind.String ||
+                !meta.TryGetProperty("interval", out var interval) || interval.ValueKind != JsonValueKind.String ||
+                !meta.TryGetProperty("exchange_timezone", out var timezone) || timezone.ValueKind != JsonValueKind.String)
+                Reject(TwelveDataReadEvent.InvalidMetadata);
+            if (meta.GetProperty("symbol").GetString() != symbol) Reject(TwelveDataReadEvent.SymbolMismatch);
+            if (meta.GetProperty("interval").GetString() != "1min") Reject(TwelveDataReadEvent.IntervalMismatch);
+            if (meta.GetProperty("exchange_timezone").GetString() != "UTC") Reject(TwelveDataReadEvent.TimezoneMismatch);
+            if (!root.TryGetProperty("values", out var values) || values.ValueKind != JsonValueKind.Array || values.GetArrayLength() > 1000)
+                Reject(TwelveDataReadEvent.InvalidCandles);
             stage = TwelveDataReadEvent.ObservationValidation; Signal(stage);
             var candles = new List<CompletedResearchCandle>();
             foreach (var row in values.EnumerateArray())
             {
-                if (!DateTimeOffset.TryParseExact(row.GetProperty("datetime").GetString(), "yyyy-MM-dd HH:mm:ss",
-                    CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var time)) Reject(TwelveDataReadEvent.InvalidObservation);
+                if (row.ValueKind != JsonValueKind.Object) Reject(TwelveDataReadEvent.InvalidCandles);
+                if (!row.TryGetProperty("datetime", out var stamp) || stamp.ValueKind != JsonValueKind.String ||
+                    !DateTimeOffset.TryParseExact(stamp.GetString(), "yyyy-MM-dd HH:mm:ss",
+                    CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out _)) Reject(TwelveDataReadEvent.InvalidTimestamp);
+                var time = DateTimeOffset.ParseExact(stamp.GetString()!, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
                 decimal volume;
                 try { volume = Value(row, "volume"); }
                 catch (Exception e) when (e is ResearchUnavailableException or InvalidOperationException or KeyNotFoundException)
                 { Reject(TwelveDataReadEvent.InvalidVolume); throw; }
-                candles.Add(new CompletedResearchCandle(request.Instrument, time, Value(row, "open"), Value(row, "high"),
-                    Value(row, "low"), Value(row, "close"), volume));
+                try
+                {
+                    candles.Add(new CompletedResearchCandle(request.Instrument, time, Value(row, "open"), Value(row, "high"),
+                        Value(row, "low"), Value(row, "close"), volume));
+                }
+                catch (Exception e) when (e is ResearchUnavailableException or InvalidOperationException or KeyNotFoundException)
+                { Reject(TwelveDataReadEvent.InvalidOhlc); throw; }
             }
             DateTimeOffset? previous = null;
             foreach (var candle in candles)

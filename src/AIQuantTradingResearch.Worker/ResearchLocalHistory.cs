@@ -21,7 +21,7 @@ public static class ResearchLocalHistory
         public int RequestsStarted { get; private set; }
         public int ResponsesReceived { get; private set; }
         private static readonly HashSet<string> Stages = ["preflight", "private_input", "request_start", "http_response", "response_parse", "observation_validation", "bundle_publication", "unknown"];
-        private static readonly HashSet<string> Codes = ["MISSING_APPROVAL", "INVALID_DESTINATION", "DESTINATION_EXISTS", "INVALID_PRIVATE_INPUT", "VOLUME_UNCONFIRMED", "TIMEOUT", "CANCELLED", "TRANSPORT_ERROR", "HTTP_UNAUTHORIZED", "HTTP_FORBIDDEN", "HTTP_RATE_LIMITED", "HTTP_SERVER_ERROR", "HTTP_OTHER", "INVALID_RESPONSE_HEADERS", "INVALID_PROVIDER_PAYLOAD", "INVALID_PROVIDER_METADATA", "INVALID_OBSERVATION", "INVALID_VOLUME", "ZERO_ACCEPTED_CANDLES", "BUNDLE_PUBLICATION_FAILED", "UNKNOWN"];
+        private static readonly HashSet<string> Codes = ["MISSING_APPROVAL", "INVALID_DESTINATION", "DESTINATION_EXISTS", "INVALID_PRIVATE_INPUT", "VOLUME_UNCONFIRMED", "TIMEOUT", "CANCELLED", "TRANSPORT_ERROR", "HTTP_UNAUTHORIZED", "HTTP_FORBIDDEN", "HTTP_RATE_LIMITED", "HTTP_SERVER_ERROR", "HTTP_OTHER", "INVALID_RESPONSE_HEADERS", "INVALID_PROVIDER_PAYLOAD", "INVALID_PROVIDER_METADATA", "INVALID_OBSERVATION", "INVALID_VOLUME", "ZERO_ACCEPTED_CANDLES", "BUNDLE_PUBLICATION_FAILED", "INVALID_JSON_ENCODING", "INVALID_PAYLOAD_SHAPE", "PROVIDER_ERROR_ENVELOPE", "INVALID_PROVIDER_STATUS", "PROVIDER_SYMBOL_MISMATCH", "PROVIDER_INTERVAL_MISMATCH", "PROVIDER_TIMEZONE_MISMATCH", "INVALID_CANDLE_COLLECTION", "PAYLOAD_SIZE_LIMIT", "INVALID_CANDLE_TIMESTAMP", "INVALID_OHLC_ENCODING", "UNKNOWN"];
         public void Step(string stage) => Stage = Stages.Contains(stage) ? stage : "unknown";
         public void Fail(string stage, string code)
         {
@@ -45,6 +45,17 @@ public static class ResearchLocalHistory
                 case TwelveDataReadEvent.HttpFailure:
                     Fail("http_response", HttpStatus switch { 401 => "HTTP_UNAUTHORIZED", 403 => "HTTP_FORBIDDEN", 429 => "HTTP_RATE_LIMITED", >= 500 and <= 599 => "HTTP_SERVER_ERROR", _ => "HTTP_OTHER" }); break;
                 case TwelveDataReadEvent.InvalidHeaders: Fail("http_response", "INVALID_RESPONSE_HEADERS"); break;
+                case TwelveDataReadEvent.InvalidJson: Fail("response_parse", "INVALID_JSON_ENCODING"); break;
+                case TwelveDataReadEvent.InvalidShape: Fail("response_parse", "INVALID_PAYLOAD_SHAPE"); break;
+                case TwelveDataReadEvent.ProviderErrorEnvelope: Fail("response_parse", "PROVIDER_ERROR_ENVELOPE"); break;
+                case TwelveDataReadEvent.InvalidStatus: Fail("response_parse", "INVALID_PROVIDER_STATUS"); break;
+                case TwelveDataReadEvent.SymbolMismatch: Fail("response_parse", "PROVIDER_SYMBOL_MISMATCH"); break;
+                case TwelveDataReadEvent.IntervalMismatch: Fail("response_parse", "PROVIDER_INTERVAL_MISMATCH"); break;
+                case TwelveDataReadEvent.TimezoneMismatch: Fail("response_parse", "PROVIDER_TIMEZONE_MISMATCH"); break;
+                case TwelveDataReadEvent.InvalidCandles: Fail(Stage, "INVALID_CANDLE_COLLECTION"); break;
+                case TwelveDataReadEvent.PayloadTooLarge: Fail(Stage, "PAYLOAD_SIZE_LIMIT"); break;
+                case TwelveDataReadEvent.InvalidTimestamp: Fail("observation_validation", "INVALID_CANDLE_TIMESTAMP"); break;
+                case TwelveDataReadEvent.InvalidOhlc: Fail("observation_validation", "INVALID_OHLC_ENCODING"); break;
                 case TwelveDataReadEvent.InvalidPayload: Fail(Stage, "INVALID_PROVIDER_PAYLOAD"); break;
                 case TwelveDataReadEvent.InvalidMetadata: Fail("response_parse", "INVALID_PROVIDER_METADATA"); break;
                 case TwelveDataReadEvent.InvalidObservation: Fail("observation_validation", "INVALID_OBSERVATION"); break;
