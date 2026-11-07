@@ -1,0 +1,33 @@
+# Codex assignment — Release 1.15: authentic BTC/ETH chart staging delivery
+
+## Baseline and objective
+
+Repository: `samuel-santos-engineer/AIQuantTradingResearch`. Start from fresh `origin/main` containing squash-merged PR #401 at `f19d63647efcda5fe734363d87c430ffe8208ae2`. Preserve the owner's dirty checkout: use an isolated worktree/branch. Open one focused review PR and leave it **OPEN/UNMERGED**.
+
+Primary goal: deliver and actually verify an interactive historical BTC/USD and ETH/USD chart at the **existing Azure staging UI** `https://aiqr112wp05wus27f5eabb5.azurewebsites.net/`. Focus on authentic completed one-minute observations, existing C# indicators and Streamlit/Plotly UI, and browser acceptance. Avoid another documentation-only readiness PR. Implement and test the next genuinely executable increment, report exact remaining impediments.
+
+## Binding owner decisions
+
+- **Do not modify Release 1.15 governance or the current research/storage implementation.** Retain the fail-closed App Service SQLite writer safeguard. Do not strip App Service identity markers, spoof the host, replace authoritative SQLite with a fixture, or claim ephemeral App Service storage is qualified for the existing WAL authority.
+- **No additional staging VM approved.** The previously discussed Standard_B1s + two E4 disks budget approval was withdrawn. Do not provision a VM, disks, IP, network, or other paid resources. Do not reintroduce that proposal as an assumed dependency or create a budget approval gate. Persistent local/block storage and durability architecture are deferred to a later milestone.
+- Existing staging F1 UI and research shell are the only Azure apps currently designated. All Azure evaluation must be against these existing staging resources; never production or unrelated environments.
+- **Bounded data acquisition IS authorized**: at most **two total requests**, one for BTC/USD and one for ETH/USD, maximum **16 account credits total**, using *existing authorized* credentials only, if available securely. No retries, background polling, provider key retrieval from unrelated Azure settings, credential disclosure, or fallback provider. Verify the account's actual per-request credit rate, outputsize and base-volume semantics before sending any request; if this cannot be established or credentials are unavailable, stop without calling the provider and state exactly what input is missing. Do not present fixtures as authentic.
+- Data should be at most 1000 completed UTC 1-minute candles per symbol, with actual provenance, gaps preserved, in the existing initializer envelope. Use the merged `eng/docker/release-1.15/Invoke-Wp07ResearchImport.ps1` and existing C# validation; private export, configuration and state stay outside Git. Avoid exposing data/account identifiers or secrets in logs, PR, command line or browser.
+- **Azure mutation is not yet authorized**: do not deploy, alter app settings, publish images, restart staging, change networking, provision, or spend money without a new explicit, narrowly scoped owner approval. Read-only inventory and local tests are fine. If the only way to do full browser acceptance requires such an operation, prepare exact target-specific commands and ask for that approval; do not claim acceptance was run.
+
+## Engineering work
+
+1. Verify merged PR #401 and inspect the actual repository state, existing launcher, initializer, HTTPS snapshot client, storage guard, container images and staging UI settings. Reuse accepted local test evidence (#395–#401); do not rerun general SQLite crash/fault testing or invent distributed coordination.
+2. Seek authorized credentials through existing approved private mechanisms without printing their values. Determine whether the provider credit allowance can be verified without an unapproved extra provider request. If not, stop acquisition and describe the exact missing information. If safely authorized and verifiable, acquire once per symbol within the cap, create a protected private authentic export, validate it with the existing initializer/wrapper in a permitted local environment, and record nonsecret provenance and bounded counts only. Never commit the export.
+3. Make **concrete, useful deployment-enabling changes** that do not alter governance or the App Service SQLite safeguard. Prefer exact staging-only UI packaging/configuration and reproducible preflight/acceptance automation; do not add speculative infrastructure or another generic planning document. Keep existing single-writer and TLS/API-key boundaries. If no meaningful code increment is needed, say so rather than manufacture changes.
+4. Evaluate whether an already-authorized, reachable, compatible research endpoint exists **without** provisioning or violating the storage guard. Do not assume the F1 research shell can run the current SQLite writer. Explicitly distinguish what the F1 UI can show from what requires a research snapshot endpoint. If no compatible endpoint exists, report this as the remaining technical blocker, with the smallest **governance-preserving** option for a subsequent owner decision; do not imply full chart delivery is possible without it.
+5. Prepare bounded Azure staging acceptance for the actual staging URL once authorized: authentic BTC/ETH completed candles, indicators, selector, SMA/RSI, gaps/warmup, hover/zoom/pan, stale/reconnect, server-side authentication, no browser/provider secrets, strict research TLS, and accurate cold-start/session results. Run only what is currently authorized; mark all unrun criteria NOT_RUN. `PUBLIC_RUNTIME_VERIFIED=False` unless actual Azure staging browser and research behavior are verified.
+6. Preserve original owner HEAD/status and every dirty/untracked file. Run focused tests, encoding/LF checks and `git diff --check`. Create one focused PR against main, OPEN/UNMERGED, with exact paths, test evidence, acquisition count/credits if any, staging actions NOT_RUN, and precise owner decision needed to move forward.
+
+## Do not
+
+Do not change governance or storage semantics, provision the withdrawn VM, perform unapproved Azure mutations, silently replace real candles with fixtures, run more than two provider calls or exceed 16 credits, expose credentials, change production, merge your PR, close issues, or relabel local testing as Azure acceptance.
+
+## Deliverable
+
+A focused PR with the highest-value executable implementation/test increment possible within these boundaries, plus a concise factual status report. If the unchanged App Service writer guard and absence of an authorized compatible research host make actual Azure acceptance impossible, state that clearly and stop at the exact authorization/architecture decision—no repeated planning loop.
