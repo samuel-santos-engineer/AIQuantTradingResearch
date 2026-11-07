@@ -1,6 +1,6 @@
 # WP44 - controlled authentic acquisition and local chart verification
 
-Status: **AWAITING_NEW_OWNER_PROVIDER_APPROVAL**. Offline phase completed 2026-11-07. Live/conditional chart phases NOT RUN.
+Status: **ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE**. Offline phase completed; one separately approved Acquire invocation executed on 2026-11-07. Conditional import/chart phase NOT RUN.
 
 ## Baseline and actual evidence
 
@@ -62,3 +62,19 @@ Retain owned preparation/images privately pending review. No session was started
 Exactly two changed paths: this new runbook and append-only `docs/roadmap/release-1.15/RELEASE_1.15_EXECUTION_PLAN.md`. UTF-8/LF/no BOM and independent CRLF/diff checks passed. New WP44 PR stays OPEN/UNMERGED.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Separately approved live outcome
+
+After offline evidence and PR #431, owner explicitly approved: "approved. run one acquire invocation". Immediately before execution, clean source head `f0e57b2370526faa4653c16f3279f8715ca20900`, published assembly hashes, image/manifest identity, actual TLS validity, protected private ACL, zero conflicting session containers/state volumes, absent destinations and exact Windows User setting NAME were rechecked successfully. The setting value was read only inside the approved operation, transient process channel restored in finally. No key/raw response/header/provider code/message/private path was printed or copied into evidence.
+
+Exactly one Acquire invocation, exit **1**. Observed bounded diagnostic:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"response_parse","instrument":"BTC/USD","httpStatus":200,"requestsStarted":1,"responsesReceived":1,"outcomeUnknown":false,"failureCode":"INVALID_PROVIDER_METADATA","bundlePublished":false}
+```
+
+The updated parser distinguishes missing/wrong-typed metadata or its required fields under this code; the diagnostic does not identify which field or its content. Do not infer provider account/key state, response contents or charged credits. This is the new WP44 observation, not a retroactive explanation of WP41. One send/one response observed; ETH/USD was not requested. HTTP 200 is not valid-data acceptance.
+
+Presence-only checks: bundle **absent**, import receipt **absent**, private SQLite **absent**, qualification **absent**. No Import/Start/Verify/browser; no retry, additional provider probe, Azure operation or registry publication. Owned private preparation/images retained, no session started. Approval consumed. Earlier offline zero-request/checkpoint sections remain historical; overall WP44 now includes this one approved send/response. No further attempt is authorized.
+
+**STOPPED AFTER ACQUISITION FAILURE - OWNER REVIEW REQUIRED**. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
