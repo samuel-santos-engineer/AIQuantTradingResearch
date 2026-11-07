@@ -137,3 +137,20 @@ Operational status: **PROVIDER_ATTEMPT_APPROVED_BLOCKED_PRIVATE_CHANNEL**. Earli
 Next step: make the already-supported private provider process channel available to the process executing the documented owner command, or execute that command in an owner-controlled session where the channel is privately configured. Do not paste the key into chat, a command literal, clipboard, logs or screenshots. This continuation did not search other environment names, credential stores, private files or cloud configuration for a key. Existing cleaned qualification manifests are not runnable sessions: a new Prepare is needed before an owner acquisition.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
+
+
+## Approved attempt continuation - 2026-11-07
+
+Current checkpoint: **ONE_APPROVED_ACQUISITION_ATTEMPT_FAILED_NO_BUNDLE**. The previous private-channel blocker is resolved. A presence-only check found the exact owner-authorized Windows User setting `TwelveData__ApiKey`; no credential value entered evidence. The owner also explicitly reported that volume is verified as BTC/ETH base-asset units. That is owner-supplied capability confirmation, not independently measured evidence from this attempt.
+
+PR #427 was verified OPEN at head `2fe09782544421867d294e3ab5d4dd44a2cbcf97` before execution, with a clean isolated worktree. A fresh offline Prepare completed, including new one-day local TLS material and disposable service credentials, using cached image inputs and existing packages. No fixture state was seeded into this observation attempt.
+
+The approved Acquire command was invoked **once**, with execute-provider-approved and base-asset-volume-confirmed flags. The named Windows setting was mapped privately into the acquisition process channel; the provider value was not printed, put into shell arguments, persisted, or passed to Docker/browser. The temporary process channel was restored in finally; the persistent Windows setting was not changed. No Azure key, unrelated credential, cloud configuration or owner key-generation script was read.
+
+Observed result: generic `WP39_BLOCKED; preserve local state for review; no automatic retry`, **acquisition exit 1**. Presence-only artifact checks confirmed: preparation manifest present; **no published bundle, no import receipt, no private research.sqlite, no qualification file**. No import, chart startup or authentic snapshot/browser verification followed. The generic workflow discards the underlying child diagnostics; HTTP status, failure stage, exact cause, actual request count and quota consumption are **UNRESOLVED**. At most two provider requests were permitted by code, but the evidence does not establish whether zero, one or two were sent. Do not call this a provider rejection, network failure, missing-volume response or invalid-key result without evidence.
+
+**No retry or additional provider call was made.** A new live attempt requires separate owner approval; first improve bounded sanitized stage/status reporting offline and test it with fakes so a further attempt can be attributable without leaking credentials or private observations. This continuation changes evidence only, not the reviewed acquisition implementation.
+
+Cleanup removed only the two preparation image tags after exact image-ID checks. No runtime containers had been started. Restricted private attempt artifacts remain for owner review; the cleaned manifest must not be treated as a ready-to-start session. Existing Windows settings, cached input images and unrelated workloads were preserved. No Azure requests, registry publication, deployment, PR merge or tests beyond the operational preflight/artifact checks ran in this continuation. UTF-8/LF/no BOM and git diff --check checked before the evidence commit.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
