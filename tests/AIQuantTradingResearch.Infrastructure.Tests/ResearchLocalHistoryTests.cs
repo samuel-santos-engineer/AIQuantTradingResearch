@@ -125,6 +125,26 @@ public sealed class ResearchLocalHistoryTests
                 ignored=DiagnosticCanary }))!;
             var rows=body["values"]!.AsArray();
             if(kind=="json") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"{"+DiagnosticCanary));
+            if(kind=="shape") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"[]"));
+            if(kind=="provider-error") { body["status"]="error"; body["message"]=DiagnosticCanary; }
+            if(kind=="status") body["status"]=42;
+            if(kind=="missing-meta") body.AsObject().Remove("meta");
+            if(kind=="invalid-meta") body["meta"]=42;
+            if(kind=="interval") body["meta"]!["interval"]="1day";
+            if(kind=="missing-values") body.AsObject().Remove("values");
+            if(kind=="invalid-values") body["values"]=42;
+            if(kind=="invalid-row") rows[0]=42;
+            if(kind=="timestamp") rows[0]!["datetime"]=DiagnosticCanary;
+            if(kind=="descending") { rows.Add(rows[0]!.DeepClone()); rows[0]!["datetime"]=DateTimeOffset.UtcNow.AddMinutes(-9).ToString("yyyy-MM-dd HH:mm:00",System.Globalization.CultureInfo.InvariantCulture); }
+            if(kind=="forming") rows[0]!["datetime"]=DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:00",System.Globalization.CultureInfo.InvariantCulture);
+            if(kind=="invalid-volume") rows[0]!["volume"]=DiagnosticCanary;
+            if(kind=="oversize") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,new string(' ',1_048_577)));
+            if(kind=="invalid-utf8")
+            {
+                var malformed=Response(request,System.Net.HttpStatusCode.OK,"");
+                malformed.Content=new ByteArrayContent([0xC3,0x28]); malformed.Content.Headers.ContentType=new("application/json");
+                return Task.FromResult(malformed);
+            }
             if(kind=="metadata") body["meta"]!["symbol"]="OTHER";
             if(kind=="timezone") body["meta"]!["exchange_timezone"]="Not-UTC";
             if(kind=="duplicate") rows.Add(rows[0]!.DeepClone());
@@ -186,21 +206,57 @@ public sealed class ResearchLocalHistoryTests
         DiagnosticEquals(result.Log,"request_start",failure,"BTC/USD",null,1,0,true);Assert.False(Directory.Exists(path));
     }
     [Theory]
-    [InlineData("json","response_parse","INVALID_PROVIDER_PAYLOAD")]
-    [InlineData("metadata","response_parse","INVALID_PROVIDER_METADATA")]
-    [InlineData("timezone","response_parse","INVALID_PROVIDER_METADATA")]
+    [InlineData("json","response_parse","INVALID_JSON_ENCODING")]
+    [InlineData("metadata","response_parse","PROVIDER_SYMBOL_MISMATCH")]
+    [InlineData("timezone","response_parse","PROVIDER_TIMEZONE_MISMATCH")]
     [InlineData("duplicate","observation_validation","INVALID_OBSERVATION")]
     [InlineData("unaligned","observation_validation","INVALID_OBSERVATION")]
     [InlineData("ohlc","observation_validation","INVALID_OBSERVATION")]
-    [InlineData("numeric","observation_validation","INVALID_OBSERVATION")]
+    [InlineData("numeric","observation_validation","INVALID_OHLC_ENCODING")]
     [InlineData("volume","observation_validation","INVALID_VOLUME")]
     [InlineData("empty","observation_validation","ZERO_ACCEPTED_CANDLES")]
+    [InlineData("shape","response_parse","INVALID_PAYLOAD_SHAPE")]
+    [InlineData("provider-error","response_parse","PROVIDER_ERROR_ENVELOPE")]
+    [InlineData("status","response_parse","INVALID_PROVIDER_STATUS")]
+    [InlineData("missing-meta","response_parse","INVALID_PROVIDER_METADATA")]
+    [InlineData("invalid-meta","response_parse","INVALID_PROVIDER_METADATA")]
+    [InlineData("interval","response_parse","PROVIDER_INTERVAL_MISMATCH")]
+    [InlineData("missing-values","response_parse","INVALID_CANDLE_COLLECTION")]
+    [InlineData("invalid-values","response_parse","INVALID_CANDLE_COLLECTION")]
+    [InlineData("invalid-row","observation_validation","INVALID_CANDLE_COLLECTION")]
+    [InlineData("timestamp","observation_validation","INVALID_CANDLE_TIMESTAMP")]
+    [InlineData("descending","observation_validation","INVALID_OBSERVATION")]
+    [InlineData("forming","observation_validation","ZERO_ACCEPTED_CANDLES")]
+    [InlineData("invalid-volume","observation_validation","INVALID_VOLUME")]
+    [InlineData("oversize","http_response","PAYLOAD_SIZE_LIMIT")]
+    [InlineData("invalid-utf8","response_parse","INVALID_JSON_ENCODING")]
     [InlineData("headers","http_response","INVALID_RESPONSE_HEADERS")]
     public async Task InvalidFakeResponseIsClassifiedWithoutPayloadLeak(string kind,string stage,string failure)
     {
         var path=Output();using var handler=new DiagnosticHandler(kind);var result=await DiagnosticRun(handler,path);
         Assert.Equal(1,result.Code);Assert.Equal(1,handler.Calls);
         DiagnosticEquals(result.Log,stage,failure,"BTC/USD",200,1,1,false);Assert.False(Directory.Exists(path));
+        var root = new DirectoryInfo(AppContext.BaseDirectory);
+        while (root is not null && !File.Exists(Path.Combine(root.FullName,"eng","docker","release-1.15","wp39_local_history.py"))) root=root.Parent;
+        Assert.NotNull(root);
+        var start = new System.Diagnostics.ProcessStartInfo("python") { RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true, UseShellExecute=false };
+        start.ArgumentList.Add("-B"); start.ArgumentList.Add("-c");
+        start.ArgumentList.Add("import importlib.util,json,sys; s=importlib.util.spec_from_file_location('w',sys.argv[1]); w=importlib.util.module_from_spec(s); s.loader.exec_module(w); raw=sys.stdin.buffer.read(2049); assert w.child_failure(raw).diagnostic==json.loads(raw)");
+        start.ArgumentList.Add(Path.Combine(root!.FullName,"eng","docker","release-1.15","wp39_local_history.py"));
+        using var child=System.Diagnostics.Process.Start(start)!;
+        await child.StandardInput.WriteAsync(result.Log); child.StandardInput.Close();
+        using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try { await child.WaitForExitAsync(deadline.Token); }
+        catch { if(!child.HasExited) child.Kill(); throw; }
+        Assert.Equal(0,child.ExitCode);Assert.Equal("",await child.StandardOutput.ReadToEndAsync());
+        Assert.Equal("",await child.StandardError.ReadToEndAsync());
+    }
+    [Fact] public async Task SecondSymbolParserFailureRetainsBothResponsesAndPublishesNothing()
+    {
+        var path=Output();using var handler=new DiagnosticHandler("provider-error",2);var result=await DiagnosticRun(handler,path);
+        Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
+        DiagnosticEquals(result.Log,"response_parse","PROVIDER_ERROR_ENVELOPE","ETH/USD",200,2,2,false);
+        Assert.False(Directory.Exists(path));
     }
     [Fact] public async Task SecondSymbolHttpFailureRetainsBothCountersAndPublishesNothing()
     {

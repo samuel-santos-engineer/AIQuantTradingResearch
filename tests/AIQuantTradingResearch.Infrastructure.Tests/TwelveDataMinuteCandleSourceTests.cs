@@ -80,6 +80,16 @@ public sealed class TwelveDataMinuteCandleSourceTests
         await Assert.ThrowsAsync<ResearchUnavailableException>(() => source.ReadCompletedAsync(ResearchTestDirectory.Request()));
         handler.Bytes = [0xC3, 0x28];await Assert.ThrowsAsync<ResearchUnavailableException>(() => source.ReadCompletedAsync(ResearchTestDirectory.Request()));
     }
+    [Fact] public async Task StreamedOversizeHasFixedCodeAndObservedHttpFacts()
+    {
+        using var handler = new Handler("") { Bytes = new byte[TwelveDataMinuteCandleSource.MaximumResponseBytes + 1], NoLength = true };
+        var trace = new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source = new TwelveDataMinuteCandleSource(handler, Key, true, diagnostic:trace.Observe);
+        var error=await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal("PAYLOAD_SIZE_LIMIT",trace.Code);Assert.Equal("http_response",trace.Stage);
+        Assert.Equal(200,trace.HttpStatus);Assert.Equal(1,trace.RequestsStarted);Assert.Equal(1,trace.ResponsesReceived);
+        Assert.DoesNotContain(Key,trace.FailureJson());Assert.DoesNotContain(Key,error.ToString());Assert.Equal(1,handler.Calls);
+    }
     [Fact] public async Task EnforcesDeadlineOnOfflineHandler()
     {
         using var handler = new Handler(Valid) { Delay = true };using var source = new TwelveDataMinuteCandleSource(handler, Key, true, TimeSpan.FromMilliseconds(30));

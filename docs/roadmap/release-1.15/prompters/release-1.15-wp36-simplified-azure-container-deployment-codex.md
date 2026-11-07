@@ -1,0 +1,41 @@
+# Codex prompt — Release 1.15 WP36: Simplified research API Azure container deployment
+
+## Objective and authority
+
+Repository: `samuel-santos-engineer/AIQuantTradingResearch`. Start from `main` after merged PR #423, squash commit `3c0585fca53bd7ecd175eed0b9549186090a1155`. Create a focused implementation branch and PR for owner review. The owner explicitly wants to **deploy the already-built/published research API image** to the existing research App Service and **does not require a complex automated failure-recovery system at this stage**. Prioritize practical progress; do not create extra governance or vault prerequisites. Do not interpret this prompt as permission to mutate Azure automatically: implement/qualify the smallest deploy path, present the exact planned Azure changes and ask for explicit owner approval before executing any live write, restart, or health probe if outside the approved scope.
+
+## Fixed resources and image
+
+- Research App Service: `aiqr115researchstagingwus27f5eabb5`
+- Resource group: `rg-aiq-r112-wp05-wus2-7f5eabb5`
+- Existing Linux West US 2 F1 plan: `asp-aiq-r112-wp05-wus2-7f5eabb5`
+- UI App Service `aiqr112wp05wus27f5eabb5` must not be changed.
+- Existing image repository: `ghcr.io/samuel-santos-engineer/aiquanttradingresearch`
+- Already-published tag: `wp35-c1653dc2075b20f35fd1b31a0f41096e6ae7e354`
+- Verified OCI index digest: `sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f`
+- Linux/amd64 runtime manifest digest: `sha256:fb9aab67753be84ca3300876fa4ed4d669ab0d897beb49f3fb8f2eae58b9b012`.
+- Target anonymous health: `GET https://aiqr115researchstagingwus27f5eabb5.azurewebsites.net/health` -> HTTP 200, body exactly `Alive`.
+
+WP35 already reported local Docker `/health` 200 `Alive`, correct Linux/amd64 runtime, UID 1654, bootstrap invoking `dotnet /app/AIQuantTradingResearch.Worker.dll --research-snapshot-api`, and registry digest readback. **Do not rebuild or repush** unless evidence shows the published artifact is unusable and the owner approves an alternative.
+
+## Current Azure evidence
+
+WP35 metadata-only inspection reported exact app/plan Running, Linux F1, `siteConfig.linuxFxVersion` empty, no sidecar, empty startup override, and platform `httpsOnly=false`. Owner observed nginx 404 on `/health`. Existing image has not been assigned. In-place classic custom-container support and conversion on this exact F1 resource are not yet proven. A configuration attempt may be rejected by Azure; report the real result, do not silently upgrade or recreate the app.
+
+## Implementation instructions
+
+1. Inspect merged WP34/WP35 runbooks, existing Dockerfile/bootstrap, research API startup/guards, and the existing Azure CLI helpers. Implement a **small research-only Azure deployment helper**, preferably Python stdlib plus an optional PowerShell 5.1 wrapper, with an offline `Plan` default and a distinct, explicitly approved `Apply` action. Avoid broad framework changes and do not invoke the old WP21 full-settings controller.
+2. Before an apply, perform targeted read-only verification of exact resource identity, current mode, plan F1, HTTPS-only state, and expected image availability/pull access. Use bounded calls and sanitized output. Distinguish classic Docker from sidecar or built-in Code. Never export or print app-setting values, connection strings, credentials, publishing profiles, or API keys. Verify whether F1 can accept the container in place using available authoritative documentation and actual nonmutating metadata; if still uncertain, explain that the owner-approved deployment is a bounded compatibility attempt rather than proven support.
+3. **Preserve the owner's existing `AIQ_RESEARCH_API_KEY` exactly.** Do not generate, read, log, pass on CLI, replace, or rotate it. Do not use `az webapp config appsettings set` with a reconstructed full settings list, any full-settings PUT, or the WP21 controller's key-injection path. Add/update only necessary **non-secret** settings via a narrowly scoped, reviewed mechanism whose semantics preserve all unrelated settings and slot flags. Confirm that the key-setting name is present by safe name-only inspection if an approved read can avoid secret-bearing output; otherwise ask the owner to confirm its presence in the portal. If absent, stop and use the already-agreed owner-only key workflow separately.
+4. Configure only the existing research App Service to use the **verified immutable image digest** (not merely a mutable tag). Prefer the simplest supported classic custom-container mechanism for the observed Linux Code-mode app; document the exact Azure CLI/ARM behavior and F1 restrictions. Preserve the plan, group, UI, other settings, startup semantics, slot flags and logging. Ensure the container starts via its Dockerfile entrypoint, not default Worker mode. Do not create a new App Service, registry, plan, slot, or paid resource.
+5. Set only required nonsecret runtime settings as dictated by actual code, including `WEBSITES_PORT=52731`, `AIQ_RESEARCH_BOOTSTRAP_MODE=serve`, `AIQ_RESEARCH_BIND_ADDRESS=0.0.0.0`, `AIQ_RESEARCH_TRANSPORT=azure-app-service-http`, `AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1`, `AIQ_RESEARCH_PRIVATE_DIRECTORY=/tmp/aiq-research`, `AIQ_RESEARCH_STORAGE_SCOPE=azure-f1-staging-ephemeral`, `AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING=1`, `AIQ_RESEARCH_EXPECTED_MOUNT_PATH=/`, and `WEBSITES_ENABLE_APP_SERVICE_STORAGE=false`, subject to verifying names and requirements against current source. Platform `httpsOnly` is currently false: explicitly include enabling it in the proposed owner-approved delta; do not claim it was already enabled. Never fabricate Azure platform markers or bypass application guards.
+6. The owner waived **complex automated rollback** for this stage. Do **not** build a sensitive full-configuration baseline archive, two-capture comparison workflow, or comprehensive rollback controller as a mandatory gate. Instead record a **minimal sanitized pre-change snapshot** (resource identity, hosting-mode classification, HTTPS-only boolean, startup-empty boolean, and which nonsecret setting names will be changed; no secret values). Provide a short, accurate manual recovery note: if the apply fails, stop, report exact safe failure stage and current state; do not automatically overwrite all settings, remove unknown secrets, or claim restoration. Preserve unrelated settings throughout. Do not erase any historical private records.
+7. Once the exact operation is approved and Azure accepts it, allow a bounded research-app restart as required. Observe anonymous HTTPS `/health` with normal TLS validation, finite timeout, no API key, no snapshot/provider calls. Accept only 200 and exact `Alive`. If Azure rejects F1 container hosting or GHCR pull fails, stop and report the concrete blocker with no automatic paid upgrade or alternate infrastructure.
+8. Add focused fake-only unit tests covering default no-op, explicit apply confirmation, exact target, immutable digest, safe nonsecret setting delta, absence of key read/overwrite, Azure failure handling, mode incompatibility, and health-response validation. Run available offline tests and report actual passes/skips. Do not assert a live result from mocks.
+9. Open a PR with exact changed paths, tests, deployment command plan, image digest, and clearly separated evidence: image published/local health PASS versus Azure deployment/health NOT YET VERIFIED. Leave PR open/unmerged for review. If the owner separately approves an actual deployment during execution, record its sanitized results and do not conflate it with merge approval.
+
+## Stop conditions and exclusions
+
+Stop before mutation on wrong app/plan, ambiguous image identity, missing key presence, unsafe settings API semantics, unreviewed secret exposure, unsupported F1 conversion, unknown registry access, or unclear live approval. No credential transfer through Codex, no logging raw Azure settings, no API-key value or hash, no UI app changes, no provider acquisition, no authenticated snapshot calls, no live controller, no secret rotation, no plan upgrade, and no automatic recovery that rewrites entire configuration.
+
+Status until real Azure verification: `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.
