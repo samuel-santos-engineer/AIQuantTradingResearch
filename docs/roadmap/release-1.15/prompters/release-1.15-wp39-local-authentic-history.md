@@ -2,13 +2,13 @@
 
 ## Status and boundary
 
-Baseline main `fd8c8e28dcf8c4897620d64909c13f19c181ec92` (merged PR #426), isolated WP39 branch. **AWAITING_OWNER_PROVIDER_APPROVAL.** Implementation and offline qualification are progress, not authentic-data import or public qualification. No real provider requests, authentic rows, Azure calls, registry publication or deployment occurred. WP38 remains a separate conspicuously synthetic workflow. All authored text is UTF-8/LF/no BOM.
+Baseline main `fd8c8e28dcf8c4897620d64909c13f19c181ec92` (merged PR #426), isolated WP39 branch. **ONE_APPROVED_ACQUISITION_ATTEMPT_FAILED_NO_BUNDLE; OFFLINE DIAGNOSTICS FOR REVIEW.** Implementation and offline qualification are progress, not authentic-data import or public qualification. One earlier approved acquisition invocation failed exit 1 without a bundle/import; its actual request count, HTTP status and credit consumption remain unknown. The diagnostic follow-up made zero live provider/DNS/HTTP probes and zero Azure operations. Historical offline checkpoints below do not authorize a repeat attempt. No authentic rows imported, registry publication or deployment. WP38 remains a separate conspicuously synthetic workflow. All authored text is UTF-8/LF/no BOM.
 
 | Stage | Actual state |
 | --- | --- |
 | Local acquisition/import implementation | Implemented for owner review |
 | Offline contract/fixture qualification | Passed, results below |
-| Actual provider acquisition/import | NOT RUN - separate owner authority required |
+| Actual provider acquisition/import | One earlier approved invocation consumed, failed exit 1; no bundle/import, actual issued requests unknown; no retry |
 | Local end-to-end authentic qualification | NOT RUN; do not infer from fixture smoke |
 | Azure public qualification | Deferred/unresolved; NOT RUN |
 
@@ -53,7 +53,7 @@ python -B eng/docker/release-1.15/wp39_local_history.py --action Prepare --direc
 
 The thin wrapper parses under Windows PowerShell 5.1; runtime execution remains blocked by the agent host's existing policy, as in WP38. No bypass is needed: direct Python is the same implementation, not a different orchestration framework. The Docker launcher remains `wp07_local_historical_chart.py`; research stays private on its internal network and UI publishes only `127.0.0.1:8501` (or selected free port). The UI has no SQLite or private TLS-key mount.
 
-## Exact proposed provider attempt - NOT APPROVED / NOT RUN
+## Historical provider proposal - single-attempt authority consumed
 
 Provider: **Twelve Data**. Exactly two sequential HTTPS GET requests, one per symbol, fixed endpoint and nonsecret query:
 
@@ -154,3 +154,91 @@ Observed result: generic `WP39_BLOCKED; preserve local state for review; no auto
 Cleanup removed only the two preparation image tags after exact image-ID checks. No runtime containers had been started. Restricted private attempt artifacts remain for owner review; the cleaned manifest must not be treated as a ready-to-start session. Existing Windows settings, cached input images and unrelated workloads were preserved. No Azure requests, registry publication, deployment, PR merge or tests beyond the operational preflight/artifact checks ran in this continuation. UTF-8/LF/no BOM and git diff --check checked before the evidence commit.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
+
+
+## Offline-only sanitized acquisition diagnostics - 2026-11-07
+
+Authority: continue existing OPEN/UNMERGED PR #427 from verified head `248704a408443237893a6d973b193f0445a6632c`. This follow-up accessed **no real credential or secret setting**, made **zero provider requests or DNS/HTTP probes**, and performed **zero Azure, registry publication or deployment operations**. Tests use fake keys, injected HTTP handlers and owned local Python subprocess stubs. No live Acquire was invoked. Existing prepared worker binaries were not modified; any future separately authorized attempt needs a fresh Prepare of the reviewed code. No historical private attempt directory was read or modified. No architecture, API/snapshot, provider source/query, storage, indicator or UX change was required.
+
+**Historical fact remains unchanged:** one owner-approved acquisition invocation was consumed, exited 1, and published no bundle/import. No retry followed. Its failure stage, HTTP status, actual request count and quota/credit consumption remain UNKNOWN. New diagnostics cannot retroactively reveal any of those facts.
+
+**Do not run another live Acquire until the owner separately authorizes a new bounded attempt. CLI flags and a configured credential are not authorization.** Plan now reports NEW_OWNER_PROVIDER_APPROVAL_REQUIRED; this follow-up does not renew the consumed authority.
+
+### Operator failure contract (version 1)
+
+An acquisition failure emits one JSON object on operator stderr. No arbitrary C# stderr/stdout, exception text, stack trace, URI, header, environment, stdin, private path, provider body or observation is forwarded. The browser receives no diagnostic fields. A synthetic HTTP example from offline tests:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"http_response","instrument":"BTC/USD","httpStatus":429,"requestsStarted":1,"responsesReceived":1,"outcomeUnknown":false,"failureCode":"HTTP_RATE_LIMITED","bundlePublished":false}
+```
+
+Exactly ten fields, fixed event/version, allowlisted stages/codes and instrument null/BTC/USD/ETH/USD. C# counters are integers in the bounded two-request attempt; Python accepts only integers (not booleans), `0 <= responsesReceived <= requestsStarted <= 2`, observed numeric HTTP status 100..599 or null, fixed booleans, and a consistent unknown-outcome flag. Duplicate fields, extra fields, unsupported versions, invalid types/scalars, secret-bearing free text, inconsistent HTTP codes/counters, malformed UTF-8/JSON and oversized envelopes are replaced, never forwarded.
+
+| Stage | Interpretation and principal fixed codes |
+| --- | --- |
+| preflight | MISSING_APPROVAL, MISSING_PRIVATE_CHANNEL (Python), VOLUME_UNCONFIRMED, INVALID_DESTINATION, DESTINATION_EXISTS, INVALID_PRIVATE_INPUT; zero only when established before child/send |
+| child_launch | CHILD_EXECUTABLE_UNAVAILABLE or CHILD_LAUNCH_FAILED; no raw OS error/path |
+| private_input | INVALID_PRIVATE_INPUT or VOLUME_UNCONFIRMED; malformed/oversized/private schema rejected before request |
+| request_start | SendAsync invoked; TRANSPORT_ERROR, TIMEOUT or CANCELLED if no response was observed |
+| http_response | Exact received status; HTTP_UNAUTHORIZED (401), HTTP_FORBIDDEN (403), HTTP_RATE_LIMITED (429), HTTP_SERVER_ERROR (5xx), HTTP_OTHER; INVALID_RESPONSE_HEADERS or post-header transport failure |
+| response_parse | INVALID_PROVIDER_PAYLOAD (JSON/shape/encoding) or INVALID_PROVIDER_METADATA (symbol/interval/UTC metadata) |
+| observation_validation | INVALID_OBSERVATION (UTC/order/precision/OHLCV/window), INVALID_VOLUME, ZERO_ACCEPTED_CANDLES |
+| bundle_publication | BUNDLE_PUBLICATION_FAILED or cancellation; no automatic reset/retry |
+| unknown | UNKNOWN, CHILD_NONZERO_EXIT, CHILD_TIMEOUT, CHILD_DIAGNOSTIC_INVALID or CHILD_OUTPUT_OVERSIZE where reliable child facts are unavailable |
+
+Requests are counted immediately at the actual `HttpClient.SendAsync` invocation boundary, **not** on entering the instrument loop. That proves a send was initiated, not that a packet reached the provider or a credit was charged. Responses are counted only after an actual response status is observed, before validating headers/body. The last status is cleared before a new symbol request so a first-symbol 200 cannot masquerade as the second symbol's result. A body read failure after headers retains the actually observed status. No HTTP category is interpreted as proof of an invalid key, exhausted account quota or other unobserved account condition.
+
+For a send with no observed response, `outcomeUnknown=true`, status null; a second-symbol transport failure after one successful response reports requestsStarted=2/responsesReceived=1. Cancellation before any send reports zero; in-flight caller cancellation or request deadline retains send counters. Missing approval does not read private input/channel. Invalid poll-request exception behavior and existing cancellation propagation are preserved.
+
+If the parent has no trustworthy complete child diagnostic, it reports **null request/response counts**, status/instrument null, outcomeUnknown=true and **bundlePublished=null**. This is deliberately more conservative than asserting no bundle after a timeout/crash: publication might have occurred before the parent lost trustworthy output. Example of an offline fake child timeout:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"unknown","instrument":null,"httpStatus":null,"requestsStarted":null,"responsesReceived":null,"outcomeUnknown":true,"failureCode":"CHILD_TIMEOUT","bundlePublished":null}
+```
+
+C# classified failures report bundlePublished=false for this attempted publication; they do not claim that an unrelated pre-existing directory was removed. No diagnostic code creates a receipt, SQLite database or qualification artifact. Destination-not-overwritten checks precede requests; second-symbol rejection creates no partial bundle; publication failure cleans only its fresh pending directory and preserves existing state. Unknown parent outcomes stop without recovery or import.
+
+### Bounded subprocess handling and credential isolation
+
+Acquisition uses the existing worker command/stdin channel, with a specialized parent I/O path. Private input is at most 4 KiB. Child stdout is discarded to DEVNULL. A bounded reader holds at most **2,049 stderr bytes** to detect the **2,048-byte** envelope limit; oversized output causes termination of only the owned subprocess and an unknown-count parent result. No output spool or new diagnostic artifact is written. Process wait uses the existing 40-second acquisition timeout, owned-child kill/wait and bounded reader joins; there is no request/process retry. Non-acquisition commands retain their existing behavior.
+
+The parent reconstructs only validated fixed scalars; it never prints a prefix/suffix of malformed child output. Exceptions propagated to the acquisition CLI contain only fixed failure metadata, and the CLI prints exactly one sanitized JSON line instead of a traceback or a second generic error. An optional typed adapter callback carries only enum event, instrument enum and observed status, never provider content. RunAsync's injectable offline handler keeps successful test bundles explicitly SyntheticFixture; no fake response is described as authentic.
+
+### Executed offline evidence
+
+| Suite/check | Result |
+| --- | --- |
+| Focused C# acquisition, adapter and initializer suites | **84 passed**, 0 failed, 0 skipped, exit 0 |
+| Python WP39 workflow/diagnostic suite | **22 passed**, exit 0 |
+| Existing chart/client fixture regressions | **61 passed**, exit 0; no UI source change |
+| Real provider, real-key Acquire, quota/DNS/capability probes | **NOT RUN**, zero in this follow-up |
+| Docker/browser smoke in this follow-up | Optional; **NOT RUN**. Earlier fixture/browser evidence remains historical, not a new run |
+| PowerShell policy/dependencies | No script execution or bypass, no installs/updates |
+
+Commands actually run from the isolated PR branch:
+
+```powershell
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --filter 'FullyQualifiedName~ResearchLocalHistoryTests|FullyQualifiedName~TwelveDataMinuteCandleSourceTests|FullyQualifiedName~ResearchStateInitializationTests' --verbosity quiet
+python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp39_local_history.py -v
+$env:PYTHONPATH = Join-Path (Get-Location) 'python/presentation'
+# Existing project virtual-environment interpreter; no dependency installation:
+python -B -m unittest test_research_chart test_research_snapshot_client -q
+git diff --check
+```
+
+New negative cases cover fake HTTP 401/403/429/500/301, transport failure, true short request deadline, in-flight and pre-send cancellation, body-read failure after status 200, missing approval/private channel, malformed/oversized stdin, invalid JSON/metadata/timezone, duplicate and unaligned UTC, invalid OHLC/decimal/volume, zero accepted candles, second-symbol HTTP/transport failures, publication filesystem failure and existing-destination preservation. Successful fake acquisition preserves private SyntheticFixture provenance and exactly two sends. Owned local fake subprocesses test missing executable, nonzero without a diagnostic, timeout/kill, malformed and overflowing secret-bearing stderr, discarded success stdout/stderr, strict schema/version/types/duplicates and exactly one CLI failure envelope. Canary assertions cover operator output, formatted exceptions, arguments, child environment and success artifacts. No fake key is substituted for the owner's key in a live request.
+
+Only pre-existing analyzer warnings in SyntheticSnapshotQualificationTests (CA1711, SYSLIB1045, CA1861, CA2219) and bare-mode Streamlit ScriptRunContext notices appeared; the new cancellation-parameter analyzer warning encountered during implementation was resolved by retaining the existing public signature and using a private core. Final focused tests passed. Tests used bounded disposable fixture/stub directories, cleaned in finally; no secret-bearing private attempt artifacts were staged.
+
+### Exact diagnostic follow-up mutation inventory
+
+1. `src/AIQuantTradingResearch.Infrastructure/MarketData/TwelveData/TwelveDataMinuteCandleSource.cs` - narrow typed diagnostic events and existing validation/error-boundary instrumentation.
+2. `src/AIQuantTradingResearch.Worker/ResearchLocalHistory.cs` - allowlisted trace, observed counters, fixed JSON failure and injectable offline-handler seam; existing acquisition/public signature preserved.
+3. `eng/docker/release-1.15/wp39_local_history.py` - strict bounded child-envelope parsing, bounded subprocess I/O, parent failures and single CLI diagnostic; Plan requires fresh authority.
+4. `tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchLocalHistoryTests.cs` - stage/status/counter/publication and canary tests.
+5. `tests/AIQuantTradingResearch.Infrastructure.Tests/TwelveDataMinuteCandleSourceTests.cs` - actual send/deadline/cancellation/body-read instrumentation tests and exception-compatibility regression.
+6. `tests/runtime/release_1_15/test_wp39_local_history.py` - fake-only parent/subprocess/schema tests.
+7. `docs/roadmap/release-1.15/RELEASE_1.15_EXECUTION_PLAN.md` - current failed historical checkpoint and offline follow-up.
+8. This existing runbook - contract, scope, actual evidence and retained unknowns.
+
+Implemented diagnostics and passing local fixture tests are not authentic-data import, local authentic acceptance or public qualification. Keep PR #427 OPEN/UNMERGED for review; no future live request is granted. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

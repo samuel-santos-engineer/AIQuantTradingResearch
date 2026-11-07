@@ -11,26 +11,92 @@ namespace AIQuantTradingResearch.Worker;
 /// <summary>One-shot local acquisition. No background loop, retry, credentials file or state replacement.</summary>
 public static class ResearchLocalHistory
 {
+    /// <summary>Fixed operator metadata only. Never accepts exception text or provider content.</summary>
+    public sealed class AcquisitionTrace
+    {
+        public string Stage { get; private set; } = "preflight";
+        public string Code { get; private set; } = "UNKNOWN";
+        public string? Instrument { get; private set; }
+        public int? HttpStatus { get; private set; }
+        public int RequestsStarted { get; private set; }
+        public int ResponsesReceived { get; private set; }
+        private static readonly HashSet<string> Stages = ["preflight", "private_input", "request_start", "http_response", "response_parse", "observation_validation", "bundle_publication", "unknown"];
+        private static readonly HashSet<string> Codes = ["MISSING_APPROVAL", "INVALID_DESTINATION", "DESTINATION_EXISTS", "INVALID_PRIVATE_INPUT", "VOLUME_UNCONFIRMED", "TIMEOUT", "CANCELLED", "TRANSPORT_ERROR", "HTTP_UNAUTHORIZED", "HTTP_FORBIDDEN", "HTTP_RATE_LIMITED", "HTTP_SERVER_ERROR", "HTTP_OTHER", "INVALID_RESPONSE_HEADERS", "INVALID_PROVIDER_PAYLOAD", "INVALID_PROVIDER_METADATA", "INVALID_OBSERVATION", "INVALID_VOLUME", "ZERO_ACCEPTED_CANDLES", "BUNDLE_PUBLICATION_FAILED", "UNKNOWN"];
+        public void Step(string stage) => Stage = Stages.Contains(stage) ? stage : "unknown";
+        public void Fail(string stage, string code)
+        {
+            if (Code != "UNKNOWN") return; // Preserve the first classified failure.
+            Step(stage); Code = Codes.Contains(code) ? code : "UNKNOWN";
+        }
+        public void Select(ResearchInstrument instrument)
+        { Instrument = instrument switch { ResearchInstrument.BtcUsd => "BTC/USD", ResearchInstrument.EthUsd => "ETH/USD", _ => null }; }
+        public void Observe(TwelveDataReadDiagnostic signal)
+        {
+            Select(signal.Instrument);
+            switch (signal.Event)
+            {
+                case TwelveDataReadEvent.Preflight: Step("preflight"); HttpStatus = null; break;
+                case TwelveDataReadEvent.RequestStarted: Step("request_start"); RequestsStarted++; HttpStatus = null; break;
+                case TwelveDataReadEvent.ResponseReceived: Step("http_response"); ResponsesReceived++; HttpStatus = signal.HttpStatus; break;
+                case TwelveDataReadEvent.ResponseParse: Step("response_parse"); break;
+                case TwelveDataReadEvent.ObservationValidation: Step("observation_validation"); break;
+                case TwelveDataReadEvent.InvalidPrivateInput: Fail("preflight", "INVALID_PRIVATE_INPUT"); break;
+                case TwelveDataReadEvent.VolumeUnconfirmed: Fail("preflight", "VOLUME_UNCONFIRMED"); break;
+                case TwelveDataReadEvent.HttpFailure:
+                    Fail("http_response", HttpStatus switch { 401 => "HTTP_UNAUTHORIZED", 403 => "HTTP_FORBIDDEN", 429 => "HTTP_RATE_LIMITED", >= 500 and <= 599 => "HTTP_SERVER_ERROR", _ => "HTTP_OTHER" }); break;
+                case TwelveDataReadEvent.InvalidHeaders: Fail("http_response", "INVALID_RESPONSE_HEADERS"); break;
+                case TwelveDataReadEvent.InvalidPayload: Fail(Stage, "INVALID_PROVIDER_PAYLOAD"); break;
+                case TwelveDataReadEvent.InvalidMetadata: Fail("response_parse", "INVALID_PROVIDER_METADATA"); break;
+                case TwelveDataReadEvent.InvalidObservation: Fail("observation_validation", "INVALID_OBSERVATION"); break;
+                case TwelveDataReadEvent.InvalidVolume: Fail("observation_validation", "INVALID_VOLUME"); break;
+                case TwelveDataReadEvent.TransportFailure: Fail(Stage, "TRANSPORT_ERROR"); break;
+                case TwelveDataReadEvent.Timeout: Fail(Stage, "TIMEOUT"); break;
+                case TwelveDataReadEvent.Cancelled: Fail(Stage, "CANCELLED"); break;
+                default: Fail("unknown", "UNKNOWN"); break;
+            }
+        }
+        public string FailureJson() => JsonSerializer.Serialize(new { version = 1, @event = "WP39_ACQUIRE_FAILED",
+            failedStage = Stage, instrument = Instrument, httpStatus = HttpStatus, requestsStarted = RequestsStarted,
+            responsesReceived = ResponsesReceived, outcomeUnknown = RequestsStarted > ResponsesReceived,
+            failureCode = Code, bundlePublished = false });
+    }
+
     public const string Endpoint = "https://api.twelvedata.com/time_series";
     private static string Utc(DateTimeOffset value) => value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
     private static string Number(decimal value) => value.ToString("0.############", CultureInfo.InvariantCulture);
 
-    public static async Task AcquireAsync(IResearchCandleSource source, string destination, DateTimeOffset observed,
-        bool testOnly, CancellationToken token = default)
+    public static Task AcquireAsync(IResearchCandleSource source, string destination, DateTimeOffset observed,
+        bool testOnly, CancellationToken token = default) => AcquireCoreAsync(source, destination, observed, testOnly, null, token);
+
+    private static async Task AcquireCoreAsync(IResearchCandleSource source, string destination, DateTimeOffset observed,
+        bool testOnly, AcquisitionTrace? trace, CancellationToken token)
     {
-        if (observed.Offset != TimeSpan.Zero || observed > DateTimeOffset.UtcNow) throw new ResearchUnavailableException();
-        var root = Path.GetFullPath(destination);
-        if (Directory.Exists(root) || File.Exists(root)) throw new ResearchUnavailableException();
+        trace?.Step("preflight");
+        if (observed.Offset != TimeSpan.Zero || observed > DateTimeOffset.UtcNow)
+        { trace?.Fail("preflight", "INVALID_PRIVATE_INPUT"); throw new ResearchUnavailableException(); }
+        string root;
+        try { root = Path.GetFullPath(destination); }
+        catch { trace?.Fail("preflight", "INVALID_DESTINATION"); throw; }
+        if (Directory.Exists(root) || File.Exists(root))
+        { trace?.Fail("preflight", "DESTINATION_EXISTS"); throw new ResearchUnavailableException(); }
         var imports = new Dictionary<string, object?> { ["source"] = "twelvedata", ["observedAtUtc"] = Utc(observed) };
         var summaries = new Dictionary<string, object>();
         // Sequential, exactly one bounded latest-window request per symbol; never paginate or retry.
         foreach (var instrument in Enum.GetValues<ResearchInstrument>())
         {
             token.ThrowIfCancellationRequested();
+            trace?.Select(instrument);
             var request = new ResearchPollRequest(instrument, observed, TimeSpan.FromSeconds(15));
             var batch = await source.ReadCompletedAsync(request, token);
-            ResearchInputValidation.Validate(request, batch);
-            if (batch.Candles.Count is < 1 or > 1000 || batch.Candles.Any(c => c.OpenTimeUtc < observed.AddHours(-24))) throw new ResearchUnavailableException();
+            trace?.Step("observation_validation");
+            if (batch.Candles.Count == 0)
+            { trace?.Fail("observation_validation", "ZERO_ACCEPTED_CANDLES"); throw new ResearchUnavailableException(); }
+            try
+            {
+                ResearchInputValidation.Validate(request, batch);
+                if (batch.Candles.Count > 1000 || batch.Candles.Any(c => c.OpenTimeUtc < observed.AddHours(-24))) throw new ResearchUnavailableException();
+            }
+            catch { trace?.Fail("observation_validation", "INVALID_OBSERVATION"); throw; }
             var symbol = instrument == ResearchInstrument.BtcUsd ? "BTC/USD" : "ETH/USD";
             imports[symbol] = batch.Candles.Select(c => new { openTimeUtc = Utc(c.OpenTimeUtc), open = Number(c.Open),
                 high = Number(c.High), low = Number(c.Low), close = Number(c.Close), volume = Number(c.Volume) }).ToArray();
@@ -38,6 +104,7 @@ public static class ResearchLocalHistory
                 firstUtc = Utc(batch.Candles[0].OpenTimeUtc), lastUtc = Utc(batch.Candles[^1].OpenTimeUtc),
                 gaps = batch.Candles.Zip(batch.Candles.Skip(1)).Count(pair => pair.Second.OpenTimeUtc - pair.First.OpenTimeUtc != TimeSpan.FromMinutes(1)) };
         }
+        trace?.Step("bundle_publication");
         var bytes = JsonSerializer.SerializeToUtf8Bytes(imports);
         var evidence = JsonSerializer.SerializeToUtf8Bytes(new { version = 1, provider = "twelvedata", endpoint = Endpoint,
             interval = "1min", kind = testOnly ? "SyntheticFixture" : "ObservedProvider", status = "AcquiredNotImported",
@@ -53,6 +120,8 @@ public static class ResearchLocalHistory
             if (!OperatingSystem.IsWindows()) foreach (var file in Directory.GetFiles(staging)) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
             Directory.Move(staging, root); // Publish only after both instruments validate; never overwrite.
         }
+        catch (OperationCanceledException) { trace?.Fail("bundle_publication", "CANCELLED"); throw; }
+        catch { trace?.Fail("bundle_publication", "BUNDLE_PUBLICATION_FAILED"); throw; }
         finally { if (Directory.Exists(staging)) Directory.Delete(staging, true); }
     }
 
@@ -128,11 +197,17 @@ public static class ResearchLocalHistory
         catch { Console.Error.WriteLine("Local provenance verification unavailable."); return 1; }
     }
 
-    public static async Task<int> RunAsync(Stream input, TextWriter diagnostics, string? destination)
+    public static async Task<int> RunAsync(Stream input, TextWriter diagnostics, string? destination,
+        Func<HttpMessageHandler>? handlerFactory = null)
     {
+        var trace = new AcquisitionTrace();
         try
         {
-            if (Environment.GetEnvironmentVariable("AIQ_WP39_PROVIDER_APPROVED") != "1" || string.IsNullOrWhiteSpace(destination)) throw new ResearchUnavailableException();
+            if (Environment.GetEnvironmentVariable("AIQ_WP39_PROVIDER_APPROVED") != "1")
+            { trace.Fail("preflight", "MISSING_APPROVAL"); throw new ResearchUnavailableException(); }
+            if (string.IsNullOrWhiteSpace(destination))
+            { trace.Fail("preflight", "INVALID_DESTINATION"); throw new ResearchUnavailableException(); }
+            trace.Step("private_input");
             using var bytes = new MemoryStream(); var buffer = new byte[1024];
             using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(20));
             int n;
@@ -140,13 +215,26 @@ public static class ResearchLocalHistory
             { if (bytes.Length + n > 4096) throw new ResearchUnavailableException(); bytes.Write(buffer, 0, n); }
             using var config = JsonDocument.Parse(bytes.ToArray());
             var c = config.RootElement;
-            if (c.EnumerateObject().Count() != 2 || c.GetProperty("baseAssetVolumeConfirmed").ValueKind != JsonValueKind.True) throw new ResearchUnavailableException();
-            using var handler = new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false };
-            using var source = new TwelveDataMinuteCandleSource(handler, c.GetProperty("providerKey").GetString()!, true);
-            await AcquireAsync(source, destination, DateTimeOffset.UtcNow, false, deadline.Token);
-            await diagnostics.WriteLineAsync("Local provider bundle acquired; import and snapshot verification still required.");
-            return 0;
+            var names = c.EnumerateObject().Select(x => x.Name).ToArray();
+            if (names.Length != 2 || names.Distinct(StringComparer.Ordinal).Count() != 2 || !names.Contains("providerKey") || !names.Contains("baseAssetVolumeConfirmed")) throw new ResearchUnavailableException();
+            if (c.GetProperty("baseAssetVolumeConfirmed").ValueKind == JsonValueKind.False)
+            { trace.Fail("private_input", "VOLUME_UNCONFIRMED"); throw new ResearchUnavailableException(); }
+            if (c.GetProperty("baseAssetVolumeConfirmed").ValueKind != JsonValueKind.True) throw new ResearchUnavailableException();
+            using var handler = handlerFactory?.Invoke() ?? new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false };
+            using var source = new TwelveDataMinuteCandleSource(handler, c.GetProperty("providerKey").GetString()!, true, diagnostic: trace.Observe);
+            await AcquireCoreAsync(source, destination, DateTimeOffset.UtcNow, handlerFactory is not null, trace, deadline.Token);
         }
-        catch { await diagnostics.WriteLineAsync("Local acquisition unavailable; no retry or replacement performed."); return 1; }
+        catch (OperationCanceledException)
+        {
+            trace.Fail(trace.Stage, "TIMEOUT");
+            await diagnostics.WriteLineAsync(trace.FailureJson()); return 1;
+        }
+        catch
+        {
+            if (trace.Stage == "private_input") trace.Fail("private_input", "INVALID_PRIVATE_INPUT");
+            await diagnostics.WriteLineAsync(trace.FailureJson()); return 1;
+        }
+        await diagnostics.WriteLineAsync("Local provider bundle acquired; import and snapshot verification still required.");
+        return 0;
     }
 }

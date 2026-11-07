@@ -99,6 +99,73 @@ public sealed class TwelveDataMinuteCandleSourceTests
         Assert.Equal(1,handler.Calls);
     }
 
+    [Fact] public async Task DiagnosticCountsOnlySendBoundaryAndRetainsCallerCancellation()
+    {
+        using var cancelled=new CancellationTokenSource();
+        using var handler=new CancelAtSendHandler(cancelled);
+        var trace=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,true,diagnostic:trace.Observe);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request(),cancelled.Token));
+        Assert.Equal(1,handler.Calls);Assert.Equal(1,trace.RequestsStarted);Assert.Equal(0,trace.ResponsesReceived);
+        Assert.Null(trace.HttpStatus);Assert.Equal("request_start",trace.Stage);Assert.Equal("CANCELLED",trace.Code);
+        Assert.DoesNotContain(Key,trace.FailureJson());
+    }
+    [Fact] public async Task DiagnosticUnknownVolumeAndPrecancelAreBeforeSend()
+    {
+        using var handler=new Handler(Valid);var trace=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,false,diagnostic:trace.Observe);
+        await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal(0,handler.Calls);Assert.Equal(0,trace.RequestsStarted);Assert.Equal("VOLUME_UNCONFIRMED",trace.Code);
+        var other=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var known=new TwelveDataMinuteCandleSource(handler,Key,true,diagnostic:other.Observe);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(()=>known.ReadCompletedAsync(ResearchTestDirectory.Request(),new CancellationToken(true)));
+        Assert.Equal(0,other.RequestsStarted);Assert.Equal(0,other.ResponsesReceived);Assert.Equal("CANCELLED",other.Code);
+    }
+    [Fact] public async Task DiagnosticDeadlineHasStartedSendButNoInventedResponse()
+    {
+        using var handler=new Handler(Valid){Delay=true};var trace=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,true,TimeSpan.FromMilliseconds(30),trace.Observe);
+        await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal(1,handler.Calls);Assert.Equal(1,trace.RequestsStarted);Assert.Equal(0,trace.ResponsesReceived);
+        Assert.Equal("TIMEOUT",trace.Code);Assert.Null(trace.HttpStatus);
+    }
+    [Fact] public async Task DiagnosticBodyReadFailureRetainsActuallyReceivedStatus()
+    {
+        using var handler=new BodyFailureHandler();var trace=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,true,diagnostic:trace.Observe);
+        await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal(1,trace.RequestsStarted);Assert.Equal(1,trace.ResponsesReceived);Assert.Equal(200,trace.HttpStatus);
+        Assert.Equal("http_response",trace.Stage);Assert.Equal("TRANSPORT_ERROR",trace.Code);Assert.DoesNotContain(Key,trace.FailureJson());
+    }
+    [Fact] public async Task InvalidPollRetainsExistingExceptionContractAndZeroSendCount()
+    {
+        using var handler=new Handler(Valid);var trace=new AIQuantTradingResearch.Worker.ResearchLocalHistory.AcquisitionTrace();
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,true,diagnostic:trace.Observe);
+        await Assert.ThrowsAsync<ArgumentException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request() with { CompletionGrace=TimeSpan.FromSeconds(-1) }));
+        Assert.Equal(0,handler.Calls);Assert.Equal(0,trace.RequestsStarted);Assert.Equal("preflight",trace.Stage);Assert.Equal("INVALID_PRIVATE_INPUT",trace.Code);
+    }
+
+    private sealed class CancelAtSendHandler(CancellationTokenSource cancellation):HttpMessageHandler
+    {
+        public int Calls;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token)
+        { Calls++;cancellation.Cancel();return Task.FromCanceled<HttpResponseMessage>(cancellation.Token); }
+    }
+    private sealed class BodyFailureHandler:HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,CancellationToken token)=>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK){RequestMessage=request,Content=new StreamContent(new BodyFailureStream()){Headers={ContentType=new("application/json")}}});
+    }
+    private sealed class BodyFailureStream:Stream
+    {
+        public override bool CanRead=>true;public override bool CanSeek=>false;public override bool CanWrite=>false;
+        public override long Length=>throw new NotSupportedException();public override long Position{get=>throw new NotSupportedException();set=>throw new NotSupportedException();}
+        public override void Flush()=>throw new NotSupportedException();public override long Seek(long offset,SeekOrigin origin)=>throw new NotSupportedException();
+        public override void SetLength(long value)=>throw new NotSupportedException();public override void Write(byte[] buffer,int offset,int count)=>throw new NotSupportedException();
+        public override int Read(byte[] buffer,int offset,int count)=>throw new IOException(Key);
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer,CancellationToken token=default)=>ValueTask.FromException<int>(new IOException(Key));
+    }
+
     private sealed class Handler(string json) : HttpMessageHandler
     {
         internal int Calls;internal string Uri = "";internal string Authorization = "";internal HttpStatusCode Status = HttpStatusCode.OK;

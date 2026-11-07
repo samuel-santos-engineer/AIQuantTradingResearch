@@ -16,14 +16,142 @@ import tempfile
 import uuid
 import hashlib
 import re
+import threading
 
 ROOT = Path(__file__).resolve().parents[3]
 ENGINE = Path(__file__).with_name('wp07_local_historical_chart.py')
 DEPENDENCIES = 'sha256:98501ff282a7b1fb053d3abd9653acff3dde8d4182bfdfc2a9c426de462168ed'
 
 
-def run(args, env=None, data=None, timeout=180):
-    result = subprocess.run(args, env=env, input=data, capture_output=True, timeout=timeout)
+DIAGNOSTIC_LIMIT = 2048
+CHILD_STAGES = frozenset(('preflight', 'private_input', 'request_start', 'http_response', 'response_parse',
+                          'observation_validation', 'bundle_publication', 'unknown'))
+CHILD_CODES = frozenset(('MISSING_APPROVAL', 'INVALID_DESTINATION', 'DESTINATION_EXISTS', 'INVALID_PRIVATE_INPUT',
+    'VOLUME_UNCONFIRMED', 'TIMEOUT', 'CANCELLED', 'TRANSPORT_ERROR', 'HTTP_UNAUTHORIZED', 'HTTP_FORBIDDEN',
+    'HTTP_RATE_LIMITED', 'HTTP_SERVER_ERROR', 'HTTP_OTHER', 'INVALID_RESPONSE_HEADERS', 'INVALID_PROVIDER_PAYLOAD',
+    'INVALID_PROVIDER_METADATA', 'INVALID_OBSERVATION', 'INVALID_VOLUME', 'ZERO_ACCEPTED_CANDLES',
+    'BUNDLE_PUBLICATION_FAILED', 'UNKNOWN'))
+
+PARENT_CODES = CHILD_CODES | frozenset(('MISSING_PRIVATE_CHANNEL', 'CHILD_EXECUTABLE_UNAVAILABLE',
+    'CHILD_LAUNCH_FAILED', 'CHILD_TIMEOUT', 'CHILD_NONZERO_EXIT', 'CHILD_DIAGNOSTIC_INVALID', 'CHILD_OUTPUT_OVERSIZE'))
+
+
+class AcquisitionFailure(RuntimeError):
+    def __init__(self, diagnostic):
+        super().__init__('WP39_ACQUIRE_FAILED')
+        self.diagnostic = diagnostic
+
+
+def parent_failure(stage, code, known_zero=False):
+    if not isinstance(stage,str) or stage not in CHILD_STAGES | {'child_launch'}: stage = 'unknown'
+    if not isinstance(code,str) or code not in PARENT_CODES: code = 'UNKNOWN'
+    return AcquisitionFailure(dict(version=1, event='WP39_ACQUIRE_FAILED', failedStage=stage, instrument=None,
+        httpStatus=None, requestsStarted=0 if known_zero else None, responsesReceived=0 if known_zero else None,
+        outcomeUnknown=not known_zero, failureCode=code, bundlePublished=False if known_zero else None))
+
+
+def child_failure(raw):
+    # Do not forward a byte of child output. Only reconstruct validated fixed scalars.
+    if not isinstance(raw, bytes):
+        return parent_failure('unknown', 'CHILD_DIAGNOSTIC_INVALID')
+    if len(raw) > DIAGNOSTIC_LIMIT:
+        return parent_failure('unknown', 'CHILD_OUTPUT_OVERSIZE')
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result: raise ValueError()
+            result[key] = value
+        return result
+    def reject_constant(value): raise ValueError()
+    try:
+        value = json.loads(raw.decode('utf-8'), object_pairs_hook=unique, parse_constant=reject_constant)
+        if not isinstance(value, dict) or set(value) != {'version','event','failedStage','instrument','httpStatus',
+                'requestsStarted','responsesReceived','outcomeUnknown','failureCode','bundlePublished'}: raise ValueError()
+        if type(value['version']) is not int or value['version'] != 1 or value['event'] != 'WP39_ACQUIRE_FAILED': raise ValueError()
+        if value['failedStage'] not in CHILD_STAGES or value['failureCode'] not in CHILD_CODES: raise ValueError()
+        if value['instrument'] not in (None, 'BTC/USD', 'ETH/USD'): raise ValueError()
+        started, received, status = value['requestsStarted'], value['responsesReceived'], value['httpStatus']
+        if type(started) is not int or type(received) is not int or not 0 <= received <= started <= 2: raise ValueError()
+        if status is not None and (type(status) is not int or not 100 <= status <= 599 or received == 0): raise ValueError()
+        if type(value['outcomeUnknown']) is not bool or value['outcomeUnknown'] != (started > received): raise ValueError()
+        if value['bundlePublished'] is not False or started and value['instrument'] is None: raise ValueError()
+        http_codes = {401:'HTTP_UNAUTHORIZED',403:'HTTP_FORBIDDEN',429:'HTTP_RATE_LIMITED'}
+        if value['failureCode'].startswith('HTTP_'):
+            expected = http_codes.get(status, 'HTTP_SERVER_ERROR' if status is not None and 500 <= status <= 599 else 'HTTP_OTHER')
+            if status is None or 200 <= status <= 299 or value['failedStage'] != 'http_response' or value['failureCode'] != expected: raise ValueError()
+        if value['failedStage'] == 'http_response' and (status is None or received == 0): raise ValueError()
+        return AcquisitionFailure(value)
+    except (UnicodeError, ValueError, TypeError, RecursionError):
+        return parent_failure('unknown', 'CHILD_DIAGNOSTIC_INVALID')
+
+
+def run_acquisition(args, env, data, timeout):
+    if not isinstance(data, bytes) or len(data) > 4096:
+        raise parent_failure('private_input', 'INVALID_PRIVATE_INPUT', known_zero=True)
+    try:
+        child = subprocess.Popen(args, env=env, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    except FileNotFoundError:
+        raise parent_failure('child_launch', 'CHILD_EXECUTABLE_UNAVAILABLE') from None
+    except OSError:
+        raise parent_failure('child_launch', 'CHILD_LAUNCH_FAILED') from None
+    captured = []
+    overflow = threading.Event()
+    def read_diagnostic():
+        try:
+            raw = child.stderr.read(DIAGNOSTIC_LIMIT + 1)
+            if len(raw) > DIAGNOSTIC_LIMIT:
+                overflow.set()
+                child.kill()  # Only this owned subprocess; outcome/counts remain unknown.
+            else:
+                captured.append(raw)
+        except (OSError, ValueError):
+            pass  # Missing trusted diagnostic becomes a fixed parent failure.
+    reader = threading.Thread(target=read_diagnostic, daemon=True)
+    reader.start()
+    try:
+        try:
+            child.stdin.write(data)
+            child.stdin.close()
+        except BrokenPipeError:
+            pass
+        try:
+            code = child.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            child.kill(); child.wait(timeout=5)
+            raise parent_failure('unknown', 'CHILD_TIMEOUT') from None
+        reader.join(timeout=5)
+        if overflow.is_set(): raise parent_failure('unknown', 'CHILD_OUTPUT_OVERSIZE')
+        if reader.is_alive(): raise parent_failure('unknown', 'CHILD_DIAGNOSTIC_INVALID')
+        if code:
+            if not captured or not captured[0]: raise parent_failure('unknown', 'CHILD_NONZERO_EXIT')
+            raise child_failure(captured[0])
+        return ''  # stdout is discarded, not retained or forwarded, even on success.
+    except AcquisitionFailure:
+        raise
+    except (OSError, ValueError, subprocess.SubprocessError):
+        raise parent_failure('unknown', 'UNKNOWN') from None
+    finally:
+        if child.poll() is None:
+            child.kill(); child.wait(timeout=5)
+        reader.join(timeout=5)
+        # Do not block closing a buffered reader if an unexpected inherited pipe is still open.
+        streams = (child.stdin,) if reader.is_alive() else (child.stdin, child.stderr)
+        for stream in streams:
+            try: stream.close()
+            except OSError: pass
+
+
+def run(args, env=None, data=None, timeout=180, acquisition=False):
+    if acquisition:
+        return run_acquisition(args, env, data, timeout)
+    try:
+        result = subprocess.run(args, env=env, input=data, capture_output=True, timeout=timeout)
+    except FileNotFoundError:
+        raise RuntimeError('Local executable unavailable') from None
+    except subprocess.TimeoutExpired:
+        raise RuntimeError('Local step timed out') from None
+    except OSError:
+        raise RuntimeError('Local step unavailable') from None
     if result.returncode:
         raise RuntimeError('Local step rejected: ' + args[0] + ' ' + args[1])
     return result.stdout.decode('utf-8').strip()
@@ -45,11 +173,11 @@ def worker(directory, mode, env=None, data=None):
     settings['AIQ_WP39_LOCAL_DIRECTORY'] = str(directory / 'runtime')
     settings['AIQ_WP39_BUNDLE_DIRECTORY'] = str(directory / 'bundle')
     settings['AIQ_RESEARCH_PRIVATE_DIRECTORY'] = str(directory / 'private')
-    return run(['dotnet', str(directory / 'publish/AIQuantTradingResearch.Worker.dll'), mode], env=settings, data=data, timeout=40)
+    return run(['dotnet', str(directory / 'publish/AIQuantTradingResearch.Worker.dll'), mode], env=settings, data=data, timeout=40, acquisition=mode == '--research-acquire-local')
 
 
 def plan():
-    return dict(status='AWAITING_OWNER_PROVIDER_APPROVAL', provider='Twelve Data',
+    return dict(status='NEW_OWNER_PROVIDER_APPROVAL_REQUIRED', provider='Twelve Data',
                 endpoint='https://api.twelvedata.com/time_series', symbols=['BTC/USD', 'ETH/USD'],
                 parameters=dict(interval='1min', outputsize=1000, timezone='UTC', order='ASC'),
                 window='latest up to 1000 completed minutes per symbol; reject rows older than 24h at execution',
@@ -91,12 +219,14 @@ def prepare(directory):
 
 
 def acquire(directory, approved, volume_confirmed):
-    if not approved or not volume_confirmed:
-        raise RuntimeError('Separate owner provider approval and existing base-asset-volume confirmation required')
+    if not approved:
+        raise parent_failure('preflight', 'MISSING_APPROVAL', known_zero=True)
+    if not volume_confirmed:
+        raise parent_failure('preflight', 'VOLUME_UNCONFIRMED', known_zero=True)
     # Do not access this channel at all in Plan/Prepare/offline tests.
     key = os.environ.get('AIQ_WP39_PROVIDER_KEY')
     if not key:
-        raise RuntimeError('Private provider runtime channel unavailable')
+        raise parent_failure('preflight', 'MISSING_PRIVATE_CHANNEL', known_zero=True)
     env = os.environ.copy(); env.pop('AIQ_WP39_PROVIDER_KEY', None)
     env['AIQ_WP39_PROVIDER_APPROVED'] = '1'
     try:
@@ -206,6 +336,12 @@ if __name__ == '__main__':
             elif args.action == 'Import': import_bundle(directory)
             elif args.action == 'Verify': verify_snapshot(directory)
             else: launch(directory,args.action,args.port)
+    except AcquisitionFailure as failure:
+        print(json.dumps(failure.diagnostic, separators=(',',':')), file=sys.stderr)
+        raise SystemExit(1)
     except Exception:
-        print('WP39_BLOCKED; preserve local state for review; no automatic retry', file=sys.stderr)
+        if args.action == 'Acquire':
+            print(json.dumps(parent_failure('unknown', 'UNKNOWN').diagnostic, separators=(',',':')), file=sys.stderr)
+        else:
+            print('WP39_BLOCKED; preserve local state for review; no automatic retry', file=sys.stderr)
         raise SystemExit(1)
