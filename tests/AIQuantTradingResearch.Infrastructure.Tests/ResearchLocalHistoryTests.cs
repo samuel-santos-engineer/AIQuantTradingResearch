@@ -108,7 +108,7 @@ public sealed class ResearchLocalHistoryTests
         Assert.DoesNotContain("not-a-secret",log.ToString());
     }
     private const string DiagnosticCanary = "FAKE-WP39-SECRET-CANARY-DO-NOT-DISCLOSE";
-    private sealed class DiagnosticHandler(string failure = "success", int failAt = 1) : HttpMessageHandler
+    private sealed class DiagnosticHandler(string failure = "success", int failAt = 1, string? volumeJson = null) : HttpMessageHandler
     {
         public int Calls;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
@@ -124,6 +124,13 @@ public sealed class ResearchLocalHistoryTests
                 values=new[]{new{datetime=time,open="100",high="102",low="99",close="101",volume="1"}},
                 ignored=DiagnosticCanary }))!;
             var rows=body["values"]!.AsArray();
+            if(volumeJson is not null && (Calls==failAt || failAt==0))
+            {
+                if(volumeJson=="missing") rows[0]!.AsObject().Remove("volume");
+                else if(volumeJson=="raw-nan") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,
+                    body.ToJsonString().Replace("\"volume\":\"1\"","\"volume\":NaN",StringComparison.Ordinal)));
+                else rows[0]!["volume"]=System.Text.Json.Nodes.JsonNode.Parse(volumeJson);
+            }
             if(kind=="json") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"{"+DiagnosticCanary));
             if(kind=="shape") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"[]"));
             if(kind=="provider-error") { body["status"]="error"; body["message"]=DiagnosticCanary; }
@@ -362,6 +369,58 @@ public sealed class ResearchLocalHistoryTests
         {
             using var handler=new DiagnosticHandler("missing-timezone",missingAt);var result=await DiagnosticRun(handler,path);
             Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(path,true));
+            Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(path));
+            foreach(var file in Directory.GetFiles(path))Assert.DoesNotContain(DiagnosticCanary,File.ReadAllText(file));
+        }
+        finally{if(Directory.Exists(path))Directory.Delete(path,true);}
+    }
+    [Theory]
+    [InlineData("missing","INVALID_VOLUME")]
+    [InlineData("null","INVALID_VOLUME")]
+    [InlineData("1","INVALID_VOLUME")]
+    [InlineData("1.25","INVALID_VOLUME")]
+    [InlineData("-1","INVALID_VOLUME")]
+    [InlineData("\"11111111111111111111111111111111111111111\"","INVALID_VOLUME")]
+    [InlineData("true","INVALID_VOLUME")]
+    [InlineData("[]","INVALID_VOLUME")]
+    [InlineData("{}","INVALID_VOLUME")]
+    [InlineData("\"\"","INVALID_VOLUME")]
+    [InlineData("\" \"","INVALID_VOLUME")]
+    [InlineData("\"bad-FAKE-WP39-SECRET-CANARY-DO-NOT-DISCLOSE\"","INVALID_VOLUME")]
+    [InlineData("\"-1\"","INVALID_VOLUME")]
+    [InlineData("\"1e2\"","INVALID_VOLUME")]
+    [InlineData("\"+1\"","INVALID_VOLUME")]
+    [InlineData("\"NaN\"","INVALID_VOLUME")]
+    [InlineData("\"Infinity\"","INVALID_VOLUME")]
+    [InlineData("\"0.1234567890123\"","INVALID_VOLUME")]
+    [InlineData("\"79228162514264337593543950336\"","INVALID_VOLUME")]
+    [InlineData("\"1000000000001\"","INVALID_OBSERVATION")]
+    [InlineData("raw-nan","INVALID_JSON_ENCODING")]
+    public async Task SyntheticVolumeRepresentationMatrixRejectsWithoutPartialPublication(string volumeJson,string code)
+    {
+        foreach(var failAt in new[]{1,2})
+        {
+            var path=Output();using var handler=new DiagnosticHandler(failAt:failAt,volumeJson:volumeJson);
+            var result=await DiagnosticRun(handler,path);
+            Assert.Equal(1,result.Code);Assert.Equal(failAt,handler.Calls);
+            DiagnosticEquals(result.Log,code=="INVALID_JSON_ENCODING"?"response_parse":"observation_validation",
+                code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
+            Assert.False(Directory.Exists(path));
+        }
+    }
+    [Theory][InlineData("\"0\"")][InlineData("\"0.123456789012\"")][InlineData("\"1000000000000\"")]
+    public async Task SyntheticVolumeBoundariesRemainExactAndNeverAuthentic(string volumeJson)
+    {
+        var path=Output();
+        try
+        {
+            using var handler=new DiagnosticHandler(failAt:0,volumeJson:volumeJson);var result=await DiagnosticRun(handler,path);
+            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            using var observations=JsonDocument.Parse(File.ReadAllText(Path.Combine(path,"observations.json")));
+            var expected=decimal.Parse(JsonSerializer.Deserialize<string>(volumeJson)!,System.Globalization.CultureInfo.InvariantCulture);
+            foreach(var symbol in new[]{"BTC/USD","ETH/USD"})
+                Assert.Equal(expected,decimal.Parse(observations.RootElement.GetProperty(symbol)[0].GetProperty("volume").GetString()!,System.Globalization.CultureInfo.InvariantCulture));
             Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(path,true));
             Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(path));
             foreach(var file in Directory.GetFiles(path))Assert.DoesNotContain(DiagnosticCanary,File.ReadAllText(file));
