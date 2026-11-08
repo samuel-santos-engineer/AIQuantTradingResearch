@@ -79,3 +79,39 @@ Current state: **PREPARED=True; ACQUIRED=False; IMPORTED=False; LOCAL_CHART_VERI
 Next authority required is a NEW single-attempt acquisition approval. Proposed existing command is `python -B eng/docker/release-1.15/wp39_local_history.py --action Acquire --directory <this-verified-fresh-preparation> --execute-provider-approved --ohlc-only`, with the exact validated directory substituted privately. Approval must explicitly include immediate identity/owner ACL/public TLS validity/empty destination checks and reading the exact Windows User TwelveData__ApiKey into transient AIQ_WP39_PROVIDER_KEY, clearing that transient channel afterward without touching the retained Windows value. Maximum two sequential time_series requests: BTC/USD first, ETH/USD only after BTC success;1min/UTC/ASC/outputsize1000, completed minutes with15-second grace and24-hour age bound; no retry/pagination/exploratory calls. Provider availability/account capability/charges/actual returned coverage remain unknown. No volume required in explicit price-only mode, no invented units. Capture only the fixed envelope/publication outcome, no payload/price/key/private path. Stop at first failure/uncertainty; do not retry. Import, runtime, browser and any additional resource changes remain separate future authority.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
+
+## Phase C - separately approved single acquisition succeeded
+
+Owner explicitly authorized immediate identity/owner ACL/public TLS/empty-destination checks and **one conditional Acquire** in explicit `--ohlc-only` mode. Authority included reading only Windows User TwelveData__ApiKey into an isolated transient AIQ_WP39_PROVIDER_KEY channel; no exploratory requests, retries, import, runtime, Docker changes, Azure or deployment. Prior diagnostic/other work-package permissions were not reused.
+
+Immediate owner-context rechecks passed before credential access: protected owner/SYSTEM ACL and ownership of root/eight generated output paths; current complete preparation identity; public certificate validity/DNS; host .NET10 runtime; absent bundle/private database/import receipt/qualification and pending bundle destinations. No configuration/PFX private contents read. An exclusive nonsecret local invocation marker prevents accidentally repeating the consumed approval.
+
+Executed the existing command once with the concrete matching directory substituted privately:
+
+```text
+python -B eng/docker/release-1.15/wp39_local_history.py --action Acquire --directory <verified-fresh-WP55-preparation> --execute-provider-approved --ohlc-only
+```
+
+Wrapper used an allowlist of nonsecret tool/cache environment names plus the isolated transient provider channel; no secret arguments/clipboard/files/logs. The exact Windows User registry value was read only after checks passed, never enumerated, printed or fingerprinted. The channel reference was cleared in finally; retained Windows credential and parent operator environment unchanged. This removes the transient mapping/reference, not a claim of guaranteed zeroization of managed-process memory. Timeout55 seconds; existing Worker limits remain unchanged. No retry or second invocation occurred.
+
+| Sanitized outcome | Observed value |
+| --- | --- |
+| Preflight | PASS |
+| Acquire invocations | 1 |
+| Acquire exit | 0 |
+| Fixed workflow result | ACQUIRED_NOT_IMPORTED |
+| Publication | Atomic two-symbol bundle present; successful workflow. |
+| BTC/USD accepted rows | 1000 |
+| ETH/USD accepted rows | 1000 |
+| Gap count | 0 for both symbols. |
+| Volume available | false for both symbols; OHLC-only mode retained. |
+| Request/response count basis | Successful sequential two-symbol workflow implies2/2; no separate HTTP trace or extra probe. |
+| Transient channel | Cleared in finally; no persisted secret. |
+
+Acquisition observed at 2026-11-08T19:04:15.974819+00:00 (UTC). Successful fixed CLI stdout matched exactly, stderr empty. Only generated nonsecret provenance outcome metadata (provider/kind/status/symbol counts/gaps/volumeAvailable) and publication-file existence were inspected; candle response bodies, raw prices, observations rows, import data and secret fingerprints were not read or published. Provenance reports provider twelvedata, kind ObservedProvider and status AcquiredNotImported. Successful code path validates completed/aligned UTC one-minute OHLC and its existing24-hour/15-second/order/window limits before atomic publication. No claim of independent request tracing, account credits, actual price accuracy audit or browser visibility is made.
+
+Current state: **PREPARED=True; ACQUIRED=True; IMPORTED=False; LOCAL_CHART_VERIFIED=False; PUBLIC_RUNTIME_VERIFIED=False**. Authentic acquired bundle and preparation/images retained privately, unchanged old preparations/resources. No Import/Start/Verify or browser operation performed; no new Docker command or Azure/registry/deployment operation in Phase C. Approval is consumed; any additional acquisition requires NEW authority.
+
+Next concrete owner decision is separate import/local runtime verification authorization: use existing `--action Import`, then `--action Start --port <available-loopback-port>`, then `--action Verify`, all against this exact preparation. Import reads the newly acquired observed-provider bundle through its existing verification, initializes private SQLite and creates its receipt. Start uses its existing owned state-volume seed helper and dual research/UI containers, session-labelled networks, immutable prepared images and local TLS/service configuration; only UI127.0.0.1 port published. Verify performs authenticated local HTTPS consumption for both instruments and compares bounds/generation. A bounded real-browser smoke may then prove both charts, unavailable-volume disclosure and supplied price indicators without recording raw prices/keys. These actions, their new local resources/configuration access and any browser are **not executed or authorized by the acquisition approval**. They need separate explicit owner authority; no additional provider calls, image builds/pulls, Azure or deployment included.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED; truthful acquisition success does not imply imported history or public readiness.
