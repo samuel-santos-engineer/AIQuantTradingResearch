@@ -115,3 +115,34 @@ Current state: **PREPARED=True; ACQUIRED=True; IMPORTED=False; LOCAL_CHART_VERIF
 Next concrete owner decision is separate import/local runtime verification authorization: use existing `--action Import`, then `--action Start --port <available-loopback-port>`, then `--action Verify`, all against this exact preparation. Import reads the newly acquired observed-provider bundle through its existing verification, initializes private SQLite and creates its receipt. Start uses its existing owned state-volume seed helper and dual research/UI containers, session-labelled networks, immutable prepared images and local TLS/service configuration; only UI127.0.0.1 port published. Verify performs authenticated local HTTPS consumption for both instruments and compares bounds/generation. A bounded real-browser smoke may then prove both charts, unavailable-volume disclosure and supplied price indicators without recording raw prices/keys. These actions, their new local resources/configuration access and any browser are **not executed or authorized by the acquisition approval**. They need separate explicit owner authority; no additional provider calls, image builds/pulls, Azure or deployment included.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED; truthful acquisition success does not imply imported history or public readiness.
+
+## Phase D - approved local import/runtime; browser prerequisite failure
+
+Owner separately authorized existing Import, Start on available loopback port, authenticated Verify and a bounded installed-Chrome smoke of both charts/C# indicators/unavailable-volume disclosure. Authority included the generated local service/TLS configuration, new private SQLite and only this session's labelled volume/seed helper/research+UI containers/networks. No new provider calls, pulls/builds/installations/Azure/deployment or unrelated resources. Stop on failure, preserve data/images/volume and leave a successful loopback chart for owner review.
+
+Revalidated complete preparation identity and public certificate freshness before import; acquired bundle existed and private database/receipt did not. Ran the existing commands sequentially, once each, from the isolated WP55 source with a nonsecret allowlisted tool/cache environment (no provider channel):
+
+```text
+python -B eng/docker/release-1.15/wp39_local_history.py --action Import --directory <same-fresh-WP55-preparation>
+python -B eng/docker/release-1.15/wp39_local_history.py --action Start --directory <same-fresh-WP55-preparation> --port 18555
+python -B eng/docker/release-1.15/wp39_local_history.py --action Verify --directory <same-fresh-WP55-preparation>
+```
+
+| Executed local operation | Actual result |
+| --- | --- |
+| Import | Exit0; exact IMPORTED_AWAITING_SNAPSHOT_VERIFICATION. Observed-provider verification precedes SQLite initialization and import receipt. |
+| Start | Exit0; RUNNING_LOCAL_ONLY. Existing session-owned seed helper/new state volume and two prepared immutable images; dual research/UI containers, session networks and local TLS. No provider key forwarded. |
+| Authenticated Verify | Exit0; LOCAL_AUTHENTIC_SNAPSHOT_VERIFIED. Both instruments' API candle counts/first-last bounds and generation match acquisition provenance/import receipt. |
+| Loopback URL | http://127.0.0.1:18555 |
+| Browser smoke | **INCOMPLETE**: selected host Python lacks websockets; import of existing browser helper raised ModuleNotFoundError before Chrome/process/profile creation. No browser case ran; no UI success inferred from backend verification. |
+| Existing dependency-only check | Existing project venv Python3.13.15 imports websockets16.1.1 and websockets.sync.client successfully, exit0. No package installation. |
+
+Start/Verify use the existing authenticated HTTPS workflow; generated local service credentials are read by that existing authorized workflow and forwarded by environment name, never a key-bearing CLI argument, log or PR content. No new provider request, image build/pull, acquisition/import retry, raw candle value, screenshot, private location or payload published. Local app remains running for owner review; data/images/volume retained. Existing unrelated processes/resources untouched. No Chrome was launched, so no browser cleanup was needed. No additional runtime operations were attempted after the browser dependency failure.
+
+The browser prerequisite error is an interpreter selection issue, not an observed chart defect. Source inspection confirms the exact existing provenance caption is 'Locally imported provider observations - operator-controlled provenance; transformed educational values.' Future smoke must assert that actual product text rather than an invented caption. The aborted attempt never reached such assertions. No application fix or unsupported component workaround is proposed.
+
+**Current disposition:** PREPARED=True; ACQUIRED=True; IMPORTED=True; LOCAL_AUTHENTIC_SNAPSHOT_VERIFIED=True; LOCAL_CHART_VERIFIED=False (browser incomplete); PUBLIC_RUNTIME_VERIFIED=False. Authentic candles are imported and available through the verified local API; actual browser visibility/trace/disclosure checks are not yet demonstrated. The earlier AUTHENTIC_DATA_NOT_IMPORTED=True statements are historical pre-import state and are superseded by this completed authenticated verification.
+
+Next narrow action requires owner permission under the approved stop-on-failure boundary: one browser-only retry using the existing project venv and installed Chrome, against the already running loopback chart, checking actual rendered candlestick/SMA trace counts, both instruments, no volume bars, unavailable-volume/educational/provenance labels and modebar; no raw prices/screenshot/payload output, no provider/Docker changes or import/start/Verify rerun. Close only its owned browser/profile process and retain the successful local chart. No new dependencies/frameworks or application-code change.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR OPEN/UNMERGED. No public readiness/deployment claim.
