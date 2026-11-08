@@ -171,6 +171,13 @@ public sealed class ResearchLocalHistoryTests
             if(kind=="numeric") rows[0]!["close"]="not-a-decimal-"+DiagnosticCanary;
             if(kind=="volume") rows[0]!.AsObject().Remove("volume");
             if(kind=="empty") rows.Clear();
+            if(kind=="partial-volume" || kind=="partial-ohlc")
+            {
+                var partial=rows[0]!.DeepClone();
+                partial["datetime"]=DateTimeOffset.UtcNow.AddMinutes(-9).ToString("yyyy-MM-dd HH:mm:00",System.Globalization.CultureInfo.InvariantCulture);
+                partial.AsObject().Remove(kind=="partial-volume"?"volume":"close");
+                rows.Add(partial);
+            }
             var status=int.TryParse(kind,out var number)?(System.Net.HttpStatusCode)number:System.Net.HttpStatusCode.OK;
             var response=Response(request,status,body.ToJsonString());
             if(kind=="headers")response.Content.Headers.ContentType=new("text/plain");
@@ -407,6 +414,22 @@ public sealed class ResearchLocalHistoryTests
             DiagnosticEquals(result.Log,code=="INVALID_JSON_ENCODING"?"response_parse":"observation_validation",
                 code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
             Assert.False(Directory.Exists(path));
+        }
+    }
+    [Theory]
+    [InlineData("partial-volume","INVALID_VOLUME")]
+    [InlineData("partial-ohlc","INVALID_OHLC_ENCODING")]
+    [InlineData("empty","ZERO_ACCEPTED_CANDLES")]
+    public async Task PartialOrEmptyRowsFailAtEitherSymbolWithoutPublication(string kind,string code)
+    {
+        foreach(var failAt in new[]{1,2})
+        {
+            var path=Output();using var handler=new DiagnosticHandler(kind,failAt);
+            var result=await DiagnosticRun(handler,path);
+            Assert.Equal(1,result.Code);Assert.Equal(failAt,handler.Calls);
+            DiagnosticEquals(result.Log,"observation_validation",code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
+            Assert.False(Directory.Exists(path));
+            Assert.DoesNotContain(DiagnosticCanary,result.Log);
         }
     }
     [Theory][InlineData("\"0\"")][InlineData("\"0.123456789012\"")][InlineData("\"1000000000000\"")]

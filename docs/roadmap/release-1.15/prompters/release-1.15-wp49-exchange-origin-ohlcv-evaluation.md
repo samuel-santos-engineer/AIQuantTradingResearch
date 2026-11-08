@@ -3,13 +3,13 @@
 Date: 2026-11-08 (America/Sao_Paulo). Documentation evaluation, not provider qualification.
 Baseline: merged PR #435, `7c8d242105fbc5e3fbed4159b07f94a90a7a271c`.
 
-## Decision
+## Binding owner direction - supersedes the original recommendation
 
-**Rank 1 / primary recommendation: Kraken Spot REST OHLC for a bounded recent-history bootstrap.** Official evidence supports actual BTC/USD and ETH/USD spot markets and base-asset traded volume. This selects a design candidate, not an operational source. Twelve Data remains the existing implementation.
+Twelve Data is the **sole market-data provider and implementation target for Release 1.15**, for BTC/USD and ETH/USD. Kraken, Coinbase and exchange archives are **NOT SELECTED / OUT OF SCOPE**. No provider-agnostic architecture or migration is approved. The earlier Kraken ranking was a research recommendation, not an approved implementation direction, and is superseded by this owner decision.
 
-**Coverage limitation:** Kraken cannot return 1,000 closed one-minute candles or a full recent 24 hours through this endpoint. It returns at most 720 entries including an unfinished candle; at most 719 are closed, and the grace filter can reduce that further. The repository's 1,000 rows and 24 hours are upper bounds, not promises of complete coverage. Choosing this bootstrap must not be described as satisfying a complete 1,000-candle view. The existing 1,000 preset can display only available observations. If complete 1,000-minute coverage is required, Kraken REST is unsuitable; rank 2 needs its remaining contract clarification, or a separately chosen historical archive window. No pagination can repair Kraken's retention limit.
+The comparison below is retained as historical public-documentation evidence only. No live endpoint was evaluated. Kraken's <=719 closed-minute limitation remains accurate; it does not motivate a provider switch. Twelve Data parser acceptance, request budget, provenance, chart and Docker-first dual-process design remain unchanged.
 
-**Rank 2: Coinbase Exchange REST**, with stronger historical window paging but weaker explicit minute-endpoint volume-unit documentation in the reviewed sources. Do not borrow volume semantics from a different Coinbase product as conclusive proof. **Rank 3: Kraken downloadable OHLCVT**, useful for a reproducible historical chart but not the latest window. No other exchange materially improves this evidence without expanding the investigation.
+The former WP50 migration proposal later in this document is retained as a historical, **withdrawn / not executable** proposal. Its paths and stages provide no authority to implement any alternative provider. The active next step is the [Twelve Data-only volume diagnosis/runbook](release-1.15-twelvedata-volume-diagnosis.md).
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
 
@@ -53,7 +53,7 @@ Paths below are read-only touchpoints; line numbers refer to the baseline.
 | `python/presentation/research_chart.py:18`, `:26`, `:34`, `:173` | Existing transformed research disclosure, generic provenance, 100/300/1,000 presets and BTC/ETH volume labels can remain. Do not imply 1,000 available rows or recompute analytics. Browser remains a research API consumer, never an exchange client. |
 | `container/release_1_15/research-api.Dockerfile`, `container/release_1_15/research-chart.Dockerfile` | Existing separate nonroot API/chart images are retained; no new image/dependency/runtime design required for a managed HttpClient adapter. Docker was not invoked. |
 
-## Concrete WP50 offline-first implementation proposal
+## Historical withdrawn WP50 proposal - NOT SELECTED / OUT OF SCOPE
 
 These are **proposed literal paths, not WP49 mutation authority**. Reuse IResearchCandleSource.ReadCompletedAsync with injected HttpClient; keep the Twelve Data adapter and its regression tests intact. Source selection must be explicit, no fallback to another exchange after failure.
 
@@ -80,7 +80,7 @@ Provenance design: versioned, strict source/venue=kraken/spot, native requested 
 
 Diagnostics: preserve bounded existing version-1 envelope and exit semantics where possible (INVALID_VOLUME, INVALID_OBSERVATION, ZERO_ACCEPTED_CANDLES, destination and transport failures). Propose finite additional adapter reasons INVALID_SOURCE_IDENTITY, INVALID_RESPONSE_SHAPE, RESPONSE_TOO_LARGE and SOURCE_RATE_LIMITED only if the existing envelope needs specificity; exact allowlist/tests must change together in the listed Worker/workflow paths. Emit stage/symbol/send/response counts and unknown-outcome status, no response text, arbitrary URLs or exception strings. HTTP200 with nonempty Kraken error fails; 429 stops without retry.
 
-## Staged verification and unresolved risks
+## Historical alternative verification proposal - NOT AUTHORIZED
 
 1. Stage A fake cases: exact endpoints/pairs/budget, both instruments, eight positions, base units, unsorted rows, gaps, duplicate/conflicting rows, wrong USD/stablecoin/derivative identity, current/grace/minute/24h boundaries, precision/zero/negative/overflow, missing volume, errors/429/non-JSON, 721 rows, streamed bytes, cancellation before/between/during reads and timeouts. Assert no authentication headers, secret reads or retries. All expectations independently authored synthetic data.
 2. Stage B: SQLite JSON round-trip and recovery keep source identity; legacy Twelve Data tests pass. Mismatched import/provenance/generation and partial ETH failure leave no published bundle or receipt. Publication cancellation and destination-existing checks preserve prior state. Do not amend analytics/warmup or gap rules.
