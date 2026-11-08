@@ -334,10 +334,10 @@ def prepare(directory):
     print('PREPARED_NOT_IMPORTED; no provider calls or private state created')
 
 
-def acquire(directory, approved, volume_confirmed):
+def acquire(directory, approved, volume_confirmed, ohlc_only=False):
     if not approved:
         raise parent_failure('preflight', 'MISSING_APPROVAL', known_zero=True)
-    if not volume_confirmed:
+    if not volume_confirmed and not ohlc_only:
         raise parent_failure('preflight', 'VOLUME_UNCONFIRMED', known_zero=True)
     validate_preparation_identity(directory)
     # Do not access this channel at all in Plan/Prepare/offline tests.
@@ -348,7 +348,9 @@ def acquire(directory, approved, volume_confirmed):
     env['AIQ_WP39_PROVIDER_APPROVED'] = '1'
     try:
         validate_preparation_identity(directory)
-        worker(directory, '--research-acquire-local', env, json.dumps(dict(providerKey=key, baseAssetVolumeConfirmed=True)).encode())
+        config = dict(providerKey=key, baseAssetVolumeConfirmed=volume_confirmed)
+        if ohlc_only: config['ohlcOnly'] = True
+        worker(directory, '--research-acquire-local', env, json.dumps(config).encode())
     finally:
         key = None; env.pop('AIQ_WP39_PROVIDER_APPROVED', None)
     print('ACQUIRED_NOT_IMPORTED; verify/import/snapshot consumption still required')
@@ -443,6 +445,7 @@ if __name__ == '__main__':
     p.add_argument('--port', type=int, default=8501)
     p.add_argument('--execute-provider-approved', action='store_true')
     p.add_argument('--base-asset-volume-confirmed', action='store_true')
+    p.add_argument('--ohlc-only', action='store_true', help='Explicit crypto price-only mode; volume is unavailable, never zero-filled')
     args = p.parse_args()
     try:
         if args.action == 'Plan': print(json.dumps(plan(), indent=2))
@@ -450,7 +453,7 @@ if __name__ == '__main__':
             if args.directory is None or not 1024 <= args.port <= 65535: raise ValueError('Local directory/port required')
             directory = args.directory.absolute() if args.action == 'Acquire' else args.directory.resolve()
             if args.action == 'Prepare': prepare(directory)
-            elif args.action == 'Acquire': acquire(directory,args.execute_provider_approved,args.base_asset_volume_confirmed)
+            elif args.action == 'Acquire': acquire(directory,args.execute_provider_approved,args.base_asset_volume_confirmed,args.ohlc_only)
             elif args.action == 'Import': import_bundle(directory)
             elif args.action == 'Verify': verify_snapshot(directory)
             else: launch(directory,args.action,args.port)

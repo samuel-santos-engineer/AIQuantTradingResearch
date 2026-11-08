@@ -60,6 +60,15 @@ class WorkflowTests(unittest.TestCase):
             with self.assertRaises(RuntimeError): workflow.acquire(Path('unused'), True, True)
             self.assertEqual('FAKE', os.environ['AIQ_WP39_PROVIDER_KEY'])
 
+    def test_ohlc_only_is_explicit_in_private_config_not_a_volume_claim(self):
+        with patch.dict(os.environ,{'AIQ_WP39_PROVIDER_KEY':'FAKE-ONLY'},clear=True), \
+             patch.object(workflow,'worker') as child,patch('builtins.print'):
+            workflow.acquire(Path('unused'),True,False,ohlc_only=True)
+            config=json.loads(child.call_args.args[3])
+            self.assertIs(config['ohlcOnly'],True)
+            self.assertIs(config['baseAssetVolumeConfirmed'],False)
+            self.assertNotIn('FAKE-ONLY',str(child.call_args.args[:3]))
+
     def test_fixture_is_never_imported_as_authentic(self):
         with patch.object(workflow, 'worker', return_value='SyntheticFixture') as child:
             with self.assertRaises(RuntimeError): workflow.import_bundle(Path('unused'))

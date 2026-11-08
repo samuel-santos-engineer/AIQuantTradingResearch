@@ -117,7 +117,7 @@ public static class ResearchStateInitialization
                 Fields(row, "openTimeUtc", "open", "high", "low", "close", "volume");
                 return new CompletedResearchCandle(instrument, Utc(row.GetProperty("openTimeUtc").GetString()),
                     Number(row.GetProperty("open")), Number(row.GetProperty("high")), Number(row.GetProperty("low")),
-                    Number(row.GetProperty("close")), Number(row.GetProperty("volume")));
+                    Number(row.GetProperty("close")), row.GetProperty("volume").ValueKind == JsonValueKind.Null ? null : Number(row.GetProperty("volume")));
             }).ToArray();
             var request = new ResearchPollRequest(instrument, observed, TimeSpan.Zero); var batch = new ResearchPollBatch(candles);
             ResearchInputValidation.Validate(request, batch); return (request, batch);

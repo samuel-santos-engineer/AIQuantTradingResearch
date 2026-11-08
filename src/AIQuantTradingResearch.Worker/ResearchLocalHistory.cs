@@ -120,9 +120,10 @@ public static class ResearchLocalHistory
             catch { trace?.Fail("observation_validation", "INVALID_OBSERVATION"); throw; }
             var symbol = instrument == ResearchInstrument.BtcUsd ? "BTC/USD" : "ETH/USD";
             imports[symbol] = batch.Candles.Select(c => new { openTimeUtc = Utc(c.OpenTimeUtc), open = Number(c.Open),
-                high = Number(c.High), low = Number(c.Low), close = Number(c.Close), volume = Number(c.Volume) }).ToArray();
+                high = Number(c.High), low = Number(c.Low), close = Number(c.Close), volume = c.Volume is decimal volume ? Number(volume) : null }).ToArray();
             summaries[symbol] = new { originalSymbol = symbol, rows = batch.Candles.Count,
                 firstUtc = Utc(batch.Candles[0].OpenTimeUtc), lastUtc = Utc(batch.Candles[^1].OpenTimeUtc),
+                volumeAvailable = batch.Candles.All(c => c.Volume.HasValue),
                 gaps = batch.Candles.Zip(batch.Candles.Skip(1)).Count(pair => pair.Second.OpenTimeUtc - pair.First.OpenTimeUtc != TimeSpan.FromMinutes(1)) };
         }
         trace?.Step("bundle_publication");
@@ -237,12 +238,14 @@ public static class ResearchLocalHistory
             using var config = JsonDocument.Parse(bytes.ToArray());
             var c = config.RootElement;
             var names = c.EnumerateObject().Select(x => x.Name).ToArray();
-            if (names.Length != 2 || names.Distinct(StringComparer.Ordinal).Count() != 2 || !names.Contains("providerKey") || !names.Contains("baseAssetVolumeConfirmed")) throw new ResearchUnavailableException();
-            if (c.GetProperty("baseAssetVolumeConfirmed").ValueKind == JsonValueKind.False)
+            if (names.Length is < 2 or > 3 || names.Distinct(StringComparer.Ordinal).Count() != names.Length || !names.Contains("providerKey") || !names.Contains("baseAssetVolumeConfirmed") || names.Any(n => n is not ("providerKey" or "baseAssetVolumeConfirmed" or "ohlcOnly"))) throw new ResearchUnavailableException();
+            var ohlcOnly = c.TryGetProperty("ohlcOnly", out var mode) && mode.ValueKind == JsonValueKind.True;
+            if (c.TryGetProperty("ohlcOnly", out mode) && mode.ValueKind is not (JsonValueKind.True or JsonValueKind.False)) throw new ResearchUnavailableException();
+            if (!ohlcOnly && c.GetProperty("baseAssetVolumeConfirmed").ValueKind == JsonValueKind.False)
             { trace.Fail("private_input", "VOLUME_UNCONFIRMED"); throw new ResearchUnavailableException(); }
-            if (c.GetProperty("baseAssetVolumeConfirmed").ValueKind != JsonValueKind.True) throw new ResearchUnavailableException();
+            if (c.GetProperty("baseAssetVolumeConfirmed").ValueKind is not (JsonValueKind.True or JsonValueKind.False)) throw new ResearchUnavailableException();
             using var handler = handlerFactory?.Invoke() ?? new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false };
-            using var source = new TwelveDataMinuteCandleSource(handler, c.GetProperty("providerKey").GetString()!, true, diagnostic: trace.Observe);
+            using var source = new TwelveDataMinuteCandleSource(handler, c.GetProperty("providerKey").GetString()!, c.GetProperty("baseAssetVolumeConfirmed").GetBoolean(), diagnostic: trace.Observe, ohlcOnly: ohlcOnly);
             await AcquireCoreAsync(source, destination, DateTimeOffset.UtcNow, handlerFactory is not null, trace, deadline.Token);
         }
         catch (OperationCanceledException)

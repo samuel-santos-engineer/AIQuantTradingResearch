@@ -59,10 +59,10 @@ public sealed class ResearchSnapshotTransformerTests
         Assert.Equal("full", rotated.RootElement.GetProperty("type").GetString());
         Assert.Throws<ResearchSnapshotException>(() => ResearchSnapshotTransformer.Project(state, new(Guid.NewGuid(), new byte[32], Guid.NewGuid(), 1), request, now));
     }
-    [Fact] public void PriceIndicatorsAreTransformedAfterCalculationWhileRatiosVolumeAndRsiAreUnchanged()
+    [Theory][InlineData(false)][InlineData(true)] public void PriceIndicatorsAreTransformedAfterCalculationWhileRatiosVolumeAndRsiAreUnchanged(bool ohlcOnly)
     {
         var g = Guid.NewGuid(); var segment = Guid.NewGuid(); var now = new DateTimeOffset(2026, 10, 23, 12, 1, 15, TimeSpan.Zero);
-        var candle = new CompletedResearchCandle(ResearchInstrument.BtcUsd, now.AddSeconds(-75), 100, 101, 99, 100, 3);
+        var candle = new CompletedResearchCandle(ResearchInstrument.BtcUsd, now.AddSeconds(-75), 100, 101, 99, 100, ohlcOnly ? null : 3);
         var indicators = new ResearchIndicators("100.000000000000", "100.000000000000", "-7.000000000000", "100.000000000000", "101.000000000000",
             "55.000000000000", "-7.000000000000", "-7.000000000000", "-7.000000000000", "2.000000000000", "0.020000000000", "0.000000000000", "-0.010000000000");
         var row = new ResearchStoredCandle(candle, segment, 401, new(indicators, new(true, 0, "Neutral", "Undetermined"), null, null));
@@ -73,7 +73,7 @@ public sealed class ResearchSnapshotTransformerTests
         foreach (var name in new[] { "bollingerLower", "macd", "macdSignal", "macdHistogram" }) Assert.Equal("-6.412170387931", a.GetProperty(name).GetString());
         Assert.Equal("1.832048682266", a.GetProperty("atr14").GetString()); Assert.Equal("55.000000000000", a.GetProperty("rsi14").GetString());
         Assert.Equal("-0.010000000000", a.GetProperty("emaSlope5").GetString()); Assert.Equal("0.020000000000", a.GetProperty("normalizedAtr14").GetString());
-        Assert.Equal("3.000000000000", doc.RootElement.GetProperty("candles")[0].GetProperty("volume").GetString());
+        Assert.Equal(ohlcOnly ? null : "3.000000000000", doc.RootElement.GetProperty("candles")[0].GetProperty("volume").GetString());
     }
     [Fact] public void ClientKnownFutureIdentityDoesNotSilentlyReceiveRolledBackData()
     {

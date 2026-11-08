@@ -20,6 +20,36 @@ public sealed class ResearchLocalHistoryTests
         }
     }
     private static string Output() => Path.Combine(Path.GetTempPath(), "aiq-wp39-test-" + Guid.NewGuid().ToString("N"));
+    [Theory][InlineData("missing")][InlineData("null")][InlineData("0")][InlineData("1.25")]
+    public async Task NullAndNumericVolumeRoundTripThroughImportAndSqliteWithoutAuthenticClaim(string volume)
+    {
+        var root=Output();var bundle=Path.Combine(root,"bundle");
+        try
+        {
+            var ohlcOnly=volume is "missing" or "null";
+            using var handler=new DiagnosticHandler(failAt:0,volumeJson:ohlcOnly?volume:JsonSerializer.Serialize(volume));
+            var config=JsonSerializer.Serialize(new{providerKey=DiagnosticCanary,baseAssetVolumeConfirmed=!ohlcOnly,ohlcOnly});
+            var result=await DiagnosticRun(handler,bundle,config);
+            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(bundle,true));
+            Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(bundle));
+            using var observations=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(bundle,"observations.json")));
+            foreach(var symbol in new[]{"BTC/USD","ETH/USD"})
+                Assert.Equal(ohlcOnly?null:volume,observations.RootElement.GetProperty(symbol)[0].GetProperty("volume").GetString());
+            ResearchLocalHistory.Prepare(Path.Combine(root,"runtime"));
+            using var input=new MemoryStream(File.ReadAllBytes(Path.Combine(root,"runtime","initialize.json")));
+            var state=Path.Combine(root,"private");
+            Assert.Equal(0,await ResearchStateInitialization.RunAsync(input,TextWriter.Null,state,Path.Combine(bundle,"observations.json")));
+            using var reopened=new AIQuantTradingResearch.Infrastructure.Persistence.Sqlite.SqliteResearchStateStore(state,true);
+            foreach(var instrument in Enum.GetValues<ResearchInstrument>())
+            {
+                var candle=Assert.Single(reopened.Read(instrument).Candles).Candle;
+                Assert.Equal(ohlcOnly?(decimal?)null:decimal.Parse(volume,System.Globalization.CultureInfo.InvariantCulture),candle.Volume);
+                Assert.Equal(ohlcOnly?null:instrument==ResearchInstrument.BtcUsd?"BTC":"ETH",candle.VolumeUnit);
+            }
+        }
+        finally{if(Directory.Exists(root))Directory.Delete(root,true);}
+    }
     [Fact] public async Task BothSymbolsBoundedGapAwareAndFixtureCannotBecomeAuthentic()
     {
         var path=Output();var source=new Source();

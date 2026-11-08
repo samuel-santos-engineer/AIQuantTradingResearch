@@ -244,7 +244,8 @@ def validate(obj, instrument, epoch, previous=None):
         seen_segments.add(row["segment"])
         o, h, lo, c = (quantity(row[k], "4e9", positive=True) for k in ("open", "high", "low", "close"))
         require(lo <= min(o, c) <= max(o, c) <= h)
-        quantity(row["volume"], "1e12", nonnegative=True)
+        if row["volume"] is not None:
+            quantity(row["volume"], "1e12", nonnegative=True)
         fields(a, ("time",) + INDICATORS)
         require(a["time"] == row["time"])
         first_positions = (20, 20, 20, 20, 20, 15, 26, 34, 34, 14, 14, 20, 25)

@@ -71,7 +71,7 @@ public static partial class ResearchSnapshotTransformer
             var prices = new[] { c.Open, c.High, c.Low, c.Close }.Select(x => TransformPrice(Fixed(x), factor)).ToArray();
             if (prices.Any(x => Units(x) <= 0)) throw new ResearchSnapshotException("DATA_UNAVAILABLE");
             candles.Add(Map(("time", t), ("segment", seg), ("segmentIndex", row.SegmentIndex.ToString(CultureInfo.InvariantCulture)),
-                ("open", prices[0]), ("high", prices[1]), ("low", prices[2]), ("close", prices[3]), ("volume", Fixed(c.Volume))));
+                ("open", prices[0]), ("high", prices[1]), ("low", prices[2]), ("close", prices[3]), ("volume", c.Volume is decimal volume ? Fixed(volume) : null)));
             var a = calc?.Indicators;
             var fields = new[] { "sma20", "ema20", "bollingerLower", "bollingerMiddle", "bollingerUpper", "rsi14", "macd", "macdSignal", "macdHistogram", "atr14", "normalizedAtr14", "bollingerWidth", "emaSlope5" };
             string?[] values = [a?.Sma20, a?.Ema20, a?.BollingerLower, a?.BollingerMiddle, a?.BollingerUpper, a?.Rsi14, a?.Macd, a?.MacdSignal, a?.MacdHistogram, a?.Atr14, a?.NormalizedAtr14, a?.BollingerWidth, a?.EmaSlope5];

@@ -90,6 +90,35 @@ class ProjectionTests(unittest.TestCase):
     def snapshot(self, count=401, gap=False, instrument="BTC/USD"):
         return FixtureClient(count, gap).fetch(instrument)
 
+    def test_explicit_null_volume_hides_panel_but_preserves_prices_and_indicators(self):
+        for instrument in ('BTC/USD','ETH/USD'):
+            for panel in ('None','RSI14'):
+                data=fixture(instrument=instrument)
+                for row in data['candles']:row['volume']=None
+                # Exercise the strict consumer, not just Plotly's tolerance of None.
+                from python.presentation.research_snapshot_client import validate
+                validate(data,instrument,1)
+                figure=chart.build_figure(data,chart.InstrumentView(panel=panel,overlays={'SMA20'}))
+                self.assertTrue(any(t['type']=='candlestick' for t in figure['data']))
+                self.assertTrue(any(t['name'].startswith('SMA20') for t in figure['data']))
+                self.assertFalse(any(t['type']=='bar' or t['name'].startswith('Volume') for t in figure['data']))
+                self.assertTrue(any('Volume unavailable' in a['text'] for a in figure['layout']['annotations']))
+
+    def test_numeric_volume_including_zero_remains_visible_and_exact(self):
+        from python.presentation.research_snapshot_client import validate
+        for instrument in ('BTC/USD', 'ETH/USD'):
+            for volume in ('0.000000000000', '1.250000000000'):
+                with self.subTest(instrument=instrument, volume=volume):
+                    data = fixture(instrument=instrument)
+                    for row in data['candles']:
+                        row['volume'] = volume
+                    validate(data, instrument, 1)
+                    figure = chart.build_figure(data, chart.InstrumentView())
+                    bars = next(t for t in figure['data'] if t['name'].startswith('Volume'))
+                    self.assertTrue(all(v == float(volume) for v in bars['y']))
+                    self.assertFalse(any('Volume unavailable' in a['text']
+                                         for a in figure['layout'].get('annotations', [])))
+
     def test_both_instruments_exact_candles_utc_volume_and_disclosure(self):
         for instrument in ("BTC/USD", "ETH/USD"):
             with self.subTest(instrument=instrument):
