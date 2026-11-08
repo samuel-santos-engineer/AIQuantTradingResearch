@@ -86,6 +86,20 @@ class AcquisitionDiagnosticTests(unittest.TestCase):
         value=self.valid()
         self.assertEqual(value,workflow.child_failure(json.dumps(value).encode()).diagnostic)
 
+    def test_volume_subtypes_and_legacy_code_round_trip_without_schema_widening(self):
+        codes = ('VOLUME_MISSING', 'VOLUME_NULL', 'VOLUME_WRONG_TYPE',
+                 'VOLUME_INVALID_FORMAT', 'VOLUME_PRECISION_EXCEEDED', 'VOLUME_OUT_OF_RANGE', 'INVALID_VOLUME')
+        for code in codes:
+            for count, symbol in ((1, 'BTC/USD'), (2, 'ETH/USD')):
+                value = dict(self.valid(), failedStage='observation_validation', failureCode=code,
+                             instrument=symbol, httpStatus=200, requestsStarted=count, responsesReceived=count)
+                with self.subTest(code=code, symbol=symbol):
+                    self.assertEqual(value, workflow.child_failure(json.dumps(value).encode()).diagnostic)
+                    for mutation in ({'extra': self.CANARY}, {'failureCode': code + self.CANARY},
+                                     {'requestsStarted': True}, {'bundlePublished': True}):
+                        self.check_unknown(workflow.child_failure(json.dumps(dict(value, **mutation)).encode()),
+                                           'CHILD_DIAGNOSTIC_INVALID')
+
     def test_malformed_forged_or_secret_bearing_diagnostics_are_replaced(self):
         cases=[b'',b'not-json',self.CANARY.encode(),b'{}',b'[]',b'null',b'\xff',
                json.dumps(self.valid()).encode()+b'\n'+self.CANARY.encode()]

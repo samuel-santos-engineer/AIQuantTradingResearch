@@ -12,7 +12,8 @@ public enum TwelveDataReadEvent
     Preflight, RequestStarted, ResponseReceived, ResponseParse, ObservationValidation,
     VolumeUnconfirmed, InvalidPrivateInput, HttpFailure, InvalidHeaders, InvalidPayload, InvalidMetadata,
     InvalidObservation, InvalidVolume, TransportFailure, Timeout, Cancelled, Unknown, InvalidJson, InvalidShape, ProviderErrorEnvelope,
-    InvalidStatus, SymbolMismatch, IntervalMismatch, TimezoneMismatch, InvalidCandles, PayloadTooLarge, InvalidTimestamp, InvalidOhlc, InvalidMetadataObject, InvalidSymbolField, InvalidIntervalField, InvalidTimezoneField
+    InvalidStatus, SymbolMismatch, IntervalMismatch, TimezoneMismatch, InvalidCandles, PayloadTooLarge, InvalidTimestamp, InvalidOhlc, InvalidMetadataObject, InvalidSymbolField, InvalidIntervalField, InvalidTimezoneField,
+    VolumeMissing, VolumeNull, VolumeWrongType, VolumeInvalidFormat, VolumePrecisionExceeded, VolumeOutOfRange
 }
 public readonly record struct TwelveDataReadDiagnostic(TwelveDataReadEvent Event, ResearchInstrument Instrument, int? HttpStatus = null);
 
@@ -121,17 +122,31 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
                     CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out _)) Reject(TwelveDataReadEvent.InvalidTimestamp);
                 var time = DateTimeOffset.ParseExact(stamp.GetString()!, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-                decimal volume;
-                try { volume = Value(row, "volume"); }
-                catch (Exception e) when (e is ResearchUnavailableException or InvalidOperationException or KeyNotFoundException)
-                { Reject(TwelveDataReadEvent.InvalidVolume); throw; }
+                if (!row.TryGetProperty("volume", out var volumeField)) Reject(TwelveDataReadEvent.VolumeMissing);
+                if (volumeField.ValueKind == JsonValueKind.Null) Reject(TwelveDataReadEvent.VolumeNull);
+                if (volumeField.ValueKind != JsonValueKind.String) Reject(TwelveDataReadEvent.VolumeWrongType);
+                var volumeText = volumeField.GetString()!;
+                // Preserve Value's acceptance and check order; only fixed diagnostics differ.
+                if (volumeText.Length == 0 || volumeText.Length > 40 ||
+                    volumeText.Any(x => x is not (>= '0' and <= '9') and not '.')) Reject(TwelveDataReadEvent.VolumeInvalidFormat);
+                if (volumeText.Contains('.') && volumeText.Length - volumeText.IndexOf('.') - 1 > 12)
+                    Reject(TwelveDataReadEvent.VolumePrecisionExceeded);
+                if (!decimal.TryParse(volumeText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var volume))
+                {
+                    // Multiple points are format errors; a well-formed digit string can overflow decimal.
+                    Reject(volumeText.Count(x => x == '.') > 1 || volumeText == "."
+                        ? TwelveDataReadEvent.VolumeInvalidFormat : TwelveDataReadEvent.VolumeOutOfRange);
+                }
                 try
                 {
-                    candles.Add(new CompletedResearchCandle(request.Instrument, time, Value(row, "open"), Value(row, "high"),
-                        Value(row, "low"), Value(row, "close"), volume));
+                    var open = Value(row, "open"); var high = Value(row, "high");
+                    var low = Value(row, "low"); var close = Value(row, "close");
+                    // OHLC encoding still precedes constructor-domain rejection.
+                    if (volume > 1_000_000_000_000m) Reject(TwelveDataReadEvent.VolumeOutOfRange);
+                    candles.Add(new CompletedResearchCandle(request.Instrument, time, open, high, low, close, volume));
                 }
                 catch (Exception e) when (e is ResearchUnavailableException or InvalidOperationException or KeyNotFoundException)
-                { Reject(TwelveDataReadEvent.InvalidOhlc); throw; }
+                { if (!failureReported) Reject(TwelveDataReadEvent.InvalidOhlc); throw; }
             }
             DateTimeOffset? previous = null;
             foreach (var candle in candles)

@@ -108,7 +108,7 @@ public sealed class ResearchLocalHistoryTests
         Assert.DoesNotContain("not-a-secret",log.ToString());
     }
     private const string DiagnosticCanary = "FAKE-WP39-SECRET-CANARY-DO-NOT-DISCLOSE";
-    private sealed class DiagnosticHandler(string failure = "success", int failAt = 1, string? volumeJson = null) : HttpMessageHandler
+    private sealed class DiagnosticHandler(string failure = "success", int failAt = 1, string? volumeJson = null, string volumeContext = "plain") : HttpMessageHandler
     {
         public int Calls;
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
@@ -126,10 +126,19 @@ public sealed class ResearchLocalHistoryTests
             var rows=body["values"]!.AsArray();
             if(volumeJson is not null && (Calls==failAt || failAt==0))
             {
-                if(volumeJson=="missing") rows[0]!.AsObject().Remove("volume");
+                if(volumeContext=="prefix")
+                {
+                    rows.Insert(0,rows[0]!.DeepClone());
+                    rows[0]!["datetime"]=DateTimeOffset.UtcNow.AddMinutes(-11).ToString("yyyy-MM-dd HH:mm:00",System.Globalization.CultureInfo.InvariantCulture);
+                }
+                var target=rows[^1]!;
+                if(volumeContext=="forming") target["datetime"]=DateTimeOffset.UtcNow.ToString("yyyy-MM-dd HH:mm:00",System.Globalization.CultureInfo.InvariantCulture);
+                if(volumeContext=="timestamp") target["datetime"]=DiagnosticCanary;
+                if(volumeContext=="ohlc") target.AsObject().Remove("close");
+                if(volumeJson=="missing") target.AsObject().Remove("volume");
                 else if(volumeJson=="raw-nan") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,
                     body.ToJsonString().Replace("\"volume\":\"1\"","\"volume\":NaN",StringComparison.Ordinal)));
-                else rows[0]!["volume"]=System.Text.Json.Nodes.JsonNode.Parse(volumeJson);
+                else target["volume"]=System.Text.Json.Nodes.JsonNode.Parse(volumeJson);
             }
             if(kind=="json") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"{"+DiagnosticCanary));
             if(kind=="shape") return Task.FromResult(Response(request,System.Net.HttpStatusCode.OK,"[]"));
@@ -238,7 +247,7 @@ public sealed class ResearchLocalHistoryTests
     [InlineData("unaligned","observation_validation","INVALID_OBSERVATION")]
     [InlineData("ohlc","observation_validation","INVALID_OBSERVATION")]
     [InlineData("numeric","observation_validation","INVALID_OHLC_ENCODING")]
-    [InlineData("volume","observation_validation","INVALID_VOLUME")]
+    [InlineData("volume","observation_validation","VOLUME_MISSING")]
     [InlineData("empty","observation_validation","ZERO_ACCEPTED_CANDLES")]
     [InlineData("shape","response_parse","INVALID_PAYLOAD_SHAPE")]
     [InlineData("provider-error","response_parse","PROVIDER_ERROR_ENVELOPE")]
@@ -262,7 +271,7 @@ public sealed class ResearchLocalHistoryTests
     [InlineData("timestamp","observation_validation","INVALID_CANDLE_TIMESTAMP")]
     [InlineData("descending","observation_validation","INVALID_OBSERVATION")]
     [InlineData("forming","observation_validation","ZERO_ACCEPTED_CANDLES")]
-    [InlineData("invalid-volume","observation_validation","INVALID_VOLUME")]
+    [InlineData("invalid-volume","observation_validation","VOLUME_INVALID_FORMAT")]
     [InlineData("oversize","http_response","PAYLOAD_SIZE_LIMIT")]
     [InlineData("invalid-utf8","response_parse","INVALID_JSON_ENCODING")]
     [InlineData("headers","http_response","INVALID_RESPONSE_HEADERS")]
@@ -271,6 +280,10 @@ public sealed class ResearchLocalHistoryTests
         var path=Output();using var handler=new DiagnosticHandler(kind);var result=await DiagnosticRun(handler,path);
         Assert.Equal(1,result.Code);Assert.Equal(1,handler.Calls);
         DiagnosticEquals(result.Log,stage,failure,"BTC/USD",200,1,1,false);Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
+    }
+    private static async Task AssertPythonAcceptsDiagnostic(string log)
+    {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName,"eng","docker","release-1.15","wp39_local_history.py"))) root=root.Parent;
         Assert.NotNull(root);
@@ -279,7 +292,7 @@ public sealed class ResearchLocalHistoryTests
         start.ArgumentList.Add("import importlib.util,json,sys; s=importlib.util.spec_from_file_location('w',sys.argv[1]); w=importlib.util.module_from_spec(s); s.loader.exec_module(w); raw=sys.stdin.buffer.read(2049); assert w.child_failure(raw).diagnostic==json.loads(raw)");
         start.ArgumentList.Add(Path.Combine(root!.FullName,"eng","docker","release-1.15","wp39_local_history.py"));
         using var child=System.Diagnostics.Process.Start(start)!;
-        await child.StandardInput.WriteAsync(result.Log); child.StandardInput.Close();
+        await child.StandardInput.WriteAsync(log); child.StandardInput.Close();
         using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(10));
         try { await child.WaitForExitAsync(deadline.Token); }
         catch { if(!child.HasExited) child.Kill(); throw; }
@@ -383,41 +396,62 @@ public sealed class ResearchLocalHistoryTests
         finally{if(Directory.Exists(path))Directory.Delete(path,true);}
     }
     [Theory]
-    [InlineData("missing","INVALID_VOLUME")]
-    [InlineData("null","INVALID_VOLUME")]
-    [InlineData("1","INVALID_VOLUME")]
-    [InlineData("1.25","INVALID_VOLUME")]
-    [InlineData("-1","INVALID_VOLUME")]
-    [InlineData("\"11111111111111111111111111111111111111111\"","INVALID_VOLUME")]
-    [InlineData("true","INVALID_VOLUME")]
-    [InlineData("[]","INVALID_VOLUME")]
-    [InlineData("{}","INVALID_VOLUME")]
-    [InlineData("\"\"","INVALID_VOLUME")]
-    [InlineData("\" \"","INVALID_VOLUME")]
-    [InlineData("\"bad-FAKE-WP39-SECRET-CANARY-DO-NOT-DISCLOSE\"","INVALID_VOLUME")]
-    [InlineData("\"-1\"","INVALID_VOLUME")]
-    [InlineData("\"1e2\"","INVALID_VOLUME")]
-    [InlineData("\"+1\"","INVALID_VOLUME")]
-    [InlineData("\"NaN\"","INVALID_VOLUME")]
-    [InlineData("\"Infinity\"","INVALID_VOLUME")]
-    [InlineData("\"0.1234567890123\"","INVALID_VOLUME")]
-    [InlineData("\"79228162514264337593543950336\"","INVALID_VOLUME")]
-    [InlineData("\"1000000000001\"","INVALID_OBSERVATION")]
+    [InlineData("missing","VOLUME_MISSING")]
+    [InlineData("null","VOLUME_NULL")]
+    [InlineData("1","VOLUME_WRONG_TYPE")]
+    [InlineData("1.25","VOLUME_WRONG_TYPE")]
+    [InlineData("-1","VOLUME_WRONG_TYPE")]
+    [InlineData("\"11111111111111111111111111111111111111111\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("true","VOLUME_WRONG_TYPE")]
+    [InlineData("[]","VOLUME_WRONG_TYPE")]
+    [InlineData("{}","VOLUME_WRONG_TYPE")]
+    [InlineData("\"\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\" \"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"bad-FAKE-WP39-SECRET-CANARY-DO-NOT-DISCLOSE\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"-1\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"1e2\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"+1\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"NaN\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"Infinity\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"0.1234567890123\"","VOLUME_PRECISION_EXCEEDED")]
+    [InlineData("\"79228162514264337593543950336\"","VOLUME_OUT_OF_RANGE")]
+    [InlineData("\"1000000000001\"","VOLUME_OUT_OF_RANGE")]
+    [InlineData("\".\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"1.2.3\"","VOLUME_INVALID_FORMAT")]
+    [InlineData("\"0.0000000000000\"","VOLUME_PRECISION_EXCEEDED")]
     [InlineData("raw-nan","INVALID_JSON_ENCODING")]
     public async Task SyntheticVolumeRepresentationMatrixRejectsWithoutPartialPublication(string volumeJson,string code)
     {
         foreach(var failAt in new[]{1,2})
+        foreach(var context in new[]{"plain","prefix","forming"})
         {
-            var path=Output();using var handler=new DiagnosticHandler(failAt:failAt,volumeJson:volumeJson);
+            var path=Output();using var handler=new DiagnosticHandler(failAt:failAt,volumeJson:volumeJson,volumeContext:context);
             var result=await DiagnosticRun(handler,path);
             Assert.Equal(1,result.Code);Assert.Equal(failAt,handler.Calls);
             DiagnosticEquals(result.Log,code=="INVALID_JSON_ENCODING"?"response_parse":"observation_validation",
                 code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
             Assert.False(Directory.Exists(path));
+            if(context=="plain") await AssertPythonAcceptsDiagnostic(result.Log);
         }
     }
     [Theory]
-    [InlineData("partial-volume","INVALID_VOLUME")]
+    [InlineData("timestamp","missing","INVALID_CANDLE_TIMESTAMP")]
+    [InlineData("timestamp","\"1000000000001\"","INVALID_CANDLE_TIMESTAMP")]
+    [InlineData("ohlc","missing","VOLUME_MISSING")]
+    [InlineData("ohlc","\"1000000000001\"","INVALID_OHLC_ENCODING")]
+    public async Task VolumeDiagnosticsPreserveEarlierValidationPrecedence(string context,string value,string code)
+    {
+        foreach(var failAt in new[]{1,2})
+        {
+            var path=Output();using var handler=new DiagnosticHandler(failAt:failAt,volumeJson:value,volumeContext:context);
+            var result=await DiagnosticRun(handler,path);
+            Assert.Equal(1,result.Code);Assert.Equal(failAt,handler.Calls);
+            DiagnosticEquals(result.Log,"observation_validation",code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
+            Assert.False(Directory.Exists(path));
+        }
+    }
+    [Theory]
+    [InlineData("partial-volume","VOLUME_MISSING")]
     [InlineData("partial-ohlc","INVALID_OHLC_ENCODING")]
     [InlineData("empty","ZERO_ACCEPTED_CANDLES")]
     public async Task PartialOrEmptyRowsFailAtEitherSymbolWithoutPublication(string kind,string code)
@@ -432,7 +466,7 @@ public sealed class ResearchLocalHistoryTests
             Assert.DoesNotContain(DiagnosticCanary,result.Log);
         }
     }
-    [Theory][InlineData("\"0\"")][InlineData("\"0.123456789012\"")][InlineData("\"1000000000000\"")]
+    [Theory][InlineData("\".5\"")][InlineData("\"1.\"")][InlineData("\"0001\"")][InlineData("\"0\"")][InlineData("\"0.123456789012\"")][InlineData("\"1000000000000\"")]
     public async Task SyntheticVolumeBoundariesRemainExactAndNeverAuthentic(string volumeJson)
     {
         var path=Output();
