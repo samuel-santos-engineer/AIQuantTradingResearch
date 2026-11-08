@@ -21,7 +21,7 @@ public static class ResearchLocalHistory
         public int RequestsStarted { get; private set; }
         public int ResponsesReceived { get; private set; }
         private static readonly HashSet<string> Stages = ["preflight", "private_input", "request_start", "http_response", "response_parse", "observation_validation", "bundle_publication", "unknown"];
-        private static readonly HashSet<string> Codes = ["MISSING_APPROVAL", "INVALID_DESTINATION", "DESTINATION_EXISTS", "INVALID_PRIVATE_INPUT", "VOLUME_UNCONFIRMED", "TIMEOUT", "CANCELLED", "TRANSPORT_ERROR", "HTTP_UNAUTHORIZED", "HTTP_FORBIDDEN", "HTTP_RATE_LIMITED", "HTTP_SERVER_ERROR", "HTTP_OTHER", "INVALID_RESPONSE_HEADERS", "INVALID_PROVIDER_PAYLOAD", "INVALID_PROVIDER_METADATA", "INVALID_OBSERVATION", "INVALID_VOLUME", "ZERO_ACCEPTED_CANDLES", "BUNDLE_PUBLICATION_FAILED", "INVALID_JSON_ENCODING", "INVALID_PAYLOAD_SHAPE", "PROVIDER_ERROR_ENVELOPE", "INVALID_PROVIDER_STATUS", "PROVIDER_SYMBOL_MISMATCH", "PROVIDER_INTERVAL_MISMATCH", "PROVIDER_TIMEZONE_MISMATCH", "INVALID_CANDLE_COLLECTION", "PAYLOAD_SIZE_LIMIT", "INVALID_CANDLE_TIMESTAMP", "INVALID_OHLC_ENCODING", "UNKNOWN"];
+        private static readonly HashSet<string> Codes = ["MISSING_APPROVAL", "INVALID_DESTINATION", "DESTINATION_EXISTS", "INVALID_PRIVATE_INPUT", "VOLUME_UNCONFIRMED", "TIMEOUT", "CANCELLED", "TRANSPORT_ERROR", "HTTP_UNAUTHORIZED", "HTTP_FORBIDDEN", "HTTP_RATE_LIMITED", "HTTP_SERVER_ERROR", "HTTP_OTHER", "INVALID_RESPONSE_HEADERS", "INVALID_PROVIDER_PAYLOAD", "INVALID_PROVIDER_METADATA", "INVALID_OBSERVATION", "INVALID_VOLUME", "ZERO_ACCEPTED_CANDLES", "BUNDLE_PUBLICATION_FAILED", "INVALID_JSON_ENCODING", "INVALID_PAYLOAD_SHAPE", "PROVIDER_ERROR_ENVELOPE", "INVALID_PROVIDER_STATUS", "PROVIDER_SYMBOL_MISMATCH", "PROVIDER_INTERVAL_MISMATCH", "PROVIDER_TIMEZONE_MISMATCH", "INVALID_CANDLE_COLLECTION", "PAYLOAD_SIZE_LIMIT", "INVALID_CANDLE_TIMESTAMP", "INVALID_OHLC_ENCODING", "INVALID_METADATA_OBJECT", "INVALID_METADATA_SYMBOL_FIELD", "INVALID_METADATA_INTERVAL_FIELD", "INVALID_METADATA_TIMEZONE_FIELD", "UNKNOWN"];
         public void Step(string stage) => Stage = Stages.Contains(stage) ? stage : "unknown";
         public void Fail(string stage, string code)
         {
@@ -57,6 +57,10 @@ public static class ResearchLocalHistory
                 case TwelveDataReadEvent.InvalidTimestamp: Fail("observation_validation", "INVALID_CANDLE_TIMESTAMP"); break;
                 case TwelveDataReadEvent.InvalidOhlc: Fail("observation_validation", "INVALID_OHLC_ENCODING"); break;
                 case TwelveDataReadEvent.InvalidPayload: Fail(Stage, "INVALID_PROVIDER_PAYLOAD"); break;
+                case TwelveDataReadEvent.InvalidMetadataObject: Fail("response_parse", "INVALID_METADATA_OBJECT"); break;
+                case TwelveDataReadEvent.InvalidSymbolField: Fail("response_parse", "INVALID_METADATA_SYMBOL_FIELD"); break;
+                case TwelveDataReadEvent.InvalidIntervalField: Fail("response_parse", "INVALID_METADATA_INTERVAL_FIELD"); break;
+                case TwelveDataReadEvent.InvalidTimezoneField: Fail("response_parse", "INVALID_METADATA_TIMEZONE_FIELD"); break;
                 case TwelveDataReadEvent.InvalidMetadata: Fail("response_parse", "INVALID_PROVIDER_METADATA"); break;
                 case TwelveDataReadEvent.InvalidObservation: Fail("observation_validation", "INVALID_OBSERVATION"); break;
                 case TwelveDataReadEvent.InvalidVolume: Fail("observation_validation", "INVALID_VOLUME"); break;

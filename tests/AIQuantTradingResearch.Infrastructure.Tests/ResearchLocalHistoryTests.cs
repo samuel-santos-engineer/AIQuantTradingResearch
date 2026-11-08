@@ -130,6 +130,17 @@ public sealed class ResearchLocalHistoryTests
             if(kind=="status") body["status"]=42;
             if(kind=="missing-meta") body.AsObject().Remove("meta");
             if(kind=="invalid-meta") body["meta"]=42;
+            if(kind=="missing-status") body.AsObject().Remove("status");
+            if(kind=="null-meta") body["meta"]=null;
+            if(kind=="missing-symbol") body["meta"]!.AsObject().Remove("symbol");
+            if(kind=="invalid-symbol") body["meta"]!["symbol"]=42;
+            if(kind=="null-symbol") body["meta"]!["symbol"]=null;
+            if(kind=="missing-interval") body["meta"]!.AsObject().Remove("interval");
+            if(kind=="invalid-interval") body["meta"]!["interval"]=42;
+            if(kind=="null-interval") body["meta"]!["interval"]=null;
+            if(kind=="missing-timezone") body["meta"]!.AsObject().Remove("exchange_timezone");
+            if(kind=="invalid-timezone") body["meta"]!["exchange_timezone"]=42;
+            if(kind=="null-timezone") body["meta"]!["exchange_timezone"]=null;
             if(kind=="interval") body["meta"]!["interval"]="1day";
             if(kind=="missing-values") body.AsObject().Remove("values");
             if(kind=="invalid-values") body["values"]=42;
@@ -218,8 +229,19 @@ public sealed class ResearchLocalHistoryTests
     [InlineData("shape","response_parse","INVALID_PAYLOAD_SHAPE")]
     [InlineData("provider-error","response_parse","PROVIDER_ERROR_ENVELOPE")]
     [InlineData("status","response_parse","INVALID_PROVIDER_STATUS")]
-    [InlineData("missing-meta","response_parse","INVALID_PROVIDER_METADATA")]
-    [InlineData("invalid-meta","response_parse","INVALID_PROVIDER_METADATA")]
+    [InlineData("missing-meta","response_parse","INVALID_METADATA_OBJECT")]
+    [InlineData("invalid-meta","response_parse","INVALID_METADATA_OBJECT")]
+    [InlineData("missing-status","response_parse","INVALID_PROVIDER_STATUS")]
+    [InlineData("null-meta","response_parse","INVALID_METADATA_OBJECT")]
+    [InlineData("missing-symbol","response_parse","INVALID_METADATA_SYMBOL_FIELD")]
+    [InlineData("invalid-symbol","response_parse","INVALID_METADATA_SYMBOL_FIELD")]
+    [InlineData("null-symbol","response_parse","INVALID_METADATA_SYMBOL_FIELD")]
+    [InlineData("missing-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
+    [InlineData("invalid-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
+    [InlineData("null-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
+    [InlineData("missing-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
+    [InlineData("invalid-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
+    [InlineData("null-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
     [InlineData("interval","response_parse","PROVIDER_INTERVAL_MISMATCH")]
     [InlineData("missing-values","response_parse","INVALID_CANDLE_COLLECTION")]
     [InlineData("invalid-values","response_parse","INVALID_CANDLE_COLLECTION")]
@@ -250,6 +272,18 @@ public sealed class ResearchLocalHistoryTests
         catch { if(!child.HasExited) child.Kill(); throw; }
         Assert.Equal(0,child.ExitCode);Assert.Equal("",await child.StandardOutput.ReadToEndAsync());
         Assert.Equal("",await child.StandardError.ReadToEndAsync());
+    }
+    [Theory]
+    [InlineData("missing-meta","INVALID_METADATA_OBJECT")]
+    [InlineData("missing-symbol","INVALID_METADATA_SYMBOL_FIELD")]
+    [InlineData("missing-interval","INVALID_METADATA_INTERVAL_FIELD")]
+    [InlineData("missing-timezone","INVALID_METADATA_TIMEZONE_FIELD")]
+    public async Task SecondSymbolMetadataFailuresArePreciseAndPublishNothing(string kind,string code)
+    {
+        var path=Output();using var handler=new DiagnosticHandler(kind,2);var result=await DiagnosticRun(handler,path);
+        Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
+        DiagnosticEquals(result.Log,"response_parse",code,"ETH/USD",200,2,2,false);
+        Assert.False(Directory.Exists(path));
     }
     [Fact] public async Task SecondSymbolParserFailureRetainsBothResponsesAndPublishesNothing()
     {

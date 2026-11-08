@@ -12,7 +12,7 @@ public enum TwelveDataReadEvent
     Preflight, RequestStarted, ResponseReceived, ResponseParse, ObservationValidation,
     VolumeUnconfirmed, InvalidPrivateInput, HttpFailure, InvalidHeaders, InvalidPayload, InvalidMetadata,
     InvalidObservation, InvalidVolume, TransportFailure, Timeout, Cancelled, Unknown, InvalidJson, InvalidShape, ProviderErrorEnvelope,
-    InvalidStatus, SymbolMismatch, IntervalMismatch, TimezoneMismatch, InvalidCandles, PayloadTooLarge, InvalidTimestamp, InvalidOhlc
+    InvalidStatus, SymbolMismatch, IntervalMismatch, TimezoneMismatch, InvalidCandles, PayloadTooLarge, InvalidTimestamp, InvalidOhlc, InvalidMetadataObject, InvalidSymbolField, InvalidIntervalField, InvalidTimezoneField
 }
 public readonly record struct TwelveDataReadDiagnostic(TwelveDataReadEvent Event, ResearchInstrument Instrument, int? HttpStatus = null);
 
@@ -94,11 +94,16 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
             // Recognize only the fixed structural marker; never inspect provider code/message text.
             if (status.GetString() == "error") Reject(TwelveDataReadEvent.ProviderErrorEnvelope);
             if (status.GetString() != "ok") Reject(TwelveDataReadEvent.InvalidStatus);
-            if (!root.TryGetProperty("meta", out var meta) || meta.ValueKind != JsonValueKind.Object ||
-                !meta.TryGetProperty("symbol", out var metaSymbol) || metaSymbol.ValueKind != JsonValueKind.String ||
-                !meta.TryGetProperty("interval", out var interval) || interval.ValueKind != JsonValueKind.String ||
-                !meta.TryGetProperty("exchange_timezone", out var timezone) || timezone.ValueKind != JsonValueKind.String)
-                Reject(TwelveDataReadEvent.InvalidMetadata);
+            // Official /docs/market-data/time-series lists string symbol/interval/exchange_timezone.
+            // It does not establish optional absence for crypto; retain fail-closed required fields.
+            if (!root.TryGetProperty("meta", out var meta) || meta.ValueKind != JsonValueKind.Object)
+                Reject(TwelveDataReadEvent.InvalidMetadataObject);
+            if (!meta.TryGetProperty("symbol", out var metaSymbol) || metaSymbol.ValueKind != JsonValueKind.String)
+                Reject(TwelveDataReadEvent.InvalidSymbolField);
+            if (!meta.TryGetProperty("interval", out var interval) || interval.ValueKind != JsonValueKind.String)
+                Reject(TwelveDataReadEvent.InvalidIntervalField);
+            if (!meta.TryGetProperty("exchange_timezone", out var timezone) || timezone.ValueKind != JsonValueKind.String)
+                Reject(TwelveDataReadEvent.InvalidTimezoneField);
             if (meta.GetProperty("symbol").GetString() != symbol) Reject(TwelveDataReadEvent.SymbolMismatch);
             if (meta.GetProperty("interval").GetString() != "1min") Reject(TwelveDataReadEvent.IntervalMismatch);
             if (meta.GetProperty("exchange_timezone").GetString() != "UTC") Reject(TwelveDataReadEvent.TimezoneMismatch);
