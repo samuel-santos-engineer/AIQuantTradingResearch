@@ -188,3 +188,11 @@ Verified main `4a6bc2b901d6f6ff0081dad4597064017acb86f9` contains #444 then #443
 ### WP58 separately approved five metadata reads - actual result
 
 Owner explicitly approved only the two staging site GETs, their config/web and shared-plan GET,20s/read100s total,no retries/settings/credentials/quota APIs/probes/mutation. All5 passed in8.484s: both exact apps Running/enabled/usage Normal/availability Normal/HTTPS-only true, classic images and known empty startup; expected shared Linux F1 West US 2 plan matches. [Timestamped sanitized inventory and limits](RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md#subsequently-approved-five-read-inventory---actual-result). Old quota-exceeded state not observed now; no current HTTP health, quota headroom, image digest/auth/dataset/browser readiness established. No public probe, Docker/registry/data/provider/deployment operation. Public Apply remains blocked pending artifact/state/auth/rollback evidence. `AUTHENTIC_DATA_NOT_IMPORTED=False`; `LOCAL_CHART_VERIFIED=True` historical; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+### WP58 Phase B0 - offline approval plan
+
+At expected local head e5481e0, prepared separate bounded B1 anonymous serving and B2 configured image-reference requests. Both NOT_RUN; registry digest UNKNOWN. See Phase B0 in RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md. No live calls or application edits; public readiness remains false. Documentation publication pending; PR must remain open/unmerged.
+
+### WP58 Phase B approved execution - stopped
+
+Owner separately approved B1 and B2. First bounded research health worker produced DEADLINE_OR_WORKER_FAILURE with no HTTP/TLS result; B1 qualification FAIL, cause UNKNOWN. Stopped: UI and both ARM reads NOT_RUN; registry digest UNKNOWN. No retry or mutation. See actual Phase B evidence in RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
