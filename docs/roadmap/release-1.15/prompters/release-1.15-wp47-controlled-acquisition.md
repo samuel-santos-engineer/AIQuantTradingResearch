@@ -1,6 +1,6 @@
 # WP47 - controlled acquisition checkpoint
 
-Status **AWAITING_NEW_OWNER_PROVIDER_APPROVAL**. Phase A complete; Phase B NOT RUN. Local date 2026-11-07; UTC observation 2026-11-08 02:11:04.
+Status **ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE**. Phase A complete; one separately approved Phase B invocation executed. Import/chart phase NOT RUN. Local date 2026-11-07; UTC observation 2026-11-08 02:11:04.
 
 ## Baseline and implementation reconciliation
 
@@ -64,3 +64,19 @@ Owned preparation/images retained privately. No session started; no process clea
 Exactly two paths changed: this new runbook and append-only `docs/roadmap/release-1.15/RELEASE_1.15_EXECUTION_PLAN.md`. UTF-8/LF/no BOM, independent CRLF check and git diff --check passed; no private artifacts staged. New WP47 PR OPEN/UNMERGED. Stop at **AWAITING_NEW_OWNER_PROVIDER_APPROVAL**.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Separately approved Phase B result
+
+After Phase A and PR #434, owner explicitly approved one Acquire invocation. Immediately before execution, clean source head `a406be5797fd058d2691648ba52cdddef7c438b6`, assembly/image/manifest hashes, actual unexpired TLS, protected ACL, absent destination artifacts, zero session/state conflicts and exact Windows User setting NAME were rechecked successfully. Setting value read solely inside the approved operation, transient process channel restored in finally. No credential, raw response/header/provider message/code/private path copied to evidence.
+
+Exactly **one** existing Acquire invocation executed, exit **1**. Observed version-1 diagnostic:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"observation_validation","instrument":"BTC/USD","httpStatus":200,"requestsStarted":1,"responsesReceived":1,"outcomeUnknown":false,"failureCode":"INVALID_VOLUME","bundlePublished":false}
+```
+
+One send/one response for BTC/USD; ETH/USD not requested. The current parser reached observation validation and rejected volume representation through the fixed INVALID_VOLUME boundary. This code does not distinguish missing, null, wrong-typed or malformed volume; no raw content was inspected and no more specific cause or account capability is inferred. HTTP200 is not acquisition success. Credits consumed are unknown. This observation does not identify the historical WP44 metadata field.
+
+Presence-only checks: bundle **absent**, import receipt **absent**, private SQLite **absent**, qualification **absent**. Import/Start/Verify/browser **NOT RUN**. No retry, extra probe, Azure operation or registry publication. Private preparation/images preserved; no session started. Approval consumed; no additional attempt authorized. Earlier Phase A zero-request/checkpoint text is historical; overall WP47 now includes this single approved send/response.
+
+**STOPPED AFTER ACQUISITION FAILURE - OWNER REVIEW REQUIRED**. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
