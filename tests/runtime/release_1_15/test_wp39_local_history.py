@@ -146,7 +146,8 @@ raise SystemExit(0 if mode=='success' else 1)
         codes = ('INVALID_JSON_ENCODING','INVALID_PAYLOAD_SHAPE','PROVIDER_ERROR_ENVELOPE',
                  'INVALID_PROVIDER_STATUS','PROVIDER_SYMBOL_MISMATCH','PROVIDER_INTERVAL_MISMATCH',
                  'PROVIDER_TIMEZONE_MISMATCH','INVALID_CANDLE_COLLECTION','PAYLOAD_SIZE_LIMIT',
-                 'INVALID_CANDLE_TIMESTAMP','INVALID_OHLC_ENCODING')
+                 'INVALID_CANDLE_TIMESTAMP','INVALID_OHLC_ENCODING','INVALID_METADATA_OBJECT',
+                 'INVALID_METADATA_SYMBOL_FIELD','INVALID_METADATA_INTERVAL_FIELD','INVALID_METADATA_TIMEZONE_FIELD')
         for code in codes:
             with self.subTest(code=code):
                 value=self.valid(); value.update(failureCode=code,failedStage='response_parse')
