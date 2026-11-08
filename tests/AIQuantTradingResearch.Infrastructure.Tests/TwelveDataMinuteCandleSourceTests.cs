@@ -34,6 +34,35 @@ public sealed class TwelveDataMinuteCandleSourceTests
         Assert.Equal(1, handler.Calls);Assert.Contains("interval=1min", handler.Uri);Assert.DoesNotContain(Key, handler.Uri);
         Assert.Equal("apikey " + Key, handler.Authorization);Assert.Equal("twelvedata", batch.Candles[0].Provider);
     }
+    [Theory][InlineData(ResearchInstrument.BtcUsd)][InlineData(ResearchInstrument.EthUsd)]
+    public async Task DocumentedOptionalExchangeTimezoneUsesExplicitUtcRequest(ResearchInstrument instrument)
+    {
+        var json=System.Text.Json.Nodes.JsonNode.Parse(Valid)!;
+        json["meta"]!["symbol"]=instrument==ResearchInstrument.BtcUsd?"BTC/USD":"ETH/USD";
+        json["meta"]!.AsObject().Remove("exchange_timezone");
+        using var handler=new Handler(json.ToJsonString());using var source=new TwelveDataMinuteCandleSource(handler,Key,true);
+        var batch=await source.ReadCompletedAsync(ResearchTestDirectory.Request(instrument));
+        Assert.Single(batch.Candles);Assert.Equal(TimeSpan.Zero,batch.Candles[0].OpenTimeUtc.Offset);
+        Assert.Equal(instrument,batch.Candles[0].Instrument);Assert.Contains("timezone=UTC",handler.Uri);
+        Assert.Equal(1,handler.Calls);Assert.DoesNotContain(Key,handler.Uri);
+    }
+    [Theory][InlineData("symbol")][InlineData("interval")][InlineData("datetime")]
+    [InlineData("ohlc")][InlineData("volume")][InlineData("status-error")][InlineData("status-missing")]
+    public async Task MissingExchangeTimezoneDoesNotBypassCoreValidation(string mutation)
+    {
+        var json=System.Text.Json.Nodes.JsonNode.Parse(Valid)!;
+        json["meta"]!.AsObject().Remove("exchange_timezone");
+        if(mutation=="symbol") json["meta"]!.AsObject().Remove("symbol");
+        if(mutation=="interval") json["meta"]!["interval"]="1day";
+        if(mutation=="datetime") json["values"]![0]!["datetime"]="2026-10-01 00:00:00+02:00";
+        if(mutation=="ohlc") json["values"]![0]!["low"]="102";
+        if(mutation=="volume") json["values"]![0]!.AsObject().Remove("volume");
+        if(mutation=="status-error") json["status"]="error";
+        if(mutation=="status-missing") json.AsObject().Remove("status");
+        using var handler=new Handler(json.ToJsonString());using var source=new TwelveDataMinuteCandleSource(handler,Key,true);
+        var error=await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+        Assert.Equal(1,handler.Calls);Assert.DoesNotContain(Key,error.ToString());
+    }
     [Theory] [InlineData("symbol")] [InlineData("interval")] [InlineData("timezone")] [InlineData("volume")] [InlineData("numeric")]
     [InlineData("precision")] [InlineData("duplicate-key")] [InlineData("future")] [InlineData("status")] [InlineData("truncated")]
     public async Task MalformedOrUnverifiedResponsesFailGenerically(string mutation)
