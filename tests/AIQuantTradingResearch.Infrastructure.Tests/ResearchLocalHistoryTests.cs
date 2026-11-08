@@ -206,6 +206,7 @@ public sealed class ResearchLocalHistoryTests
             var code=await ResearchLocalHistory.RunAsync(input,log,path,()=>handler);
             Assert.DoesNotContain(DiagnosticCanary,log.ToString());Assert.DoesNotContain(path,log.ToString());
             Assert.DoesNotContain("Authorization",log.ToString());Assert.DoesNotContain("api.twelvedata",log.ToString());
+            Assert.False(File.Exists(Path.Combine(path,"import-receipt.json")));
             return(code,log.ToString());
         }
         finally{Environment.SetEnvironmentVariable("AIQ_WP39_PROVIDER_APPROVED",prior);}
@@ -231,6 +232,7 @@ public sealed class ResearchLocalHistoryTests
         var path=Output();using var handler=new DiagnosticHandler(status.ToString(System.Globalization.CultureInfo.InvariantCulture));
         var result=await DiagnosticRun(handler,path);Assert.Equal(1,result.Code);Assert.Equal(1,handler.Calls);
         DiagnosticEquals(result.Log,"http_response",failure,"BTC/USD",status,1,1,false);Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Theory][InlineData("transport","TRANSPORT_ERROR")][InlineData("timeout","TIMEOUT")]
     public async Task SendWithoutResponseHasUnknownOutcome(string kind,string failure)
@@ -238,6 +240,7 @@ public sealed class ResearchLocalHistoryTests
         var path=Output();using var handler=new DiagnosticHandler(kind);var result=await DiagnosticRun(handler,path);
         Assert.Equal(1,result.Code);Assert.Equal(1,handler.Calls);
         DiagnosticEquals(result.Log,"request_start",failure,"BTC/USD",null,1,0,true);Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Theory]
     [InlineData("json","response_parse","INVALID_JSON_ENCODING")]
@@ -282,15 +285,48 @@ public sealed class ResearchLocalHistoryTests
         DiagnosticEquals(result.Log,stage,failure,"BTC/USD",200,1,1,false);Assert.False(Directory.Exists(path));
         await AssertPythonAcceptsDiagnostic(result.Log);
     }
-    private static async Task AssertPythonAcceptsDiagnostic(string log)
+    private static async Task AssertPythonAcceptsDiagnostic(string log, bool success = false)
     {
         var root = new DirectoryInfo(AppContext.BaseDirectory);
         while (root is not null && !File.Exists(Path.Combine(root.FullName,"eng","docker","release-1.15","wp39_local_history.py"))) root=root.Parent;
         Assert.NotNull(root);
         var start = new System.Diagnostics.ProcessStartInfo("python") { RedirectStandardInput=true, RedirectStandardOutput=true, RedirectStandardError=true, UseShellExecute=false };
         start.ArgumentList.Add("-B"); start.ArgumentList.Add("-c");
-        start.ArgumentList.Add("import importlib.util,json,sys; s=importlib.util.spec_from_file_location('w',sys.argv[1]); w=importlib.util.module_from_spec(s); s.loader.exec_module(w); raw=sys.stdin.buffer.read(2049); assert w.child_failure(raw).diagnostic==json.loads(raw)");
+        start.ArgumentList.Add("""
+            import importlib.util,io,json,sys
+            from pathlib import Path
+            from types import SimpleNamespace
+            from unittest.mock import patch
+            spec=importlib.util.spec_from_file_location('w',sys.argv[1])
+            w=importlib.util.module_from_spec(spec);spec.loader.exec_module(w)
+            raw=sys.stdin.buffer.read(2049);success=sys.argv[2]=='success'
+            expected=None if success else json.loads(raw)
+            if not success:assert w.child_failure(raw).diagnostic==expected
+            calls=[]
+            class Input(io.BytesIO):
+                def close(self):
+                    if not self.closed:assert self.getvalue()==b'{}'
+                    super().close()
+            def fake_process(args,**kwargs):
+                calls.append(args)
+                assert args==['dotnet',str(Path('synthetic-owned')/'publish/AIQuantTradingResearch.Worker.dll'),'--research-acquire-local']
+                assert kwargs['stdout']==w.subprocess.DEVNULL
+                assert kwargs['env']=={'AIQ_WP39_LOCAL_DIRECTORY':str(Path('synthetic-owned')/'runtime'),
+                    'AIQ_WP39_BUNDLE_DIRECTORY':str(Path('synthetic-owned')/'bundle'),
+                    'AIQ_RESEARCH_PRIVATE_DIRECTORY':str(Path('synthetic-owned')/'private')}
+                return SimpleNamespace(stdin=Input(),stderr=io.BytesIO(raw),wait=lambda **kw:0 if success else 1,poll=lambda:0 if success else 1,
+                    kill=lambda:(_ for _ in ()).throw(AssertionError('completed fake child killed')))
+            with patch.object(w.subprocess,'Popen',side_effect=fake_process):
+                try:result=w.worker(Path('synthetic-owned'),'--research-acquire-local',{},b'{}')
+                except w.AcquisitionFailure as failure:
+                    assert not success
+                    assert failure.diagnostic==expected
+                    assert str(failure)=='WP39_ACQUIRE_FAILED'
+                else:assert success and result==''
+            assert len(calls)==1
+            """);
         start.ArgumentList.Add(Path.Combine(root!.FullName,"eng","docker","release-1.15","wp39_local_history.py"));
+        start.ArgumentList.Add(success ? "success" : "failure");
         using var child=System.Diagnostics.Process.Start(start)!;
         await child.StandardInput.WriteAsync(log); child.StandardInput.Close();
         using var deadline=new CancellationTokenSource(TimeSpan.FromSeconds(10));
@@ -310,6 +346,7 @@ public sealed class ResearchLocalHistoryTests
         Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
         DiagnosticEquals(result.Log,"response_parse",code,"ETH/USD",200,2,2,false);
         Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Fact] public async Task SecondSymbolParserFailureRetainsBothResponsesAndPublishesNothing()
     {
@@ -317,18 +354,21 @@ public sealed class ResearchLocalHistoryTests
         Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
         DiagnosticEquals(result.Log,"response_parse","PROVIDER_ERROR_ENVELOPE","ETH/USD",200,2,2,false);
         Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Fact] public async Task SecondSymbolHttpFailureRetainsBothCountersAndPublishesNothing()
     {
         var path=Output();using var handler=new DiagnosticHandler("429",2);var result=await DiagnosticRun(handler,path);
         Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
         DiagnosticEquals(result.Log,"http_response","HTTP_RATE_LIMITED","ETH/USD",429,2,2,false);Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Fact] public async Task SecondSymbolTransportFailureDoesNotReuseFirstStatus()
     {
         var path=Output();using var handler=new DiagnosticHandler("transport",2);var result=await DiagnosticRun(handler,path);
         Assert.Equal(1,result.Code);Assert.Equal(2,handler.Calls);
         DiagnosticEquals(result.Log,"request_start","TRANSPORT_ERROR","ETH/USD",null,2,1,true);Assert.False(Directory.Exists(path));
+        await AssertPythonAcceptsDiagnostic(result.Log);
     }
     [Theory][InlineData("{")][InlineData("{}")][InlineData("null")]
     public async Task MalformedPrivateInputHasProvenZeroRequests(string config)
@@ -464,6 +504,7 @@ public sealed class ResearchLocalHistoryTests
             DiagnosticEquals(result.Log,"observation_validation",code,failAt==1?"BTC/USD":"ETH/USD",200,failAt,failAt,false);
             Assert.False(Directory.Exists(path));
             Assert.DoesNotContain(DiagnosticCanary,result.Log);
+            await AssertPythonAcceptsDiagnostic(result.Log);
         }
     }
     [Theory][InlineData("\".5\"")][InlineData("\"1.\"")][InlineData("\"0001\"")][InlineData("\"0\"")][InlineData("\"0.123456789012\"")][InlineData("\"1000000000000\"")]
@@ -490,7 +531,8 @@ public sealed class ResearchLocalHistoryTests
         try
         {
             using var handler=new DiagnosticHandler();var result=await DiagnosticRun(handler,path);
-            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);Assert.DoesNotContain("WP39_ACQUIRE_FAILED",result.Log);
+            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            await AssertPythonAcceptsDiagnostic(result.Log,true);Assert.DoesNotContain("WP39_ACQUIRE_FAILED",result.Log);
             Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(path,true));
             Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(path));
             foreach(var file in Directory.GetFiles(path))Assert.DoesNotContain(DiagnosticCanary,File.ReadAllText(file));
