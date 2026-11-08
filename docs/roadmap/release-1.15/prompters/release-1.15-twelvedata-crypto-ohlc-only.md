@@ -80,3 +80,90 @@ Chart uses PYTHONPATH=python/presentation. Existing analyzer and bare-mode Strea
 - docs/roadmap/release-1.15/prompters/release-1.15-twelvedata-crypto-ohlc-only.md (this report)
 
 All changed text UTF-8/LF/no BOM, git diff --check plus independent CRLF check before review. No dependencies, SQL migration, provider/credentials store, public route, startup/DI, Dockerfile, Azure/registry or deployment change. Private artifacts/owner checkout/untracked key generator preserved. No merge or production activation. `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## PR #442 verification-gate closure - 2026-11-08
+
+### Exact baseline and scope
+
+GitHub main and PR base independently read as `0fcb75560e3841674316f1c666066e494550857a`; initial reviewed PR head `6a1e5df32db5829a26fb6e4a63d8c51973c39cdd`, branch `feat/release-1.15-crypto-ohlc-mode`, OPEN/UNMERGED. Its isolated worktree was clean and the GitHub inventory matched the 17 paths above. No comments/checks were listed at preflight. A new detached baseline worktree at the exact base was used; the owner checkout and retained private preparations were not changed. No fetching, rebasing or baseline guessing was needed.
+
+Continuation changes are test/evidence only: strengthen the existing `ResearchLocalHistoryTests.cs`, `ResearchSnapshotEndpointTests.cs`, `TwelveDataMinuteCandleSourceTests.cs`, `test_research_chart.py`, this runbook and the existing execution-plan entry. No production code change, new path, dependency or schema migration was necessary. Twelve Data remains the sole upstream. Historical venue-filter evidence above is historical only and authorizes no new call or alternate provider.
+
+### Identical full-suite comparison
+
+Windows owner execution context; .NET SDK 10.0.103, .NET/ASP.NET runtime 10.0.3, Python 3.13.15. Both worktrees used their repository root, identical Release/no-restore command and shared pre-existing package cache. The fresh baseline needed `dotnet restore tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --source <empty-local-feed> -p:NuGetAudit=false --verbosity quiet`, exit 0; no remote feed or package installation. No credential/environment-channel inspection was performed. No checkout-local `.venv`, Debug build, or E4 interpreter override was added to either checkout. Existing HTTPS tests ran in owner context rather than changing certificate validation.
+
+```text
+dotnet test tests/AIQuantTradingResearch.Infrastructure.Tests/AIQuantTradingResearch.Infrastructure.Tests.csproj --no-restore -c Release --logger "trx;LogFileName=full.trx" --results-directory <owned-output>/<baseline-or-pr> --verbosity quiet
+```
+
+Only checkout and result destinations differ. No filter or `--no-build` was used; each invocation built its own current source. Structured TRX results were compared by stable test identifier, not log position or count alone. Local logs contain synthetic fixture diagnostics and are not published; the sanitized matrix below preserves exact identifiers and fixed failure categories without local/private paths or payloads.
+
+| Full Infrastructure run | Total | Pass | Fail | Skip | Exit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Exact baseline | 650 | 621 | 29 | 0 | 1 |
+| Original PR head, before added coverage | 656 | 627 | 29 | 0 | 1 |
+| Final PR test correction/strengthening | 663 | 634 | 29 | 0 | 1 |
+
+**PR-only failures: 0; baseline-only failures: 0; shared failures: 29.** All 29 failures are matched individually below. The historical 31/36 failures were not reproduced as such in these runs; no claim is made to retrospectively classify unavailable historical failures. The prior count is superseded for this comparison, not forced to match. Neither full suite is green.
+
+Test identifiers below share prefix `AIQuantTradingResearch.Infrastructure.Tests.`. ?Setup? describes the actual stage of failure even where xUnit reports an assertion after a configuration failure.
+
+| Stable test identifier | Baseline | Final PR | Sanitized diagnosis |
+| --- | --- | --- | --- |
+| `PythonCapabilityInvokerTests.CancellationTerminatesOnlyTheOwnedChildAndPreservesAnUnrelatedPythonProcess` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.ConcurrentStdoutAndStderrIsReadWithoutDeadlock` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.GovernedEndpointSupportsDeterministicHealthAndEchoRoundTrips` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.GovernedInvocationEmitsBoundedInteropActivityWithoutProtocolContamination` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.MalformedOrInvalidStdoutFailsClosed(fixture: "empty.py")` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.MalformedOrInvalidStdoutFailsClosed(fixture: "invalid_json.py")` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.MalformedOrInvalidStdoutFailsClosed(fixture: "multiple_frames.py")` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.MalformedOrInvalidStdoutFailsClosed(fixture: "wrong_version.py")` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.NonzeroExitWithStderrMapsToDependencyFailure` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.TimeoutTerminatesOnlyTheOwnedChildAndLeavesNoOrphan` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `PythonCapabilityInvokerTests.UnsupportedContractVersionIsRejectedWithoutDowngrade` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Configured `.venv` interpreter missing; configuration failure precedes expected protocol/activity outcome. |
+| `SyntheticSnapshotQualificationTests.CompleteIndependentBytesAndEveryAlignedIndicatorMatchOnTwoPasses` | FAIL | FAIL | Setup: Explicit oracle authority unset. `AIQ_E4_REFERENCE_PYTHON` required; test throws before oracle execution. |
+| `VisualizationPermanentIntegrationTests.PiReadyRealReplayPipelinePublishesCanonicalReadyEnvelope` | FAIL | FAIL | Setup: Debug Worker absent. `dotnet run --no-build` selects Debug; only Release artifacts were built. |
+| `VisualizationPermanentIntegrationTests.PiWarmUpRealReplayPipelinePublishesCanonicalWarmUpEnvelope` | FAIL | FAIL | Setup: Debug Worker absent. `dotnet run --no-build` selects Debug; only Release artifacts were built. |
+| `WP08LifecycleDemonstrationTests.DiagnosticAWorkerOnly` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.DiagnosticBWorkerAndStreamlit` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Legacy probe/Streamlit process creation fails with missing interpreter (Win32 setup failure). |
+| `WP08LifecycleDemonstrationTests.DiagnosticCWorkerAndProbe` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.DiagnosticDWorkerStreamlitAndProbe` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Legacy probe/Streamlit process creation fails with missing interpreter (Win32 setup failure). |
+| `WP08LifecycleDemonstrationTests.RestartR0FreshSingleWorker` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartR1FFreshRuntimeSplit` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartR1SecondWorkerOnly` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartR2SecondWorkerWithStreamlit` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Legacy probe/Streamlit process creation fails with missing interpreter (Win32 setup failure). |
+| `WP08LifecycleDemonstrationTests.RestartR3SecondWorkerWithProbe` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartR4SecondWorkerFullTopology` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Legacy probe/Streamlit process creation fails with missing interpreter (Win32 setup failure). |
+| `WP08LifecycleDemonstrationTests.RestartRFDatabaseReuseSplit` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartRFHandoffReuseSplit` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.RestartRFRuntimeResidueSplit` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+| `WP08LifecycleDemonstrationTests.WindowsFiniteDemonstrationProvesStreamlitProbeRestartAndOwnedResidue` | FAIL | FAIL | Setup: Checkout-local interpreter absent. Legacy probe/Streamlit process creation fails with missing interpreter (Win32 setup failure). |
+| `WP08LifecycleDemonstrationTests.WindowsWorkerPublishesP1ThenNewerP2BeforeGracefulTargetedCtrlBreak` | FAIL | FAIL | Setup: Debug Worker absent. `WindowsIsolatedProcessGroup.Launch` rejects missing Debug Worker executable. |
+
+Root-cause cross-check: legacy WP08 `WorkerExecutable()` hardcodes `bin/Debug/net10.0`, and visualization invokes `dotnet run --no-build` without a Release argument. Python interop configuration uses checkout-local `.venv`; the isolated checkouts have no such interpreter. E4 `RunOracleAsync()` explicitly requires a separately approved absolute `AIQ_E4_REFERENCE_PYTHON` and rejects an unset value. These are reproducible harness prerequisites, not nullable-volume failures. Category counts: Checkout-local interpreter absent: 16, Debug Worker absent: 12, Explicit oracle authority unset: 1.
+
+Minimal follow-up, kept open rather than silently broadening execution: qualify the existing interpreter for each disposable checkout, provide Debug Worker artifacts by a cache-only Debug build (or separately review Release-aware harness selection), and obtain the exact E4 oracle run authority before setting its selector. Then rerun the same full suite on both commits. No junction, package install, harness rewrite, oracle override or unrelated production fix was made here. Missing prerequisites do not become waived passing gates.
+
+### Null/numeric compatibility and fail-closed proof
+
+- The existing two-symbol adapter/atomic-bundle/import/reopened-SQLite test now covers upstream field missing, explicit JSON null, strict numeric zero and strict positive numeric volume. Both instruments preserve exact values and unit presence/absence. Synthetic fixtures are still rejected by authentic-only verification.
+- The real local TLS endpoint/strict Python consumer test now covers null, numeric zero and positive numeric values for both instruments, with required `volume` retained, fixed decimal representation for numeric data, and non-null C# SMA after calculation. No synthetic fixture is represented as authentic imported history.
+- Plotly tests prove zero/positive volume bars remain visible and exact for both instruments; null hides bars and discloses unavailable volume while preserving candles and supplied C# analytics. Renderer tests are offline figure tests, not browser acceptance.
+- Explicit OHLC-only adapter negatives cover malformed prices, missing timestamp and wrong symbol. Existing six strict-volume diagnostic classes, first-failure/no-retry, BTC-first ordering, atomic publication and stale/missing/swapped preparation identity tests continue passing. No manifest edits or identity bypass.
+- `CompletedResearchCandle.Volume` remains nullable and `VolumeUnit` absent only for null volume; actual zero retains BTC/ETH units. Strict OHLCV remains the default; explicit price-only mode does not consume incidental volume or infer units. Current price indicator algorithms and transformation labels are unchanged.
+
+### Actual final verification and merge conclusion
+
+| Check | Total | Pass | Fail | Skip | Exit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Full Application | 290 | 290 | 0 | 0 | 0 |
+| Full Infrastructure (final PR) | 663 | 634 | 29 | 0 | 1 |
+| Python workflow (`test_wp39_local_history.py`) | 39 | 38 | 0 | 1 | 0 |
+| Chart/client | 63 | 63 | 0 | 0 | 0 |
+
+Application command: `dotnet test tests/AIQuantTradingResearch.Application.Tests/AIQuantTradingResearch.Application.Tests.csproj --no-restore -c Release --logger "trx;LogFileName=application.trx" --results-directory <owned-output>/application --verbosity quiet`, exit 0. Python workflow command remains `python -B -m unittest discover -s tests/runtime/release_1_15 -p test_wp39_local_history.py -q`. Chart/client uses the existing installed venv interpreter, `PYTHONPATH=python/presentation`, `-B -m unittest test_research_chart test_research_snapshot_client -q`. No dependencies installed. The single Windows unprivileged symlink skip remains honest; prior Linux 38/38 evidence is recorded in the existing WP53 report, not rerun here. Existing analyzer/bare-mode Streamlit warnings do not imply additional passing tests. UTF-8/LF/no BOM and `git diff --check` are checked before commit.
+
+**Recommendation:** OHLC-only correctness has no unaddressed regression in the matched comparison and is suitable for owner review. Unconditional verification-gate closure/merge readiness is **not established**, because 29 full-suite harness prerequisites remain open. The owner has a precise baseline comparison and minimal follow-up instead of a claimed clean run. PR #442 remains OPEN/UNMERGED. A fresh matching preparation and controlled Twelve Data acquisition remain separate future actions.
+
+No live provider/DNS/account/credit request, credential-presence/value inspection, private historical response read, actual Acquire/Import/Start/Verify workflow, browser operation, Docker/resource operation, Azure/registry/deployment or retained-resource deletion occurred. Tests used local synthetic fixtures and their owned subprocesses only. `liveAttemptReady=false`; `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`.

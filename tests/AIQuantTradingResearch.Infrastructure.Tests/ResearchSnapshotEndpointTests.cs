@@ -172,7 +172,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, large.StatusCode);
         await app.StopAsync();
     }
-    [Fact] public async Task OhlcOnlyNullVolumeAndPriceAnalyticsReachTheStrictPythonConsumerOverTls()
+    [Theory][InlineData(null)][InlineData("0")][InlineData("1.25")]
+    public async Task NullAndNumericVolumeAndPriceAnalyticsReachTheStrictPythonConsumerOverTls(string? volume)
     {
         using var dir=new ResearchTestDirectory();using var store=new SqliteResearchStateStore(dir.Path,true);
         foreach(var instrument in Enum.GetValues<ResearchInstrument>())
@@ -181,7 +182,7 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
             var candles=Enumerable.Range(0,401).Select(i=>
             {
                 var c=ResearchTestDirectory.Candle(i,instrument);
-                return new CompletedResearchCandle(c.Instrument,c.OpenTimeUtc,c.Open,c.High,c.Low,c.Close,null);
+                return new CompletedResearchCandle(c.Instrument,c.OpenTimeUtc,c.Open,c.High,c.Low,c.Close,volume is null?null:decimal.Parse(volume,System.Globalization.CultureInfo.InvariantCulture));
             });
             store.Commit(new(instrument,Now,TimeSpan.Zero),new(candles),old.Generation,0);
         }
@@ -193,10 +194,12 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
             using var response=await client.PostAsync("/v1/research/snapshot",Body(symbol));
             Assert.Equal(HttpStatusCode.OK,response.StatusCode);var raw=await response.Content.ReadAsStringAsync();
             using var doc=JsonDocument.Parse(raw);
-            Assert.All(doc.RootElement.GetProperty("candles").EnumerateArray(),c=>Assert.Equal(JsonValueKind.Null,c.GetProperty("volume").ValueKind));
+            var expected=volume is null?null:decimal.Parse(volume,System.Globalization.CultureInfo.InvariantCulture).ToString("F12",System.Globalization.CultureInfo.InvariantCulture);
+            Assert.All(doc.RootElement.GetProperty("candles").EnumerateArray(),c=>Assert.Equal(expected,c.GetProperty("volume").GetString()));
             Assert.NotEqual(JsonValueKind.Null,doc.RootElement.GetProperty("analytics")[400].GetProperty("sma20").ValueKind);
             var start=new ProcessStartInfo("python"){UseShellExecute=false,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,CreateNoWindow=true,WorkingDirectory=FindRoot()};
-            foreach(var arg in new[]{"-B","-c","import json,sys; from python.presentation.research_snapshot_client import validate; p=json.load(sys.stdin); validate(p,p['instrument'],1); assert all(r['volume'] is None for r in p['candles'])"})start.ArgumentList.Add(arg);
+            foreach(var arg in new[]{"-B","-c","import json,sys; from python.presentation.research_snapshot_client import validate; p=json.load(sys.stdin); validate(p,p['instrument'],1); assert all(r['volume'] == json.loads(sys.argv[1]) for r in p['candles'])"})start.ArgumentList.Add(arg);
+            start.ArgumentList.Add(JsonSerializer.Serialize(expected));
             using var child=Process.Start(start)!;await child.StandardInput.WriteAsync(raw);child.StandardInput.Close();
             using var timeout=new CancellationTokenSource(TimeSpan.FromSeconds(10));
             try{await child.WaitForExitAsync(timeout.Token);}catch{if(!child.HasExited)child.Kill(true);throw;}

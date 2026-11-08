@@ -37,9 +37,16 @@ public sealed class TwelveDataMinuteCandleSourceTests
         Assert.Null(candle.Volume);Assert.Null(candle.VolumeUnit);Assert.Equal(100,candle.Close);
         Assert.Equal(1,handler.Calls);
     }
-    [Fact] public async Task OhlcOnlyStillRejectsMalformedPrices()
+    [Theory][InlineData("price")][InlineData("time")][InlineData("symbol")]
+    public async Task OhlcOnlyStillRejectsMalformedPricesTimeAndSymbol(string mutation)
     {
-        using var handler=new Handler(Valid.Replace("\"open\":\"100\"","\"open\":\"bad\""));
+        var invalid=mutation switch
+        {
+            "price"=>Valid.Replace("\"open\":\"100\"","\"open\":\"bad\""),
+            "time"=>Valid.Replace("\"datetime\"","\"missingTime\""),
+            _=>Valid.Replace("BTC/USD","ETH/USD")
+        };
+        using var handler=new Handler(invalid);
         using var source=new TwelveDataMinuteCandleSource(handler,Key,false,ohlcOnly:true);
         await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
     }
