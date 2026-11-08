@@ -146,3 +146,27 @@ The browser prerequisite error is an interpreter selection issue, not an observe
 Next narrow action requires owner permission under the approved stop-on-failure boundary: one browser-only retry using the existing project venv and installed Chrome, against the already running loopback chart, checking actual rendered candlestick/SMA trace counts, both instruments, no volume bars, unavailable-volume/educational/provenance labels and modebar; no raw prices/screenshot/payload output, no provider/Docker changes or import/start/Verify rerun. Close only its owned browser/profile process and retain the successful local chart. No new dependencies/frameworks or application-code change.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR OPEN/UNMERGED. No public readiness/deployment claim.
+
+## Separately approved browser-only retry - partial evidence, stopped
+
+Owner explicitly approved one bounded browser-only retry with the existing project venv/installed Chrome, against the already running loopback chart. No install, production code change, provider call, import/start/Verify rerun, Docker/resource change or deployment. Existing helper class `Browser` and bounded `wait_for` from `tests/runtime/release_1_15/wp07_browser_qualification.py` were imported; the venv now satisfies websockets. A one-off `-B -` stdin driver used read-only graph/DOM summaries and actual CDP input to click ETH/USD. No screenshot, raw candle/analytic value or full page content was emitted. Chrome received an allowlisted nonsecret Windows environment, fresh owned profile and loopback-only CDP endpoint; background networking/component update/sync disabled.
+
+| Actual browser evidence | BTC/USD | ETH/USD |
+| --- | --- | --- |
+| Rendered component instrument/loading | BTC/USD / verified | Not successfully verified. |
+| Actual candlestick trace rows | 1000 | NOT_VERIFIED. |
+| Supplied SMA20 trace | 1000 aligned rows,981 non-null values | NOT_VERIFIED. |
+| Volume bars absent | PASS | NOT_VERIFIED. |
+| Volume unavailable annotation | PASS | NOT_VERIFIED. |
+| Modebar presence | PASS | NOT_VERIFIED. |
+| Candle hover educational disclosure | PASS | NOT_VERIFIED. |
+| Page transformed-value and source-consistent provider-provenance captions | PASS | NOT_VERIFIED. |
+| Instrument switch | ETH/USD CDP click attempted after BTC proof | Subsequent assertion failed before ETH case completed. |
+
+Browser observed Chrome/155.0.8059.86 and component-reported Plotly JavaScript4.1.1. This records browser/library observations, not a dependency change or Python package-version equivalence. The driver exited1 with AssertionError; its fixed sanitized report includes the completed BTC case only, LOCAL_CHART_VERIFIED=false and ownedBrowserStopped=true. No exception payload, local paths or prices published. The driver did not retain the exact failing assertion/stage or selected-radio state, so it cannot distinguish unsuccessful input, bounded wait/rendering failure or a later assertion. **Do not infer a reproducible ETH application defect or successful switch from this incomplete evidence.** Zoom/pan operation was not separately exercised; modebar presence alone does not prove those interactions.
+
+The owned Chrome process was closed in finally; no unrelated browser/process touched. No second browser retry ran under the consumed approval. Running local containers/chart, acquired/imported data, state volume and images retained. Authentic API snapshot verification for both instruments remains the previously executed PASS, not new browser proof. Overall actual-browser acceptance remains **INCOMPLETE** because both instruments have not passed. No visual readiness claim or app fix.
+
+Next minimal optional scope for owner decision: one bounded browser-only ETH-selection diagnosis using the existing venv/Chrome, with explicit before/after checked-radio state, exact stage markers, active graph summaries and fixed categorized runtime/console error signals. Capture no raw prices/page bodies/screenshots/secrets. Stop on failure; no provider calls, app changes, dependencies, Docker or runtime restart. Alternatively the owner can verify the running chart manually at http://127.0.0.1:18555. Neither next scope is executed/implicitly approved here.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False`; `LOCAL_CHART_VERIFIED=False`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
