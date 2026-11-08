@@ -154,3 +154,13 @@ PR #445 was independently checked OPEN/UNMERGED at expected head e5481e0 before 
 Smallest next owner decision: whether to authorize one replacement research-only anonymous `/health` request, with stage-specific sanitized timeout/transport reporting and the same 15-second cap/no redirects/no retries, to distinguish controller/worker failure from an observed HTTP result. This is proposed only; no further serving or B2 operation will run automatically. Public deployment, cloud-state/authentication and rollback remain blocked/unverified.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False` (local); `LOCAL_CHART_VERIFIED=True` (historical WP57); `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Separately authorized single replacement research probe
+
+Owner explicitly authorized the proposed research-only replacement with stage-specific sanitized reporting; no renewed UI/ARM/registry scope. Source and live PR #445 head matched `512bd9fbdab9bd2bef68b1233092c133dd01da7d`, clean worktree; PR OPEN before publication.
+
+Observed UTC `2026-11-08T22:59:08.987689+00:00`. One worker / one anonymous GET to exact staging research `/health`; no redirects/retries/proxy inheritance/credentials, certificate and hostname verification enabled; request timeout 14 seconds, outer cap 15 seconds. Actual elapsed 1.185 seconds. Stages: WORKER_STARTED -> REQUEST_OPEN -> RESPONSE_HEADERS -> COMPLETE; worker exit 0. HTTP **403**, class 4xx, TLS **VALIDATED**, normalized content type **text/html**, classification **HTTP_REJECTED**. No error body read or stored; raw headers/errors not emitted. This establishes an actual HTTP rejection, not its origin or root cause. Do not label it quota exhaustion, authentication failure or application failure without separately authorized evidence. It does not explain the earlier worker/deadline failure.
+
+`B1_RESEARCH_ONLY=FAIL`; overall anonymous serving remains unqualified. UI NOT_RUN; B2 configured identity NOT_RUN; immutable OCI digest UNKNOWN. Stopped after this single response. No additional network/runtime checks, mutation, restart, deployment, dataset/key inspection or provider operation. Earlier offline test counts unchanged; documentation-only UTF-8/LF/no BOM and diff checks passed.
+
+Next smallest decision is whether to authorize a bounded projected research-site ARM metadata read (state/usage/availability only, exact resource), to distinguish current platform rejection metadata from the prior Normal observation; no permission inferred and no read executed. Cloud data/auth, artifact identity and rollback remain unresolved. `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

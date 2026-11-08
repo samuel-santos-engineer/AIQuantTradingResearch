@@ -196,3 +196,7 @@ At expected local head e5481e0, prepared separate bounded B1 anonymous serving a
 ### WP58 Phase B approved execution - stopped
 
 Owner separately approved B1 and B2. First bounded research health worker produced DEADLINE_OR_WORKER_FAILURE with no HTTP/TLS result; B1 qualification FAIL, cause UNKNOWN. Stopped: UI and both ARM reads NOT_RUN; registry digest UNKNOWN. No retry or mutation. See actual Phase B evidence in RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 single replacement probe - HTTP rejection
+
+Separately authorized research-only GET at 2026-11-08T22:59:08.987689+00:00 returned HTTP 403/text-html, TLS validated, 1.185 seconds; worker completed normally. No body read, retry or further probes. Cause unknown; UI and B2 remain NOT_RUN, OCI digest UNKNOWN. See WP58 qualification plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
