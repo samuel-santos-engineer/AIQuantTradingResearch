@@ -239,7 +239,6 @@ public sealed class ResearchLocalHistoryTests
     [InlineData("missing-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
     [InlineData("invalid-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
     [InlineData("null-interval","response_parse","INVALID_METADATA_INTERVAL_FIELD")]
-    [InlineData("missing-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
     [InlineData("invalid-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
     [InlineData("null-timezone","response_parse","INVALID_METADATA_TIMEZONE_FIELD")]
     [InlineData("interval","response_parse","PROVIDER_INTERVAL_MISMATCH")]
@@ -277,7 +276,7 @@ public sealed class ResearchLocalHistoryTests
     [InlineData("missing-meta","INVALID_METADATA_OBJECT")]
     [InlineData("missing-symbol","INVALID_METADATA_SYMBOL_FIELD")]
     [InlineData("missing-interval","INVALID_METADATA_INTERVAL_FIELD")]
-    [InlineData("missing-timezone","INVALID_METADATA_TIMEZONE_FIELD")]
+    [InlineData("invalid-timezone","INVALID_METADATA_TIMEZONE_FIELD")]
     public async Task SecondSymbolMetadataFailuresArePreciseAndPublishNothing(string kind,string code)
     {
         var path=Output();using var handler=new DiagnosticHandler(kind,2);var result=await DiagnosticRun(handler,path);
@@ -354,6 +353,20 @@ public sealed class ResearchLocalHistoryTests
             Assert.Equal(new[]{file},Directory.GetFileSystemEntries(root));Assert.Equal("preserve",File.ReadAllText(file));
         }
         finally{Directory.Delete(root,true);}
+    }
+    [Theory][InlineData(1)][InlineData(2)]
+    public async Task OptionalExchangeTimezoneAllowsSyntheticSuccessWithoutInventingProvenance(int missingAt)
+    {
+        var path=Output();
+        try
+        {
+            using var handler=new DiagnosticHandler("missing-timezone",missingAt);var result=await DiagnosticRun(handler,path);
+            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(path,true));
+            Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(path));
+            foreach(var file in Directory.GetFiles(path))Assert.DoesNotContain(DiagnosticCanary,File.ReadAllText(file));
+        }
+        finally{if(Directory.Exists(path))Directory.Delete(path,true);}
     }
     [Fact] public async Task SuccessfulFakeRunHasOnlySyntheticProvenanceAndExactlyTwoRequests()
     {

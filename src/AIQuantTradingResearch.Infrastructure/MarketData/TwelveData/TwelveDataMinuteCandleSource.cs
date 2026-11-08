@@ -94,19 +94,21 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
             // Recognize only the fixed structural marker; never inspect provider code/message text.
             if (status.GetString() == "error") Reject(TwelveDataReadEvent.ProviderErrorEnvelope);
             if (status.GetString() != "ok") Reject(TwelveDataReadEvent.InvalidStatus);
-            // Official /docs/market-data/time-series lists string symbol/interval/exchange_timezone.
-            // It does not establish optional absence for crypto; retain fail-closed required fields.
+            // Official twelvedata-java GetTimeSeries200ResponseMeta marks exchangeTimezone optional.
+            // Only BTC/ETH are admitted, and this request fixes intraday output timezone=UTC;
+            // absent exchange metadata is not fabricated or used as the timestamp timezone.
             if (!root.TryGetProperty("meta", out var meta) || meta.ValueKind != JsonValueKind.Object)
                 Reject(TwelveDataReadEvent.InvalidMetadataObject);
             if (!meta.TryGetProperty("symbol", out var metaSymbol) || metaSymbol.ValueKind != JsonValueKind.String)
                 Reject(TwelveDataReadEvent.InvalidSymbolField);
             if (!meta.TryGetProperty("interval", out var interval) || interval.ValueKind != JsonValueKind.String)
                 Reject(TwelveDataReadEvent.InvalidIntervalField);
-            if (!meta.TryGetProperty("exchange_timezone", out var timezone) || timezone.ValueKind != JsonValueKind.String)
+            var hasExchangeTimezone = meta.TryGetProperty("exchange_timezone", out var timezone);
+            if (hasExchangeTimezone && timezone.ValueKind != JsonValueKind.String)
                 Reject(TwelveDataReadEvent.InvalidTimezoneField);
             if (meta.GetProperty("symbol").GetString() != symbol) Reject(TwelveDataReadEvent.SymbolMismatch);
             if (meta.GetProperty("interval").GetString() != "1min") Reject(TwelveDataReadEvent.IntervalMismatch);
-            if (meta.GetProperty("exchange_timezone").GetString() != "UTC") Reject(TwelveDataReadEvent.TimezoneMismatch);
+            if (hasExchangeTimezone && timezone.GetString() != "UTC") Reject(TwelveDataReadEvent.TimezoneMismatch);
             if (!root.TryGetProperty("values", out var values) || values.ValueKind != JsonValueKind.Array || values.GetArrayLength() > 1000)
                 Reject(TwelveDataReadEvent.InvalidCandles);
             stage = TwelveDataReadEvent.ObservationValidation; Signal(stage);
