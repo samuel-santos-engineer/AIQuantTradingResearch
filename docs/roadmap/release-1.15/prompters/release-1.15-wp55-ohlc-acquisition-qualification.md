@@ -50,3 +50,32 @@ Next exact approval requested: Docker context/engine and the three cached-input 
 No operational commands, provider/DNS/HEAD/catalog/account/credit calls, credential/presence inspection, private historical response access, real preparation/acquisition/import/start/verify/browser, Docker/registry/Azure operation, deployment or retained-resource deletion occurred. Ordinary offline suites use disposable synthetic fixtures and their owned local subprocesses. Repository changes are this evidence note and an append-only execution-plan entry; no production code/dependency/schema/UI changes. OPEN/UNMERGED PR for owner review. Text UTF-8/LF/no BOM and `git diff --check` verified before commit.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Phase B - separately approved and executed
+
+Owner explicitly approved the bounded Phase B request: Docker context/engine and three exact cached inputs; one fresh Prepare, two pull-disabled/network-disabled image builds, normal private configuration generation, owner ACL/public-certificate/full identity checks. No acquisition or credential inspection included. The Phase A table above is historical; current PREPARED status is PASS as follows.
+
+- `docker context show`: desktop-linux; `docker info --format '{{.OSType}} {{.ServerVersion}}'`: linux29.7.2. Each command exit0.
+- `docker image inspect <exact-input> --format '{{.Id}}'` for each of the three inputs listed above: all exact expected identities matched, exit0. No pulls/registry access.
+- Executed the existing command **exactly once**: `python -B eng/docker/release-1.15/wp39_local_history.py --action Prepare --directory <new-owned-temporary-directory>`. New directory selected privately, not published. A wrapper passed only allowlisted Windows tool/cache environment names and DOTNET_CLI_TELEMETRY_OPTOUT=1, no provider/service channel queries/copies. Timeout240 seconds. Exit0, exact fixed stdout `PREPARED_NOT_IMPORTED; no provider calls or private state created`, empty stderr. No retry.
+- Prepare ran its cache-only restore/Worker publish, generated its normal local service/TLS configuration, copied publish/UI context, and built two unique owned images with `--pull=false --network=none`. No application container or volume created/started. Fresh preparation and both images retained for the owner. Existing resources and WP53 preparation untouched.
+- Owner ACL: root inheritance protected, exactly owner and SYSTEM FullControl. Eight newly generated output paths checked for owner and allowed principals using ACL metadata only; configuration/key/PFX contents not read. These checks do not claim protection against a malicious administrator/owner.
+- Real `validate_preparation_identity` passed in the owner context, recomputing the entire publish and context/research trees, workflow loaded/on-disk bytes and version1 manifest. 40 publication files match, not just the entry DLL. No manifest repair/bypass.
+- Public `runtime/tls/ca.pem` decoded only: expected DNS wp07-research, currently valid, notAfter2026-11-09T18:53:46Z. No TLS private material inspected. Public certificate/configured directory consistency checked. Recheck freshness immediately before any later attempt; this is local test-server TLS, not an upstream connection/probe.
+- Fresh bundle/private database/import receipt/qualification file absent. Generated configuration existence checked without content. No provider credential presence/value inspection, acquisition, imported prices, or public readiness inference.
+
+| Nonsecret preparation identity | Verified value |
+| --- | --- |
+| Workflow SHA-256 | 62471759b4a8d858616cdf19a92c6391b0f1211a8c2a0e2b4f6570a69f1a6c25 |
+| Worker DLL SHA-256 | 3b5dac87c3966931ad909c7f165a7cec65fa7b89a2a4f4604b57b262a0024a48 |
+| Full publication mapping SHA-256 | 3d7ac2251abfa9aa5b9ed2019b2cf5ae15c76cf7bd9cd8b56587b5215276b221 |
+| Research image | sha256:1edebb818affbd362385e8a69cddb52b8309265a902dec0f0f5da31da44ed028 |
+| UI image | sha256:bb093dcd2b866044adb5002a8916909f0cc5aa896778e030dc89c7a25bb748c1 |
+
+Mapping digest is SHA-256 over UTF-8 json.dumps(publication,sort_keys=True,separators=(',',':')). No secret fingerprint or private location included.
+
+Current state: **PREPARED=True; ACQUIRED=False; IMPORTED=False; LOCAL_CHART_VERIFIED=False; PUBLIC_RUNTIME_VERIFIED=False**. Offline tests remain627 run626 passed1 skip; no new unit-test count claimed for these operational checks. No production fix/source change needed.
+
+Next authority required is a NEW single-attempt acquisition approval. Proposed existing command is `python -B eng/docker/release-1.15/wp39_local_history.py --action Acquire --directory <this-verified-fresh-preparation> --execute-provider-approved --ohlc-only`, with the exact validated directory substituted privately. Approval must explicitly include immediate identity/owner ACL/public TLS validity/empty destination checks and reading the exact Windows User TwelveData__ApiKey into transient AIQ_WP39_PROVIDER_KEY, clearing that transient channel afterward without touching the retained Windows value. Maximum two sequential time_series requests: BTC/USD first, ETH/USD only after BTC success;1min/UTC/ASC/outputsize1000, completed minutes with15-second grace and24-hour age bound; no retry/pagination/exploratory calls. Provider availability/account capability/charges/actual returned coverage remain unknown. No volume required in explicit price-only mode, no invented units. Capture only the fixed envelope/publication outcome, no payload/price/key/private path. Stop at first failure/uncertainty; do not retry. Import, runtime, browser and any additional resource changes remain separate future authority.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
