@@ -204,3 +204,7 @@ Separately authorized research-only GET at 2026-11-08T22:59:08.987689+00:00 retu
 ### WP58 quota-first/state snapshot
 
 Owner-requested two ARM reads at 2026-11-08T23:14:30.268281+00:00: plan usages then research metadata, both passed. Stop requests 0/15, reported CPU zero/below limits, storage 2178048/1073741824 bytes; exact research site Running/Normal/Normal. No current quota-exhaustion evidence; earlier HTTP 403 unexplained and no fresh serving probe. See WP58 plan for telemetry limitations. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase C0 - 403 origin plan
+
+Verified expected PR/clean head 2c1224f. Anonymous health precedes source auth; deployed identity unknown. Prepared single research-only headers GET with zero body reads, 14-second socket/15-second worker caps and presence-only header projection; C1 NOT_AUTHORIZED/NOT_RUN. A 403 remains ORIGIN_UNDETERMINED. No Azure/runtime calls or code edits. See WP58 plan; public readiness false.
