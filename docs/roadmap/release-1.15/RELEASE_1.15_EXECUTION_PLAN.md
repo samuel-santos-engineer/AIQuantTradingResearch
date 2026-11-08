@@ -200,3 +200,7 @@ Owner separately approved B1 and B2. First bounded research health worker produc
 ### WP58 single replacement probe - HTTP rejection
 
 Separately authorized research-only GET at 2026-11-08T22:59:08.987689+00:00 returned HTTP 403/text-html, TLS validated, 1.185 seconds; worker completed normally. No body read, retry or further probes. Cause unknown; UI and B2 remain NOT_RUN, OCI digest UNKNOWN. See WP58 qualification plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 quota-first/state snapshot
+
+Owner-requested two ARM reads at 2026-11-08T23:14:30.268281+00:00: plan usages then research metadata, both passed. Stop requests 0/15, reported CPU zero/below limits, storage 2178048/1073741824 bytes; exact research site Running/Normal/Normal. No current quota-exhaustion evidence; earlier HTTP 403 unexplained and no fresh serving probe. See WP58 plan for telemetry limitations. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

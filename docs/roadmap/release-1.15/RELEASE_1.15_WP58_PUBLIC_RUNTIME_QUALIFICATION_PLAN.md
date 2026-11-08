@@ -164,3 +164,22 @@ Observed UTC `2026-11-08T22:59:08.987689+00:00`. One worker / one anonymous GET 
 `B1_RESEARCH_ONLY=FAIL`; overall anonymous serving remains unqualified. UI NOT_RUN; B2 configured identity NOT_RUN; immutable OCI digest UNKNOWN. Stopped after this single response. No additional network/runtime checks, mutation, restart, deployment, dataset/key inspection or provider operation. Earlier offline test counts unchanged; documentation-only UTF-8/LF/no BOM and diff checks passed.
 
 Next smallest decision is whether to authorize a bounded projected research-site ARM metadata read (state/usage/availability only, exact resource), to distinguish current platform rejection metadata from the prior Normal observation; no permission inferred and no read executed. Cloud data/auth, artifact identity and rollback remain unresolved. `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Owner-requested quota-first then research state reads
+
+Owner explicitly requested quota first, then state/usage/availability. At UTC `2026-11-08T23:14:30.268281+00:00`, performed exactly two projected ARM GETs in order: existing shared plan `/usages`, then exact research site metadata, API 2023-12-01; 20 seconds/read, 40 seconds total, no retries. Both passed in 4.308 seconds. No settings, credentials, HTTP serving probes, registry, Docker or mutations. PR #445 OPEN at matching clean head cc56c18 before publication.
+
+| Shared-plan counter | Current | Limit | Unit |
+| --- | ---: | ---: | --- |
+| WPStopRequests | 0 | 15 | Count |
+| CpuTime | 0 | 3600000 | Milliseconds |
+| CpuTimeShortPeriod | 0 | 180000 | Milliseconds |
+| BytesSent | 0 | 173015040 | Bytes |
+| MaxMemoryWorkingSetShortPeriod | 0 | 1073741824 | Bytes |
+| FileSystemStorage | 2178048 | 1073741824 | Bytes |
+
+Research site exact identity MATCH: **Running / usage Normal / availability Normal**. Quota API reported nextResetTime 2026-11-09T00:00:00 for the ordinary counters, 2026-11-08T23:19:00 for short CPU and sentinel 9999-12-31T23:59:59.9999999Z for filesystem. Non-sentinel reset strings contain no timezone offset; preserve them as reported, do not assign a timezone or promise a reset fixes serving. No measurement-interval timestamp was supplied by this projection. Zero counters are Azure-reported values, not proof of no activity or telemetry freshness. Plan-wide counters cannot attribute a stop or consumption to a particular app.
+
+Current reported finite quotas are below limits; no current quota-exhaustion evidence in this snapshot. The prior 403 was observed at a different time and remains unexplained; Running/Normal does not establish HTTP health. No new probe was authorized or performed. B2 image-reference reads remain NOT_RUN, immutable registry identity UNKNOWN; cloud dataset/auth and rollback remain unresolved. No tests rerun for documentation; UTF-8/LF/no BOM and diff checks passed.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. Next decision is whether to authorize a bounded research-only serving diagnostic; no retry, detector query or body inspection is inferred from this quota/state request.
