@@ -76,7 +76,7 @@ class Viewport:
         self.expired = right <= start or left >= end
         self.partial = not self.expired and (left < start or right > end)
 
-    def accept(self, event, instrument, identity):
+    def accept(self, event, instrument, identity, *, secondary_axis=True):
         try:
             if not isinstance(event, dict) or set(event) != {
                     "kind", "instrument", "identity", "mount", "revision", "commandEpoch", "x", "y", "y2", "y3"}:
@@ -93,6 +93,10 @@ class Viewport:
                 raise ValueError()
             for key in ("y", "y2", "y3"):
                 values = event[key]
+                if key == "y2" and not secondary_axis:
+                    if values is not None:
+                        raise ValueError()
+                    continue
                 if key == "y3" and values is None:
                     continue
                 if not isinstance(values, list) or len(values) != 2 or any(type(v) not in (int, float) or not math.isfinite(v) or abs(v) > 1e25 for v in values) or values[0] >= values[1]:
@@ -101,7 +105,8 @@ class Viewport:
                 raise ValueError()
             if event["kind"] == "ack":
                 return False
-            self.x, self.y, self.y2 = tuple(event["x"]), tuple(event["y"]), tuple(event["y2"])
+            self.x, self.y = tuple(event["x"]), tuple(event["y"])
+            self.y2 = tuple(event["y2"]) if event["y2"] is not None else None
             self.y3 = tuple(event["y3"]) if event["y3"] is not None else None
             self.revision, self.live = event["revision"], False
             return True
@@ -308,6 +313,9 @@ def _render_content(auto_refresh=False):
         if panel != state.panel:
             state.panel = panel
             state.view.y3 = None
+            cached = client.snapshot(instrument)
+            if cached and not all(row["volume"] is not None for row in cached["candles"]):
+                state.view.y2 = None  # In OHLC-only mode axis 2 belongs to the changing oscillator.
             state.view.command(rebuild=True)
         state.events = st.checkbox("Historical transition markers", value=state.events, key="r115_events_" + instrument)
     # Explicit refresh, or a due tick of the supported, user-enabled Streamlit fragment.
@@ -348,7 +356,8 @@ def _render_content(auto_refresh=False):
         st.warning("Historical viewport expired from retained history. Choose Return to Live; the saved UTC range has not been reset.")
     elif state.view.partial:
         st.info("Part of the saved UTC viewport is outside retained history; surviving overlap remains visible.")
-    result = component()(data=component_data(snapshot, state, st.session_state["r115_session"]),
+    payload = component_data(snapshot, state, st.session_state["r115_session"])
+    result = component()(data=payload,
                          key="research_" + instrument + "_" + str(state.view.mount), height=640,
                          default={"viewport": None}, on_viewport_change=lambda: None)
     event = result.viewport
@@ -357,7 +366,7 @@ def _render_content(auto_refresh=False):
         if signature != state.last_event:
             state.last_event = signature
             try:
-                if state.view.accept(event, instrument, snapshot["identity"]):
+                if state.view.accept(event, instrument, snapshot["identity"], secondary_axis="yaxis2" in payload["figure"]["layout"]):
                     state.view.reconcile(rows)
                     st.rerun()
             except ValueError:
