@@ -1,8 +1,8 @@
-# Release 1.15 WP54 - single-attempt acquisition proposal and Phase A evidence
+# Release 1.15 WP54 - approved single acquisition stopped on missing volume
 
-Date: 2026-11-08. Baseline main/#440 squash `0fcb75560e3841674316f1c666066e494550857a`, verified merged. Clean isolated worktree. **Phase A complete; Phase B STOPPED pending separate explicit owner approval.** `LIVE_ACQUISITION_NOT_AUTHORIZED / NOT_RUN`.
+Date: 2026-11-08. Baseline main/#440 squash `0fcb75560e3841674316f1c666066e494550857a`, verified merged. Clean isolated worktree. **Phase A complete; Phase B separately approved and executed once, stopped at first failure.** `ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE`; approval consumed.
 
-This proposal is reviewable authorization scope, not permission to execute. Twelve Data remains the sole provider; BTC/USD then ETH/USD authentic 1-minute OHLCV with owner-confirmed BTC/ETH base units. No source migration, numeric-volume relaxation, missing/zero filling, quote conversion, fallback or acceptance change. Prior WP47 approval is consumed; its exact volume subtype/credits remain unknown.
+The scope below was first committed for review without operational permission, then separately and explicitly approved by the owner before execution. Twelve Data remains the sole provider; BTC/USD then ETH/USD authentic 1-minute OHLCV with owner-confirmed BTC/ETH base units. No source migration, numeric-volume relaxation, missing/zero filling, quote conversion, fallback or acceptance change. Prior WP47 approval is consumed; its exact volume subtype/credits remain unknown.
 
 ## Phase A actually executed
 
@@ -24,9 +24,9 @@ $env:PYTHONPATH = Join-Path (Get-Location) 'python/presentation'
 
 No operational inspection of WP53 preparation, ACL/TLS/destination, private pointer, provider credential/presence, Docker/resources or historical payloads. No actual Acquire/Import/Start/Verify/browser or provider/DNS/HEAD/account/credit/support/Azure/registry/deployment operation. No source/test change demonstrated necessary.
 
-## Exact proposed approval - not yet received
+## Reviewed scope - subsequently explicitly approved
 
-Approval would cover **both** the following read-only operational preflight and, only on success, **one** live Acquire invocation. If the owner wants preflight only, no key read or send may follow. Previous general session permissions and PR merges do not authorize this phase.
+The owner directly answered **"Approve these checks and one conditional acquisition"** to the PR #441 scope question. This covered retained-WP53 read-only identity/ACL/public TLS/destination/runtime checks, followed only on success by the exact User-key/transient-channel access and one guarded Acquire invocation. No Docker, rebuild, retry, import, chart startup or deployment was authorized. The proposal text below records the boundaries applied; previous PR merges/session permissions were not used as operational authority.
 
 ### A. Immediate retained-preparation preflight
 
@@ -72,11 +72,34 @@ The guard runs before channel access and again before child dispatch. Python rem
 
 Retain the WP53 preparation/images and any permitted newly generated bundle; no old assets are touched. On failure preserve only existing private operational artifacts and a sanitized status; do not create/store raw provider captures. Restore transient key/approval channels and local references in finally. No Docker/volume/container/image cleanup because none are created by this proposed invocation. No private paths or credentials committed to evidence.
 
+## Phase B actually executed after explicit approval
+
+Immediate read-only preflight in the approved owner context passed:
+
+- PR #441 still OPEN at reviewed head ec9a5d362ada306f9ac3c040e43f07e22b24d57d; source checkout clean before operations.
+- Retained private pointer resolved only to the new WP53-owned temporary preparation; no other preparation searched/read.
+- Protected root ACL: owner equals executing owner; allow rules limited to that owner and SYSTEM, no permission changes.
+- Public CA certificate validity/expected CN passed; expiry 2026-11-09T14:25:22Z. No private certificate or service-key material read.
+- Complete40-file identity matched workflow/Worker/publication digest above and copied context. runtimeconfig targets net10.0; installed .NETCore/ASP.NET10.0.3 available.
+- Bundle, import receipt and private-state/destination conflicts absent. Provider key not read during preflight.
+
+After that successful boundary, exact Windows User Environment value TwelveData__ApiKey was read once through its named registry value, without enumeration/printing. It was placed only in the allowlisted child process environment AIQ_WP39_PROVIDER_KEY, then the existing Python Acquire CLI ran **once**. No command-line key, provider-key fingerprint/value/length, raw response or environment dump. Transient child key/approval entries and local references cleared in finally; owner's persistent User setting and existing process environment were unchanged. No secure memory-erasure claim.
+
+Sanitized actual result, exactly ten fields:
+
+```json
+{"version":1,"event":"WP39_ACQUIRE_FAILED","failedStage":"observation_validation","instrument":"BTC/USD","httpStatus":200,"requestsStarted":1,"responsesReceived":1,"outcomeUnknown":false,"failureCode":"VOLUME_MISSING","bundlePublished":false}
+```
+
+Operator invocation exit1; invocation count1; approval obtained=true, consumed=true. No retry or second invocation. ETH/USD was not sent. The subtype means the volume property was absent in an encountered BTC candle row after earlier checks passed; no raw row/payload was inspected and no claim is made about all rows or all products. There is no authentic two-pair bundle, import, private database or working-chart evidence from this attempt. Counters are not a billing receipt; charged credits remain unknown. This new observation **does not retroactively identify WP47's subtype**, which remains unknown.
+
+No subsequent Verify/Import/Start/browser, source/parser fix, support message, capability check, Docker/resource mutation, rebuild, TLS refresh, ACL change, Azure/registry/deployment or additional market-data request. Retained preparation/images remain intact. Only the current fixed diagnostic/status is published; no historical provider response/bundle was read.
+
 ## Current disposition and next owner decision
 
-`LIVE_ACQUISITION_NOT_AUTHORIZED / NOT_RUN`. Approval received for Phase A source/tests/Git lifecycle only. Immediate operational preflight NOT RUN; provider credential access/presence NOT RUN; live invocation count0. Approval obtained=false, consumed=false. No Phase B authority is inferred from this proposal or PR.
+`ONE_APPROVED_ATTEMPT_FAILED_NO_BUNDLE`. Explicit one-attempt approval is consumed; liveAttemptReady=false. Stop after reporting, not another request. Mandatory authentic OHLCV/base-volume requirement remains intact; no zero fill, numeric relaxation, source switch or OHLC-only downgrade.
 
-Owner decision requested after reviewing this concrete proposal: authorize the retained-WP53 read-only operational preflight above and **exactly one conditional Twelve Data acquisition**, including the exact transient key source/channel, or keep Phase B pending. This explicit stop comes from the WP54 prompt's Authority section and Phase A step3, not from a new licensing/governance gate.
+Next owner decision is how to resolve the now-observed missing volume within Twelve Data: obtain authoritative clarification/configuration evidence for the exact BTC/USD/ETH/USD one-minute feed and its applicable base-volume availability before considering any reviewed offline correction. No provider support contact or another live attempt is authorized or requested by this result. Keep PR OPEN/UNMERGED for owner review.
 
 Only repository paths changed: this `docs/roadmap/release-1.15/prompters/release-1.15-wp54-controlled-acquisition.md` and append-only `docs/roadmap/release-1.15/RELEASE_1.15_EXECUTION_PLAN.md`. UTF-8/LF/no BOM and git diff --check verified before commit/PR. Leave PR OPEN/UNMERGED. No code acceptance change, merge or deployment.
 
