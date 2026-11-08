@@ -241,6 +241,74 @@ class ProjectionTests(unittest.TestCase):
         chart.acquire(client, "BTC/USD", state, now=61, force=True)
         self.assertEqual(3, len(client.calls))
 
+    def test_actual_component_switches_and_restores_optional_axes_offline(self):
+        import shutil
+        import subprocess
+        runtime = shutil.which("node")
+        if not runtime and os.name == "nt":
+            candidate = Path(os.environ.get("LOCALAPPDATA", "")) / "Programs/Microsoft VS Code/Code.exe"
+            if candidate.is_file():
+                runtime = str(candidate)
+        if not runtime:
+            self.skipTest("Existing Node-compatible JavaScript runtime unavailable; no installation")
+        source = Path(chart.__file__).with_name("research_chart_component.js").read_text(encoding="utf-8")
+        payloads = []
+        for volume in (None, "0.000000000000", "1.250000000000"):
+            for panel in ("None", "RSI14", "MACD"):
+                for instrument in ("BTC/USD", "ETH/USD", "BTC/USD"):
+                    data = fixture(instrument=instrument)
+                    for row in data["candles"]:
+                        row["volume"] = volume
+                    payloads.append(chart.component_data(data, chart.InstrumentView(panel=panel), "offline"))
+        script = r"""
+const assert=require('node:assert/strict');
+const input=JSON.parse(require('node:fs').readFileSync(0,'utf8'));
+const storage=new Map();
+const sessionStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
+const Plotly={react:async(g,data,layout)=>{g.data=data;g.layout=layout;
+ for(const [key,axis] of Object.entries(layout))if(/^[xy]axis[23]?$/.test(key)&&!axis.range)axis.range=[10,20];},purge:g=>{g.purged=true;}};
+const component=new Function('Plotly','sessionStorage',input.source.replace('export default async function','return async function'))(Plotly,sessionStorage);
+(async()=>{
+ const events=[];
+ for(const data of input.payloads){
+  const g={dataset:{},isConnected:true,handlers:{},removeAllListeners(n){delete this.handlers[n]},on(n,f){this.handlers[n]=f}};
+  const invoke=()=>component({data,parentElement:{querySelector:()=>g},setStateValue:(key,event)=>{assert.equal(key,'viewport');events.push(event)}});
+  const cleanup=await invoke();
+  const ack=events.at(-1);assert.equal(ack.instrument,data.instrument);assert.equal(ack.kind,'ack');
+  assert.equal(g.dataset.instrument,data.instrument);assert.equal(g.dataset.loading,'verified');
+  assert.equal(g.data.filter(t=>t.type==='candlestick').length,1);
+  assert.ok(g.data.some(t=>(t.name||'').startsWith('SMA20')));
+  assert.equal(ack.y2===null,!g.layout.yaxis2);
+  // A real manual callback/debounce, followed by remount and range restoration.
+  g.handlers.plotly_relayout({'xaxis.range[0]':g.layout.xaxis.range[0]});
+  await new Promise(r=>setTimeout(r,270));
+  const manual=events.at(-1);assert.equal(manual.kind,'manual');
+  cleanup();g.isConnected=false;
+  const pendingEvents=[];
+  const pendingGraph={dataset:{},isConnected:true,handlers:{},removeAllListeners(n){delete this.handlers[n]},on(n,f){this.handlers[n]=f}};
+  const endPending=await component({data,parentElement:{querySelector:()=>pendingGraph},setStateValue:(key,e)=>pendingEvents.push(e)});
+  assert.equal(pendingEvents.at(-1).kind,'manual');assert.equal(pendingEvents.at(-1).revision,manual.revision);
+  assert.deepEqual(pendingGraph.layout.xaxis.range,manual.x);
+  endPending();pendingGraph.isConnected=false;
+  const restored={...data,revision:manual.revision,viewport:{x:manual.x,y:manual.y,y2:manual.y2,y3:manual.y3}};
+  const h={dataset:{},isConnected:true,handlers:{},removeAllListeners(n){delete this.handlers[n]},on(n,f){this.handlers[n]=f}};
+  const release=await component({data:restored,parentElement:{querySelector:()=>h},setStateValue:()=>{}});
+  assert.equal(h.dataset.instrument,data.instrument);assert.deepEqual(h.layout.xaxis.range,manual.x);
+  release();h.isConnected=false;
+ }
+ await new Promise(r=>setTimeout(r,5));assert.equal(events.length,input.payloads.length*2);
+ console.log('OFFLINE_COMPONENT_LIFECYCLE_PASS');
+})().catch(e=>{console.error(e.name);process.exitCode=1});
+"""
+        allowed = ("PATH", "SystemRoot", "WINDIR", "TEMP", "TMP", "LOCALAPPDATA", "APPDATA", "USERPROFILE")
+        env = {key: os.environ[key] for key in allowed if key in os.environ}
+        env["ELECTRON_RUN_AS_NODE"] = "1"
+        result = subprocess.run([runtime, "-e", script], input=json.dumps({"source": source, "payloads": payloads}),
+                                text=True, capture_output=True, env=env, timeout=30)
+        self.assertEqual(0, result.returncode, "Offline actual-component lifecycle failed: " +
+                         ("TypeError" if "TypeError" in result.stderr else "JavaScript assertion/runtime error"))
+        self.assertEqual("OFFLINE_COMPONENT_LIFECYCLE_PASS", result.stdout.strip())
+
     def test_component_uses_local_assets_and_hardened_lifecycle(self):
         source = Path(chart.__file__).with_name("research_chart_component.js").read_text(encoding="utf-8")
         for guard in ("model.ticket===ticket", "graph.isConnected", "clearTimeout", "resetEpoch", "Plotly.purge", "sessionStorage", "setStateValue", "commandEpoch"):
@@ -298,6 +366,18 @@ class ViewportTests(unittest.TestCase):
         self.assertTrue(self.state.view.live)
         self.assertIsNone(self.state.view.x)
 
+    def test_missing_secondary_axis_is_nullable_only_when_layout_has_no_axis(self):
+        event = self.event(y2=None)
+        with self.assertRaises(ValueError):
+            self.state.view.accept(event, "BTC/USD", self.data["identity"])
+        self.assertTrue(self.state.view.accept(event, "BTC/USD", self.data["identity"], secondary_axis=False))
+        self.assertIsNone(self.state.view.y2)
+        before = copy.deepcopy(self.state.view)
+        for value in ([0, 1], [0, float("nan")], "bad"):
+            with self.assertRaises(ValueError):
+                self.state.view.accept(self.event(y2=value, revision=2), "BTC/USD", self.data["identity"], secondary_axis=False)
+            self.assertEqual(before, self.state.view)
+
     def test_stale_instrument_identity_mount_command_revision_and_nonfinite_are_atomic_rejections(self):
         for key, value in (("instrument", "ETH/USD"), ("identity", {}), ("mount", 0), ("commandEpoch", 1), ("revision", 0), ("y", [0, float("nan")]), ("x", ["bad", "bad"])):
             event = self.event()
@@ -351,6 +431,31 @@ class StreamlitSmokeTests(unittest.TestCase):
             self.assertTrue(any("dataset has not been initialized" in warning.value for warning in app.warning))
             self.assertIsNone(client.snapshot("BTC/USD"))
             self.assertEqual(["BTC/USD"], client.calls)
+
+    def test_null_volume_btc_eth_btc_mounts_correct_instrument_without_refetch(self):
+        from types import SimpleNamespace
+        client = FixtureClient()
+        for data in client.data.values():
+            for row in data["candles"]:
+                row["volume"] = None
+        mounts = []
+        def mounted(**kwargs):
+            payload = kwargs["data"]
+            mounts.append((payload["instrument"], kwargs["key"], payload["figure"]))
+            return SimpleNamespace(viewport=None)
+        with patch.dict(os.environ, {"AIQ_RESEARCH_CHART": "1", "AIQ_RESEARCH_BASE_URL": "https://offline.invalid", "AIQ_RESEARCH_API_KEY": TEST_KEY}), patch.object(chart, "ResearchSnapshotClient", return_value=client), patch.object(chart, "component", return_value=mounted):
+            app = self.app(client).run()
+            app.radio(key="r115_instrument").set_value("ETH/USD").run()
+            app.radio(key="r115_instrument").set_value("BTC/USD").run()
+            self.assertEqual([], list(app.exception))
+            self.assertEqual(["BTC/USD", "ETH/USD"], client.calls)
+            self.assertEqual(["BTC/USD", "ETH/USD", "BTC/USD"], [m[0] for m in mounts])
+            for instrument, key, figure in mounts:
+                self.assertIn(instrument, key)
+                self.assertIn(instrument, figure["layout"]["title"]["text"])
+                self.assertNotIn("yaxis2", figure["layout"])
+                self.assertTrue(any(t["name"].startswith("SMA20") for t in figure["data"]))
+                self.assertTrue(any("Volume unavailable" in a["text"] for a in figure["layout"]["annotations"]))
 
     def test_real_streamlit_instrument_controls_full_unchanged_and_no_key(self):
         client = FixtureClient()

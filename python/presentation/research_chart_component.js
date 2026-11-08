@@ -22,7 +22,7 @@ export default async function ({data, parentElement, setStateValue}) {
     try {
         const saved=sessionStorage.getItem(slot);
         if (saved && saved.length<=4096) pending=JSON.parse(saved);
-        if (pending && (!Array.isArray(pending.x) || !Array.isArray(pending.y) || !Array.isArray(pending.y2) ||
+        if (pending && (!Array.isArray(pending.x) || !Array.isArray(pending.y) || (pending.y2!==null && !Array.isArray(pending.y2)) ||
             !Number.isInteger(pending.revision) || !Number.isInteger(pending.resetEpoch))) pending=null;
         if (saved && !pending) sessionStorage.removeItem(slot);
     } catch { sessionStorage.removeItem(slot); }
@@ -33,7 +33,7 @@ export default async function ({data, parentElement, setStateValue}) {
     }
     model.revision=Math.max(model.revision,data.revision,pending?.revision||0);
     const current=()=>active && model.ticket===ticket && graph.isConnected;
-    const ranges=()=>({x:graph.layout.xaxis.range.map(utc),y:Array.from(graph.layout.yaxis.range),y2:Array.from(graph.layout.yaxis2.range),y3:graph.layout.yaxis3?Array.from(graph.layout.yaxis3.range):null});
+    const ranges=()=>({x:graph.layout.xaxis.range.map(utc),y:Array.from(graph.layout.yaxis.range),y2:graph.layout.yaxis2?Array.from(graph.layout.yaxis2.range):null,y3:graph.layout.yaxis3?Array.from(graph.layout.yaxis3.range):null});
     const event=(kind,intent)=>({kind,instrument:data.instrument,identity:data.identity,mount:data.mount,
         revision:intent?intent.revision:data.revision,commandEpoch:data.commandEpoch,...(intent||ranges())});
     const publish=()=>{
@@ -48,9 +48,9 @@ export default async function ({data, parentElement, setStateValue}) {
         model.suppress=true;
         const layout=structuredClone(data.figure.layout);
         const viewport=pending||data.viewport;
-        if (viewport.x) { layout.xaxis.range=viewport.x;layout.xaxis.autorange=false;layout.xaxis2.range=viewport.x;layout.xaxis2.autorange=false;if (layout.xaxis3) {layout.xaxis3.range=viewport.x;layout.xaxis3.autorange=false;} }
+        if (viewport.x) { layout.xaxis.range=viewport.x;layout.xaxis.autorange=false;if (layout.xaxis2) {layout.xaxis2.range=viewport.x;layout.xaxis2.autorange=false;}if (layout.xaxis3) {layout.xaxis3.range=viewport.x;layout.xaxis3.autorange=false;} }
         if (viewport.y) { layout.yaxis.range=viewport.y;layout.yaxis.autorange=false; }
-        if (viewport.y2) { layout.yaxis2.range=viewport.y2;layout.yaxis2.autorange=false; }
+        if (viewport.y2 && layout.yaxis2) { layout.yaxis2.range=viewport.y2;layout.yaxis2.autorange=false; }
         if (viewport.y3 && layout.yaxis3) {layout.yaxis3.range=viewport.y3;layout.yaxis3.autorange=false;}
         const start=performance.now();
         await Plotly.react(graph,data.figure.data,layout,{scrollZoom:true,responsive:true});
