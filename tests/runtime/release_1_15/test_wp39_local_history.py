@@ -16,6 +16,11 @@ workflow = importlib.util.module_from_spec(spec); spec.loader.exec_module(workfl
 
 
 class WorkflowTests(unittest.TestCase):
+    def setUp(self):
+        # These existing channel/envelope tests isolate identity validation; real guard tests below do not.
+        guard = patch.object(workflow, 'validate_preparation_identity')
+        guard.start(); self.addCleanup(guard.stop)
+
     def test_plan_is_offline_and_never_claims_import(self):
         with patch.object(workflow, 'run', side_effect=AssertionError('no subprocess')):
             plan = workflow.plan()
@@ -67,6 +72,11 @@ class WorkflowTests(unittest.TestCase):
 
 
 class AcquisitionDiagnosticTests(unittest.TestCase):
+    def setUp(self):
+        # These existing channel/envelope tests isolate identity validation; real guard tests below do not.
+        guard = patch.object(workflow, 'validate_preparation_identity')
+        guard.start(); self.addCleanup(guard.stop)
+
     CANARY = 'FAKE-STDIN-SECRET-CANARY-ONLY'
 
     @staticmethod
@@ -223,6 +233,166 @@ raise SystemExit(0 if mode=='success' else 1)
                 value=caught.exception.diagnostic
                 self.assertEqual(code,value['failureCode']);self.assertEqual(0,value['requestsStarted']);self.assertEqual(0,value['responsesReceived'])
                 self.assertFalse(value['outcomeUnknown']);self.assertFalse(value['bundlePublished'])
+
+
+class PreparationIdentityTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / 'owned'
+        for name in ('publish', 'context/research'):
+            target = self.root / name
+            target.mkdir(parents=True)
+            for file, data in {'AIQuantTradingResearch.Worker.dll': b'FAKE-WORKER',
+                               'AIQuantTradingResearch.Worker.deps.json': b'{}',
+                               'AIQuantTradingResearch.Worker.runtimeconfig.json': b'{}',
+                               'runtimes/linux-x64/native/fake.so': b'FAKE-NATIVE'}.items():
+                path = target / file; path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
+        workflow.write_preparation_identity(self.root)
+        self.manifest = self.root / workflow.IDENTITY_FILE
+
+    def blocked(self):
+        before = {p.relative_to(self.root): p.read_bytes() for p in self.root.rglob('*')
+                  if p.is_file() and not p.is_symlink() and not p.is_junction()}
+        with patch.object(workflow.os, 'environ') as env, patch.object(workflow, 'worker') as child, \
+             patch.object(workflow.subprocess, 'Popen') as process:
+            with self.assertRaises(workflow.AcquisitionFailure) as caught:
+                workflow.acquire(self.root, True, True)
+            env.get.assert_not_called(); env.copy.assert_not_called(); child.assert_not_called(); process.assert_not_called()
+        value = caught.exception.diagnostic
+        self.assertEqual(dict(version=1,event='WP39_ACQUIRE_FAILED',failedStage='preflight',instrument=None,
+            httpStatus=None,requestsStarted=0,responsesReceived=0,outcomeUnknown=False,
+            failureCode='PREPARATION_IDENTITY_INVALID',bundlePublished=False), value)
+        self.assertNotIn(str(self.root), json.dumps(value)); self.assertNotIn('FAKE-WORKER',json.dumps(value))
+        for relative, data in before.items(): self.assertEqual(data, (self.root / relative).read_bytes())
+        self.assertFalse((self.root / 'bundle').exists()); self.assertFalse((self.root / 'import-receipt.json').exists())
+
+    def test_fresh_pair_is_deterministic_portable_and_reaches_channel_boundary(self):
+        value = json.loads(self.manifest.read_bytes())
+        self.assertEqual(value, workflow.preparation_identity(self.root))
+        self.assertNotIn(str(self.root), self.manifest.read_text())
+        self.assertIn('runtimes/linux-x64/native/fake.so',value['publication'])
+        self.assertTrue(self.manifest.read_bytes().endswith(b'\n'))
+        self.assertNotIn(b'\r',self.manifest.read_bytes())
+        with patch.object(workflow.os,'environ') as env, patch.object(workflow,'worker') as child:
+            env.get.return_value = None
+            with self.assertRaises(workflow.AcquisitionFailure) as caught:workflow.acquire(self.root,True,True)
+            self.assertEqual('MISSING_PRIVATE_CHANNEL',caught.exception.diagnostic['failureCode'])
+            env.get.assert_called_once_with('AIQ_WP39_PROVIDER_KEY');child.assert_not_called()
+
+    def test_stale_swapped_or_missing_actual_publication_is_rejected(self):
+        for relative in ('publish/AIQuantTradingResearch.Worker.dll','context/research/AIQuantTradingResearch.Worker.dll',
+                         'publish/AIQuantTradingResearch.Worker.deps.json','publish/runtimes/linux-x64/native/fake.so'):
+            path=self.root/relative;original=path.read_bytes()
+            with self.subTest(relative=relative):
+                path.write_bytes(b'FAKE-STALE');self.blocked();path.write_bytes(original)
+        worker=self.root/'publish/AIQuantTradingResearch.Worker.dll'
+        worker.unlink();self.blocked()
+
+    def test_changed_executing_workflow_is_rejected(self):
+        other=Path(self.temp.name)/'different.py';other.write_bytes(b'# fake changed workflow\n')
+        with patch.object(workflow,'__file__',str(other)):self.blocked()
+
+    def test_loaded_workflow_and_disk_source_must_agree(self):
+        with patch.object(workflow,'_LOADED_WORKFLOW_HASH','0'*64):self.blocked()
+
+    def test_dispatch_recheck_stops_change_after_initial_validation(self):
+        calls=[]
+        path=self.root/'publish/AIQuantTradingResearch.Worker.dll'
+        class FakeEnvironment(dict):
+            def get(self,key,default=None):
+                calls.append(key);path.write_bytes(b'FAKE-CHANGED-AFTER-CHECK')
+                return super().get(key,default)
+        fake=FakeEnvironment(AIQ_WP39_PROVIDER_KEY='FAKE-ONLY-KEY')
+        with patch.object(workflow.os,'environ',fake),patch.object(workflow,'worker') as child:
+            with self.assertRaises(workflow.AcquisitionFailure) as caught:workflow.acquire(self.root,True,True)
+            self.assertEqual('PREPARATION_IDENTITY_INVALID',caught.exception.diagnostic['failureCode'])
+            self.assertEqual(0,caught.exception.diagnostic['requestsStarted']);child.assert_not_called()
+        self.assertEqual(['AIQ_WP39_PROVIDER_KEY'],calls)
+        self.assertEqual('FAKE-ONLY-KEY',fake['AIQ_WP39_PROVIDER_KEY'])
+        self.assertNotIn('FAKE-ONLY-KEY',json.dumps(caught.exception.diagnostic))
+
+    def test_old_preparation_without_manifest_fails_without_upgrade(self):
+        self.manifest.unlink();self.blocked();self.assertFalse(self.manifest.exists())
+
+    def test_manifest_strict_schema_hash_size_and_path_aliases(self):
+        original=self.manifest.read_bytes();value=json.loads(original)
+        cases=[b'{}',b'[]',b'null',b'\xff',b'{' ,b' '* (workflow.IDENTITY_LIMIT+1),
+               original.replace(b'"version":1',b'"version":1,"version":1')]
+        for mutation in ({'version':True},{'version':2},{'extra':'FAKE-SECRET'},
+                         {'workflowSha256':'0'*64},{'workflowSha256':'bad'},
+                         {'publication':{'../outside.dll':'0'*64}},
+                         {'publication':{'C:\\outside.dll':'0'*64}},
+                         {'publication':{**value['publication'],'../outside.dll':'0'*64}},
+                         {'publication':{**value['publication'],'runtimes\\linux-x64\\fake.so':'0'*64}}):
+            cases.append(json.dumps(dict(value,**mutation)).encode())
+        for raw in cases:
+            with self.subTest(size=len(raw)):
+                self.manifest.write_bytes(raw);self.blocked()
+        self.manifest.write_bytes(original)
+
+    def test_added_removed_and_case_alias_files_fail(self):
+        extra=self.root/'publish/extra.dll';extra.write_bytes(b'fake');self.blocked();extra.unlink()
+        value=json.loads(self.manifest.read_bytes())
+        value['publication']['aiquanttradingresearch.worker.dll']=value['publication']['AIQuantTradingResearch.Worker.dll']
+        self.manifest.write_text(json.dumps(value),encoding='utf-8',newline='\n');self.blocked()
+
+    def test_existing_destination_is_preserved_by_identity_rejection(self):
+        bundle=self.root/'bundle';bundle.mkdir();(bundle/'sentinel').write_bytes(b'preserve')
+        self.manifest.unlink()
+        with patch.object(workflow.os,'environ') as env,patch.object(workflow,'worker') as child:
+            with self.assertRaises(workflow.AcquisitionFailure):workflow.acquire(self.root,True,True)
+            env.get.assert_not_called();child.assert_not_called()
+        self.assertEqual(b'preserve',(bundle/'sentinel').read_bytes())
+
+    def test_linked_publication_or_manifest_fails_before_reads(self):
+        target=Path(self.temp.name)/'outside';target.write_bytes(b'FAKE-OUTSIDE')
+        path=self.root/'publish/AIQuantTradingResearch.Worker.dll';original=path.read_bytes();path.unlink()
+        try:path.symlink_to(target)
+        except OSError:
+            path.write_bytes(original)
+            self.skipTest('Host does not permit unprivileged symlink creation')
+        with patch.object(workflow.os,'environ') as env,patch.object(workflow,'worker') as child:
+            with self.assertRaises(workflow.AcquisitionFailure):workflow.acquire(self.root,True,True)
+            env.get.assert_not_called();child.assert_not_called()
+        path.unlink();path.write_bytes(original)
+        original_manifest=self.manifest.read_bytes();self.manifest.unlink();self.manifest.symlink_to(target)
+        with self.assertRaises(workflow.AcquisitionFailure):workflow.validate_preparation_identity(self.root)
+        self.manifest.unlink();self.manifest.write_bytes(original_manifest)
+        context=self.root/'context/research';moved=self.root/'copied';context.rename(moved);context.symlink_to(moved,target_is_directory=True)
+        with self.assertRaises(workflow.AcquisitionFailure):workflow.validate_preparation_identity(self.root)
+        context.unlink();moved.rename(context)
+
+    def test_windows_reparse_attribute_is_rejected_on_any_host(self):
+        info=workflow.os.stat_result((0o100644,0,0,1,0,0,1,0,0,0))
+        from types import SimpleNamespace
+        with patch.object(Path,'lstat',return_value=SimpleNamespace(st_mode=info.st_mode,st_file_attributes=0x400)):
+            with self.assertRaises(ValueError):workflow.identity_path(self.root)
+
+    def test_bounded_publication_and_exclusive_manifest_write(self):
+        with self.assertRaises(FileExistsError):workflow.write_preparation_identity(self.root)
+        with patch.object(workflow,'PUBLICATION_FILES',2):self.blocked()
+        with patch.object(workflow,'PUBLICATION_BYTES',1):self.blocked()
+
+    def test_copy_must_match_before_manifest_can_be_created(self):
+        self.manifest.unlink();(self.root/'context/research/AIQuantTradingResearch.Worker.dll').write_bytes(b'bad copy')
+        with self.assertRaises(ValueError):workflow.write_preparation_identity(self.root)
+        self.assertFalse(self.manifest.exists())
+
+    def test_prepare_writes_guard_only_at_successful_end_without_docker(self):
+        # Existing Prepare orchestrator runs entirely against fixture/mocked process boundaries.
+        self.manifest.unlink()
+        with patch.object(workflow,'run') as run,patch.object(workflow,'private_directory',side_effect=lambda path:path.mkdir()),patch.object(workflow,'worker'), \
+             patch.object(workflow.shutil,'copytree'),patch.object(workflow.shutil,'copyfile'), \
+             patch.object(workflow,'write_preparation_identity') as write:
+            new=Path(self.temp.name)/'new'
+            run.side_effect=lambda args,**kw: json.dumps([{'Id':workflow.DEPENDENCIES}]) if args[:3]==['docker','image','inspect'] else ''
+            with patch('builtins.print'):workflow.prepare(new)
+            write.assert_called_once_with(new)
+        with patch.object(workflow,'run',side_effect=RuntimeError('fake build failure')), \
+             patch.object(workflow,'write_preparation_identity') as write:
+            with self.assertRaises(RuntimeError):workflow.prepare(Path(self.temp.name)/'failed')
+            write.assert_not_called()
 
 
 if __name__ == '__main__': unittest.main()

@@ -17,11 +17,15 @@ import uuid
 import hashlib
 import re
 import threading
+import stat
 
 ROOT = Path(__file__).resolve().parents[3]
 ENGINE = Path(__file__).with_name('wp07_local_historical_chart.py')
 DEPENDENCIES = 'sha256:98501ff282a7b1fb053d3abd9653acff3dde8d4182bfdfc2a9c426de462168ed'
 
+
+# Bind the imported implementation as well as its current on-disk bytes.
+_LOADED_WORKFLOW_HASH = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
 
 DIAGNOSTIC_LIMIT = 2048
 CHILD_STAGES = frozenset(('preflight', 'private_input', 'request_start', 'http_response', 'response_parse',
@@ -33,7 +37,7 @@ CHILD_CODES = frozenset(('MISSING_APPROVAL', 'INVALID_DESTINATION', 'DESTINATION
     'BUNDLE_PUBLICATION_FAILED', 'INVALID_JSON_ENCODING', 'INVALID_PAYLOAD_SHAPE', 'PROVIDER_ERROR_ENVELOPE', 'INVALID_PROVIDER_STATUS', 'PROVIDER_SYMBOL_MISMATCH', 'PROVIDER_INTERVAL_MISMATCH', 'PROVIDER_TIMEZONE_MISMATCH', 'INVALID_CANDLE_COLLECTION', 'PAYLOAD_SIZE_LIMIT', 'INVALID_CANDLE_TIMESTAMP', 'INVALID_OHLC_ENCODING', 'INVALID_METADATA_OBJECT', 'INVALID_METADATA_SYMBOL_FIELD', 'INVALID_METADATA_INTERVAL_FIELD', 'INVALID_METADATA_TIMEZONE_FIELD', 'UNKNOWN'))
 
 PARENT_CODES = CHILD_CODES | frozenset(('MISSING_PRIVATE_CHANNEL', 'CHILD_EXECUTABLE_UNAVAILABLE',
-    'CHILD_LAUNCH_FAILED', 'CHILD_TIMEOUT', 'CHILD_NONZERO_EXIT', 'CHILD_DIAGNOSTIC_INVALID', 'CHILD_OUTPUT_OVERSIZE'))
+    'CHILD_LAUNCH_FAILED', 'CHILD_TIMEOUT', 'CHILD_NONZERO_EXIT', 'CHILD_DIAGNOSTIC_INVALID', 'CHILD_OUTPUT_OVERSIZE', 'PREPARATION_IDENTITY_INVALID'))
 
 
 class AcquisitionFailure(RuntimeError):
@@ -157,6 +161,117 @@ def run(args, env=None, data=None, timeout=180, acquisition=False):
     return result.stdout.decode('utf-8').strip()
 
 
+# Nonsecret accidental-staleness binding; not an authenticity signature or a hostile-owner sandbox.
+IDENTITY_FILE = 'preparation-identity.json'
+IDENTITY_LIMIT = 131072
+PUBLICATION_FILES = 512
+PUBLICATION_BYTES = 268435456
+
+
+def identity_path(path):
+    path = Path(os.path.abspath(path))  # Do not resolve away a symlink/junction before checking.
+    for part in (*reversed(path.parents), path):
+        info = part.lstat()
+        if stat.S_ISLNK(info.st_mode) or getattr(info, 'st_file_attributes', 0) & 0x400:
+            raise ValueError()
+    return path
+
+
+def identity_hash(path, limit):
+    path = identity_path(path)
+    before = path.stat()
+    if not stat.S_ISREG(before.st_mode) or before.st_size > limit or before.st_nlink != 1:
+        raise ValueError()
+    digest = hashlib.sha256()
+    size = 0
+    with path.open('rb') as stream:
+        while block := stream.read(65536):
+            size += len(block)
+            if size > limit: raise ValueError()
+            digest.update(block)
+        after = os.fstat(stream.fileno())
+    final = identity_path(path).stat()
+    def stamp(info): return (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns)
+    if stamp(before) != stamp(after) or stamp(after) != stamp(final) or size != before.st_size:
+        raise ValueError()
+    return digest.hexdigest(), size
+
+
+def publication_identity(root):
+    root = identity_path(root)
+    if not root.is_dir(): raise ValueError()
+    result, total, nodes = {}, 0, 0
+    def unreadable(error): raise ValueError() from None
+    for directory, folders, files in os.walk(root, followlinks=False, onerror=unreadable):
+        identity_path(directory)
+        nodes += len(folders) + len(files)
+        if nodes > PUBLICATION_FILES or len(Path(directory).relative_to(root).parts) > 8:
+            raise ValueError()
+        for name in sorted(folders + files):
+            if not re.fullmatch(r'[A-Za-z0-9_.-]+', name) or name in ('.', '..'): raise ValueError()
+            identity_path(Path(directory) / name)
+        for name in sorted(files):
+            path = Path(directory) / name
+            digest, size = identity_hash(path, 67108864)
+            total += size
+            if total > PUBLICATION_BYTES: raise ValueError()
+            relative = path.relative_to(root).as_posix()
+            # Portable Windows/Linux identities cannot differ only by case.
+            if relative.lower() in {key.lower() for key in result}: raise ValueError()
+            result[relative] = digest
+    required = {'AIQuantTradingResearch.Worker.dll', 'AIQuantTradingResearch.Worker.deps.json',
+                'AIQuantTradingResearch.Worker.runtimeconfig.json'}
+    if not required <= result.keys(): raise ValueError()
+    return dict(sorted(result.items()))
+
+
+def preparation_identity(directory):
+    directory = identity_path(directory)
+    if not directory.is_dir(): raise ValueError()
+    publication = publication_identity(directory / 'publish')
+    if publication != publication_identity(directory / 'context/research'): raise ValueError()
+    workflow_hash, _ = identity_hash(Path(__file__), 1048576)
+    if workflow_hash != _LOADED_WORKFLOW_HASH: raise ValueError()
+    return dict(version=1, workflowSha256=workflow_hash, publication=publication)
+
+
+def write_preparation_identity(directory):
+    # Called only after all Prepare steps succeed; never upgrade old preparations during Acquire.
+    value = preparation_identity(directory)
+    raw = (json.dumps(value, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
+    if len(raw) > IDENTITY_LIMIT: raise ValueError()
+    with (directory / IDENTITY_FILE).open('xb') as stream: stream.write(raw)
+
+
+def validate_preparation_identity(directory):
+    try:
+        directory = identity_path(directory)
+        manifest = identity_path(directory / IDENTITY_FILE)
+        info = manifest.stat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > IDENTITY_LIMIT or info.st_nlink != 1: raise ValueError()
+        def unique(pairs):
+            value = {}
+            for key, item in pairs:
+                if key in value: raise ValueError()
+                value[key] = item
+            return value
+        with manifest.open('rb') as stream: raw = stream.read(IDENTITY_LIMIT + 1)
+        if len(raw) > IDENTITY_LIMIT: raise ValueError()
+        value = json.loads(raw.decode('utf-8'), object_pairs_hook=unique)
+        if not isinstance(value, dict) or set(value) != {'version', 'workflowSha256', 'publication'}:
+            raise ValueError()
+        if type(value['version']) is not int or value['version'] != 1: raise ValueError()
+        hashes = value['publication']
+        if not isinstance(hashes, dict) or not 3 <= len(hashes) <= PUBLICATION_FILES: raise ValueError()
+        def valid_hash(value): return isinstance(value, str) and re.fullmatch(r'[0-9a-f]{64}', value)
+        if not valid_hash(value['workflowSha256']) or not all(valid_hash(item) for item in hashes.values()):
+            raise ValueError()
+        # Manifest names are never used as filesystem paths. Exact comparison rejects traversal/aliases/extras.
+        if value != preparation_identity(directory): raise ValueError()
+    except (OSError, ValueError, TypeError, RecursionError):
+        raise parent_failure('preflight', 'PREPARATION_IDENTITY_INVALID', known_zero=True) from None
+
+
 def private_directory(path):
     path.mkdir()
     if os.name == 'nt':
@@ -215,6 +330,7 @@ def prepare(directory):
         images[role] = json.loads(run(['docker', 'image', 'inspect', tag]))[0]['Id']
     manifest = dict(session=owner, researchImage=images['research'], uiImage=images['ui'], stateVolume=owner + '-state', tlsDirectory=str(directory / 'runtime/tls'))
     (directory / 'local.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8', newline='\n')
+    write_preparation_identity(directory)
     print('PREPARED_NOT_IMPORTED; no provider calls or private state created')
 
 
@@ -223,6 +339,7 @@ def acquire(directory, approved, volume_confirmed):
         raise parent_failure('preflight', 'MISSING_APPROVAL', known_zero=True)
     if not volume_confirmed:
         raise parent_failure('preflight', 'VOLUME_UNCONFIRMED', known_zero=True)
+    validate_preparation_identity(directory)
     # Do not access this channel at all in Plan/Prepare/offline tests.
     key = os.environ.get('AIQ_WP39_PROVIDER_KEY')
     if not key:
@@ -230,6 +347,7 @@ def acquire(directory, approved, volume_confirmed):
     env = os.environ.copy(); env.pop('AIQ_WP39_PROVIDER_KEY', None)
     env['AIQ_WP39_PROVIDER_APPROVED'] = '1'
     try:
+        validate_preparation_identity(directory)
         worker(directory, '--research-acquire-local', env, json.dumps(dict(providerKey=key, baseAssetVolumeConfirmed=True)).encode())
     finally:
         key = None; env.pop('AIQ_WP39_PROVIDER_APPROVED', None)
@@ -330,7 +448,7 @@ if __name__ == '__main__':
         if args.action == 'Plan': print(json.dumps(plan(), indent=2))
         else:
             if args.directory is None or not 1024 <= args.port <= 65535: raise ValueError('Local directory/port required')
-            directory = args.directory.resolve()
+            directory = args.directory.absolute() if args.action == 'Acquire' else args.directory.resolve()
             if args.action == 'Prepare': prepare(directory)
             elif args.action == 'Acquire': acquire(directory,args.execute_provider_approved,args.base_asset_volume_confirmed)
             elif args.action == 'Import': import_bundle(directory)
