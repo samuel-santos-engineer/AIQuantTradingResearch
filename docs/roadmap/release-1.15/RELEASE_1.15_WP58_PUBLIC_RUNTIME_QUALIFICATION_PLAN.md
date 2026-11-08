@@ -94,3 +94,25 @@ Windows unprivileged symlink skip retained; no new Linux/browser/CI/cloud claim.
 **Verdict:** WP58 Phase A implementation-ready conditional plan complete; **public deployment BLOCKED / NOT_AUTHORIZED**, current Azure feasibility unknown. Historical F1 failure is neither current proof of impossibility nor waived. Specific within-architecture alternative is retain WP57 local deployment while verifying the existing separate research app's supported state/health; no raw upload/paid-resource workaround. No new provider/credential/private-state/Docker/Azure/registry/public probe/login/build/migration/import/deployment operation occurred. Git metadata reads only are not public-runtime checks.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False` (local historical import); `LOCAL_CHART_VERIFIED=True` (historical WP57 only); `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Subsequently approved five-read inventory - actual result
+
+Owner explicitly approved **only** the five metadata GETs described above: two exact staging sites, their config/web resources and the shared plan,20 seconds/read/100 seconds total,no retries. No login, settings/credential/quota-counter API, registry, public/health/API probe, Docker/data access, writes/restart/deployment. The preceding Phase A NOT_RUN statements are historical; this section records the narrowly approved execution, not expanded runtime authority.
+
+Observed at 2026-11-08T22:25:00.828194+00:00 (UTC), five projected CLI requests invoked, all exit0; total elapsed 8.484 seconds. Used existing installed CLI's direct Python entrypoint, explicit subscription, GET/API2023-12-01 and in-command projections. Raw config/startup/image strings, full responses and error bodies were not emitted or persisted. Outer retries absent and SDK retry-total disabled; no independent wire trace or application request-count claim. No account listing or login, no token/configuration-file inspection. Authenticated CLI credential use is normal approved ARM access, not research/provider credential retrieval.
+
+| Exact read | Observed sanitized result |
+| --- | --- |
+| Staging UI site | Identity/plan MATCH; Linux; Running, enabled; usage Normal, availability Normal; HTTPS-only true. |
+| Research site | Identity/plan MATCH; Linux; Running, enabled; usage Normal, availability Normal; HTTPS-only true. |
+| Staging UI config/web | Identity MATCH; CLASSIC_IMAGE; mode known; startup string known and empty. No raw image/startup values captured. |
+| Research config/web | Identity MATCH; CLASSIC_IMAGE; mode known; startup string known and empty. No raw image/startup values captured. |
+| Shared plan | Identity MATCH; Linux F1, West US 2. |
+
+**Current inference:** the targeted resource associations, current normal site metadata, HTTPS-only and classic-container configuration are confirmed. Historical WP37 QuotaExceeded is **not** the state observed in these reads. This does not explain/fix the historical recurring startup stops or prove capacity/health now; quota counters/CPU headroom, actual serving processes, image digest contents, anonymous health, service auth, dataset initialization and public browser acceptance remain unverified. Do not claim F1 impossibility from the old failure or public readiness from today's Running flags.
+
+No identity/plan/health-state drift requiring early stop was observed in this inventory, and no mutation/rollback was needed. Production was excluded. No local/public URL was visited, no image built/published/inspected, no settings/service-key presence/equality or database examined, no acquisition/import/state transfer. Existing147 offline test executions remain146 pass1 skip; no test was rerun just for this documentation update.
+
+Next smallest decision is whether to separately authorize bounded serving/artifact qualification: exact projected image-digest readback and fixed anonymous staging health probes with explicit cold-start/timeout/stop safeguards. Neither is executed or approved by these five reads. Authenticated dataset checks need their own explicit service-auth channel/scope; if Azure has no authorized initialized state, current no-raw-upload/no-import boundary still blocks deploying the working historical chart. A paired UI deployment is **not yet reviewable for Apply**, because real registry digests, cloud dataset/auth availability and complete rollback evidence are still missing. Preserve local WP57 acceptance; no new licensing/provider gate or paid-resource workaround.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. Review PR remains OPEN/UNMERGED.
