@@ -24,6 +24,25 @@ public sealed class TwelveDataMinuteCandleSourceTests
         Assert.Single(store.Read(ResearchInstrument.BtcUsd).Candles);Assert.Single(store.Read(ResearchInstrument.EthUsd).Candles);
         Assert.Equal(btc.Generation, eth.Generation);Assert.Equal(2, handler.Calls);Assert.False(btc.ResearchReady);Assert.False(eth.ResearchReady);
     }
+    [Theory][InlineData("missing")][InlineData("null")][InlineData("present")]
+    public async Task ExplicitOhlcOnlyKeepsPricesAndNeverInventsVolume(string kind)
+    {
+        var json=System.Text.Json.Nodes.JsonNode.Parse(Valid)!;
+        if(kind=="missing") json["values"]![0]!.AsObject().Remove("volume");
+        if(kind=="null") json["values"]![0]!["volume"]=null;
+        using var handler=new Handler(json.ToJsonString());
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,false,ohlcOnly:true);
+        var batch=await source.ReadCompletedAsync(ResearchTestDirectory.Request());
+        var candle=Assert.Single(batch.Candles);
+        Assert.Null(candle.Volume);Assert.Null(candle.VolumeUnit);Assert.Equal(100,candle.Close);
+        Assert.Equal(1,handler.Calls);
+    }
+    [Fact] public async Task OhlcOnlyStillRejectsMalformedPrices()
+    {
+        using var handler=new Handler(Valid.Replace("\"open\":\"100\"","\"open\":\"bad\""));
+        using var source=new TwelveDataMinuteCandleSource(handler,Key,false,ohlcOnly:true);
+        await Assert.ThrowsAsync<ResearchUnavailableException>(()=>source.ReadCompletedAsync(ResearchTestDirectory.Request()));
+    }
     [Theory] [InlineData(ResearchInstrument.BtcUsd)] [InlineData(ResearchInstrument.EthUsd)]
     public async Task ReadsActualMinuteOhlcvUsingOnlyInjectedOfflineHandler(ResearchInstrument instrument)
     {

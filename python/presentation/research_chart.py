@@ -158,8 +158,11 @@ def build_figure(snapshot, state):
     from plotly.subplots import make_subplots
     rows = snapshot["candles"]
     oscillator = state.panel != "None"
-    figure = make_subplots(rows=3 if oscillator else 2, cols=1, shared_xaxes=True,
-                           row_heights=[0.58, 0.18, 0.24] if oscillator else [0.76, 0.24], vertical_spacing=0.05)
+    has_volume = bool(rows) and all(r["volume"] is not None for r in rows)
+    oscillator_row = 3 if has_volume else 2
+    heights = ([0.58, 0.18, 0.24] if oscillator else [0.76, 0.24]) if has_volume else ([0.76, 0.24] if oscillator else [1])
+    figure = make_subplots(rows=1 + int(has_volume) + int(oscillator), cols=1, shared_xaxes=True,
+                           row_heights=heights, vertical_spacing=0.05)
     # Full retained data remains loaded; presets change the initial viewport, not source acquisition.
     groups = [list(range(len(rows)))] if rows else []
     for group in groups:
@@ -170,9 +173,13 @@ def build_figure(snapshot, state):
                                        high=[_number(r["high"]) for r in subset], low=[_number(r["low"]) for r in subset],
                                        close=[_number(r["close"]) for r in subset], name="Transformed OHLC", text=text,
                                        hoverinfo="text", showlegend=group is groups[0]), row=1, col=1)
-    figure.add_trace(go.Bar(x=[r["time"] for r in rows], y=[_number(r["volume"]) for r in rows],
-                            name="Volume (BTC)" if snapshot["instrument"] == "BTC/USD" else "Volume (ETH)",
-                            marker_color="#75bfff", hovertemplate="%{x} UTC<br>Base-asset volume: %{y}<extra></extra>"), row=2, col=1)
+    if has_volume:
+        figure.add_trace(go.Bar(x=[r["time"] for r in rows], y=[_number(r["volume"]) for r in rows],
+                                name="Volume (BTC)" if snapshot["instrument"] == "BTC/USD" else "Volume (ETH)",
+                                marker_color="#75bfff", hovertemplate="%{x} UTC<br>Base-asset volume: %{y}<extra></extra>"), row=2, col=1)
+    else:
+        figure.add_annotation(text="Volume unavailable - Twelve Data OHLC-only", xref="paper", yref="paper",
+                              x=0, y=1.12, showarrow=False)
     fields = []
     if "SMA20" in state.overlays:
         fields.append(("sma20", "SMA20 (transformed)"))
@@ -197,9 +204,9 @@ def build_figure(snapshot, state):
                 if i and row["segment"] != rows[i - 1]["segment"]:
                     x.append(row["time"]); y.append(None)
                 x.append(row["time"]); y.append(_number(analytic[name]))
-            figure.add_trace(go.Scatter(x=x, y=y, name=label, mode="lines", connectgaps=False), row=3, col=1)
+            figure.add_trace(go.Scatter(x=x, y=y, name=label, mode="lines", connectgaps=False), row=oscillator_row, col=1)
         if state.panel == "RSI14":
-            figure.update_yaxes(range=[0, 100], row=3, col=1)
+            figure.update_yaxes(range=[0, 100], row=oscillator_row, col=1)
     figure.update_layout(shapes=[{"type": "rect", "xref": "x", "yref": "y domain", "x0": gap["start"], "x1": gap["end"],
                                   "y0": 0, "y1": 1, "fillcolor": "#f5a623", "opacity": 0.15, "line": {"width": 0}, "layer": "below"}
                                  for gap in snapshot["marketDataGapIntervals"]])
@@ -220,7 +227,8 @@ def build_figure(snapshot, state):
                          margin={"l": 45, "r": 20, "t": 70, "b": 40}, legend={"orientation": "h", "y": 1.06},
                          xaxis_rangeslider_visible=False)
     figure.update_yaxes(title_text="Transformed price", row=1, col=1)
-    figure.update_yaxes(title_text="Volume", row=2, col=1)
+    if has_volume:
+        figure.update_yaxes(title_text="Volume", row=2, col=1)
     if fixture_mode():
         figure.update_layout(title=snapshot["instrument"] + " - " + FIXTURE_DISCLOSURE)
     return json.loads(figure.to_json())

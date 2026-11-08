@@ -14,17 +14,17 @@ public sealed record CompletedResearchCandle
     public decimal High { get; }
     public decimal Low { get; }
     public decimal Close { get; }
-    public decimal Volume { get; }
+    public decimal? Volume { get; }
     public string Provider { get; } = "twelvedata";
-    public string VolumeUnit => Instrument == ResearchInstrument.BtcUsd ? "BTC" : "ETH";
+    public string? VolumeUnit => Volume is null ? null : Instrument == ResearchInstrument.BtcUsd ? "BTC" : "ETH";
 
     public CompletedResearchCandle(ResearchInstrument instrument, DateTimeOffset openTimeUtc,
-        decimal open, decimal high, decimal low, decimal close, decimal volume)
+        decimal open, decimal high, decimal low, decimal close, decimal? volume)
     {
         if (!Enum.IsDefined(instrument) || openTimeUtc.Offset != TimeSpan.Zero ||
             openTimeUtc.Year is < 2000 or > 2099 || openTimeUtc.Ticks % TimeSpan.TicksPerMinute != 0 ||
             low <= 0 || high > 1_000_000_000m || low > Math.Min(open, close) || high < Math.Max(open, close) ||
-            volume is < 0 or > 1_000_000_000_000m || !Exact(open) || !Exact(high) || !Exact(low) || !Exact(close) || !Exact(volume))
+            volume is < 0 or > 1_000_000_000_000m || !Exact(open) || !Exact(high) || !Exact(low) || !Exact(close) || volume.HasValue && !Exact(volume.Value))
             throw new ArgumentException("Invalid research candle.");
         Instrument = instrument; OpenTimeUtc = openTimeUtc;
         Open = open; High = high; Low = low; Close = close; Volume = volume;

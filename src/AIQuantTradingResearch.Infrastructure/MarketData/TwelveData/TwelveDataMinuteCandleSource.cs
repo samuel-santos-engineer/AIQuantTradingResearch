@@ -25,14 +25,16 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
     private readonly string key;
     private readonly TimeSpan timeout;
     private readonly bool baseAssetVolumeConfirmed;
+    private readonly bool ohlcOnly;
     private readonly Action<TwelveDataReadDiagnostic>? diagnostic;
-    public TwelveDataMinuteCandleSource(HttpMessageHandler handler, string key, bool baseAssetVolumeConfirmed, TimeSpan? timeout = null, Action<TwelveDataReadDiagnostic>? diagnostic = null)
+    public TwelveDataMinuteCandleSource(HttpMessageHandler handler, string key, bool baseAssetVolumeConfirmed, TimeSpan? timeout = null, Action<TwelveDataReadDiagnostic>? diagnostic = null, bool ohlcOnly = false)
     {
         ArgumentNullException.ThrowIfNull(handler);
         if (handler is HttpClientHandler http) { http.AllowAutoRedirect = false; http.UseProxy = false; }
         if (handler is SocketsHttpHandler sockets) { sockets.AllowAutoRedirect = false; sockets.UseProxy = false; }
         if (string.IsNullOrWhiteSpace(key) || key.Length > 256 || key.Any(char.IsControl)) throw new ArgumentException("Invalid provider configuration.");
         this.diagnostic = diagnostic;
+        this.ohlcOnly = ohlcOnly;
         this.key = key; this.baseAssetVolumeConfirmed = baseAssetVolumeConfirmed;
         this.timeout = timeout ?? TimeSpan.FromSeconds(5);
         if (this.timeout <= TimeSpan.Zero || this.timeout > TimeSpan.FromSeconds(30)) throw new ArgumentException("Invalid provider configuration.");
@@ -50,7 +52,7 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!baseAssetVolumeConfirmed) Reject(TwelveDataReadEvent.VolumeUnconfirmed);
+            if (!baseAssetVolumeConfirmed && !ohlcOnly) Reject(TwelveDataReadEvent.VolumeUnconfirmed);
             var symbol = request.Instrument == ResearchInstrument.BtcUsd ? "BTC/USD" : "ETH/USD";
             using var message = new HttpRequestMessage(HttpMethod.Get,
                 "https://api.twelvedata.com/time_series?symbol=" + Uri.EscapeDataString(symbol) + "&interval=1min&outputsize=1000&timezone=UTC&order=ASC");
@@ -122,20 +124,25 @@ public sealed class TwelveDataMinuteCandleSource : IResearchCandleSource, IDispo
                     CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out _)) Reject(TwelveDataReadEvent.InvalidTimestamp);
                 var time = DateTimeOffset.ParseExact(stamp.GetString()!, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
-                if (!row.TryGetProperty("volume", out var volumeField)) Reject(TwelveDataReadEvent.VolumeMissing);
-                if (volumeField.ValueKind == JsonValueKind.Null) Reject(TwelveDataReadEvent.VolumeNull);
-                if (volumeField.ValueKind != JsonValueKind.String) Reject(TwelveDataReadEvent.VolumeWrongType);
-                var volumeText = volumeField.GetString()!;
-                // Preserve Value's acceptance and check order; only fixed diagnostics differ.
-                if (volumeText.Length == 0 || volumeText.Length > 40 ||
-                    volumeText.Any(x => x is not (>= '0' and <= '9') and not '.')) Reject(TwelveDataReadEvent.VolumeInvalidFormat);
-                if (volumeText.Contains('.') && volumeText.Length - volumeText.IndexOf('.') - 1 > 12)
-                    Reject(TwelveDataReadEvent.VolumePrecisionExceeded);
-                if (!decimal.TryParse(volumeText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var volume))
+                decimal? volume = null;
+                if (!ohlcOnly)
                 {
-                    // Multiple points are format errors; a well-formed digit string can overflow decimal.
-                    Reject(volumeText.Count(x => x == '.') > 1 || volumeText == "."
-                        ? TwelveDataReadEvent.VolumeInvalidFormat : TwelveDataReadEvent.VolumeOutOfRange);
+                    if (!row.TryGetProperty("volume", out var volumeField)) Reject(TwelveDataReadEvent.VolumeMissing);
+                    if (volumeField.ValueKind == JsonValueKind.Null) Reject(TwelveDataReadEvent.VolumeNull);
+                    if (volumeField.ValueKind != JsonValueKind.String) Reject(TwelveDataReadEvent.VolumeWrongType);
+                    var volumeText = volumeField.GetString()!;
+                    // Preserve Value's acceptance and check order; only fixed diagnostics differ.
+                    if (volumeText.Length == 0 || volumeText.Length > 40 ||
+                        volumeText.Any(x => x is not (>= '0' and <= '9') and not '.')) Reject(TwelveDataReadEvent.VolumeInvalidFormat);
+                    if (volumeText.Contains('.') && volumeText.Length - volumeText.IndexOf('.') - 1 > 12)
+                        Reject(TwelveDataReadEvent.VolumePrecisionExceeded);
+                    if (!decimal.TryParse(volumeText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var parsedVolume))
+                    {
+                        // Multiple points are format errors; a well-formed digit string can overflow decimal.
+                        Reject(volumeText.Count(x => x == '.') > 1 || volumeText == "."
+                            ? TwelveDataReadEvent.VolumeInvalidFormat : TwelveDataReadEvent.VolumeOutOfRange);
+                    }
+                    volume = parsedVolume;
                 }
                 try
                 {

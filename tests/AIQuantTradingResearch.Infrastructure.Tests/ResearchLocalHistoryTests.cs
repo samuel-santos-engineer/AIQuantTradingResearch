@@ -20,6 +20,29 @@ public sealed class ResearchLocalHistoryTests
         }
     }
     private static string Output() => Path.Combine(Path.GetTempPath(), "aiq-wp39-test-" + Guid.NewGuid().ToString("N"));
+    [Fact] public async Task ExplicitOhlcModeRoundTripsNullThroughImportAndSqliteWithoutAuthenticClaim()
+    {
+        var root=Output();var bundle=Path.Combine(root,"bundle");
+        try
+        {
+            using var handler=new DiagnosticHandler(failAt:0,volumeJson:"missing");
+            var config=JsonSerializer.Serialize(new{providerKey=DiagnosticCanary,baseAssetVolumeConfirmed=false,ohlcOnly=true});
+            var result=await DiagnosticRun(handler,bundle,config);
+            Assert.Equal(0,result.Code);Assert.Equal(2,handler.Calls);
+            Assert.Equal("SyntheticFixture",ResearchLocalHistory.VerifyBundle(bundle,true));
+            Assert.Throws<ResearchUnavailableException>(()=>ResearchLocalHistory.VerifyBundle(bundle));
+            using var observations=JsonDocument.Parse(File.ReadAllBytes(Path.Combine(bundle,"observations.json")));
+            Assert.Equal(JsonValueKind.Null,observations.RootElement.GetProperty("BTC/USD")[0].GetProperty("volume").ValueKind);
+            ResearchLocalHistory.Prepare(Path.Combine(root,"runtime"));
+            using var input=new MemoryStream(File.ReadAllBytes(Path.Combine(root,"runtime","initialize.json")));
+            var state=Path.Combine(root,"private");
+            Assert.Equal(0,await ResearchStateInitialization.RunAsync(input,TextWriter.Null,state,Path.Combine(bundle,"observations.json")));
+            using var reopened=new AIQuantTradingResearch.Infrastructure.Persistence.Sqlite.SqliteResearchStateStore(state,true);
+            foreach(var instrument in Enum.GetValues<ResearchInstrument>())
+                Assert.Null(Assert.Single(reopened.Read(instrument).Candles).Candle.Volume);
+        }
+        finally{if(Directory.Exists(root))Directory.Delete(root,true);}
+    }
     [Fact] public async Task BothSymbolsBoundedGapAwareAndFixtureCannotBecomeAuthentic()
     {
         var path=Output();var source=new Source();
