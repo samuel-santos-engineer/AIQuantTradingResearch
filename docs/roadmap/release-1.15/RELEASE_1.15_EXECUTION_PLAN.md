@@ -180,3 +180,79 @@ Separately approved browser-only diagnosis ran once. BTC component PASS again; E
 ### WP57 corrected local UI/browser qualification - 2026-11-08
 
 Exact open #444 head `be6e7a21ce04edf5fa45883383bfaf385228afbd` offline66 chart/client pass, workflow38 pass1 skip/39. Separate explicit resource/runtime/browser approval executed: cached fresh Prepare once exit0; new corrected UI selected via supported paired Stop/Start (both exit0), original research image/imported volume/auth/TLS retained, old manifests unchanged, no Acquire/Import or new provider calls. Active corrected UI `sha256:3270ce6ec33ba8cb7da27738ea6d9dc27a811a3270e7ecdef83f32e757a83ae1`. New authenticated startup probe1000/1000; one actual Chrome BTC->ETH->BTC PASS: correct mounted instruments,1000 candles each, aligned SMA20/981 non-null values, null warmup/no volume bars/unavailable-volume and educational/provenance disclosures, no captured JS/page errors or failed assets. Owned Chrome closed; corrected chart retained http://127.0.0.1:18555, rollback not needed. [Identity/approval/operation/browser evidence and limits](prompters/release-1.15-wp57-corrected-ui-local-browser-qualification.md). Imported-volume preservation is metadata plus API/browser evidence, not DB byte audit. No Azure/registry/public deployment or PR merge. `AUTHENTIC_DATA_NOT_IMPORTED=False`; `LOCAL_CHART_VERIFIED=True`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+### WP58 public-readiness Phase A - 2026-11-08
+
+Verified main `4a6bc2b901d6f6ff0081dad4597064017acb86f9` contains #444 then #443. [Prioritized public-runtime plan, repository evidence and exact next inventory scope](RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md). Smallest existing topology: West staging UI plus exact allowlisted separate research API, two single-process images/authenticated HTTPS, no loopback exposure or paid upgrade. Blockers: historical recurring F1 quota/startup failure (current state unknown), no qualified cloud-state availability/lifecycle path under no raw upload/import/migration boundary, no verified OCI digest pair, current settings/auth/rollback unverified; root synthetic image cannot be toggled into research UI. No production fix justified offline. Tests66 chart/client +38 workflow pass1 skip/39 +42 mocked deployment pass =147 run146 pass1 skip, exits0. Plan proposes only five projected ARM metadata GETs as next separately approved operation, no public probes/settings/credentials/resource writes. No Azure/login/Docker/provider/private-state/registry/browser/deployment operations. `AUTHENTIC_DATA_NOT_IMPORTED=False`; `LOCAL_CHART_VERIFIED=True` (historical WP57); `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+### WP58 separately approved five metadata reads - actual result
+
+Owner explicitly approved only the two staging site GETs, their config/web and shared-plan GET,20s/read100s total,no retries/settings/credentials/quota APIs/probes/mutation. All5 passed in8.484s: both exact apps Running/enabled/usage Normal/availability Normal/HTTPS-only true, classic images and known empty startup; expected shared Linux F1 West US 2 plan matches. [Timestamped sanitized inventory and limits](RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md#subsequently-approved-five-read-inventory---actual-result). Old quota-exceeded state not observed now; no current HTTP health, quota headroom, image digest/auth/dataset/browser readiness established. No public probe, Docker/registry/data/provider/deployment operation. Public Apply remains blocked pending artifact/state/auth/rollback evidence. `AUTHENTIC_DATA_NOT_IMPORTED=False`; `LOCAL_CHART_VERIFIED=True` historical; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+### WP58 Phase B0 - offline approval plan
+
+At expected local head e5481e0, prepared separate bounded B1 anonymous serving and B2 configured image-reference requests. Both NOT_RUN; registry digest UNKNOWN. See Phase B0 in RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md. No live calls or application edits; public readiness remains false. Documentation publication pending; PR must remain open/unmerged.
+
+### WP58 Phase B approved execution - stopped
+
+Owner separately approved B1 and B2. First bounded research health worker produced DEADLINE_OR_WORKER_FAILURE with no HTTP/TLS result; B1 qualification FAIL, cause UNKNOWN. Stopped: UI and both ARM reads NOT_RUN; registry digest UNKNOWN. No retry or mutation. See actual Phase B evidence in RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 single replacement probe - HTTP rejection
+
+Separately authorized research-only GET at 2026-11-08T22:59:08.987689+00:00 returned HTTP 403/text-html, TLS validated, 1.185 seconds; worker completed normally. No body read, retry or further probes. Cause unknown; UI and B2 remain NOT_RUN, OCI digest UNKNOWN. See WP58 qualification plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 quota-first/state snapshot
+
+Owner-requested two ARM reads at 2026-11-08T23:14:30.268281+00:00: plan usages then research metadata, both passed. Stop requests 0/15, reported CPU zero/below limits, storage 2178048/1073741824 bytes; exact research site Running/Normal/Normal. No current quota-exhaustion evidence; earlier HTTP 403 unexplained and no fresh serving probe. See WP58 plan for telemetry limitations. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase C0 - 403 origin plan
+
+Verified expected PR/clean head 2c1224f. Anonymous health precedes source auth; deployed identity unknown. Prepared single research-only headers GET with zero body reads, 14-second socket/15-second worker caps and presence-only header projection; C1 NOT_AUTHORIZED/NOT_RUN. A 403 remains ORIGIN_UNDETERMINED. No Azure/runtime calls or code edits. See WP58 plan; public readiness false.
+
+### WP58 C1 - one authorized headers request timed out
+
+At 2026-11-09T00:17:03.572354+00:00 C1 ran once: REQUEST_OPEN then TIMEOUT; outer 15-second deadline enforced (15.096s termination/collection total). Zero body reads, no headers/status/TLS outcome. Origin UNKNOWN; no retries or Azure-side diagnostics. Proposed single projected C2 restriction-summary read remains separately unapproved. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 C2 restriction summary
+
+One separately authorized projected research config/web GET at 2026-11-09T00:19:22.051367+00:00 passed: exact identity, one Allow rule, zero Deny, default action UNSPECIFIED. Rule scope/conditions not inspected; this does not exclude access restrictions or attribute the 403. No further probes/mutations. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 boolean-only rule classification
+
+One separately approved read at 2026-11-09T00:38:18.322663+00:00: all projected checks true for sole unconditional universal Allow rule, no header/subnet/VNet/traffic-tag conditions. Does not support this rule as 403 cause; other platform policies/artifact/serving unverified. No further calls or mutations. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 nonsecret network/auth policy reads
+
+Two separately approved research-only ARM GETs at 2026-11-09T00:42:41.466102+00:00 passed: publicNetworkAccess null/unspecified; platform authentication disabled, subordinate projected policy fields null. No defaults inferred or 403 attribution; no health retry/mutation. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 research configured digest - older artifact
+
+One separately authorized projected GET at 2026-11-09T00:48:00.635308+00:00 confirms configured digest f1e4916c...6930987f, matching old WP35/WP37 artifact. Not qualified as accepted WP57 local pair; no fresh registry/running-image proof or 403 attribution. No deployment/restart/registry/health call. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase D - OFFLINE ONLY
+
+Mapped merged dedicated two-image source, historical mixed WP57 local image pair and older Azure configured digest; no fresh binary/registry/runtime proof. Source confirms serve never seeds missing state and exact F1 overlay is ephemeral. API replacement may lose state; under no-acquire/import/upload/migration boundary, missing/lost cloud state has no permitted population path. Promotion/rollback proposal is conditional, code/config rollback cannot recover data. See Phase D source map, dataset table, exact future helper/test paths, per-app delta/baseline and public acceptance in WP58 plan. Prioritized owner decision: retain local-only boundary or separately plan a cloud initialization/recovery contract amendment. Zero operational calls, documentation only, no test reruns; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase E - offline ephemeral initialization design
+
+Preferred conditional reuse of operator-stdin/private JSON initializer, <=1MiB export+4KiB config, exclusive writer and post-replacement same-container init. Source commits symbols separately; no pair-atomicity claim. Private Azure delivery/exec/lifecycle channel unverified, so implementation/transfer BLOCKED. Narrow policy amendment only proposed; no data/key inspection or operational calls. [Detailed alternatives, safeguards, lifecycle, promotion/tests and single official-document-review request](RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md#phase-e---ephemeral-sqlite-staging-initialization--reinitialization-design). Two apps/ephemeral SQLite unchanged; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase E official-document review
+
+Two separately approved Microsoft page reads completed; current docs describe Linux app-container exec without sshd (CLI2.90+), but no file transfer or detached completion guarantee. Site/CLI/input safety/exclusive-writer lifecycle remain unverified, initialization BLOCKED. No Azure/private-data operation. See WP58 plan; proposed next scope is offline installed CLI capability inspection only. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 five evaluations - approved E1 complete
+
+Four projected staging GETs passed at 2026-11-09T11:41:28Z: both Running/enabled/HTTPS-only, empty startup, expected plan. UI configured a06baf21...bef6da07; API still old f1e4916c...6930987f. CONFIGURED_ONLY, running digests UNKNOWN; no Azure IOException established. E2-E5 NOT_RUN; local SDK exception remains separate. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E2 offline selection
+
+Selected recorded LinuxRunningContainersPerHost detector candidate, proposed one10s GET per staging app/fixed15min window, separate approval required. Structured bounded sanitized evidence only; absent explicit fresh main-container/runtime-digest binding means UNKNOWN. No live E2 query or automatic E3-E5 progression. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E2 reads complete - runtime identity UNKNOWN
+
+Two approved detector GETs for UTC12:20:23-12:35:23 on2026-11-09 completed in4.199s, exact identities. Allowed projection supplied no usable startup state/timestamp/exception/runtime digest. Per-read transport/schema PASS does not mean evaluation PASS; E2 UNKNOWN. Azure IOException UNKNOWN, local SDK exception separate; E3-E5 NOT_RUN. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E3 - API headers timeout, chain stopped
+
+Approved E3 request at 2026-11-09T12:39:39Z timed out during REQUEST_OPEN (9.642s); no headers/status/TLS outcome, zero body reads. UI NOT_RUN. E1 configured-only PASS/E2 UNKNOWN/E3 FAIL/E4-E5 NOT_RUN; no accepted running-image or Azure IOException proof. No retry/mutation. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
