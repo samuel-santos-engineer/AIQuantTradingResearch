@@ -236,3 +236,7 @@ Mapped merged dedicated two-image source, historical mixed WP57 local image pair
 ### WP58 Phase E - offline ephemeral initialization design
 
 Preferred conditional reuse of operator-stdin/private JSON initializer, <=1MiB export+4KiB config, exclusive writer and post-replacement same-container init. Source commits symbols separately; no pair-atomicity claim. Private Azure delivery/exec/lifecycle channel unverified, so implementation/transfer BLOCKED. Narrow policy amendment only proposed; no data/key inspection or operational calls. [Detailed alternatives, safeguards, lifecycle, promotion/tests and single official-document-review request](RELEASE_1.15_WP58_PUBLIC_RUNTIME_QUALIFICATION_PLAN.md#phase-e---ephemeral-sqlite-staging-initialization--reinitialization-design). Two apps/ephemeral SQLite unchanged; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase E official-document review
+
+Two separately approved Microsoft page reads completed; current docs describe Linux app-container exec without sshd (CLI2.90+), but no file transfer or detached completion guarantee. Site/CLI/input safety/exclusive-writer lifecycle remain unverified, initialization BLOCKED. No Azure/private-data operation. See WP58 plan; proposed next scope is offline installed CLI capability inspection only. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
