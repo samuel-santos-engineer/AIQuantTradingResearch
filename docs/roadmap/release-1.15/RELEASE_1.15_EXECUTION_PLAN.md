@@ -224,3 +224,7 @@ One separately approved read at 2026-11-09T00:38:18.322663+00:00: all projected 
 ### WP58 nonsecret network/auth policy reads
 
 Two separately approved research-only ARM GETs at 2026-11-09T00:42:41.466102+00:00 passed: publicNetworkAccess null/unspecified; platform authentication disabled, subordinate projected policy fields null. No defaults inferred or 403 attribution; no health retry/mutation. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 research configured digest - older artifact
+
+One separately authorized projected GET at 2026-11-09T00:48:00.635308+00:00 confirms configured digest f1e4916c...6930987f, matching old WP35/WP37 artifact. Not qualified as accepted WP57 local pair; no fresh registry/running-image proof or 403 attribution. No deployment/restart/registry/health call. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
