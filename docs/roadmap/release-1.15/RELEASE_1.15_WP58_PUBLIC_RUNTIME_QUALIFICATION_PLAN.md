@@ -222,3 +222,22 @@ PR/clean local head rechecked at expected 7efd6d16cbfee280f596eab1e977fd988c65d8
 Smallest proposed C2 operation, NOT_AUTHORIZED/NOT_RUN: one existing authenticated ARM GET to exact research `/config/web`, API 2023-12-01, 20-second outer cap/no retries. In-command projection only resource id, main-site ipSecurityRestrictionsDefaultAction, total main-site rule count and counts of Allow/Deny actions (no rule values, names, addresses, headers, descriptions or startup/image/settings). Null/missing or over-256 rule cardinality -> UNKNOWN/stop; allow only exact identity, action enum Allow/Deny/UNSPECIFIED and integer counts. No live logs, historical window or retention applicable: current config snapshot only, not proof of restrictions at the earlier request time and not proof of causation. A Deny/default-restriction result supports only a possible access-policy rejection; absence of restrictions cannot prove app origin. No C2 call follows automatically; owner must separately approve the exact query.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
+
+## Phase C2 - separately authorized restriction-summary read
+
+Owner approved the proposed single projected research config/web read. Observed UTC `2026-11-09T00:19:22.051367+00:00`: exactly one ARM GET to the exact research config/web, API 2023-12-01, 20-second subprocess cap/no retries. Existing authenticated CLI, no login/token retrieval/settings access. In-command projection limited to identity, default action, rule-array known flag and total/Allow/Deny counts. Exact identity MATCH; rule array known, cardinality within 256; counts consistent.
+
+| Field | Observed |
+| --- | --- |
+| Default action | UNSPECIFIED (null) |
+| Total rules | 1 |
+| Allow rules | 1 |
+| Deny rules | 0 |
+
+No rule addresses, names, descriptions, priorities, header filters, full config, image/startup, credentials or error bodies were emitted or persisted. No request to a serving URL, quota/log/registry/SCM/Docker/data operation, mutation or restart. Only the one approved read occurred.
+
+**Interpretation:** counts alone cannot establish the scope of the Allow rule or effective unmatched-request behavior when the explicit default is unspecified. Therefore this does not exclude access restrictions or establish why the prior request returned 403. Origin remains UNDETERMINED; current configuration is not a historical request trace. No additional probe/query is inferred.
+
+PR #445 OPEN at matching clean head 1e46cb3d055c9745ef2397bd841f08dfa8fd4b7a before evidence publication. Same two documentation paths only, UTF-8/LF/no BOM and diff checks passed; no tests rerun. Smallest possible next scope is a separately approved boolean-only classification of the existing main-site rule as an unconditional universal Allow versus a scoped/conditional rule, without exposing address/header values; exact projection and semantics must be reviewed before that read. Public-network/auth/platform lifecycle or artifact questions remain outside this completed scope.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR stays OPEN/UNMERGED.

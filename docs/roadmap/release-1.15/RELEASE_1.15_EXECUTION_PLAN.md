@@ -212,3 +212,7 @@ Verified expected PR/clean head 2c1224f. Anonymous health precedes source auth; 
 ### WP58 C1 - one authorized headers request timed out
 
 At 2026-11-09T00:17:03.572354+00:00 C1 ran once: REQUEST_OPEN then TIMEOUT; outer 15-second deadline enforced (15.096s termination/collection total). Zero body reads, no headers/status/TLS outcome. Origin UNKNOWN; no retries or Azure-side diagnostics. Proposed single projected C2 restriction-summary read remains separately unapproved. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 C2 restriction summary
+
+One separately authorized projected research config/web GET at 2026-11-09T00:19:22.051367+00:00 passed: exact identity, one Allow rule, zero Deny, default action UNSPECIFIED. Rule scope/conditions not inspected; this does not exclude access restrictions or attribute the 403. No further probes/mutations. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
