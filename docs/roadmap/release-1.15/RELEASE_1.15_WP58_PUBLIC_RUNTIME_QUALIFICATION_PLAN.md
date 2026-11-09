@@ -486,3 +486,19 @@ No raw summaries/table values/headers/addresses/container IDs or logs exposed or
 E1 remains prior CONFIGURED_ONLY; E3/E4/E5 NOT_RUN. Single next proposal is E3 only: one anonymous headers-only GET per exact staging app, research `/health` then UI `/` only if first healthy/safe, max10s/request20s total,no redirects/retries/body reads/auth/proxy inheritance. Record fixed role,UTC,elapsed,HTTP status/class,TLS result and normalized content type only; stop on timeout/TLS/redirect/non200/unexpected content, no additional evidence category or mutation. This is proposed only, requires separate approval, cannot prove SQLite data or running digest. E2 UNKNOWN must remain visible if serving succeeds.
 
 PR #445 OPEN at expected clean267cf7603da63483d003b8c29d88f2feeea116d5 before publication. Same two evidence docs, UTF-8/LF/no BOM and diff checks pass, no tests rerun. #446 untouched/open; production excluded. No serving/registry/SCM/exec/Docker/data/provider/credential operation, settings change/restart/deployment. LOCAL_CHART_VERIFIED=True historically; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+## E3 separately approved headers-only execution - API timeout, UI NOT_RUN
+
+Observed UTC 2026-11-09T12:39:39.525172+00:00 (09:39:39 America/Sao_Paulo). Owner separately approved E3 only: research GET /health first, UI GET / only if first passed,10s/request20s total,no redirects/retries/bodies/credentials/proxy inheritance. Exactly one request worker invoked; API socket timeout9s/outer cap10s, actual request-stage elapsed9.642s,total9.811s. Worker returned FAIL/TIMEOUT at REQUEST_OPEN; responseCaptured=false, TLS outcome UNVERIFIED (validation enabled but no successful handshake outcome captured), no status/content type, zero body bytes read. No raw errors/headers/body stored. Normal worker completion, no automatic replacement.
+
+| Evaluation / role | Status | Interpretation |
+| --- | --- | --- |
+| E3 API headers | FAIL / TIMEOUT | No response captured; no HTTP status or TLS success evidence |
+| E3 UI headers | NOT_RUN | First-failure stop respected |
+| E2 running digests | UNKNOWN | Timeout adds no container identity evidence |
+| E4 Azure exception | UNKNOWN / NOT_RUN | No Azure startup exception trigger established |
+| E5 filesystem probe | NOT_RUN | No process access/runtime identity or mutation authority |
+
+No attribution to quota/access policy/application failure or Azure IOException. Local SDK IOException remains unrelated #446 evidence. No additional ARM/detector/log/SCM/registry/Docker/provider/private-data/credential operation or mutation/restart/deployment. PR #445 OPEN at expected clean08e5fa19feaffd7c34ea274c4266190f9d537cf7 before publication; #446 untouched. Same two documents only; UTF-8/LF/no BOM and diff checks pass, no tests rerun.
+
+The five-evaluation chain is now stopped: E1 configured-only PASS, E2 UNKNOWN, E3 FAIL, E4/E5 NOT_RUN. Current data cannot establish accepted images running or any Azure I/O exception. Next owner decision should scope an attributable existing startup diagnostic or accept UNKNOWN; no repeat health loop or unsupported E4/E5 probe is inferred. LOCAL_CHART_VERIFIED=True historically; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

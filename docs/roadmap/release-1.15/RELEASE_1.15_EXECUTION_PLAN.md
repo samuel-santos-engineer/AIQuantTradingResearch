@@ -252,3 +252,7 @@ Selected recorded LinuxRunningContainersPerHost detector candidate, proposed one
 ### WP58 E2 reads complete - runtime identity UNKNOWN
 
 Two approved detector GETs for UTC12:20:23-12:35:23 on2026-11-09 completed in4.199s, exact identities. Allowed projection supplied no usable startup state/timestamp/exception/runtime digest. Per-read transport/schema PASS does not mean evaluation PASS; E2 UNKNOWN. Azure IOException UNKNOWN, local SDK exception separate; E3-E5 NOT_RUN. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E3 - API headers timeout, chain stopped
+
+Approved E3 request at 2026-11-09T12:39:39Z timed out during REQUEST_OPEN (9.642s); no headers/status/TLS outcome, zero body reads. UI NOT_RUN. E1 configured-only PASS/E2 UNKNOWN/E3 FAIL/E4-E5 NOT_RUN; no accepted running-image or Azure IOException proof. No retry/mutation. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
