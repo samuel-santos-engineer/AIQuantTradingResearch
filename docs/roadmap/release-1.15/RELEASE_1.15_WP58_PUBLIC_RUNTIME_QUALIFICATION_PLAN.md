@@ -241,3 +241,13 @@ No rule addresses, names, descriptions, priorities, header filters, full config,
 PR #445 OPEN at matching clean head 1e46cb3d055c9745ef2397bd841f08dfa8fd4b7a before evidence publication. Same two documentation paths only, UTF-8/LF/no BOM and diff checks passed; no tests rerun. Smallest possible next scope is a separately approved boolean-only classification of the existing main-site rule as an unconditional universal Allow versus a scoped/conditional rule, without exposing address/header values; exact projection and semantics must be reviewed before that read. Public-network/auth/platform lifecycle or artifact questions remain outside this completed scope.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR stays OPEN/UNMERGED.
+
+## Separately authorized boolean-only main-site rule classification
+
+Owner explicitly approved the proposed single boolean-only follow-up. Observed UTC `2026-11-09T00:38:18.322663+00:00`. One exact research config/web ARM GET, API 2023-12-01, 20-second cap, no retries. CLI in-command projection returned booleans only: exact identity match, exactly one rule, Allow action, universal address/Any sentinel, default tag, no header filters, no subnet mask, no VNet subnet and no subnet/VNet traffic-tag conditions. **Every projected check true.** No addresses, raw header/config/rule values, names, descriptions, image/startup, settings or credentials emitted/persisted.
+
+Classification: `UNCONDITIONAL_UNIVERSAL_ALLOW_FOR_PROJECTED_FIELDS`. The current main-site IP rule does not support attributing the earlier 403 to a restrictive rule within these checked fields. This is not an exhaustive platform-policy audit, historical trace or deployed-runtime proof. Public-network access, platform authentication/front-end behavior, actual configured artifact and current serving remain unverified; origin still UNDETERMINED. No HTTP retry, auth/network-config read, log/detector/registry/SCM operation or mutation occurred. Do not infer another live authorization from this result.
+
+PR #445 OPEN at matching clean head 2dd7650ffaa3bfaf6bf6753c3335fbd9123dc8ff before publication. Same two documentation paths, UTF-8/LF/no BOM and diff checks passed; no test reruns. Next concrete decision may separately scope nonsecret public-network and platform-auth policy enums for the exact research app, with no credentials/provider configuration or raw objects; the exact query must be proposed before execution. No further diagnostic is run automatically.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
