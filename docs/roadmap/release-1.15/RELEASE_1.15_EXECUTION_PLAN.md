@@ -244,3 +244,7 @@ Two separately approved Microsoft page reads completed; current docs describe Li
 ### WP58 five evaluations - approved E1 complete
 
 Four projected staging GETs passed at 2026-11-09T11:41:28Z: both Running/enabled/HTTPS-only, empty startup, expected plan. UI configured a06baf21...bef6da07; API still old f1e4916c...6930987f. CONFIGURED_ONLY, running digests UNKNOWN; no Azure IOException established. E2-E5 NOT_RUN; local SDK exception remains separate. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E2 offline selection
+
+Selected recorded LinuxRunningContainersPerHost detector candidate, proposed one10s GET per staging app/fixed15min window, separate approval required. Structured bounded sanitized evidence only; absent explicit fresh main-container/runtime-digest binding means UNKNOWN. No live E2 query or automatic E3-E5 progression. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
