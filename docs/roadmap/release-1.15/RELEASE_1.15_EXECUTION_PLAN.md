@@ -208,3 +208,7 @@ Owner-requested two ARM reads at 2026-11-08T23:14:30.268281+00:00: plan usages t
 ### WP58 Phase C0 - 403 origin plan
 
 Verified expected PR/clean head 2c1224f. Anonymous health precedes source auth; deployed identity unknown. Prepared single research-only headers GET with zero body reads, 14-second socket/15-second worker caps and presence-only header projection; C1 NOT_AUTHORIZED/NOT_RUN. A 403 remains ORIGIN_UNDETERMINED. No Azure/runtime calls or code edits. See WP58 plan; public readiness false.
+
+### WP58 C1 - one authorized headers request timed out
+
+At 2026-11-09T00:17:03.572354+00:00 C1 ran once: REQUEST_OPEN then TIMEOUT; outer 15-second deadline enforced (15.096s termination/collection total). Zero body reads, no headers/status/TLS outcome. Origin UNKNOWN; no retries or Azure-side diagnostics. Proposed single projected C2 restriction-summary read remains separately unapproved. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

@@ -201,3 +201,24 @@ Fail-closed decision tree: deadline/transport/TLS failure -> FAIL with sanitized
 If unresolved, propose C2 separately: exact research `/config/web` GET API 2023-12-01, 20 seconds, one request/no retries; project only resource identity, publicNetworkAccess if exposed, ipSecurityRestrictionsDefaultAction and bounded rule counts/actions/priority ranges, scm-use-main flag only if diagnostically necessary. No IP/subnet/header restriction values, names/descriptions, full rules, settings or unrelated configuration. Exact field availability and query must be confirmed offline before an approval request; missing fields remain UNKNOWN, not unrestricted. This proposal is NOT authorized/executed. No diagnostic-log enablement; existing log queries would need a separate exact UTC-window/cardinality/schema proposal, and unavailable logs mean NOT_AVAILABLE.
 
 Only the existing two evidence documents changed; UTF-8/LF/no BOM plus git diff --check verified. No tests rerun for documentation; no new CI/runtime claim. `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED. Smallest next decision: approve or decline the exact one-shot C1 request above.
+
+## Phase C1 - approved single request, timeout before headers
+
+Owner explicitly approved the exact C1 headers-only request. Observed UTC `2026-11-09T00:17:03.572354+00:00`; one worker, at most one anonymous research `/health` GET. Stages WORKER_STARTED -> REQUEST_OPEN -> FAILED/TIMEOUT. Controller outcome OUTER_DEADLINE_15_SECONDS, measured elapsed 15.096 seconds including termination/collection overhead. The socket timeout was 14 seconds; worker reported TIMEOUT before the controller's 15-second limit ended the worker, so it did not complete normally. No HTTP status/content type/header-presence booleans or validated TLS outcome were captured. TLS verification was configured, but successful validation is UNKNOWN. Application response-body bytes read **0**. No raw error/body/header material recorded.
+
+| C1 field | Actual result |
+| --- | --- |
+| Approved / executed | Yes / once |
+| Request stage | REQUEST_OPEN; TIMEOUT |
+| Completion | Outer deadline enforced; no normal completion |
+| HTTP/TLS/header classification | UNKNOWN; no response headers captured |
+| Origin | UNKNOWN; earlier 403 remains ORIGIN_UNDETERMINED |
+| Body reads | Zero |
+
+No second request, redirect, retry, UI/production probe, ARM/CLI/quota/log/registry/SCM access, credential/private-data inspection, Docker operation, mutation, restart or deployment. This timeout does not identify the network/TLS/platform/container failure stage within request-open, and does not erase or explain the earlier 403. No public-readiness conclusion follows.
+
+PR/clean local head rechecked at expected 7efd6d16cbfee280f596eab1e977fd988c65d873, OPEN, before publishing this evidence. Only two documentation paths changed; UTF-8/LF/no BOM and git diff --check passed. No tests rerun for this documentation-only record.
+
+Smallest proposed C2 operation, NOT_AUTHORIZED/NOT_RUN: one existing authenticated ARM GET to exact research `/config/web`, API 2023-12-01, 20-second outer cap/no retries. In-command projection only resource id, main-site ipSecurityRestrictionsDefaultAction, total main-site rule count and counts of Allow/Deny actions (no rule values, names, addresses, headers, descriptions or startup/image/settings). Null/missing or over-256 rule cardinality -> UNKNOWN/stop; allow only exact identity, action enum Allow/Deny/UNSPECIFIED and integer counts. No live logs, historical window or retention applicable: current config snapshot only, not proof of restrictions at the earlier request time and not proof of causation. A Deny/default-restriction result supports only a possible access-policy rejection; absence of restrictions cannot prove app origin. No C2 call follows automatically; owner must separately approve the exact query.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
