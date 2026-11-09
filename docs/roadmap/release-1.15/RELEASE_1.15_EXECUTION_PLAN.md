@@ -248,3 +248,7 @@ Four projected staging GETs passed at 2026-11-09T11:41:28Z: both Running/enabled
 ### WP58 E2 offline selection
 
 Selected recorded LinuxRunningContainersPerHost detector candidate, proposed one10s GET per staging app/fixed15min window, separate approval required. Structured bounded sanitized evidence only; absent explicit fresh main-container/runtime-digest binding means UNKNOWN. No live E2 query or automatic E3-E5 progression. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 E2 reads complete - runtime identity UNKNOWN
+
+Two approved detector GETs for UTC12:20:23-12:35:23 on2026-11-09 completed in4.199s, exact identities. Allowed projection supplied no usable startup state/timestamp/exception/runtime digest. Per-read transport/schema PASS does not mean evaluation PASS; E2 UNKNOWN. Azure IOException UNKNOWN, local SDK exception separate; E3-E5 NOT_RUN. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

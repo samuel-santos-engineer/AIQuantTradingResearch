@@ -471,3 +471,18 @@ In-memory classification only: fixed role, observation/window UTC, detector resp
 E2 startup evidence PASS may mean a usable sanitized record only; it must not be relabelled RUNNING_PROVEN without that binding. Missing exception in selected metadata means UNKNOWN, not absence of Azure exceptions. Only explicit relevant Azure failure evidence can justify a later separately approved E4 lookup. Local SDK IOException remains entirely separate. E3/E4/E5 and all mutations/data/runtime operations remain NOT_RUN/unauthorized. Default existing storage probe performs temporary filesystem writes and is not silently a mutation-free E5 method.
 
 Single next action: request separate owner approval for these two exact detector GETs and this classification/stop policy. E2 NOT_RUN, actual running images UNKNOWN, Azure IOException UNKNOWN. Documentation-only two-path UTF-8/LF/no BOM and diff checks; no tests rerun. LOCAL_CHART_VERIFIED=True historically; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+## E2 separately approved execution - identity/startup conclusion UNKNOWN
+
+Owner explicitly approved two bounded detector reads. Fixed UTC window 2026-11-09T12:20:23Z through12:35:23Z; research first then UI, one GET each to LinuxRunningContainersPerHost/API2023-12-01,10s/read20s total,no retries/pagination/discovery. Both resource identities MATCH; projected capture completed in4.199s. One table/one row per app inspected within limits. Projection contained a recognized structural field, so the temporary collector reported per-read PASS/BOUNDED_STRUCTURED_EVIDENCE. **That is transport/schema success only, not E2 acceptance.** No allowlisted usable startup-state enum, validated timestamp, exception type or independently bound main-container runtime digest emerged. Evaluation E2 **UNKNOWN** for startup/running-artifact questions.
+
+| Role | Read | Usable startup state/timestamp | Runtime digest | Azure IOException |
+| --- | --- | --- | --- | --- |
+| API | Completed, exact identity | UNKNOWN | UNKNOWN | UNKNOWN |
+| UI | Completed, exact identity | UNKNOWN | UNKNOWN | UNKNOWN |
+
+No raw summaries/table values/headers/addresses/container IDs or logs exposed or persisted. The permitted projection does not prove detector absence of failures or absence of an exception in the entire15-minute window. No fresh immutable runtime digest and no RUNNING_PROVEN claim. No E4 trigger established by these selected fields; do not substitute #446's local SDK IOException for Azure evidence. No automatic exception lookup, schema expansion or additional detector call.
+
+E1 remains prior CONFIGURED_ONLY; E3/E4/E5 NOT_RUN. Single next proposal is E3 only: one anonymous headers-only GET per exact staging app, research `/health` then UI `/` only if first healthy/safe, max10s/request20s total,no redirects/retries/body reads/auth/proxy inheritance. Record fixed role,UTC,elapsed,HTTP status/class,TLS result and normalized content type only; stop on timeout/TLS/redirect/non200/unexpected content, no additional evidence category or mutation. This is proposed only, requires separate approval, cannot prove SQLite data or running digest. E2 UNKNOWN must remain visible if serving succeeds.
+
+PR #445 OPEN at expected clean267cf7603da63483d003b8c29d88f2feeea116d5 before publication. Same two evidence docs, UTF-8/LF/no BOM and diff checks pass, no tests rerun. #446 untouched/open; production excluded. No serving/registry/SCM/exec/Docker/data/provider/credential operation, settings change/restart/deployment. LOCAL_CHART_VERIFIED=True historically; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
