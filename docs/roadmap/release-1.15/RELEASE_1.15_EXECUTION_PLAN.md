@@ -240,3 +240,7 @@ Preferred conditional reuse of operator-stdin/private JSON initializer, <=1MiB e
 ### WP58 Phase E official-document review
 
 Two separately approved Microsoft page reads completed; current docs describe Linux app-container exec without sshd (CLI2.90+), but no file transfer or detached completion guarantee. Site/CLI/input safety/exclusive-writer lifecycle remain unverified, initialization BLOCKED. No Azure/private-data operation. See WP58 plan; proposed next scope is offline installed CLI capability inspection only. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 five evaluations - approved E1 complete
+
+Four projected staging GETs passed at 2026-11-09T11:41:28Z: both Running/enabled/HTTPS-only, empty startup, expected plan. UI configured a06baf21...bef6da07; API still old f1e4916c...6930987f. CONFIGURED_ONLY, running digests UNKNOWN; no Azure IOException established. E2-E5 NOT_RUN; local SDK exception remains separate. See WP58 plan. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

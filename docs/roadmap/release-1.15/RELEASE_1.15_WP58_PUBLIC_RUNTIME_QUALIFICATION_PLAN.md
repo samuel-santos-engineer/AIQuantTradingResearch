@@ -436,3 +436,26 @@ Owner explicitly approved the two named Microsoft page reads. Retrieved only tho
 Single minimal next authorization proposal: offline inspect installed Azure CLI version and local `az webapp exec` help/implementation only, maximum two local subprocesses,10 seconds each/20 total,no extension installation/update/dynamic command acquisition, no login/network/Azure command execution. Project only version, command-present and documented stdin/PTY/instance/completion capabilities; no user config/auth cache/environment/keys or raw paths. If CLI lacks the command/version or its implementation does not support provably safe input and completion, STOP/UNKNOWN; do not update/install or connect. No private bytes/files or app resources touched; rollback not applicable. This is proposed, not executed, and cannot alone prove live F1 capability.
 
 Only same two docs changed; UTF-8/LF/no BOM and diff checks passed, no tests rerun. `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR OPEN/UNMERGED.
+
+## Five minimal staging evaluations - E1 separately approved result
+
+UTC 2026-11-09T11:41:28.152613+00:00 (08:41:28 America/Sao_Paulo). Owner separately approved E1 only. Four exact staging ARM GETs (site/config-web per app), API2023-12-01,10s each/40s total,no retries, completed in6.226s. In-memory CLI projections only; safe image-reference grammar/resource/plan identity validation before output. Startup boolean classification only, no raw command/settings/secrets/full bodies. All four reads PASS.
+
+| Role | Configured image digest in existing application GHCR repository | State / enabled / HTTPS-only | Startup / plan |
+| --- | --- | --- | --- |
+| UI | sha256:a06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07 | Running / true / true | EMPTY; expected existing shared plan MATCH |
+| API | sha256:f1e4916ccad30c30a59e1aa2b99b8c77cbfb87da6509fb1b51e6e6526930987f | Running / true / true | EMPTY; expected existing shared plan MATCH |
+
+Interpretation **CONFIGURED_ONLY**. API matches old WP35/WP37 digest, not evidence that the accepted WP57 pair is running. UI configured digest has not been freshly mapped/verified against source or registry content. Neither ARM Running nor digest strings prove running artifact identity. No Azure I/O exception established: the local Linux SDK test-container System.IO.IOException belongs exclusively to #446's local qualification evidence, not Azure.
+
+| Evaluation | Status | Next action |
+| --- | --- | --- |
+| E1 configured identity | PASS, CONFIGURED_ONLY | Stop completed scope; preserve evidence |
+| E2 running container/startup | NOT_RUN; running digest UNKNOWN | Offline identify one supported bounded read-only diagnostic and exact sanitized projection; obtain separate approval before query |
+| E3 serving | NOT_RUN in this evaluation series | Separate one-request-per-app authority only after E1/E2 |
+| E4 Azure I/O classification | UNKNOWN / NOT_RUN | Only propose filtered lookup if Azure startup evidence indicates failure; do not reuse local exception |
+| E5 writable-root probe | NOT_RUN | Existing storage probe writes temporary test file; it is not strictly mutation-free, so must not run under a read-only-only scope |
+
+No E2-E5 query/probe/execution, production access, health retry, log/registry/Docker/private-data/credential operation, mutation or deployment. Existing API/private state and local acceptance untouched. Evidence PR #445 OPEN at expected fdf84b81aff68f9aa54970fea88ebebebdae9c2d before publication; implementation PR #446 OPEN at187e6584571ed4d978511f0abfc7caa3021ea481, unchanged. Same two evidence documents only; UTF-8/LF/no BOM and diff checks pass, no tests rerun. Single next action is offline E2 diagnostic selection; no live approval inferred.
+
+LOCAL_CHART_VERIFIED=True historically; AUTHENTIC_DATA_NOT_IMPORTED=False locally; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
