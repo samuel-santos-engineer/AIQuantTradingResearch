@@ -251,3 +251,21 @@ Classification: `UNCONDITIONAL_UNIVERSAL_ALLOW_FOR_PROJECTED_FIELDS`. The curren
 PR #445 OPEN at matching clean head 2dd7650ffaa3bfaf6bf6753c3335fbd9123dc8ff before publication. Same two documentation paths, UTF-8/LF/no BOM and diff checks passed; no test reruns. Next concrete decision may separately scope nonsecret public-network and platform-auth policy enums for the exact research app, with no credentials/provider configuration or raw objects; the exact query must be proposed before execution. No further diagnostic is run automatically.
 
 `AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
+
+## Separately authorized public-network/platform-auth policy checks
+
+Owner approved the proposed nonsecret research-only policy scope. Before live access, inspected installed SDK request-builder constants offline: `build_web_apps_get_auth_settings_v2_request` uses GET `/sites/{name}/config/authsettingsV2/list`; no speculative endpoint request was made. Observed UTC `2026-11-09T00:42:41.466102+00:00`: exactly two projected ARM GETs, site first then that authsettingsV2/list endpoint, API 2023-12-01, 20 seconds each/no retries. Both identities MATCH; only id plus allowlisted policy fields captured, not identity-provider configuration, credentials or complete objects.
+
+| Policy field | Observed |
+| --- | --- |
+| Site publicNetworkAccess | null / UNSPECIFIED |
+| Platform authentication enabled | false |
+| Require authentication | null / UNSPECIFIED |
+| Unauthenticated client action | null / UNSPECIFIED |
+| Auth HTTP settings requireHttps | null / UNSPECIFIED |
+
+Platform authentication is disabled in this current snapshot. Null publicNetworkAccess is not an explicit Enabled/Disabled observation; null subordinate auth fields are not inferred defaults. Auth requireHttps null does not contradict the separately observed site HTTPS-only flag; these are different settings. This evidence does not support enabled platform authentication as the observed 403 cause. Together with the earlier universal-Allow rule and within-limit quota snapshot, it still does not establish response origin or explain timeout/startup behavior. Current deployed artifact/routing/lifecycle remain unverified. No health retry, UI/production access, provider/data/credential inspection, log/registry/Docker call, mutation or restart occurred.
+
+PR #445 OPEN at matching clean head d3589ce0b867ece62e4ddaab98e0405134fbadb7 before evidence publication. Two evidence documents only; UTF-8/LF/no BOM and diff checks passed, no tests rerun. Smallest useful next decision is a separately bounded read of the research configured image reference (safe reference grammar and identity validation, no startup/full config), before attributing behavior to merged source; no renewed B2 authority assumed. Registry content resolution remains separate and UNKNOWN. No further operation executed.
+
+`AUTHENTIC_DATA_NOT_IMPORTED=False` locally; `LOCAL_CHART_VERIFIED=True` historically; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR remains OPEN/UNMERGED.
