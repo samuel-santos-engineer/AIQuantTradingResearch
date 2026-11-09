@@ -228,3 +228,7 @@ Two separately approved research-only ARM GETs at 2026-11-09T00:42:41.466102+00:
 ### WP58 research configured digest - older artifact
 
 One separately authorized projected GET at 2026-11-09T00:48:00.635308+00:00 confirms configured digest f1e4916c...6930987f, matching old WP35/WP37 artifact. Not qualified as accepted WP57 local pair; no fresh registry/running-image proof or 403 attribution. No deployment/restart/registry/health call. See WP58 plan; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+### WP58 Phase D - OFFLINE ONLY
+
+Mapped merged dedicated two-image source, historical mixed WP57 local image pair and older Azure configured digest; no fresh binary/registry/runtime proof. Source confirms serve never seeds missing state and exact F1 overlay is ephemeral. API replacement may lose state; under no-acquire/import/upload/migration boundary, missing/lost cloud state has no permitted population path. Promotion/rollback proposal is conditional, code/config rollback cannot recover data. See Phase D source map, dataset table, exact future helper/test paths, per-app delta/baseline and public acceptance in WP58 plan. Prioritized owner decision: retain local-only boundary or separately plan a cloud initialization/recovery contract amendment. Zero operational calls, documentation only, no test reruns; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
