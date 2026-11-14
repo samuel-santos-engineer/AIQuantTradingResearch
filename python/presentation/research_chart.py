@@ -125,6 +125,8 @@ class InstrumentView:
     notice: str | None = None
     last_event: str | None = None
     last_attempt: float | None = None
+    inspected_time: str | None = None
+    inspection_notice: str | None = None
 
     def reconcile(self, snapshot):
         current = tuple(snapshot["identity"][k] for k in ("generation", "version", "displayDate", "transformEpoch"))
@@ -135,6 +137,30 @@ class InstrumentView:
             self.notice = "Dataset generation changed; history was replaced." if generation else "Transformation date or epoch changed; the chart was rebuilt." if rebuild else None
         self.identity = current
         self.view.reconcile(snapshot["candles"])
+
+
+def inspect_candle(snapshot, state, selection=None):
+    """Project one validated DTO row without rounding, calculation, or viewport changes."""
+    state.inspection_notice = None
+    if snapshot is None or not snapshot["candles"]:
+        state.inspected_time = None
+        state.inspection_notice = "No validated candle is available for inspection."
+        return None
+    rows = snapshot["candles"]
+    times = [row["time"] for row in rows]
+    selected = selection if selection is not None else state.inspected_time
+    if selected not in times:
+        if selected is not None:
+            state.inspection_notice = "Selected candle is no longer available; inspection reset to the latest available candle."
+        selected = times[-1]
+    index = times.index(selected)
+    row, analytic = rows[index], snapshot["analytics"][index]
+    if analytic["time"] != row["time"]:
+        raise ValueError("Candle inspection requires aligned API analytics.")
+    state.inspected_time = selected
+    return {"instrument": snapshot["instrument"], "time": selected,
+            **{key: row[key] for key in ("open", "high", "low", "close", "volume")},
+            "sma20": analytic["sma20"]}
 
 
 def select_history_range(snapshot, state, first, last):
@@ -376,6 +402,22 @@ def _render_content(auto_refresh=False):
             except ValueError as error:
                 st.warning(str(error))
         st.caption("Navigation changes the viewport only. No additional history is acquired; gaps remain disclosed. Return to Live restores the selected candle preset.")
+    record = inspect_candle(snapshot, state)
+    inspection_notice = state.inspection_notice
+    with st.container(key="r115_candle_inspection"):
+        st.subheader("Candle inspection")
+        inspection_key = "r115_inspection_" + instrument
+        available_times = [row["time"] for row in rows]
+        if st.session_state.get(inspection_key) not in available_times:
+            st.session_state[inspection_key] = state.inspected_time
+        selected = st.selectbox("Inspect UTC candle", available_times, key=inspection_key)
+        record = inspect_candle(snapshot, state, selected)
+        if inspection_notice:
+            st.info(inspection_notice)
+        st.caption(instrument + " | Exact API-supplied transformed educational values; not actual quotes. UTC candle start; no additional acquisition.")
+        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
+        values = [record[key] for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
+        st.table({"Field": labels, "Value": [value if value is not None else "Unavailable" for value in values]})
     latest = snapshot["classifications"][-1]
     if latest["validity"] == "Valid":
         st.info("Latest research: " + latest["trend"] + " / " + latest["regime"] + " | trend score " + str(latest["trendScore"]))
