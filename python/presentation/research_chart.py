@@ -137,6 +137,21 @@ class InstrumentView:
         self.view.reconcile(snapshot["candles"])
 
 
+def select_history_range(snapshot, state, first, last):
+    """Select inclusive candle bounds in the validated snapshot; never slice/recompute analytics."""
+    rows = snapshot["candles"]
+    times = [row["time"] for row in rows]
+    if not times or any(_date(a) >= _date(b) for a, b in zip(times, times[1:])):
+        raise ValueError("Historical candles must be nonempty and strictly ordered.")
+    if first not in times or last not in times or _date(first) > _date(last):
+        raise ValueError("Choose ordered bounds within the available snapshot.")
+    count = times.index(last) - times.index(first) + 1
+    state.view.return_live()  # Invalidates pending gestures before issuing the explicit range command.
+    state.view.x = (first, (_date(last) + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"))
+    state.view.live = False
+    return count
+
+
 def acquire(client, instrument, state, now=None, force=False):
     """One synchronous refresh per instrument, never triggered by viewport/presentation changes."""
     now = time.monotonic() if now is None else now
@@ -347,6 +362,20 @@ def _render_content(auto_refresh=False):
         return
     state.view.reconcile(rows)
     st.caption(str(len(rows)) + " retained candles | " + rows[0]["time"] + " to " + rows[-1]["time"] + " UTC | " + str(len(snapshot["marketDataGapIntervals"])) + " market-data gaps | " + str(len(snapshot["researchUnavailableIntervals"])) + " research-unavailable intervals. Presets count candles, not elapsed minutes.")
+    # Bounds refer only to this validated snapshot, not arbitrary provider history.
+    with st.expander("Navigate available history (UTC)"):
+        times = [row["time"] for row in rows]
+        with st.form("r115_range_" + instrument):
+            bounds = st.select_slider("First and last candle (inclusive)", options=times,
+                                      value=(times[0], times[-1]), key="r115_bounds_" + instrument + "_" + str(state.view.mount))
+            apply_range = st.form_submit_button("Apply historical range")
+        if apply_range:
+            try:
+                count = select_history_range(snapshot, state, *bounds)
+                st.success(str(count) + " candles in selected UTC bounds; supplied indicators retain their full-history warmup.")
+            except ValueError as error:
+                st.warning(str(error))
+        st.caption("Navigation changes the viewport only. No additional history is acquired; gaps remain disclosed. Return to Live restores the selected candle preset.")
     latest = snapshot["classifications"][-1]
     if latest["validity"] == "Valid":
         st.info("Latest research: " + latest["trend"] + " / " + latest["regime"] + " | trend score " + str(latest["trendScore"]))
