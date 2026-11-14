@@ -1,6 +1,6 @@
 # Release 1.15 WP59 - local historical navigation and runtime handoff
 
-Date: 2026-11-14. Status: OFFLINE_IMPLEMENTED; TLS_RECOVERED; NEW_NAVIGATION_RUNTIME_ACCEPTANCE_PENDING. Original blocker and subsequent recovery are recorded separately below.
+Date: 2026-11-14. Status: LOCAL_UI_BUILD_AND_BROWSER_QUALIFICATION_PASS; OWNER_REVIEW_PENDING. Original blocker and subsequent recovery are recorded separately below.
 
 ## Baseline and scope
 
@@ -114,3 +114,72 @@ The accepted historical chart is available again at **http://127.0.0.1:18555**. 
 New protected TLS material and private recovery metadata are retained outside Git. The old preparation still references its expired TLS and original UI manifest: **do not restart from that historical manifest blindly**. The active pair uses the new directory through the supported launcher's explicit `AIQ_CHART_TLS` parameter; private operational metadata records the exact target without publishing it. A future startup must use the current consistent TLS pair and recheck validity. The seven-day certificate remains temporary, not an automatic renewal feature.
 
 No application/test code changed during recovery, so the earlier 70-test offline result is retained without rerunning or presenting it as a new test execution. Documentation UTF-8/LF/no BOM and git diff checks were rerun. PR #448 remains draft/open/unmerged. Next local action is a bounded build and browser qualification of the new WP59 UI navigation against retained data; neither is implied by TLS recovery. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Owner-authorized UI build and browser qualification - 2026-11-14
+
+Continuation authority explicitly permits one local UI build, same-session runtime replacement required by the supported launcher, bounded browser qualification and this evidence append. PR #448 was verified draft/OPEN at `a8ce55ba0d1a81429f88df66436b97f2283631d4`, with the expected three paths and clean isolated worktree. No source changes or unmerged initializer incorporated during this continuation. Earlier NOT_RUN/BLOCKED entries above describe the earlier pass; this section supersedes those runtime qualifications only as explicitly measured below.
+
+### Preflight, build and source identity
+
+Read-only preflight confirmed both exact accepted images, running container source IDs/session labels, existing imported volume ownership/default driver, matching read-only server/UI CA mounts, recovered certificate current validity/DNS SAN, matching existing service keys and loopback port. Authenticated snapshots returned exactly 1,000 BTC/USD and 1,000 ETH/USD candles. A protected private rollback ledger retained exact original container/network/volume identities, images, port, environment **names only**, and current TLS references; no keys stored in that ledger. Private operational directories were not copied into Git or the build context.
+
+Exact cached build inputs were verified: qualified dependencies `aiq-c2b36:candidate` at `sha256:98501ff282a7b1fb053d3abd9653acff3dde8d4182bfdfc2a9c426de462168ed`, and pinned Python base `sha256:8fb4cfa1a2616d7b8e0c2175cc6ad68f5729c34ea8488c0b360d2934b7be9024` (Linux/amd64). Public-only context contained ten existing presentation source/assets plus favicon, copied by the existing workflow's literal allowlist. No tests, private preparation, SQLite, observation bundle, keys or TLS were included. A separate copy of the supported Dockerfile was used without modification.
+
+Build command (private directory placeholders intentionally omit actual host paths):
+
+```text
+docker build --pull=false --network=none --platform=linux/amd64 --build-context qualified_python=docker-image://aiq-c2b36:candidate -f <owned-build-directory>/research-chart.Dockerfile -t aiq-wp59:local-a8ce55b <owned-build-directory>/context
+```
+
+UI build exit **0**. New immutable **local image ID**:
+
+`sha256:1aa45d94772bb8ca485647a2c61d891bf735dc55c204738c8a2ac06b5bf3d2d3`
+
+Linux/amd64; UID/GID `12002:12002`; port8501. Entrypoint remains `/opt/venv/bin/python -B -m streamlit run /app/python/presentation/realtime_financial_visualization.py` with the supported Dockerfile's fixed address/port/headless/no-watcher/no-telemetry/no-welcome/hidden-error/no-secrets-file flags. A disposable no-network, read-only, capability-dropped container hashed the eleven `/app` files in memory and matched the audited public context exactly, including the new navigation source. It was run with `--rm`. This verifies application-file equality and context exclusion, not a new universal audit of every inherited OS/dependency layer. No API build, pull, registry publication or accepted tag overwrite.
+
+Fresh focused regression command (existing venv, `PYTHONPATH=python/presentation`):
+
+```text
+python -B -m unittest test_research_chart test_research_snapshot_client -q
+```
+
+**70 passed, exit0, 46.789 seconds, no skips.** Existing bare-mode Streamlit ScriptRunContext warnings occurred. No dependency installation or broad-suite claim.
+
+### Supported runtime switch and preservation
+
+The existing launcher has no UI-only replacement action. Following the explicit continuation allowance, its Stop then Start replaced the two owned containers and their two session networks once, retaining the exact API image, imported volume, service key and recovered TLS pair while selecting the new UI. No unsupported manual UI swap, manifest rewrite, seeding, reimport or certificate/key generation occurred. Both launcher commands exited0; authenticated TLS readiness returned 1,000 rows for each symbol, then loopback Streamlit readiness passed. No recovery/rollback attempt was needed.
+
+Post-browser inspection independently verified the same API image, same named volume identity and complete ownership labels, matching API/UI key equality, both running source IDs, loopback-only `127.0.0.1:18555`, and continued availability of both accepted historical images. The API **container** was recreated because the supported launcher requires it; the API source/image and imported volume were retained. Database bytes were not audited; normal startup/reads can operate on existing state. No claim that every database byte remained unchanged.
+
+### Actual browser evidence
+
+Installed Chrome with owned profiles, existing venv/websockets, loopback CDP and existing browser harness. No new browser dependency. Browser networking extras/updates/sync were disabled. Only normal local UI snapshot consumption; no provider, Azure or direct private-data probes. No screenshot or raw figure/price/time dump was published. Compact observations report only counts, booleans and relative candle indices.
+
+There were **eight bounded browser sessions**: three partial acceptance runs stopped at navigation locators; three structural diagnosis sessions; one diagnosis stopped on a temporary helper NameError; one final complete acceptance pass. Structural diagnosis established no application exception, a working expander, and native `input type="range"` controls (implicit slider semantics, no literal role attribute). The final driver used a fixed1280x1200 viewport, immediate scrolling, native input focus and actual CDP keyboard events, plus mouse clicks on real controls. It never assigned slider values, injected candle data or patched the application/DOM to simulate success. The temporary-driver write initially needed the ordinary sandbox escalation for its protected task-owned directory; no browser started for that filesystem error. No application correction or rebuild was needed for these driver errors.
+
+Reproducible interaction: visit loopback chart; BTC -> ETH -> BTC; open the native navigation summary; use Home/End and ArrowRight on the two native range inputs; submit the real Apply button and check the resulting graph viewport. Bounded selection used retained indices5..20 inclusive (**16 candles**); single-candle used0..0; full selection used0..999. Full arrays remained loaded. Test code compared actual graph ranges to the retained candle timestamps in memory and emitted only relative indices/counts. This is result-state evidence, not a claim that a click alone passed.
+
+| Final actual browser case | Result |
+| --- | --- |
+| BTC -> ETH -> BTC: correct mounted instrument | PASS |
+| Loaded candlesticks each instrument | PASS - 1,000 |
+| Supplied SMA20 arrays aligned with candles | PASS - 1,000 entries |
+| Full-snapshot SMA20 warmup/computed counts | PASS - 19 null / 981 computed |
+| Volume-unavailable annotation; no volume bars | PASS |
+| Existing Plotly modebar | PASS |
+| Inclusive bounded UTC viewport | PASS - indices5..20, 16 visible candle starts |
+| Single-candle UTC viewport | PASS - one candle start |
+| Full-range selection | PASS - all1,000 candle starts |
+| Retained-candle preset100 | PASS - 100 visible candle starts |
+| Return to Live after explicit range | PASS - restored selected100-candle preset |
+| Real pan/zoom followed by explicit range command | PASS - resulting range stayed5..20 after settling |
+| Final preset1000 / full-snapshot restoration | PASS |
+| Existing research/freshness status caption | PASS |
+
+The pan/command check establishes the observed command won after a real gesture; it does not assert a forced obsolete-event replay or exhaustively characterize every debounce race. The focused offline stale-command rejection test separately passed. Gap preservation is covered by fake regression; a new live gap or empty dataset was not fabricated or induced in the retained authentic runtime. Actual missing-dataset/empty-state fault injection is NOT_RUN; existing offline availability tests remain the evidence for those states. Freshness/status display does not make the retained historical data current or prove new acquisition. Browser profile/process cleanup was bounded and limited to owned browsers; the application pair remains running for owner review.
+
+### Disposition
+
+**Recommend marking PR #448 ready for owner review** based on passing focused tests, new local image identity, authenticated readiness and final real-browser acceptance. PR remains **draft, OPEN and UNMERGED**; no automatic readiness transition or merge. Local URL: **http://127.0.0.1:18555**. Rollback ledger and accepted images retained; rollback NOT_NEEDED. Current TLS remains the previously recovered seven-day pair; restart through the old preparation is still unsafe because it references historical TLS/UI metadata. Use the explicit retained configuration, never silently rewrite historical manifests.
+
+Only this existing evidence document changed in this continuation; application/test source remains the built PR implementation. UTF-8/LF/no BOM and diff checks apply before committing. PRs #445/#446/#447 remain untouched. No Azure, cloud/production, provider/acquisition, registry push, data import/transfer or dependency operations. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`; local success is not Azure proof.
