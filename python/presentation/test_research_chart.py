@@ -86,6 +86,98 @@ class FixtureClient(ResearchSnapshotClient):
         return self.accept(json.dumps(data).encode(), instrument, epoch)
 
 
+class CandleComparisonTests(unittest.TestCase):
+    def test_both_instruments_first_last_same_and_reversed_exact_projection(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            data = fixture(symbol, count=1000)
+            for row in data["candles"]:
+                row["volume"] = None
+            original = copy.deepcopy(data)
+            state = chart.InstrumentView(inspected_time=data["candles"][19]["time"])
+            for a, b in ((0, 999), (999, 0), (19, 19)):
+                result = chart.compare_candles(data, state, data["candles"][a]["time"], data["candles"][b]["time"])
+                for label, index in (("a", a), ("b", b)):
+                    self.assertEqual(result[label], chart.inspect_candle(data, chart.InstrumentView(), data["candles"][index]["time"]))
+                    self.assertIsNone(result[label]["volume"])
+                self.assertEqual(result["difference"], "0.000000000000")
+                self.assertEqual(result["percent"], "0.000000")
+            self.assertEqual(data, original)
+            self.assertEqual(state.inspected_time, data["candles"][19]["time"])
+            self.assertEqual(state.view, chart.Viewport())
+
+    def test_precise_decimal_direction_denominator_and_rounding(self):
+        self.assertEqual(chart.close_difference("0.100000000000", "0.300000000000"), {"difference": "0.200000000000", "percent": "200.000000"})
+        self.assertEqual(chart.close_difference("0.300000000000", "0.100000000000"), {"difference": "-0.200000000000", "percent": "-66.666667"})
+        self.assertEqual(chart.close_difference("1000000.000000000000", "1000000.025000000000")["percent"], "0.000002")
+        self.assertEqual(chart.close_difference("1000000.000000000000", "1000000.035000000000")["percent"], "0.000004")
+        self.assertEqual(chart.close_difference("1000000.000000000000", "999999.999999999999")["percent"], "0.000000")
+        self.assertEqual(chart.close_difference("999999999999999999999999.000000000000", "999999999999999999999999.000000000001")["difference"], "0.000000000001")
+
+    def test_missing_inputs_and_zero_denominator_are_unavailable(self):
+        for a, b in ((None, "1.000000000000"), ("1.000000000000", None), ("0.000000000000", "1.000000000000")):
+            self.assertEqual(chart.close_difference(a, b), {"difference": None, "percent": None})
+
+    def test_missing_empty_and_single_candle(self):
+        state = chart.InstrumentView()
+        for data in (None, fixture(count=0)):
+            self.assertIsNone(chart.compare_candles(data, state))
+            self.assertIsNone(state.comparison_a)
+            self.assertIsNone(state.comparison_identity)
+            self.assertIn("No validated", state.comparison_notice)
+        data = fixture(count=1)
+        result = chart.compare_candles(data, state)
+        self.assertEqual(result["a"], result["b"])
+        self.assertIn("Only one", state.comparison_notice)
+        self.assertIsNone(result["a"]["sma20"])
+
+    def test_invalid_and_pruned_selections_reset_to_available_defaults(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        chart.compare_candles(data, state, "invalid", data["candles"][-1]["time"])
+        self.assertEqual(state.comparison_a, data["candles"][0]["time"])
+        self.assertIn("no longer", state.comparison_notice)
+        chart.compare_candles(fixture(count=20), state)
+        self.assertEqual(state.comparison_a, fixture(count=20)["candles"][0]["time"])
+        self.assertIn("reset", state.comparison_notice)
+
+    def test_refresh_reads_both_current_values_and_retains_valid_selection(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        chart.compare_candles(data, state)
+        updated = copy.deepcopy(data)
+        updated["identity"]["version"] = "2"
+        updated["candles"][0]["close"] = "1.000000000000"
+        updated["candles"][-1]["close"] = "2.000000000000"
+        result = chart.compare_candles(updated, state)
+        self.assertEqual(result["difference"], "1.000000000000")
+        self.assertEqual(result["percent"], "100.000000")
+        self.assertIsNone(state.comparison_notice)
+
+    def test_incompatible_identity_and_instrument_cannot_reuse_selections(self):
+        data = fixture(count=30)
+        for key, value in (("generation", "new"), ("displayDate", "2026-10-24"), ("transformEpoch", "2")):
+            state = chart.InstrumentView()
+            chart.compare_candles(data, state, data["candles"][10]["time"], data["candles"][15]["time"])
+            changed = copy.deepcopy(data);changed["identity"][key] = value
+            result = chart.compare_candles(changed, state)
+            self.assertEqual(result["a"]["time"], data["candles"][0]["time"])
+            self.assertIn("identity changed", state.comparison_notice)
+        chart.compare_candles(fixture("ETH/USD", count=30), state)
+        self.assertEqual(state.comparison_identity[0], "ETH/USD")
+        self.assertIn("identity changed", state.comparison_notice)
+
+    def test_instrument_states_are_independent_and_gaps_not_invented(self):
+        states = {s: chart.InstrumentView() for s in ("BTC/USD", "ETH/USD")}
+        data = {s: fixture(s, count=30) for s in states}
+        chart.compare_candles(data["BTC/USD"], states["BTC/USD"], data["BTC/USD"]["candles"][5]["time"], data["BTC/USD"]["candles"][10]["time"])
+        chart.compare_candles(data["ETH/USD"], states["ETH/USD"])
+        result = chart.compare_candles(data["BTC/USD"], states["BTC/USD"])
+        self.assertEqual(result["a"]["time"], data["BTC/USD"]["candles"][5]["time"])
+        gap = fixture(count=2, gap=True);before = copy.deepcopy(gap)
+        chart.compare_candles(gap, chart.InstrumentView(), "not-a-candle", None)
+        self.assertEqual(gap, before)
+
+
 class CandleInspectionTests(unittest.TestCase):
     def test_first_last_exact_values_and_null_semantics_for_both_instruments(self):
         for instrument in ("BTC/USD", "ETH/USD"):

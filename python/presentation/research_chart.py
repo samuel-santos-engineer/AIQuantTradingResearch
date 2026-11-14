@@ -4,6 +4,7 @@ AIQ_RESEARCH_CHART=1 opts into this UI; credentials stay in the Streamlit proces
 """
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from functools import lru_cache
 import json
 import math
@@ -127,6 +128,10 @@ class InstrumentView:
     last_attempt: float | None = None
     inspected_time: str | None = None
     inspection_notice: str | None = None
+    comparison_a: str | None = None
+    comparison_b: str | None = None
+    comparison_identity: tuple | None = None
+    comparison_notice: str | None = None
 
     def reconcile(self, snapshot):
         current = tuple(snapshot["identity"][k] for k in ("generation", "version", "displayDate", "transformEpoch"))
@@ -161,6 +166,56 @@ def inspect_candle(snapshot, state, selection=None):
     return {"instrument": snapshot["instrument"], "time": selected,
             **{key: row[key] for key in ("open", "high", "low", "close", "volume")},
             "sma20": analytic["sma20"]}
+
+
+def close_difference(close_a, close_b):
+    """Presentation only: B-A to 12 decimals; (B-A)/A*100 to 6; half-even, no -0."""
+    unavailable = {"difference": None, "percent": None}
+    if not isinstance(close_a, str) or not isinstance(close_b, str):
+        return unavailable
+    try:
+        with localcontext() as context:
+            context.prec = 100  # Covers DTO magnitudes and twelve fractional input digits.
+            a, b = Decimal(close_a), Decimal(close_b)
+            if not a.is_finite() or not b.is_finite() or a == 0:
+                return unavailable
+            delta = b - a
+            def display(value, places):
+                rounded = value.quantize(places, rounding=ROUND_HALF_EVEN)
+                return format(abs(rounded) if rounded.is_zero() else rounded, "f")
+            return {"difference": display(delta, Decimal("0.000000000001")),
+                    "percent": display(delta / a * 100, Decimal("0.000001"))}
+    except (InvalidOperation, ValueError, TypeError):
+        return unavailable
+
+
+def compare_candles(snapshot, state, selection_a=None, selection_b=None):
+    """Read A and B from one current validated snapshot; no viewport/inspection mutation."""
+    state.comparison_notice = None
+    if snapshot is None or not snapshot["candles"]:
+        state.comparison_a = state.comparison_b = state.comparison_identity = None
+        state.comparison_notice = "No validated candles are available for comparison."
+        return None
+    times = [row["time"] for row in snapshot["candles"]]
+    identity = (snapshot["instrument"], *(snapshot["identity"][key] for key in ("generation", "displayDate", "transformEpoch")))
+    incompatible = state.comparison_identity is not None and state.comparison_identity != identity
+    choices = [selection_a if selection_a is not None else state.comparison_a,
+               selection_b if selection_b is not None else state.comparison_b]
+    if incompatible:
+        choices = [None, None]
+        state.comparison_notice = "Comparison identity changed; both selections reset within the current snapshot."
+    for index, default in enumerate((times[0], times[-1])):
+        if choices[index] not in times:
+            if choices[index] is not None:
+                state.comparison_notice = "A selected comparison candle is no longer available; unavailable selections reset within the current snapshot."
+            choices[index] = default
+    # Both projections use this exact snapshot; never retain old values across refresh.
+    records = [inspect_candle(snapshot, InstrumentView(), chosen) for chosen in choices]
+    state.comparison_a, state.comparison_b = choices
+    state.comparison_identity = identity
+    if len(times) == 1:
+        state.comparison_notice = "Only one candle is available; A and B refer to the same candle."
+    return {"a": records[0], "b": records[1], **close_difference(records[0]["close"], records[1]["close"])}
 
 
 def select_history_range(snapshot, state, first, last):
@@ -418,6 +473,30 @@ def _render_content(auto_refresh=False):
         labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
         values = [record[key] for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
         st.table({"Field": labels, "Value": [value if value is not None else "Unavailable" for value in values]})
+    comparison = compare_candles(snapshot, state)
+    comparison_notice = state.comparison_notice
+    with st.container(key="r115_candle_comparison"):
+        st.subheader("Two-candle comparison")
+        selectors = st.columns(2)
+        chosen = []
+        for column, label, value in zip(selectors, ("A", "B"), (state.comparison_a, state.comparison_b)):
+            widget_key = "r115_comparison_" + label + "_" + instrument
+            if st.session_state.get(widget_key) not in available_times or (comparison_notice and comparison_notice.startswith("Comparison identity changed")):
+                st.session_state[widget_key] = value
+            chosen.append(column.selectbox("Candle " + label + " UTC", available_times, key=widget_key))
+        comparison = compare_candles(snapshot, state, *chosen)
+        if comparison_notice:
+            st.info(comparison_notice)
+        st.caption(instrument + " | Exact supplied transformed educational values; not actual quotes. Comparison is independent of chart viewport and single-candle inspection.")
+        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
+        table = {"Field": labels}
+        for name, label in (("a", "A"), ("b", "B")):
+            table[label] = [comparison[name][key] if comparison[name][key] is not None else "Unavailable"
+                            for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
+        st.table(table)
+        st.table({"Presentation-only change": ("Close difference (B minus A)", "Close change % ((B minus A) / A close * 100)"),
+                  "Value": [comparison[key] if comparison[key] is not None else "Unavailable" for key in ("difference", "percent")]})
+        st.caption("B minus A; percentage denominator is A close. Difference: 12 decimal places; percent: 6; round half to even. Both changes unavailable for missing inputs or zero A close. No trading signal or indicator calculation.")
     latest = snapshot["classifications"][-1]
     if latest["validity"] == "Valid":
         st.info("Latest research: " + latest["trend"] + " / " + latest["regime"] + " | trend score " + str(latest["trendScore"]))
