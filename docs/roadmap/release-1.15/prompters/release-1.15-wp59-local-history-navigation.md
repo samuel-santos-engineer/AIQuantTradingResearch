@@ -1,6 +1,6 @@
 # Release 1.15 WP59 - local historical navigation and runtime handoff
 
-Date: 2026-11-14. Status: OFFLINE_IMPLEMENTED; LOCAL_ACCEPTANCE_BLOCKED.
+Date: 2026-11-14. Status: OFFLINE_IMPLEMENTED; TLS_RECOVERED; NEW_NAVIGATION_RUNTIME_ACCEPTANCE_PENDING. Original blocker and subsequent recovery are recorded separately below.
 
 ## Baseline and scope
 
@@ -79,3 +79,38 @@ git diff --check
 Historical WP57 BTC -> ETH -> BTC acceptance remains historical: 1,000 candles per instrument, SMA20 19 null/981 computed, null volume/no bars. It does not qualify this new navigation source. `LOCAL_CHART_VERIFIED=True` is historical only. New WP59 local acceptance is BLOCKED, not complete.
 
 Azure staging is deferred, last observed quota-blocked; no Azure/registry/provider/production operation or quota monitoring occurred in WP59. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. No new claim about authentic import or public readiness is made. Review PR remains OPEN/UNMERGED, with runtime/browser qualification outstanding.
+
+## Owner-authorized local TLS recovery - 2026-11-14
+
+Owner instruction: "continue local tls recovery". This continuation authorizes recovery of the retained local session, not Azure operations or a claim that the WP59 navigation source is deployed.
+
+The original public certificate was subsequently confirmed **expired**. Existing .NET preparation generates one-day TLS plus unrelated service/HMAC keys; it was deliberately not rerun. Instead, an isolated temporary .NET 10 program using the same RSA2048/SHA256, DNS SAN `wp07-research`, CA extension and passwordless PFX/PEM format generated **only** a new TLS pair. Validity is seven days from generation (one-minute not-before tolerance). Temporary output is under a new Windows owner/SYSTEM-protected directory. Framework-only restore used an empty local feed and disabled NuGet auditing; no dependency installation, provider or registry request. No service/HMAC key generation, database initialization or private observation access.
+
+Before mutation, ownership labels, exact accepted image IDs, imported volume ownership/default driver, loopback mapping, matching read-only CA/server mounts, and existing API/UI service-key equality were checked privately. No key values, fingerprints, private paths or certificate contents were published. The original service key was inherited only by the bounded launcher subprocess and cleared from temporary environment dictionaries in finally; plaintext process memory remains inherent to the existing workflow and was not claimed securely erased.
+
+Two recovery-driver issues were diagnosed explicitly:
+
+1. Initial preflight compared Docker Desktop's Linux host-mount path representation to its Windows bind path. It stopped before any container mutation. Corrected normalization proved both referenced the same certificate and were read-only.
+2. Owned Stop succeeded, but the driver attempted JSON parsing of the launcher's text summary. Inspection confirmed both owned containers stopped; Start had not run. Source review corrected parsing to read the launcher's newly created task-owned structured result. The pending Start was executed once; no repeated Stop or restart loop.
+
+The supported launcher replaced only this session's two containers and two networks, using the same accepted API/UI image IDs and existing imported state volume, with the new TLS directory. Original TLS file size/modification metadata remained unchanged; private PFX contents were not read or hashed. The historical preparation and identity manifests were not edited. No reimport, copied database, provider acquisition, image build/pull/push, unrelated resource change or Azure action.
+
+| Recovery verification executed now | Result |
+| --- | --- |
+| New public certificate valid with expected DNS SAN | PASS |
+| Existing API/UI shared-key equality, no disclosure | PASS |
+| Owned Stop | PASS |
+| Owned Start with consistent server TLS/UI CA | PASS |
+| Authenticated TLS snapshot BTC/USD | PASS - 1,000 candles |
+| Authenticated TLS snapshot ETH/USD | PASS - 1,000 candles |
+| Loopback Streamlit readiness | PASS |
+| Same accepted API/UI images and imported volume retained | PASS |
+| Original TLS metadata preserved | PASS |
+| New WP59 navigation image/browser qualification | NOT_RUN |
+| Current browser SMA/controls acceptance | NOT_RUN |
+
+The accepted historical chart is available again at **http://127.0.0.1:18555**. Startup snapshot/readiness evidence establishes recovered TLS transport and snapshot availability, not a fresh browser acceptance or raw-data/database byte audit. No raw candle contents or identity timestamps were reported. This recovery does not refresh or acquire historical observations.
+
+New protected TLS material and private recovery metadata are retained outside Git. The old preparation still references its expired TLS and original UI manifest: **do not restart from that historical manifest blindly**. The active pair uses the new directory through the supported launcher's explicit `AIQ_CHART_TLS` parameter; private operational metadata records the exact target without publishing it. A future startup must use the current consistent TLS pair and recheck validity. The seven-day certificate remains temporary, not an automatic renewal feature.
+
+No application/test code changed during recovery, so the earlier 70-test offline result is retained without rerunning or presenting it as a new test execution. Documentation UTF-8/LF/no BOM and git diff checks were rerun. PR #448 remains draft/open/unmerged. Next local action is a bounded build and browser qualification of the new WP59 UI navigation against retained data; neither is implied by TLS recovery. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
