@@ -86,6 +86,70 @@ class FixtureClient(ResearchSnapshotClient):
         return self.accept(json.dumps(data).encode(), instrument, epoch)
 
 
+class CandleInspectionTests(unittest.TestCase):
+    def test_first_last_exact_values_and_null_semantics_for_both_instruments(self):
+        for instrument in ("BTC/USD", "ETH/USD"):
+            data = fixture(instrument, count=1000)
+            for row in data["candles"]:
+                row["volume"] = None
+            before = copy.deepcopy(data)
+            state = chart.InstrumentView()
+            for index in (0, 19, 999):
+                result = chart.inspect_candle(data, state, data["candles"][index]["time"])
+                self.assertEqual(result, dict(instrument=instrument, **{k: data["candles"][index][k] for k in ("time", "open", "high", "low", "close", "volume")}, sma20=data["analytics"][index]["sma20"]))
+                self.assertEqual(result["sma20"] is None, index < 19)
+                self.assertIsNone(result["volume"])
+            self.assertEqual(data, before)
+            self.assertEqual(state.view, chart.Viewport())
+
+    def test_missing_and_empty_reset_selection(self):
+        for data in (None, fixture(count=0)):
+            state = chart.InstrumentView(inspected_time="2020-01-01T00:00:00Z")
+            self.assertIsNone(chart.inspect_candle(data, state))
+            self.assertIsNone(state.inspected_time)
+            self.assertIn("No validated candle", state.inspection_notice)
+
+    def test_invalid_selection_and_pruned_refresh_are_disclosed(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        result = chart.inspect_candle(data, state, "invalid")
+        self.assertEqual(result["time"], data["candles"][-1]["time"])
+        self.assertIn("reset", state.inspection_notice)
+        chart.inspect_candle(data, state, data["candles"][0]["time"])
+        refreshed = fixture(count=20)
+        result = chart.inspect_candle(refreshed, state)
+        self.assertEqual(result["time"], refreshed["candles"][-1]["time"])
+        self.assertIn("no longer available", state.inspection_notice)
+
+    def test_refresh_retains_selection_and_uses_new_supplied_value(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        chart.inspect_candle(data, state, data["candles"][20]["time"])
+        updated = copy.deepcopy(data)
+        updated["analytics"][20]["sma20"] = "123.000000000000"
+        result = chart.inspect_candle(updated, state)
+        self.assertEqual(result["sma20"], "123.000000000000")
+        self.assertIsNone(state.inspection_notice)
+
+    def test_instrument_switch_preserves_independent_selection_and_viewport(self):
+        states = {symbol: chart.InstrumentView() for symbol in ("BTC/USD", "ETH/USD")}
+        data = {symbol: fixture(symbol, count=30) for symbol in states}
+        for symbol, index in (("BTC/USD", 0), ("ETH/USD", 29), ("BTC/USD", 0)):
+            selection = None if states[symbol].inspected_time else data[symbol]["candles"][index]["time"]
+            result = chart.inspect_candle(data[symbol], states[symbol], selection)
+            self.assertEqual(result["instrument"], symbol)
+            self.assertEqual(result["time"], data[symbol]["candles"][index]["time"])
+            self.assertEqual(states[symbol].view, chart.Viewport())
+
+    def test_volume_is_preserved_when_available_and_misalignment_rejected(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        self.assertEqual(chart.inspect_candle(data, state)["volume"], "1.000000000000")
+        data["analytics"][-1]["time"] = data["candles"][0]["time"]
+        with self.assertRaises(ValueError):
+            chart.inspect_candle(data, state)
+
+
 class HistoricalRangeTests(unittest.TestCase):
     def test_range_preserves_full_snapshot_and_supplied_sma_for_both_instruments(self):
         for instrument in ("BTC/USD", "ETH/USD"):
