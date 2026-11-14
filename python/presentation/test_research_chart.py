@@ -86,6 +86,70 @@ class FixtureClient(ResearchSnapshotClient):
         return self.accept(json.dumps(data).encode(), instrument, epoch)
 
 
+class HistoricalRangeTests(unittest.TestCase):
+    def test_range_preserves_full_snapshot_and_supplied_sma_for_both_instruments(self):
+        for instrument in ("BTC/USD", "ETH/USD"):
+            data = fixture(instrument, count=1000)
+            for row in data["candles"]:
+                row["volume"] = None
+            original = copy.deepcopy(data)
+            state = chart.InstrumentView(preset=1000)
+            count = chart.select_history_range(data, state, data["candles"][100]["time"], data["candles"][199]["time"])
+            self.assertEqual(count, 100)
+            self.assertFalse(state.view.live)
+            payload = chart.component_data(data, state, "offline-session")
+            candles, sma = payload["figure"]["data"][:2]
+            self.assertEqual(len(candles["x"]), 1000)
+            self.assertEqual(candles["x"], sma["x"])
+            self.assertEqual(sum(v is None for v in sma["y"]), 19)
+            self.assertEqual(sum(v is not None for v in sma["y"]), 981)
+            self.assertFalse(any(t["type"] == "bar" for t in payload["figure"]["data"]))
+            self.assertEqual(data, original)
+            self.assertEqual(payload["viewport"]["x"][0], data["candles"][100]["time"])
+            state.view.return_live()
+            self.assertIsNone(state.view.x)
+            self.assertTrue(state.view.live)
+
+    def test_empty_reversed_outside_and_unordered_ranges_fail_without_state_change(self):
+        data = fixture(count=30)
+        first, last = data["candles"][0]["time"], data["candles"][-1]["time"]
+        unordered = copy.deepcopy(data)
+        unordered["candles"].reverse()
+        for snapshot, left, right in ((fixture(count=0), first, last), (data, last, first),
+                                      (data, "2020-01-01T00:00:00Z", last), (unordered, first, last)):
+            state = chart.InstrumentView()
+            original = copy.deepcopy(state)
+            with self.assertRaises(ValueError):
+                chart.select_history_range(snapshot, state, left, right)
+            self.assertEqual(state, original)
+
+    def test_full_range_single_candle_and_stale_gesture(self):
+        data = fixture(count=30)
+        state = chart.InstrumentView()
+        first, last = data["candles"][0]["time"], data["candles"][-1]["time"]
+        self.assertEqual(chart.select_history_range(data, state, first, last), 30)
+        prior = state.view.command_epoch
+        self.assertEqual(chart.select_history_range(data, state, first, first), 1)
+        self.assertGreater(state.view.command_epoch, prior)
+        event = dict(kind="manual", instrument="BTC/USD", identity=dict(data["identity"]),
+                     mount=state.view.mount, revision=state.view.revision + 1, commandEpoch=prior,
+                     x=[first, last], y=[1, 2], y2=[1, 2], y3=None)
+        before = copy.deepcopy(state)
+        with self.assertRaises(ValueError):
+            state.view.accept(event, "BTC/USD", data["identity"])
+        self.assertEqual(state, before)
+        self.assertEqual(chart._date(state.view.x[1]) - chart._date(state.view.x[0]), timedelta(minutes=1))
+
+
+    def test_gaps_remain_disclosed_instead_of_being_filled(self):
+        data = fixture(count=2, gap=True)
+        before = copy.deepcopy(data)
+        state = chart.InstrumentView()
+        self.assertEqual(chart.select_history_range(data, state, data["candles"][0]["time"], data["candles"][-1]["time"]), 2)
+        self.assertEqual(data, before)
+        self.assertEqual(len(chart.build_figure(data, state)["layout"]["shapes"]), 1)
+
+
 class ProjectionTests(unittest.TestCase):
     def snapshot(self, count=401, gap=False, instrument="BTC/USD"):
         return FixtureClient(count, gap).fetch(instrument)
