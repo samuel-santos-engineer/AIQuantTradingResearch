@@ -1,6 +1,6 @@
 # Release 1.15 WP60 - local historical candle inspection
 
-Date: 2026-11-14. Status: IMPLEMENTED; BROWSER_QUALIFICATION_PENDING.
+Date: 2026-11-14. Status: LOCAL_BROWSER_QUALIFICATION_PASS; OWNER_REVIEW_PENDING.
 
 ## Baseline and implementation
 
@@ -50,3 +50,35 @@ The audited context contains exactly the existing ten allowlisted presentation s
 NOT_RUN at initial draft publication. A bounded actual Chrome pass will compare first/warmup/populated/last inspection rows to authenticated DTO fields in memory, emitting only equality booleans/counts. No raw observations, timestamps, screenshots, private paths or keys will be published. Existing fake tests cover missing/empty/pruned refresh cases without damaging retained authentic state.
 
 PR initially draft and OPEN/UNMERGED. No merge, Azure/quota/registry/production/provider/acquisition/schema/API/dependency/storage operations. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## Final actual browser and preservation evidence
+
+The PR was opened initially as draft **#449**, after the implementation/tests/build/readiness evidence and before browser execution. Two bounded actual installed-Chrome sessions used the existing venv/websockets and qualified WP59 browser harness, with owned profiles, fixed1280x1200 viewport, loopback CDP and disabled background networking/component updates/sync. Owned Chrome was closed after each run. No new dependency, app event channel or application JavaScript change.
+
+First pass: BTC first/index0, first populated SMA/index19 and last/index999 rows matched authenticated DTO fields exactly; ETH baseline/last also matched. It stopped at ETH's first-candle selection using keyboard navigation of the filtered dropdown. This was reported as partial, not accepted. The temporary driver then used an explicit real mouse click on the exact filtered native option, with focus/option/result stages. The second complete pass succeeded; no application correction or rebuild was necessary. This establishes successful explicit selection, not a diagnosis of every keyboard behavior in the underlying widget.
+
+Reference data came through the existing authenticated local DTO client in a captured in-memory pipe; no reference prices/timestamps or DTO JSON were saved/printed. Browser table UTC/OHLC/volume/SMA20 strings were compared in memory against the selected DTO row. Only equality results and relative indices/counts were emitted. Browser input used native focus/typing/option clicks, never value assignment or application-state injection. Actual command:
+
+```text
+<existing-project-venv-python> -B <owned-qualification-directory>/browser.py
+```
+
+Reproduce manually at the loopback URL: select BTC, inspect first/20th/last UTC options, then ETH first/20th/last, then return BTC and confirm its prior selection. Inspect outside a selected range intentionally; change range/preset, pan, Return to Live and Refresh, confirming the table remains selected independently. No additional provider history is acquired.
+
+| Final measured browser check | BTC/USD | ETH/USD |
+| --- | --- | --- |
+| Correct mounted chart,1,000 loaded candles | PASS | PASS |
+| First candle exact DTO timestamp/OHLC; null SMA unavailable | PASS | PASS |
+| Index19 exact DTO values and supplied populated SMA20 | PASS | PASS |
+| Last candle exact DTO fields and SMA20 | PASS | PASS |
+| Null volume displayed Unavailable | PASS | PASS |
+| Full chart SMA20 aligned;19 null/981 computed | PASS | PASS |
+| No volume bars; unavailable-volume disclosure; modebar | PASS | PASS |
+
+BTC -> ETH -> BTC **PASS**, including restored BTC first-candle selection independent of ETH's last-candle selection. Navigation coexistence **PASS**: bounded indices5..20/16-candle viewport, single-candle0..0, full1,000, preset100, Return to Live restoring100, real pan followed by explicit range and settled preservation, explicit Refresh retaining inspection, final preset1000. The inspection table retained the chosen first candle throughout navigation; loaded arrays remained1,000. No claim of forced obsolete-event replay or exhaustive race testing.
+
+Post-browser authenticated DTO check **PASS**: both symbols1,000 rows, all volume fields null, supplied SMA20 null19/computed981. Post-browser resource inspection **PASS**: same API image, same imported volume identity/ownership labels, matching existing shared service key, new WP60 UI running, loopback port, WP59 rollback UI and accepted historical pair still present. The API container was recreated by the supported launcher; no database byte audit or claim of unchanged every SQLite byte. No rollback needed; ledger retained privately. No new initialization, data transfer, acquisition or key/TLS regeneration.
+
+Browser empty/missing/pruned dataset fault injection **NOT_RUN**, to preserve retained authentic state; the focused fake-only cases verify these conditions and reset disclosure. Refresh retention was browser-tested; a real historical pruning/reset was not induced. The inspection panel intentionally displays transformed educational API values, not raw provider quotes; no rounding/recomputation. Selection is session-only, independent of viewport and per instrument. TLS remains the existing temporary seven-day pair and needs validity checks before future startup.
+
+Only the final evidence append changed after the built source; image source still matches the implementation commit. All76 focused tests passed on that source. UTF-8/LF/no BOM checks (working files and staged blobs) and git diff --check passed before publication. No API/schema/dependency/JavaScript changes. **Local acceptance recommended; PR #449 may be marked ready after these passes and must remain OPEN/UNMERGED.** Local URL remains **http://127.0.0.1:18555**. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`; Azure remains deferred and no Azure/provider/registry/production operation occurred.
