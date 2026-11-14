@@ -66,3 +66,13 @@ Deployment is NOT complete. Immediate external blocker is exceeded F1 stop quota
 This new one-file deployment-evidence PR preserves existing #445/#446. No application tests rerun for documentation; prior Windows133/fake-Linux failures remain historical. Actual fake storage probe result above only. UTF-8/LF/no BOM and git diff --check verified before commit. No production action or merge.
 
 LOCAL_CHART_VERIFIED=True (historical WP57); AUTHENTIC_DATA_NOT_IMPORTED=False (local historical import only); PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+## Reconciliation with current main - 2026-11-14
+
+This is a documentation-only current-status addendum. The dated Phase G measurements above remain unchanged as historical observations; their references to PR #445 as OPEN/UNMERGED and to WP57 as the latest local chart qualification describe the original execution date, **not current GitHub status**.
+
+PR #445 (WP58 public-runtime qualification plan) has since been reconciled and squash-merged into `main` as `34f2600d13ede22666427ebca71c02cb72cb4cdb`. Its historical Phase A-E findings remain separate from this Phase G deployment record. WP59 PR #448 merged as `322d21f717ac010136f378c437ab600cf79b7251` (local history navigation), and WP60 PR #449 merged as `0cfb4886db626aab7487ce3ac7794e6d818e5fac` (local read-only candle inspection, 76 focused tests and BTC/ETH browser acceptance). These local UI advances **do not** change the older WP57 UI image actually published or the API image configured in Phase G; neither newer UI was promoted to Azure by this PR. WP61 work is separate and not modified here.
+
+PR #446 remains open and unmerged, with Linux initializer test qualification unresolved; its local SDK IOException is not evidence of an Azure exception. Phase G's OCI publication/readback PASS does not establish the actual running API digest or serving readiness. Its observed API HTTP FAIL, F1 quota EXCEEDED, UI NOT_RUN, cloud dataset UNKNOWN, and rollback NOT_RUN remain the operative staging findings. Do not treat the historical next-step proposals as current authorization for Azure actions, or introduce a new licensing gate for local chart development.
+
+Current reported boundaries: `LOCAL_CHART_VERIFIED=True` (WP60 local acceptance), `AUTHENTIC_DATA_NOT_IMPORTED=False` (retained local import), `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`. No Azure/provider/registry/production action, API code, schema, dependencies or runtime state was changed by this reconciliation.
