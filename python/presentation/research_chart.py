@@ -4,6 +4,7 @@ AIQ_RESEARCH_CHART=1 opts into this UI; credentials stay in the Streamlit proces
 """
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal, InvalidOperation, ROUND_HALF_EVEN, localcontext
 from functools import lru_cache
 import json
 import math
@@ -125,6 +126,12 @@ class InstrumentView:
     notice: str | None = None
     last_event: str | None = None
     last_attempt: float | None = None
+    inspected_time: str | None = None
+    inspection_notice: str | None = None
+    comparison_a: str | None = None
+    comparison_b: str | None = None
+    comparison_identity: tuple | None = None
+    comparison_notice: str | None = None
 
     def reconcile(self, snapshot):
         current = tuple(snapshot["identity"][k] for k in ("generation", "version", "displayDate", "transformEpoch"))
@@ -135,6 +142,95 @@ class InstrumentView:
             self.notice = "Dataset generation changed; history was replaced." if generation else "Transformation date or epoch changed; the chart was rebuilt." if rebuild else None
         self.identity = current
         self.view.reconcile(snapshot["candles"])
+
+
+def inspect_candle(snapshot, state, selection=None):
+    """Project one validated DTO row without rounding, calculation, or viewport changes."""
+    state.inspection_notice = None
+    if snapshot is None or not snapshot["candles"]:
+        state.inspected_time = None
+        state.inspection_notice = "No validated candle is available for inspection."
+        return None
+    rows = snapshot["candles"]
+    times = [row["time"] for row in rows]
+    selected = selection if selection is not None else state.inspected_time
+    if selected not in times:
+        if selected is not None:
+            state.inspection_notice = "Selected candle is no longer available; inspection reset to the latest available candle."
+        selected = times[-1]
+    index = times.index(selected)
+    row, analytic = rows[index], snapshot["analytics"][index]
+    if analytic["time"] != row["time"]:
+        raise ValueError("Candle inspection requires aligned API analytics.")
+    state.inspected_time = selected
+    return {"instrument": snapshot["instrument"], "time": selected,
+            **{key: row[key] for key in ("open", "high", "low", "close", "volume")},
+            "sma20": analytic["sma20"]}
+
+
+def close_difference(close_a, close_b):
+    """Presentation only: B-A to 12 decimals; (B-A)/A*100 to 6; half-even, no -0."""
+    unavailable = {"difference": None, "percent": None}
+    if not isinstance(close_a, str) or not isinstance(close_b, str):
+        return unavailable
+    try:
+        with localcontext() as context:
+            context.prec = 100  # Covers DTO magnitudes and twelve fractional input digits.
+            a, b = Decimal(close_a), Decimal(close_b)
+            if not a.is_finite() or not b.is_finite() or a == 0:
+                return unavailable
+            delta = b - a
+            def display(value, places):
+                rounded = value.quantize(places, rounding=ROUND_HALF_EVEN)
+                return format(abs(rounded) if rounded.is_zero() else rounded, "f")
+            return {"difference": display(delta, Decimal("0.000000000001")),
+                    "percent": display(delta / a * 100, Decimal("0.000001"))}
+    except (InvalidOperation, ValueError, TypeError):
+        return unavailable
+
+
+def compare_candles(snapshot, state, selection_a=None, selection_b=None):
+    """Read A and B from one current validated snapshot; no viewport/inspection mutation."""
+    state.comparison_notice = None
+    if snapshot is None or not snapshot["candles"]:
+        state.comparison_a = state.comparison_b = state.comparison_identity = None
+        state.comparison_notice = "No validated candles are available for comparison."
+        return None
+    times = [row["time"] for row in snapshot["candles"]]
+    identity = (snapshot["instrument"], *(snapshot["identity"][key] for key in ("generation", "displayDate", "transformEpoch")))
+    incompatible = state.comparison_identity is not None and state.comparison_identity != identity
+    choices = [selection_a if selection_a is not None else state.comparison_a,
+               selection_b if selection_b is not None else state.comparison_b]
+    if incompatible:
+        choices = [None, None]
+        state.comparison_notice = "Comparison identity changed; both selections reset within the current snapshot."
+    for index, default in enumerate((times[0], times[-1])):
+        if choices[index] not in times:
+            if choices[index] is not None:
+                state.comparison_notice = "A selected comparison candle is no longer available; unavailable selections reset within the current snapshot."
+            choices[index] = default
+    # Both projections use this exact snapshot; never retain old values across refresh.
+    records = [inspect_candle(snapshot, InstrumentView(), chosen) for chosen in choices]
+    state.comparison_a, state.comparison_b = choices
+    state.comparison_identity = identity
+    if len(times) == 1:
+        state.comparison_notice = "Only one candle is available; A and B refer to the same candle."
+    return {"a": records[0], "b": records[1], **close_difference(records[0]["close"], records[1]["close"])}
+
+
+def select_history_range(snapshot, state, first, last):
+    """Select inclusive candle bounds in the validated snapshot; never slice/recompute analytics."""
+    rows = snapshot["candles"]
+    times = [row["time"] for row in rows]
+    if not times or any(_date(a) >= _date(b) for a, b in zip(times, times[1:])):
+        raise ValueError("Historical candles must be nonempty and strictly ordered.")
+    if first not in times or last not in times or _date(first) > _date(last):
+        raise ValueError("Choose ordered bounds within the available snapshot.")
+    count = times.index(last) - times.index(first) + 1
+    state.view.return_live()  # Invalidates pending gestures before issuing the explicit range command.
+    state.view.x = (first, (_date(last) + timedelta(minutes=1)).isoformat().replace("+00:00", "Z"))
+    state.view.live = False
+    return count
 
 
 def acquire(client, instrument, state, now=None, force=False):
@@ -277,6 +373,49 @@ def availability_message(state):
     }.get(state)
 
 
+def comparison_selection_changed(state, side, widgets, key):
+    """Streamlit invokes this before rerun: explicit user intent updates the model."""
+    setattr(state, "comparison_a" if side == "A" else "comparison_b", widgets.get(key))
+
+
+def render_candle_comparison(st, snapshot, state):
+    instrument = snapshot["instrument"] if snapshot is not None else (state.comparison_identity[0] if state.comparison_identity else None)
+    # User callbacks already applied intent. Reconcile once, then publish both values
+    # before widget creation; stale widget state never undoes an authoritative reset.
+    comparison = compare_candles(snapshot, state)
+    if comparison is None:
+        if instrument is not None:
+            for side in ("A", "B"):
+                st.session_state.pop("r115_comparison_" + side + "_" + instrument, None)
+        st.info(state.comparison_notice)
+        return None
+    available_times = [row["time"] for row in snapshot["candles"]]
+    comparison_notice = state.comparison_notice
+    with st.container(key="r115_candle_comparison"):
+        st.subheader("Two-candle comparison")
+        selectors = st.columns(2)
+        for column, label, value in zip(selectors, ("A", "B"), (state.comparison_a, state.comparison_b)):
+            widget_key = "r115_comparison_" + label + "_" + instrument
+            if st.session_state.get(widget_key) != value:
+                st.session_state[widget_key] = value
+            column.selectbox("Candle " + label + " UTC", available_times, key=widget_key,
+                             on_change=comparison_selection_changed,
+                             args=(state, label, st.session_state, widget_key))
+        if comparison_notice:
+            st.info(comparison_notice)
+        st.caption(instrument + " | Exact supplied transformed educational values; not actual quotes. Comparison is independent of chart viewport and single-candle inspection.")
+        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
+        table = {"Field": labels}
+        for name, label in (("a", "A"), ("b", "B")):
+            table[label] = [comparison[name][key] if comparison[name][key] is not None else "Unavailable"
+                            for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
+        st.table(table)
+        st.table({"Presentation-only change": ("Close difference (B minus A)", "Close change % ((B minus A) / A close * 100)"),
+                  "Value": [comparison[key] if comparison[key] is not None else "Unavailable" for key in ("difference", "percent")]})
+        st.caption("B minus A; percentage denominator is A close. Difference: 12 decimal places; percent: 6; round half to even. Both changes unavailable for missing inputs or zero A close. No trading signal or indicator calculation.")
+    return comparison
+
+
 def _render_content(auto_refresh=False):
     import streamlit as st
     st.title("Historical Crypto Research")
@@ -347,6 +486,37 @@ def _render_content(auto_refresh=False):
         return
     state.view.reconcile(rows)
     st.caption(str(len(rows)) + " retained candles | " + rows[0]["time"] + " to " + rows[-1]["time"] + " UTC | " + str(len(snapshot["marketDataGapIntervals"])) + " market-data gaps | " + str(len(snapshot["researchUnavailableIntervals"])) + " research-unavailable intervals. Presets count candles, not elapsed minutes.")
+    # Bounds refer only to this validated snapshot, not arbitrary provider history.
+    with st.expander("Navigate available history (UTC)"):
+        times = [row["time"] for row in rows]
+        with st.form("r115_range_" + instrument):
+            bounds = st.select_slider("First and last candle (inclusive)", options=times,
+                                      value=(times[0], times[-1]), key="r115_bounds_" + instrument + "_" + str(state.view.mount))
+            apply_range = st.form_submit_button("Apply historical range")
+        if apply_range:
+            try:
+                count = select_history_range(snapshot, state, *bounds)
+                st.success(str(count) + " candles in selected UTC bounds; supplied indicators retain their full-history warmup.")
+            except ValueError as error:
+                st.warning(str(error))
+        st.caption("Navigation changes the viewport only. No additional history is acquired; gaps remain disclosed. Return to Live restores the selected candle preset.")
+    record = inspect_candle(snapshot, state)
+    inspection_notice = state.inspection_notice
+    with st.container(key="r115_candle_inspection"):
+        st.subheader("Candle inspection")
+        inspection_key = "r115_inspection_" + instrument
+        available_times = [row["time"] for row in rows]
+        if st.session_state.get(inspection_key) not in available_times:
+            st.session_state[inspection_key] = state.inspected_time
+        selected = st.selectbox("Inspect UTC candle", available_times, key=inspection_key)
+        record = inspect_candle(snapshot, state, selected)
+        if inspection_notice:
+            st.info(inspection_notice)
+        st.caption(instrument + " | Exact API-supplied transformed educational values; not actual quotes. UTC candle start; no additional acquisition.")
+        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
+        values = [record[key] for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
+        st.table({"Field": labels, "Value": [value if value is not None else "Unavailable" for value in values]})
+    render_candle_comparison(st, snapshot, state)
     latest = snapshot["classifications"][-1]
     if latest["validity"] == "Valid":
         st.info("Latest research: " + latest["trend"] + " / " + latest["regime"] + " | trend score " + str(latest["trendScore"]))
