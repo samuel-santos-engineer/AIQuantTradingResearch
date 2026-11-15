@@ -31,3 +31,10 @@ Smallest separately approvable next action: **offline-only review of authoritati
 No app HTTP requests, start/stop/restart, deployment, configuration edit, log stream, app settings/key/private-data/provider/registry/Docker operation occurred. Only one read-only quota GET. No source/test/runtime changes. Documentation-only PR left OPEN/UNMERGED. UTF-8/LF/no BOM, relative link, Markdown table structure, one-file inventory and git diff --check validated before publication; no application tests warranted.
 
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Public documentation review ? 2026-11-15
+
+Separate continuation reviewed public Microsoft Learn documentation only; zero Azure management/staging requests. The [exact API2023-12-01 List Usages reference](https://learn.microsoft.com/en-us/rest/api/appservice/app-service-plans/list-usages?view=rest-appservice-2023-12-01), CsmUsageQuota definition, types nextResetTime as string(date-time) and describes its next-reset purpose. It does not specify an assumed timezone for an offset-free returned value, nor a last-updated field or freshness guarantee for the counter in the listed quota schema. This bounded reference review does not establish that no other Microsoft documentation defines these semantics. No UTC assumption or freshness promise derived from it. A direct public raw-spec URL lookup returned404 and supplied no additional schema evidence.
+
+Consequently the ambiguity stop remains justified under WP62-B as written; no event read or new quota query followed. Practical proposed owner amendment: allow supplied reset timestamps to remain UNKNOWN without blocking only the already bounded research-app event observation, when a newly approved quota snapshot reports valid current/limit below threshold. Keep freshness uncertainty explicit; stop for exceeded/missing/malformed counters, unsafe data or request failure. This is a proposed policy disposition for this task, not an implemented rule or a technical fix. Until explicitly approved, no further live operation. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
