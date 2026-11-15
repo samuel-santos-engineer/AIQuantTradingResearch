@@ -373,6 +373,49 @@ def availability_message(state):
     }.get(state)
 
 
+def comparison_selection_changed(state, side, widgets, key):
+    """Streamlit invokes this before rerun: explicit user intent updates the model."""
+    setattr(state, "comparison_a" if side == "A" else "comparison_b", widgets.get(key))
+
+
+def render_candle_comparison(st, snapshot, state):
+    instrument = snapshot["instrument"] if snapshot is not None else (state.comparison_identity[0] if state.comparison_identity else None)
+    # User callbacks already applied intent. Reconcile once, then publish both values
+    # before widget creation; stale widget state never undoes an authoritative reset.
+    comparison = compare_candles(snapshot, state)
+    if comparison is None:
+        if instrument is not None:
+            for side in ("A", "B"):
+                st.session_state.pop("r115_comparison_" + side + "_" + instrument, None)
+        st.info(state.comparison_notice)
+        return None
+    available_times = [row["time"] for row in snapshot["candles"]]
+    comparison_notice = state.comparison_notice
+    with st.container(key="r115_candle_comparison"):
+        st.subheader("Two-candle comparison")
+        selectors = st.columns(2)
+        for column, label, value in zip(selectors, ("A", "B"), (state.comparison_a, state.comparison_b)):
+            widget_key = "r115_comparison_" + label + "_" + instrument
+            if st.session_state.get(widget_key) != value:
+                st.session_state[widget_key] = value
+            column.selectbox("Candle " + label + " UTC", available_times, key=widget_key,
+                             on_change=comparison_selection_changed,
+                             args=(state, label, st.session_state, widget_key))
+        if comparison_notice:
+            st.info(comparison_notice)
+        st.caption(instrument + " | Exact supplied transformed educational values; not actual quotes. Comparison is independent of chart viewport and single-candle inspection.")
+        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
+        table = {"Field": labels}
+        for name, label in (("a", "A"), ("b", "B")):
+            table[label] = [comparison[name][key] if comparison[name][key] is not None else "Unavailable"
+                            for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
+        st.table(table)
+        st.table({"Presentation-only change": ("Close difference (B minus A)", "Close change % ((B minus A) / A close * 100)"),
+                  "Value": [comparison[key] if comparison[key] is not None else "Unavailable" for key in ("difference", "percent")]})
+        st.caption("B minus A; percentage denominator is A close. Difference: 12 decimal places; percent: 6; round half to even. Both changes unavailable for missing inputs or zero A close. No trading signal or indicator calculation.")
+    return comparison
+
+
 def _render_content(auto_refresh=False):
     import streamlit as st
     st.title("Historical Crypto Research")
@@ -473,30 +516,7 @@ def _render_content(auto_refresh=False):
         labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
         values = [record[key] for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
         st.table({"Field": labels, "Value": [value if value is not None else "Unavailable" for value in values]})
-    comparison = compare_candles(snapshot, state)
-    comparison_notice = state.comparison_notice
-    with st.container(key="r115_candle_comparison"):
-        st.subheader("Two-candle comparison")
-        selectors = st.columns(2)
-        chosen = []
-        for column, label, value in zip(selectors, ("A", "B"), (state.comparison_a, state.comparison_b)):
-            widget_key = "r115_comparison_" + label + "_" + instrument
-            if st.session_state.get(widget_key) not in available_times or (comparison_notice and comparison_notice.startswith("Comparison identity changed")):
-                st.session_state[widget_key] = value
-            chosen.append(column.selectbox("Candle " + label + " UTC", available_times, key=widget_key))
-        comparison = compare_candles(snapshot, state, *chosen)
-        if comparison_notice:
-            st.info(comparison_notice)
-        st.caption(instrument + " | Exact supplied transformed educational values; not actual quotes. Comparison is independent of chart viewport and single-candle inspection.")
-        labels = ("UTC", "Open", "High", "Low", "Close", "Volume", "SMA20")
-        table = {"Field": labels}
-        for name, label in (("a", "A"), ("b", "B")):
-            table[label] = [comparison[name][key] if comparison[name][key] is not None else "Unavailable"
-                            for key in ("time", "open", "high", "low", "close", "volume", "sma20")]
-        st.table(table)
-        st.table({"Presentation-only change": ("Close difference (B minus A)", "Close change % ((B minus A) / A close * 100)"),
-                  "Value": [comparison[key] if comparison[key] is not None else "Unavailable" for key in ("difference", "percent")]})
-        st.caption("B minus A; percentage denominator is A close. Difference: 12 decimal places; percent: 6; round half to even. Both changes unavailable for missing inputs or zero A close. No trading signal or indicator calculation.")
+    render_candle_comparison(st, snapshot, state)
     latest = snapshot["classifications"][-1]
     if latest["validity"] == "Valid":
         st.info("Latest research: " + latest["trend"] + " / " + latest["regime"] + " | trend score " + str(latest["trendScore"]))

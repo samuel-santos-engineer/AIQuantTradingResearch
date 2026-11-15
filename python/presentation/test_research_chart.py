@@ -86,6 +86,146 @@ class FixtureClient(ResearchSnapshotClient):
         return self.accept(json.dumps(data).encode(), instrument, epoch)
 
 
+class ComparisonStreamlitFake:
+    """Model keyed values, pre-creation writes and real on_change callback ordering."""
+    def __init__(self, values=None):
+        self.session_state = dict(values or {})
+        self.callbacks = {}
+        self.messages = []
+        self.tables = []
+        self.created = []
+    def __enter__(self): return self
+    def __exit__(self, *args): return False
+    def container(self, **kwargs): return self
+    def columns(self, count): return [self] * count
+    def subheader(self, *args): pass
+    def caption(self, *args): pass
+    def info(self, message): self.messages.append(message)
+    def table(self, value): self.tables.append(copy.deepcopy(value))
+    def selectbox(self, label, options, *, key, on_change=None, args=()):
+        assert options and self.session_state[key] in options, "Invalid comparison widget state at creation"
+        self.created.append((key, self.session_state[key]))
+        self.callbacks[key] = (on_change, args)
+        return self.session_state[key]
+    def user_change(self, key, value):
+        self.session_state[key] = value
+        callback, args = self.callbacks[key]
+        assert callback is not None, "Native user intent needs a pre-rerun callback"
+        callback(*args)
+
+
+class ComparisonWidgetHandshakeTests(unittest.TestCase):
+    def setup_case(self, symbol="BTC/USD", count=30):
+        data = fixture(symbol, count=count)
+        state = chart.InstrumentView()
+        chart.compare_candles(data, state)
+        keys = ["r115_comparison_" + side + "_" + symbol for side in ("A", "B")]
+        fake = ComparisonStreamlitFake(dict(zip(keys, (state.comparison_a, state.comparison_b))))
+        return data, state, keys, fake
+
+    def test_pruning_authoritative_reset_overrides_stale_but_valid_widget_value(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            data, state, keys, fake = self.setup_case(symbol)
+            # Model's A was removed, but the keyed widget still holds a different surviving UTC.
+            pruned = fixture(symbol, count=20)
+            fake.session_state[keys[0]] = data["candles"][15]["time"]
+            before = copy.deepcopy(pruned)
+            result = chart.render_candle_comparison(fake, pruned, state)
+            expected = pruned["candles"][0]["time"]
+            self.assertEqual(state.comparison_a, expected)
+            self.assertEqual(fake.session_state[keys[0]], expected)
+            self.assertEqual(result["a"]["time"], expected)
+            self.assertEqual(fake.created[0], (keys[0], expected))
+            self.assertIn("no longer available", state.comparison_notice)
+            self.assertTrue(any("no longer available" in msg for msg in fake.messages))
+            self.assertEqual(pruned, before)
+            # A removed widget timestamp is also repaired before widget creation.
+            fake.session_state[keys[1]] = "removed"
+            chart.render_candle_comparison(fake, pruned, state)
+            self.assertEqual(fake.session_state[keys[1]], state.comparison_b)
+
+    def test_identity_reset_synchronizes_both_widgets_and_preserves_notice_once(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            for key, value in (("generation", "replacement"), ("displayDate", "2026-10-24"), ("transformEpoch", "2")):
+                data, state, keys, fake = self.setup_case(symbol)
+                chart.compare_candles(data, state, data["candles"][10]["time"], data["candles"][15]["time"])
+                fake.session_state.update(dict(zip(keys, (state.comparison_a, state.comparison_b))))
+                changed = copy.deepcopy(data); changed["identity"][key] = value
+                with patch.object(chart, "compare_candles", wraps=chart.compare_candles) as reconcile:
+                    result = chart.render_candle_comparison(fake, changed, state)
+                self.assertEqual(reconcile.call_count, 1)
+                self.assertEqual([fake.session_state[k] for k in keys], [data["candles"][0]["time"], data["candles"][-1]["time"]])
+                self.assertIn("identity changed", state.comparison_notice)
+                self.assertEqual(result["a"]["time"], state.comparison_a)
+
+    def test_user_callbacks_preserve_intent_even_if_previous_selection_was_pruned(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            data, state, keys, fake = self.setup_case(symbol)
+            chart.render_candle_comparison(fake, data, state)
+            for key, index in zip(keys, (15, 20)):
+                fake.user_change(key, data["candles"][index]["time"])
+                result = chart.render_candle_comparison(fake, data, state)
+            self.assertEqual(result["a"]["time"], data["candles"][15]["time"])
+            self.assertEqual(result["b"]["time"], data["candles"][20]["time"])
+            # New user intent is applied before the rerun sees a pruned snapshot.
+            fake.user_change(keys[0], data["candles"][19]["time"])
+            result = chart.render_candle_comparison(fake, fixture(symbol, count=20), state)
+            self.assertEqual(result["a"]["time"], data["candles"][19]["time"])
+            self.assertIsNone(state.comparison_notice)
+
+    def test_compatible_version_uses_current_values_without_mutating_other_state(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            data, state, keys, fake = self.setup_case(symbol)
+            state.inspected_time = data["candles"][5]["time"]
+            state.view.x = (data["candles"][3]["time"], data["candles"][9]["time"])
+            view = copy.deepcopy(state.view)
+            chart.render_candle_comparison(fake, data, state)
+            fake.user_change(keys[0], data["candles"][19]["time"])
+            updated = copy.deepcopy(data);updated["identity"]["version"] = "2"
+            updated["candles"][19]["close"] = "1.000000000000"
+            updated["candles"][-1]["close"] = "2.000000000000"
+            before = copy.deepcopy(updated)
+            result = chart.render_candle_comparison(fake, updated, state)
+            self.assertEqual(result["difference"], "1.000000000000")
+            self.assertEqual(result["percent"], "100.000000")
+            self.assertIsNone(state.comparison_notice)
+            self.assertEqual(state.view, view)
+            self.assertEqual(state.inspected_time, data["candles"][5]["time"])
+            self.assertEqual(updated, before)
+
+    def test_widget_callbacks_are_independent_across_instruments_and_sessions(self):
+        btc, btc_state, btc_keys, session = self.setup_case("BTC/USD")
+        eth, eth_state, eth_keys, _ = self.setup_case("ETH/USD")
+        chart.render_candle_comparison(session, btc, btc_state)
+        session.user_change(btc_keys[0], btc["candles"][19]["time"])
+        chart.render_candle_comparison(session, eth, eth_state)
+        session.user_change(eth_keys[1], eth["candles"][20]["time"])
+        chart.render_candle_comparison(session, btc, btc_state)
+        self.assertEqual(btc_state.comparison_a, btc["candles"][19]["time"])
+        self.assertEqual(eth_state.comparison_b, eth["candles"][20]["time"])
+        _, other_state, other_keys, other_session = self.setup_case("BTC/USD")
+        chart.render_candle_comparison(other_session, btc, other_state)
+        other_session.user_change(other_keys[0], btc["candles"][5]["time"])
+        chart.render_candle_comparison(other_session, btc, other_state)
+        self.assertEqual(other_state.comparison_a, btc["candles"][5]["time"])
+        self.assertEqual(session.session_state[btc_keys[0]], btc["candles"][19]["time"])
+        self.assertEqual(session.session_state[eth_keys[1]], eth["candles"][20]["time"])
+
+    def test_empty_missing_and_single_candle_do_not_create_invalid_widgets(self):
+        for symbol in ("BTC/USD", "ETH/USD"):
+            data, state, keys, fake = self.setup_case(symbol)
+            for empty in (fixture(symbol, count=0), None):
+                self.assertIsNone(chart.render_candle_comparison(fake, empty, state))
+                self.assertFalse(fake.created)
+                self.assertTrue(all(key not in fake.session_state for key in keys))
+                self.assertIn("No validated", fake.messages[-1])
+            one = fixture(symbol, count=1)
+            result = chart.render_candle_comparison(fake, one, state)
+            self.assertEqual(result["a"], result["b"])
+            self.assertEqual([fake.session_state[k] for k in keys], [one["candles"][0]["time"]] * 2)
+            self.assertIn("Only one", state.comparison_notice)
+
+
 class CandleComparisonTests(unittest.TestCase):
     def test_both_instruments_first_last_same_and_reversed_exact_projection(self):
         for symbol in ("BTC/USD", "ETH/USD"):
