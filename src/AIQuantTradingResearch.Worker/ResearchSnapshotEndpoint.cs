@@ -125,23 +125,38 @@ public static class ResearchSnapshotEndpoint
         catch (DirectoryNotFoundException) { return null; }
         return new SqliteResearchStateStore(directory, true);
     }
-    public static async Task<int> RunAsync()
+    public static Task<int> RunAsync() => RunAsync(Environment.GetEnvironmentVariable, Console.Error);
+
+    /// <summary>Explicit configuration and diagnostic sinks; diagnostics never include supplied values.</summary>
+    public static async Task<int> RunAsync(Func<string, string?> setting, TextWriter diagnostics)
     {
+        var stage = "CONFIGURATION";
         try
         {
-            var directory = Environment.GetEnvironmentVariable("AIQ_RESEARCH_PRIVATE_DIRECTORY") ?? throw new ArgumentException();
-            var key = Environment.GetEnvironmentVariable("AIQ_RESEARCH_API_KEY") ?? throw new ArgumentException();
-            var transport = ResearchSnapshotTransport.FromSettings(Environment.GetEnvironmentVariable);
+            var directory = setting("AIQ_RESEARCH_PRIVATE_DIRECTORY") ?? throw new ArgumentException("Research configuration unavailable.");
+            var key = setting("AIQ_RESEARCH_API_KEY") ?? throw new ArgumentException("Research configuration unavailable.");
+            stage = "TRANSPORT";
+            var transport = ResearchSnapshotTransport.FromSettings(setting);
+            stage = "TLS";
             using var certificate = transport.PlatformHttp ? null : X509CertificateLoader.LoadPkcs12FromFile(
-                Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException(),
-                Environment.GetEnvironmentVariable("AIQ_RESEARCH_TLS_PASSWORD"));
+                setting("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException("Research configuration unavailable."),
+                setting("AIQ_RESEARCH_TLS_PASSWORD"));
+            stage = "STORAGE";
             using var store = OpenExistingStore(directory);
             store?.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
-            var addressText = Environment.GetEnvironmentVariable("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
-            if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException();
+            stage = "LISTENER";
+            var addressText = setting("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
+            if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException("Research configuration unavailable.");
             await using var app = Create(store is null ? null : new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText), transport);
+            app.Lifetime.ApplicationStarted.Register(() => diagnostics.WriteLine("Research snapshot listener started."));
+            stage = "SERVING";
             await app.RunAsync(); return 0;
         }
-        catch { Console.Error.WriteLine("Research snapshot service unavailable."); return 1; }
+        catch
+        {
+            // Only fixed control-flow labels: never exception text, paths, settings or credentials.
+            await diagnostics.WriteLineAsync("Research snapshot service unavailable. stage=" + stage);
+            return 1;
+        }
     }
 }

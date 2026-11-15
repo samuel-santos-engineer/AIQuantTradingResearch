@@ -19,6 +19,57 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 
 public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutputHelper evidence)
 {
+    [Theory]
+    [InlineData("CONFIGURATION")]
+    [InlineData("TRANSPORT")]
+    [InlineData("TLS")]
+    [InlineData("STORAGE")]
+    [InlineData("LISTENER")]
+    public async Task StartupFailureReportsOnlyFixedStage(string stage)
+    {
+        using var directory = new ResearchTestDirectory();
+        var certificateFile = Path.Combine(Path.GetTempPath(), "aiq-startup-fake-" + Guid.NewGuid().ToString("N") + ".pfx");
+        const string sensitive = "fake-sensitive-value-never-disclose";
+        try
+        {
+            var settings = new Dictionary<string, string?>
+            {
+                ["AIQ_RESEARCH_PRIVATE_DIRECTORY"] = directory.Path,
+                ["AIQ_RESEARCH_API_KEY"] = Key,
+                ["AIQ_RESEARCH_TRANSPORT"] = "local-https",
+                ["AIQ_RESEARCH_TLS_PFX"] = certificateFile
+            };
+            if (stage == "CONFIGURATION") settings.Remove("AIQ_RESEARCH_PRIVATE_DIRECTORY");
+            if (stage == "TRANSPORT") settings["AIQ_RESEARCH_TRANSPORT"] = sensitive;
+            if (stage == "TLS") settings["AIQ_RESEARCH_TLS_PFX"] = sensitive;
+            if (stage is "STORAGE" or "LISTENER")
+            {
+                using var rsa = RSA.Create(2048);
+                var request = new CertificateRequest("CN=offline-startup-test", rsa, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+                using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddMinutes(5));
+                await File.WriteAllBytesAsync(certificateFile, certificate.Export(X509ContentType.Pfx));
+                if (stage == "STORAGE") settings["AIQ_RESEARCH_PRIVATE_DIRECTORY"] = sensitive; // Relative path rejected before store access.
+                else settings["AIQ_RESEARCH_BIND_ADDRESS"] = sensitive; // Rejected before listener creation.
+            }
+            using var diagnostics = new StringWriter();
+            Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(name => settings.GetValueOrDefault(name), diagnostics));
+            Assert.Equal("Research snapshot service unavailable. stage=" + stage + Environment.NewLine, diagnostics.ToString());
+            Assert.DoesNotContain(sensitive, diagnostics.ToString());
+            Assert.DoesNotContain(directory.Path, diagnostics.ToString());
+            Assert.DoesNotContain(certificateFile, diagnostics.ToString());
+            Assert.DoesNotContain(Key, diagnostics.ToString());
+        }
+        finally { File.Delete(certificateFile); }
+    }
+
+    [Fact]
+    public async Task StartupConfigurationExceptionDoesNotExposeExceptionText()
+    {
+        using var diagnostics = new StringWriter();
+        Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(_ => throw new InvalidOperationException("fake-private-path fake-secret"), diagnostics));
+        Assert.Equal("Research snapshot service unavailable. stage=CONFIGURATION" + Environment.NewLine, diagnostics.ToString());
+    }
+
     private const string Key = "offline-test-service-key-12345678";
     private static readonly DateTimeOffset Now = new(2026, 10, 23, 12, 1, 15, TimeSpan.Zero);
     private sealed class Clock : TimeProvider
