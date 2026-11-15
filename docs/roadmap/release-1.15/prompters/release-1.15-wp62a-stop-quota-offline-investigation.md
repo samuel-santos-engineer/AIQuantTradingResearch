@@ -92,3 +92,21 @@ Stop on first timeout, TLS/auth error, target mismatch, unsafe output, uncertain
 One new Markdown file only. UTF-8/LF/no BOM; Markdown table structure, relative source links, changed-path inventory and git diff --check validated before publication. No tests/builds/runtime qualification warranted for this documentation-only change. Historical Windows133 and Linux25 passing fake tests remain separate from current Azure health. Open documentation PR only, unmerged for owner review.
 
 **NO_AZURE_OPERATIONS_PERFORMED** in this task. Root cause UNKNOWN; no claim of quota recovery, endpoint health or public readiness. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Separately authorized metadata follow-up ? 2026-11-15
+
+This addendum records later live reads under separate owner continuation authority. It does not alter the original offline-only WP62-A scope or its NO_AZURE_OPERATIONS_PERFORMED statement. PR #452 was merged before this addendum; a new documentation PR preserves that accepted record.
+
+Exactly two sequential read-only ARM requests through the installed CLI Python-module entry point; each15-second deadline, each stdout/stderr stream capped1MiB with owned-process termination on overflow; no retries/pagination, settings/log access, HTTP serving probes, restarts or writes.
+
+| Observation UTC / Sao Paulo | Evidence | Interpretation |
+| --- | --- | --- |
+| 2026-11-15 05:50:12 / 02:50:12 | Shared plan WPStopRequests0/15; daily CPU1299/3600000ms; short CPU0/180000ms. Supplied reset fields06:00:00, next day00:00:00,05:55:00 respectively, without offset. | Quota below limit at this snapshot; not durable recovery, zero work, current app health or reset-time guarantee. |
+| 2026-11-15 05:50:40 / 02:50:40 | Research-app management activity query, fixed window03:00?04:31 UTC (00:00?01:31 Sao Paulo), top20; four records, no nextLink. config-write started03:54:55.831076Z/succeeded03:54:57.3623811Z, then started03:55:01.65443Z/succeeded03:55:03.7638351Z. Caller identity withheld. | Two completed configuration operations, not four writes. Times are consistent with the known temporary logging enable/off sequence; projected data does not prove payload equality or identify caller. No explicit start/stop/restart events in this bounded result. |
+
+No event evidence explains57/15. Management activity does not enumerate all platform/container restarts; UI/shared-plan activity, maintenance, app process failures and counter semantics remain unresolved. No key-related cause established. No Azure startup exception established. Current quota after these reads and current application state/health remain UNKNOWN.
+
+Smallest proposed next observation, NOT RUN: one15-second/1MiB metadata-only GET to the research site's /config/web (API2023-12-01), no retries. Project only safe nonsecret fields: configured image identity after credential-free grammar validation, startup-present boolean (never command), configured container port if that field is supplied, health-check-path classification (empty, documented /health, or other without raw path), alwaysOn and hosting mode. Missing port field means UNKNOWN; do not read app settings to fill it. Validate exact resource ID. This can test configuration/health-recycling hypotheses; configured image is not running-image attestation, and no change or health probe follows automatically. Requires separate explicit owner approval. Stop on unsafe reference, mismatch, timeout, auth/schema failure. No restart/deploy/logging/key/data action proposed.
+
+This follow-up changed documentation only. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. Historical local acceptance remains separate.
