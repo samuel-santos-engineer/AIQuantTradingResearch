@@ -1,6 +1,6 @@
 # Release 1.15 WP61 - local historical candle comparison
 
-Date: 2026-11-14. Status: IMPLEMENTED_AND_BUILT; LOCAL_BROWSER_PENDING.
+Date: 2026-11-14. Status: LOCAL_BROWSER_QUALIFICATION_PASS; OWNER_REVIEW_PENDING.
 
 ## Baseline, scope and operator use
 
@@ -46,3 +46,47 @@ Rollback API image: `sha256:1edebb818affbd362385e8a69cddb52b8309265a902dec0f0f5d
 Initial draft publication: runtime switch/browser comparison NOT_RUN. Later results must distinguish API container recreation from retained image/volume identity, and compare rendered exact values plus independently calculated changes in memory without raw DTOs/screenshots in evidence. Fake-only destructive empty/pruned/zero-denominator cases must not be induced in retained data. Current temporary seven-day TLS needs rechecking before future start.
 
 No Azure/quota/production/registry/provider/acquisition/import/storage migration/dependency actions. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. PR initially draft, no merge.
+
+## Final runtime/browser qualification
+
+Implementation/source commit **`c87093e6f0d9255d42f8d1b3df545f743d83a0eb`**. The committed chart-module SHA256 was independently matched to the audited image context after testing; no application source changed during browser diagnosis. Only this evidence append follows the built source. PR **#450** opened initially draft before runtime/browser acceptance.
+
+Supported owned Stop/Start each exited0. The launcher requires paired recreation, so API and UI container/network IDs changed, while the exact API image, existing imported volume, shared key and recovered TLS pair were retained. Authenticated local TLS snapshot readiness returned BTC1000/ETH1000, followed by Streamlit readiness. No rollback, data initialization, reimport, key regeneration, TLS replacement or API build.
+
+Actual installed Chrome and existing venv/websockets used owned profiles and loopback CDP, fixed1280x1200 window, with browser background network/component updates/sync disabled. Native button opening, search typing and exact visible/hit-testable option clicks were used; no injected Streamlit state, value assignment or application workaround. Source DTO records were read through the existing authenticated local client into comparison-only memory. No DTO values/timestamps, prices, screenshots, secrets or private paths were printed or persisted in the evidence.
+
+Expected deltas were calculated **independently using Fraction and integer quotient/remainder half-even rounding**, not the production Decimal helper. Both exact supplied table fields and formatted changes were compared in memory; output consisted only of equality categories and relative indices. Actual command:
+
+```text
+<existing-project-venv-python> -B <owned-qualification-directory>/browser.py
+```
+
+There were **11 bounded browser sessions**: seven partial/failed acceptance or result-diagnosis runs, three passing narrow structural/transition diagnostics, and one final complete passing run. Failures occurred at native dropdown option/result interaction; result diagnostics showed the previous selection/table unchanged, not incorrect values for a proven new selection. Native control/idle-state checks and visible hit-target filtering resolved the driver interactions, including the unchanged WP60 inspection control. Earlier failures are not reclassified as passes. No application correction/rebuild/runtime restart resulted from these attempts. The exact timing/root cause of each earlier failed interaction was not independently proven; final success does not assert exhaustive widget/race reliability.
+
+| Final complete browser check | Result |
+| --- | --- |
+| BTC -> ETH -> BTC, correct instrument and1,000 loaded rows | PASS |
+| BTC A0/B999, A0/B0, A0/B19, A999/B19, A19/B19, A19/B999 | Exact DTO fields + independent changes PASS |
+| ETH A0/B999, A0/B0, A0/B19, A999/B19, A999/B0 | Exact DTO fields + independent changes PASS |
+| Restored independent BTC A19/B999 after ETH A999/B0 | PASS |
+| Null SMA warmup and volume say Unavailable | PASS |
+| Populated SMA20 side-by-side exact supplied values | PASS |
+| Independent signed differences and A-denominator percentages | PASS |
+| WP60 inspection selection/values independent of comparison | PASS |
+| WP59 bounded16, single1 and full1,000 viewport controls | PASS |
+| Preset100 and Return to Live restoring100 | PASS |
+| Real pan then explicit range; inspection/comparison unchanged | PASS |
+| Explicit Refresh retaining A/B and inspection | PASS |
+| Final full1,000 preset restored | PASS |
+
+Post-browser authenticated DTO invariants **PASS** for each instrument:1,000 candles; all volume fields null; SMA20 null19/computed981. Plotly arrays remained aligned with the supplied series, no volume bars, unavailable-volume disclosure/modebar present. No new provider history was acquired and historical freshness was not relabeled as current.
+
+Post-browser preservation **PASS**: same API image, same named volume identity/ownership labels, existing API/UI key equality, new WP61 UI running on loopback18555; accepted historical, WP59 and WP60 images still available. Private rollback ledger retained; rollback NOT_NEEDED. No database byte audit or assertion that every SQLite byte is unchanged. Browser/profile processes were closed within bounded owned cleanup; the working application remains available at **http://127.0.0.1:18555**.
+
+Empty/single/pruned/zero-denominator/incompatible-generation cases are **fake-only tested**, not forced against retained authentic data. Browser tested real refresh retention, not destructive pruning or a live identity rotation. Comparison rows always come from one current validated snapshot; no raw-provider quote claim. Session state is temporary; seven-day TLS remains temporary and must be rechecked before future start.
+
+### External GitHub status drift
+
+Final read-only verification found PR **#445 MERGED** (observed head `fdb4f423f04744402e2bcf3d7d9b906b574d0187`) and **#447 MERGED** (observed head `e6b4b8b571f904d6c61b35dc75023dad7f89a0e1`); #446 remains OPEN at `187e6584571ed4d978511f0abfc7caa3021ea481`. These were external changes, not WP61 actions. The owner's requested open status cannot be preserved retroactively; no attempt to reopen/revert or modify those PRs was made. WP61 remains based on the explicitly verified `0cfb4886db626aab7487ce3ac7794e6d818e5fac`, with no rebase, new main incorporation or unmerged initializer.
+
+**Local acceptance recommended; mark #450 ready for owner review after final checks, leave OPEN/UNMERGED.** Final evidence uses UTF-8/LF/no BOM and git diff --check; no source/dependency changes after the84-test pass. No Azure/quota/registry/production/provider/acquisition/import/data-transfer operations. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
