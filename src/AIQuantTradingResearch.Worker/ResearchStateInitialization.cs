@@ -10,8 +10,17 @@ namespace AIQuantTradingResearch.Worker;
 /// <summary>Operator-only bounded stdin configuration and private completed-observation import. No network.</summary>
 public static class ResearchStateInitialization
 {
-    public static async Task<int> RunAsync(Stream input, TextWriter diagnostics, string? privateDirectory,
-        string? importFile = null, CancellationToken cancellationToken = default)
+    public static Task<int> RunAsync(Stream input, TextWriter diagnostics, string? privateDirectory,
+        string? importFile = null, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(input, diagnostics, privateDirectory, importFile, false, cancellationToken);
+
+    /// <summary>Explicit complete OHLC-only chart gate; no data transport or provider access.</summary>
+    public static Task<int> RunChartAsync(Stream input, TextWriter diagnostics, string? privateDirectory,
+        string? importFile = null, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(input, diagnostics, privateDirectory, importFile, true, cancellationToken);
+
+    private static async Task<int> RunCoreAsync(Stream input, TextWriter diagnostics, string? privateDirectory,
+        string? importFile, bool requireCompleteChart, CancellationToken cancellationToken)
     {
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(30));
@@ -33,6 +42,14 @@ public static class ResearchStateInitialization
             var transform = new ResearchTransformConfiguration(generation, key, keyEpoch, epoch);
             // Parse and validate every import row before touching research state.
             var batches = importFile is null ? [] : await Import(importFile, deadline.Token);
+            if (requireCompleteChart)
+            {
+                if (batches.Length != 2) throw new ResearchUnavailableException();
+                foreach (var (_, batch) in batches)
+                    if (batch.Candles.Count != 1000 || batch.Candles.Any(c => c.Volume is not null) ||
+                        batch.Candles.Zip(batch.Candles.Skip(1), (a, b) => b.OpenTimeUtc - a.OpenTimeUtc)
+                            .Any(delta => delta != TimeSpan.FromMinutes(1))) throw new ResearchUnavailableException();
+            }
             var existed = File.Exists(Path.Combine(privateDirectory, "research.sqlite"));
             if (!existed && epoch != 1) throw new ArgumentException("Research initialization unavailable.");
             using var store = new SqliteResearchStateStore(privateDirectory, true, generation);
@@ -43,6 +60,14 @@ public static class ResearchStateInitialization
                     CryptographicOperations.FixedTimeEquals(active.CopyKey(), key))) throw new ResearchUnavailableException();
             }
             else store.ActivateTransform(transform, 0, deadline.Token);
+            // Preflight BOTH existing datasets under the same writer ownership before any chart commit.
+            if (requireCompleteChart)
+                foreach (var (request, batch) in batches)
+                {
+                    var prior = store.Read(request.Instrument);
+                    if (prior.Version != 0 && !prior.Candles.Select(x => x.Candle).SequenceEqual(batch.Candles))
+                        throw new ResearchUnavailableException();
+                }
             foreach (var (request, batch) in batches)
             {
                 deadline.Token.ThrowIfCancellationRequested();
@@ -54,7 +79,19 @@ public static class ResearchStateInitialization
             }
             if (Enum.GetValues<ResearchInstrument>().Any(i => store.Read(i).Integrity != ResearchIntegrity.Protected))
                 throw new ResearchUnavailableException();
-            await diagnostics.WriteLineAsync("Research initialization complete; readiness depends on committed observations.");
+            if (requireCompleteChart)
+                foreach (var (request, batch) in batches)
+                {
+                    var state = store.Read(request.Instrument);
+                    if (state.Generation != generation || !state.ResearchReady ||
+                        !state.Candles.Select(x => x.Candle).SequenceEqual(batch.Candles) ||
+                        state.Candles.Take(19).Any(x => x.Calculation?.Indicators.Sma20 is not null) ||
+                        state.Candles.Skip(19).Any(x => x.Calculation?.Indicators.Sma20 is null))
+                        throw new ResearchUnavailableException();
+                }
+            await diagnostics.WriteLineAsync(requireCompleteChart
+                ? "Research chart pair initialization verified; serving may start."
+                : "Research initialization complete; readiness depends on committed observations.");
             return 0;
         }
         catch (Exception)

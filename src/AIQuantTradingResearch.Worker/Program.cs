@@ -33,6 +33,11 @@ if (args.Contains("--research-acquire-local", StringComparer.Ordinal))
     return args.Length == 1 ? await ResearchLocalHistory.RunAsync(Console.OpenStandardInput(), Console.Error,
         Environment.GetEnvironmentVariable("AIQ_WP39_BUNDLE_DIRECTORY")) : 1;
 
+// Explicit chart-pair gate; no transport, acquisition or automatic initialization.
+if (args.Contains("--research-initialize-chart", StringComparer.Ordinal))
+    return args.Length == 1 ? await ResearchStateInitialization.RunChartAsync(Console.OpenStandardInput(), Console.Error,
+        Environment.GetEnvironmentVariable("AIQ_RESEARCH_PRIVATE_DIRECTORY"), Environment.GetEnvironmentVariable("AIQ_RESEARCH_IMPORT_FILE")) : 1;
+
 // Explicit operator-only command. Secrets enter through bounded stdin, never arguments.
 if (args.Contains("--research-initialize", StringComparer.Ordinal))
     return args.Length == 1 ? await ResearchStateInitialization.RunAsync(Console.OpenStandardInput(), Console.Error,

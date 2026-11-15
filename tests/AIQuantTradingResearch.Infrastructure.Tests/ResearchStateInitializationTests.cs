@@ -16,10 +16,11 @@ public sealed class ResearchStateInitializationTests
         hmacKeyBase64 = Convert.ToBase64String(Enumerable.Range(0, 32).Select(x => (byte)x).ToArray()),
         apiKey = api ?? "offline-independent-api-key-1234567890"
     });
-    private static async Task<int> Run(string directory, string config, string? import = null)
+    private static async Task<int> Run(string directory, string config, string? import = null, bool chart = false)
     {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(config)); using var log = new StringWriter();
-        var code = await ResearchStateInitialization.RunAsync(input, log, directory, import);
+        var code = chart ? await ResearchStateInitialization.RunChartAsync(input, log, directory, import)
+            : await ResearchStateInitialization.RunAsync(input, log, directory, import);
         Assert.DoesNotContain("1234567890", log.ToString()); Assert.DoesNotContain("hmacKey", log.ToString());
         Assert.DoesNotContain(directory, log.ToString()); return code;
     }
@@ -135,4 +136,79 @@ public sealed class ResearchStateInitializationTests
         File.WriteAllText(Path.Combine(dir.Path,"watermark.json"),"{}",new UTF8Encoding(false));
         Assert.Equal(1,await Run(dir.Path,Config()));Assert.Equal("{}",File.ReadAllText(Path.Combine(dir.Path,"watermark.json")));
     }
+    [Theory]
+    [InlineData(999, false, false)]
+    [InlineData(1000, true, false)]
+    [InlineData(1000, false, true)]
+    public async Task ChartGateRejectsIncompleteGappedOrVolumeBearingInputBeforeDatabase(int count, bool gap, bool volume)
+    {
+        using var dir = new ResearchTestDirectory();
+        var file = Path.Combine(Path.GetTempPath(), "aiq-chart-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var data = Import(count, gap);
+            if (!volume) data = data.Replace("\"volume\":\"5\"", "\"volume\":null");
+            await File.WriteAllTextAsync(file, data, new UTF8Encoding(false));
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            Assert.Equal(1, await Run(dir.Path, Config(), file, chart: true));
+            Assert.False(File.Exists(Path.Combine(dir.Path, "research.sqlite")));
+        }
+        finally { File.Delete(file); }
+    }
+    [Fact] public async Task ChartGateRequiresInputAndVerifiesBothDatasetsWithIdempotentRetry()
+    {
+        using var dir = new ResearchTestDirectory();
+        Assert.Equal(1, await Run(dir.Path, Config(), chart: true));
+        Assert.False(File.Exists(Path.Combine(dir.Path, "research.sqlite")));
+        var file = Path.Combine(Path.GetTempPath(), "aiq-chart-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await File.WriteAllTextAsync(file, Import(1000).Replace("\"volume\":\"5\"", "\"volume\":null"), new UTF8Encoding(false));
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            Assert.Equal(0, await Run(dir.Path, Config(), file, chart: true));
+            var witness = File.ReadAllBytes(Path.Combine(dir.Path, "watermark.json"));
+            Assert.Equal(0, await Run(dir.Path, Config(), file, chart: true));
+            Assert.Equal(witness, File.ReadAllBytes(Path.Combine(dir.Path, "watermark.json")));
+            using var store = dir.Open();
+            foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+            {
+                var state = store.Read(instrument);
+                Assert.Equal(1000, state.Candles.Count);
+                Assert.True(state.ResearchReady);
+                Assert.All(state.Candles, x => Assert.Null(x.Candle.Volume));
+                Assert.Equal(981, state.Candles.Count(x => x.Calculation?.Indicators.Sma20 is not null));
+            }
+        }
+        finally { File.Delete(file); }
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ChartGatePreflightsSecondDatasetBeforeFirstCommitAndResumesExactPartialState(bool compatible)
+    {
+        using var dir = new ResearchTestDirectory();
+        Assert.Equal(0, await Run(dir.Path, Config()));
+        var observed = new DateTimeOffset(2026, 10, 23, 12, 0, 0, TimeSpan.Zero);
+        var rows = Enumerable.Range(0, 1000).Select(i => new CompletedResearchCandle(ResearchInstrument.EthUsd,
+            new DateTimeOffset(2026, 10, 22, 0, 0, 0, TimeSpan.Zero).AddMinutes(i),
+            100, 102, 99, compatible ? 101 : 102, null)).ToArray();
+        using (var prior = new SqliteResearchStateStore(dir.Path, true))
+            prior.Commit(new ResearchPollRequest(ResearchInstrument.EthUsd, observed, TimeSpan.Zero),
+                new ResearchPollBatch(rows), Generation, 0);
+        var witness = File.ReadAllBytes(Path.Combine(dir.Path, "watermark.json"));
+        var file = Path.Combine(Path.GetTempPath(), "aiq-chart-fixture-" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            await File.WriteAllTextAsync(file, Import(1000).Replace("\"volume\":\"5\"", "\"volume\":null"), new UTF8Encoding(false));
+            if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(file, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+            Assert.Equal(compatible ? 0 : 1, await Run(dir.Path, Config(), file, chart: true));
+            if (!compatible) Assert.Equal(witness, File.ReadAllBytes(Path.Combine(dir.Path, "watermark.json")));
+            using var store = dir.Open();
+            Assert.Equal(compatible ? 1000 : 0, store.Read(ResearchInstrument.BtcUsd).Candles.Count);
+            Assert.Equal(rows, store.Read(ResearchInstrument.EthUsd).Candles.Select(x => x.Candle).ToArray());
+        }
+        finally { File.Delete(file); }
+    }
+
 }

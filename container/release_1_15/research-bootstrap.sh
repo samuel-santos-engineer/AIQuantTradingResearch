@@ -25,14 +25,16 @@ case "$mode" in
       "$nonce" "$digest" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$uid" "$mounts" "$probe"
     exit 0
     ;;
-  operator-stdin)
+  operator-stdin|operator-chart-stdin)
     # A private read-only export must already be securely delivered to this same container.
     # Its source/UTC/permissions/row bounds and stdin configuration are validated by C#.
     if [ -z "${AIQ_RESEARCH_IMPORT_FILE:-}" ] || [ ! -r "$AIQ_RESEARCH_IMPORT_FILE" ]; then
       printf 'REIMPORT_REQUIRED; private input unavailable\n' >&2
       exit 1
     fi
-    if ! dotnet /app/AIQuantTradingResearch.Worker.dll --research-initialize; then
+    initialize=--research-initialize
+    if [ "$mode" = operator-chart-stdin ]; then initialize=--research-initialize-chart; fi
+    if ! dotnet /app/AIQuantTradingResearch.Worker.dll "$initialize"; then
       printf 'REIMPORT_REQUIRED; initialization rejected\n' >&2
       exit 1
     fi
