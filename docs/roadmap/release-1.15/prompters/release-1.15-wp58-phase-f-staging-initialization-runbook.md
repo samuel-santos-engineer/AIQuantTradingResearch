@@ -116,3 +116,36 @@ One owned container `aiq-wp58-446-direct-vstest`, label `aiq.wp58.qualification=
 Ownership-label inspect passed; owned container removal returned 0. Disposable tmpfs/results disappeared with removal; no raw test output persisted. No further run, code correction, provider/Azure/registry operation, retained runtime/data/key/TLS access or change. Windows 133 passing tests remain the preceding fresh Windows result, not a rerun here. UTF-8/LF/no BOM and diff checks required before publication.
 
 Next smallest action: one separately authorized identical direct-runner diagnostic capturing sanitized failing test names and fixed assertion/native-load/permission categories, with output restricted to fake fixture failures; stop after that run. **DO NOT MERGE**. PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Bounded Linux failure diagnostics ? 2026-11-15 UTC
+
+Diagnostic-only authority. Verified clean isolated PR head be28a28a89b3ba25f6a3e59ce0446db656eb163b, OPEN/UNMERGED; fetched main unchanged at ca874bb7afb4a79011f621cbf5ca314af0f8018a. GitHub reported MERGEABLE at preflight, unlike the attachment?s earlier observation. Exact pinned SDK canonical digest/Linux/amd64 verified. No code/test changes or rebuilds.
+
+Sanitizer passed three synthetic cases before Docker: retained scalar assertion semantics; redacted non-scalar values, stack paths and sensitive strings; categorized native-load exceptions. Names restricted to public test methods, parameters to scalar numbers/booleans. Raw output stayed in memory; no raw output/TRX persisted. Console interleaving can duplicate scalar assertion details in a block; these are not additional failures or reliable stack-to-test bindings.
+
+One run at 2026-11-15T02:44:08Z, 90-second cap/no retry. Container aiq-wp58-446-failure-detail, label aiq.wp58.qualification=pr446-detail; pinned SDK as above; pull never/network none/read-only root/UID1654:1654/workdir /tmp. Only isolated fake test output mounted read-only at /qualification. /tmp tmpfs 256MiB/mode1777; disposable HOME/DOTNET_CLI_HOME=/tmp/home and results /tmp/results; telemetry disabled. Required exactly one existing SDK vstest.console.dll, invoked directly through dotnet with FullyQualifiedName~ResearchStateInitializationTests, /ResultsDirectory:/tmp/results, literal console logger argument console;verbosity=normal. No extra mounts, pulls, builds, restores or packages.
+
+**Exit 1: 25 executed, 14 passed, 11 failed, 0 skipped** (all 25 accounted for by passed/failed totals; no skipped cases reported). Every captured failure is Assert.Equal: expected initializer return 0, actual 1. No internal exception type exposed. Fully qualified prefix for every row: AIQuantTradingResearch.Infrastructure.Tests.ResearchStateInitializationTests.
+
+| Failing test method | Case parameters | Sanitized failure |
+| --- | --- | --- |
+| ImportsBothInstrumentsThroughExistingCalculatedStoreAndHonestReadiness | count=401, gap=True, ready=False | Assert.Equal: expected 0, actual 1 |
+| ImportsBothInstrumentsThroughExistingCalculatedStoreAndHonestReadiness | count=1000, gap=False, ready=True | Assert.Equal: expected 0, actual 1 |
+| ImportsBothInstrumentsThroughExistingCalculatedStoreAndHonestReadiness | count=401, gap=False, ready=True | Assert.Equal: expected 0, actual 1 |
+| ImportsBothInstrumentsThroughExistingCalculatedStoreAndHonestReadiness | count=400, gap=False, ready=False | Assert.Equal: expected 0, actual 1 |
+| ChartGatePreflightsSecondDatasetBeforeFirstCommitAndResumesExactPartialState | compatible=False | Assert.Equal: expected 0, actual 1 |
+| ChartGatePreflightsSecondDatasetBeforeFirstCommitAndResumesExactPartialState | compatible=True | Assert.Equal: expected 0, actual 1 |
+| WrongGenerationSecretAndLiveWriterFailClosedWithoutReset | none | Assert.Equal: expected 0, actual 1 |
+| TamperedWitnessNeverReinitializesState | none | Assert.Equal: expected 0, actual 1 |
+| InitializesExplicitGenerationAndTupleAndExactRetryDoesNotChangeWitness | none | Assert.Equal: expected 0, actual 1 |
+| ChartGateRequiresInputAndVerifiesBothDatasetsWithIdempotentRetry | none | Assert.Equal: expected 0, actual 1 |
+| IncompatibleReimportDoesNotReplaceCommittedObservation | none | Assert.Equal: expected 0, actual 1 |
+
+Shared symptom spans original general initialization and chart-mode cases. Source review: ResearchTestDirectory uses Path.GetTempPath(); the runner explicitly mounts /tmp as tmpfs. ResearchStorageBoundary.ValidateLinux accepts writable ext4/xfs/btrfs/overlay only, excluding tmpfs. Thus the harness directs state to a filesystem the guard rejects. This is a strong source-supported harness-mismatch hypothesis, not a captured internal exception or proof every failure has only that cause. The initializer intentionally catches exceptions and returns 1. The linux-x64 SQLite native asset exists in test output; this alone does not prove successful native loading. Earlier SDK migration/mutex IOException is a separate startup issue, not these assertion failures or Azure evidence.
+
+Smallest proposed correction, NOT IMPLEMENTED: preserve read-only root and disposable /tmp scratch; provide disposable UID1654-owned writable overlay scratch for fake state and set TMPDIR accordingly. First reconcile mount expectations and verify storage-driver feasibility, UID/writability and actual fixture temp selection, then separately authorize one focused run. Do not weaken the storage guard or assertions. No passing Linux result is implied.
+
+Cleanup VERIFIED: exact owned-name inspect matched label; removal returned 0; exact-name docker ps -a returned success and no match. Container tmpfs/home/results removed. No retained runtime/data/volume/key/TLS/rollback-image access or mutation, Azure/provider/registry/import operations or further runs. Only this runbook changed; UTF-8/LF/no BOM and diff checks performed before commit.
+
+Linux qualification remains FAILED pending a separate successful run. PR #446 OPEN/UNMERGED ? DO NOT MERGE. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. Windows 133 passing tests are historical here, not rerun.
