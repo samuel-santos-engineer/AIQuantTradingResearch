@@ -2,6 +2,11 @@
 import copy
 import io
 import json
+import os
+from pathlib import Path
+import shutil
+import sys
+import tempfile
 import subprocess
 import unittest
 from unittest.mock import patch
@@ -174,6 +179,7 @@ class Tests(unittest.TestCase):
             stderr = io.BytesIO()
             returncode = 0
             def kill(self): pass
+            def poll(self): return self.returncode
             def wait(self, timeout): return 0
         with self.assertRaisesRegex(m.Blocked, "OUTPUT_LIMIT"):
             m.capture([], popen=lambda *a, **kw: Process())
@@ -185,13 +191,118 @@ class Tests(unittest.TestCase):
             returncode = -1
             killed = False
             def kill(self): self.killed = True
+            def poll(self): return self.returncode if self.killed else None
             def wait(self, timeout):
                 if not self.killed: raise subprocess.TimeoutExpired("fake", timeout)
                 return -1
         p = Process()
         with self.assertRaisesRegex(m.Blocked, "TIMEOUT"):
-            m.capture([], popen=lambda *a, **kw: p)
+            m.capture([], seconds=0.01, popen=lambda *a, **kw: p)
         self.assertTrue(p.killed)
+
+
+    def test_cli_request_is_argument_array_for_exact_resource(self):
+        adapter = object.__new__(m.Azure)
+        adapter.store = Store(); adapter.entry = ["fake-python.exe", "-IBm", "azure.cli"]
+        adapter.rollback = adapter.logging = None
+        response = json.dumps({"id": m.SITE + "/config/web", "properties": {}}).encode()
+        with patch.object(m, "capture", return_value=response) as runner:
+            adapter.request("get", m.SITE + "/config/web")
+        command = runner.call_args.args[0]
+        self.assertIsInstance(command, list)
+        self.assertEqual(["fake-python.exe", "-IBm", "azure.cli", "rest"], command[:4])
+        self.assertEqual("https://management.azure.com" + m.SITE + "/config/web?api-version=2023-12-01", command[command.index("--url") + 1])
+        self.assertNotIn("az.cmd", command)
+
+    def test_live_apply_remains_blocked_even_with_flags(self):
+        with self.assertRaisesRegex(m.Blocked, "LIVE_ADAPTER_BLOCKED"):
+            m.Azure(Store())
+        with patch.object(m, "PrivateStore", side_effect=AssertionError("must not construct")):
+            with self.assertRaisesRegex(m.Blocked, "LIVE_APPLY_BLOCKED"):
+                m.main(["--apply", "--approve-exact-live-apply", "--approve-conditional-rollback"])
+
+    def test_job_cleanup_error_fails_closed(self):
+        class Owner:
+            def attach_and_resume(self, proc): pass
+            def finish(self): raise m.Blocked("JOB_QUERY_FAILED")
+        class Process:
+            stdout = io.BytesIO()
+            stderr = io.BytesIO()
+            returncode = 0
+            def wait(self, timeout): return 0
+            def poll(self): return 0
+        with self.assertRaisesRegex(m.Blocked, "JOB_QUERY_FAILED"):
+            m.capture([], popen=lambda *a, **kw: Process(), owner_factory=Owner)
+
+    def test_failed_rollback_retains_private_ledger(self):
+        a, store = Fake(), Store()
+        original = a.request
+        def request(method, resource, body=None):
+            if method == "patch" and body == a.rollback:
+                raise m.Blocked("TIMEOUT")
+            return original(method, resource, body)
+        a.request = request
+        result = m.execute(a, store, True, True)
+        self.assertTrue(result["manualRecoveryRequired"])
+        self.assertFalse(result["imageRollbackVerified"])
+        self.assertTrue(result["loggingRestoreVerified"])
+        self.assertTrue(store.files["ledger.json"]["imageMayHaveChanged"])
+        self.assertIn("recovery.json", store.files)
+
+
+@unittest.skipUnless(os.name == "nt" and os.environ.get("AIQ_WP62_WINDOWS_OFFLINE_TESTS") == "1", "genuine Windows synthetic qualification opt-in required")
+class WindowsOfflineTests(unittest.TestCase):
+    def own_capture(self, code, seconds=5):
+        owners = []
+        def factory():
+            owner = m.WindowsJob(); owners.append(owner); return owner
+        try:
+            return m.capture([sys.executable, "-B", "-c", code], seconds=seconds, owner_factory=factory)
+        finally:
+            self.assertEqual(1, len(owners))
+            self.assertTrue(owners[0].cleanup_verified)
+
+    def test_normal_parent_exit_cleans_descendant_and_pipes(self):
+        code = "import subprocess,sys; subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); print('PARENT_COMPLETE',flush=True)"
+        self.assertIn(b"PARENT_COMPLETE", self.own_capture(code))
+
+    def test_timeout_cleans_owned_tree(self):
+        code = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); print('READY',flush=True); time.sleep(60)"
+        with self.assertRaisesRegex(m.Blocked, "TIMEOUT"):
+            self.own_capture(code, 1)
+
+    def test_overflow_cleans_owned_tree(self):
+        code = "import subprocess,sys,time; subprocess.Popen([sys.executable,'-c','import time; time.sleep(60)']); sys.stdout.write('x'*2097152); sys.stdout.flush(); time.sleep(60)"
+        with self.assertRaisesRegex(m.Blocked, "OUTPUT_LIMIT"):
+            self.own_capture(code)
+
+    def test_real_private_acl_and_synthetic_file_inheritance(self):
+        try:
+            store = m.PrivateStore()
+        except m.Blocked as error:
+            if str(error) == "WINDOWS_ACL_PRIVILEGE_NOT_HELD":
+                self.skipTest("WINDOWS_ACL_NOT_QUALIFIED: genuine host denied required ACL privilege before any baseline write")
+            raise
+        try:
+            store.write("recovery.json", {"synthetic": True})
+            environment = dict(os.environ)
+            environment["AIQ_WP62_SYNTHETIC_FILE"] = str(store.directory / "recovery.json")
+            script = ("$ErrorActionPreference='Stop'; $a=Get-Acl -LiteralPath $env:AIQ_WP62_SYNTHETIC_FILE; "
+                      "$sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; "
+                      "if($a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $sid){exit 2}; "
+                      "$rules=@($a.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])); "
+                      "if($rules.Count -ne 2 -or $a.AreAccessRulesProtected){exit 3}; "
+                      "foreach($r in $rules){if(-not $r.IsInherited -or $r.AccessControlType -ne 'Allow' -or "
+                      "$r.IdentityReference.Value -notin @($sid,'S-1-5-18') -or $r.FileSystemRights -ne 'FullControl'){exit 4}}; 'SYNTHETIC_FILE_ACL_PASS'")
+            proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script], env=environment, capture_output=True, timeout=15)
+            self.assertEqual(0, proc.returncode, "synthetic ACL check failed; raw output withheld")
+            self.assertEqual(b"SYNTHETIC_FILE_ACL_PASS", proc.stdout.strip())
+        finally:
+            resolved = store.directory.resolve()
+            self.assertEqual(Path(tempfile.gettempdir()).resolve(), resolved.parent)
+            self.assertTrue(resolved.name.startswith("aiq-wp62-recovery-"))
+            shutil.rmtree(resolved)
+            self.assertFalse(resolved.exists())
 
 
 if __name__ == "__main__":

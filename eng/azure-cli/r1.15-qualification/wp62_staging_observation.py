@@ -22,6 +22,7 @@ OLD = "DOCKER|" + REPOSITORY + "sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684a
 NEW = "DOCKER|" + REPOSITORY + "sha256:d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c"
 STAGES = {"CONFIGURATION", "TRANSPORT", "TLS", "STORAGE", "LISTENER", "SERVING"}
 LIMIT = 1048576
+LIVE_ADAPTER_QUALIFIED = False  # SCM authentication and Windows ACL remain unqualified.
 
 
 class Blocked(Exception):
@@ -33,13 +34,103 @@ def require(ok, code):
         raise Blocked(code)
 
 
-def capture(command, seconds=15, stream=False, popen=subprocess.Popen):
-    """Combined bounded pipes; direct executable, no batch shell or output persistence."""
+class WindowsJob:
+    """Own a suspended process before it can create descendants; kill and verify the entire job."""
+    def __init__(self):
+        require(os.name == "nt", "WINDOWS_JOB_REQUIRED")
+        import ctypes
+        from ctypes import wintypes as w
+        self.c, self.w = ctypes, w
+        k = self.k = ctypes.WinDLL("kernel32", use_last_error=True)
+        class Limits(ctypes.Structure):
+            _fields_ = [("user", ctypes.c_longlong), ("job", ctypes.c_longlong), ("flags", w.DWORD),
+                        ("minimum", ctypes.c_size_t), ("maximum", ctypes.c_size_t), ("active", w.DWORD),
+                        ("affinity", ctypes.c_size_t), ("priority", w.DWORD), ("scheduling", w.DWORD)]
+        class IO(ctypes.Structure):
+            _fields_ = [(name, ctypes.c_ulonglong) for name in ("read", "write", "other", "readbytes", "writebytes", "otherbytes")]
+        class Extended(ctypes.Structure):
+            _fields_ = [("basic", Limits), ("io", IO), ("processmemory", ctypes.c_size_t),
+                        ("jobmemory", ctypes.c_size_t), ("peakprocess", ctypes.c_size_t), ("peakjob", ctypes.c_size_t)]
+        class Accounting(ctypes.Structure):
+            _fields_ = [("user", ctypes.c_longlong), ("kernel", ctypes.c_longlong),
+                        ("perioduser", ctypes.c_longlong), ("periodkernel", ctypes.c_longlong),
+                        ("faults", w.DWORD), ("total", w.DWORD), ("active", w.DWORD), ("terminated", w.DWORD)]
+        self.Accounting = Accounting
+        k.CreateJobObjectW.argtypes = [ctypes.c_void_p, w.LPCWSTR]; k.CreateJobObjectW.restype = w.HANDLE
+        k.SetInformationJobObject.argtypes = [w.HANDLE, ctypes.c_int, ctypes.c_void_p, w.DWORD]; k.SetInformationJobObject.restype = w.BOOL
+        k.AssignProcessToJobObject.argtypes = [w.HANDLE, w.HANDLE]; k.AssignProcessToJobObject.restype = w.BOOL
+        k.TerminateJobObject.argtypes = [w.HANDLE, w.UINT]; k.TerminateJobObject.restype = w.BOOL
+        k.QueryInformationJobObject.argtypes = [w.HANDLE, ctypes.c_int, ctypes.c_void_p, w.DWORD, ctypes.c_void_p]; k.QueryInformationJobObject.restype = w.BOOL
+        k.CloseHandle.argtypes = [w.HANDLE]; k.CloseHandle.restype = w.BOOL
+        self.handle = k.CreateJobObjectW(None, None)
+        require(bool(self.handle), "JOB_CREATE_FAILED")
+        limits = Extended(); limits.basic.flags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; no breakaway.
+        if not k.SetInformationJobObject(self.handle, 9, ctypes.byref(limits), ctypes.sizeof(limits)):
+            k.CloseHandle(self.handle)
+            raise Blocked("JOB_LIMIT_FAILED")
+        self.cleanup_verified = False
+
+    def attach_and_resume(self, proc):
+        c, w, k = self.c, self.w, self.k
+        require(k.AssignProcessToJobObject(self.handle, int(proc._handle)), "JOB_ASSIGN_FAILED")
+        class ThreadEntry(c.Structure):
+            _fields_ = [("size", w.DWORD), ("usage", w.DWORD), ("tid", w.DWORD), ("pid", w.DWORD),
+                        ("base", w.LONG), ("delta", w.LONG), ("flags", w.DWORD)]
+        k.CreateToolhelp32Snapshot.argtypes = [w.DWORD, w.DWORD]; k.CreateToolhelp32Snapshot.restype = w.HANDLE
+        k.Thread32First.argtypes = [w.HANDLE, c.POINTER(ThreadEntry)]; k.Thread32First.restype = w.BOOL
+        k.Thread32Next.argtypes = [w.HANDLE, c.POINTER(ThreadEntry)]; k.Thread32Next.restype = w.BOOL
+        k.OpenThread.argtypes = [w.DWORD, w.BOOL, w.DWORD]; k.OpenThread.restype = w.HANDLE
+        k.ResumeThread.argtypes = [w.HANDLE]; k.ResumeThread.restype = w.DWORD
+        snapshot = k.CreateToolhelp32Snapshot(4, 0)
+        require(snapshot not in (None, c.c_void_p(-1).value), "THREAD_SNAPSHOT_FAILED")
+        try:
+            entry = ThreadEntry(); entry.size = c.sizeof(entry); threads = []
+            more = k.Thread32First(snapshot, c.byref(entry))
+            while more:
+                if entry.pid == proc.pid:
+                    threads.append(entry.tid)
+                more = k.Thread32Next(snapshot, c.byref(entry))
+            require(len(threads) == 1, "SUSPENDED_THREAD_UNVERIFIED")
+            handle = k.OpenThread(2, False, threads[0])
+            require(bool(handle), "THREAD_OPEN_FAILED")
+            try:
+                require(k.ResumeThread(handle) == 1, "THREAD_RESUME_FAILED")
+            finally:
+                k.CloseHandle(handle)
+        finally:
+            k.CloseHandle(snapshot)
+
+    def finish(self):
+        c, k = self.c, self.k
+        try:
+            require(k.TerminateJobObject(self.handle, 1), "JOB_TERMINATE_FAILED")
+            deadline = time.monotonic() + 3
+            while True:
+                accounting = self.Accounting()
+                require(k.QueryInformationJobObject(self.handle, 1, c.byref(accounting), c.sizeof(accounting), None), "JOB_QUERY_FAILED")
+                if accounting.active == 0:
+                    self.cleanup_verified = True
+                    break
+                require(time.monotonic() < deadline, "JOB_DESCENDANTS_REMAIN")
+                time.sleep(0.01)
+        finally:
+            closed = k.CloseHandle(self.handle)
+            self.handle = None
+            require(closed, "JOB_CLOSE_FAILED")
+
+
+def capture(command, seconds=15, stream=False, popen=subprocess.Popen, owner_factory=None):
+    """Combined bounded pipes and Windows Job ownership; no shell or raw-output persistence."""
     started = time.monotonic()
-    proc = popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    real = popen is subprocess.Popen
+    owner = owner_factory() if owner_factory else WindowsJob() if real else None
+    kwargs = {"creationflags": 4} if owner else {}  # CREATE_SUSPENDED: no unowned descendant race.
+    proc = None
+    threads = []
     buffers = [bytearray(), bytearray()]
     lock = threading.Lock()
     overflow = threading.Event()
+    expired = False
 
     def drain(pipe, target):
         while True:
@@ -49,24 +140,42 @@ def capture(command, seconds=15, stream=False, popen=subprocess.Popen):
             with lock:
                 if sum(map(len, buffers)) + len(chunk) > LIMIT:
                     overflow.set()
-                    proc.kill()
-                    return
+                    return  # Main thread observes this and terminates the owned job.
                 target.extend(chunk)
 
-    threads = [threading.Thread(target=drain, args=(pipe, buf), daemon=True)
-               for pipe, buf in zip((proc.stdout, proc.stderr), buffers)]
-    for thread in threads:
-        thread.start()
-    expired = False
     try:
-        proc.wait(timeout=max(0.001, seconds - (time.monotonic() - started)))
-    except subprocess.TimeoutExpired:
-        expired = True
-        proc.kill()
-        proc.wait(timeout=5)
-    for thread in threads:
-        thread.join(timeout=1)
-    require(not any(t.is_alive() for t in threads), "PIPE_CLEANUP_UNVERIFIED")
+        proc = popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs)
+        if owner:
+            owner.attach_and_resume(proc)
+        threads = [threading.Thread(target=drain, args=(pipe, buf), daemon=True)
+                   for pipe, buf in zip((proc.stdout, proc.stderr), buffers)]
+        for thread in threads:
+            thread.start()
+        while True:
+            if overflow.is_set():
+                break
+            remaining = seconds - (time.monotonic() - started)
+            if remaining <= 0:
+                expired = True
+                break
+            try:
+                proc.wait(timeout=min(0.05, remaining))
+                break
+            except subprocess.TimeoutExpired:
+                pass
+    finally:
+        try:
+            if owner:
+                owner.finish()  # Also removes descendants after normal parent completion.
+        finally:
+            if proc is not None:
+                if proc.poll() is None:
+                    proc.kill()  # Suspended assignment failure or fake process fallback only.
+                proc.wait(timeout=5)
+                for thread in threads:
+                    thread.join(timeout=1)
+                require(not any(t.is_alive() for t in threads), "PIPE_CLEANUP_UNVERIFIED")
+                proc.stdout.close(); proc.stderr.close()
     require(not overflow.is_set(), "OUTPUT_LIMIT")
     require(not expired or stream, "TIMEOUT")
     require(expired or proc.returncode == 0, "CLI_FAILED")
@@ -115,7 +224,12 @@ class PrivateStore:
                   "if($a.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $sid.Value){exit 5}; 'ACL_VERIFIED'")
         proc = subprocess.run(["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
                               env=environment, capture_output=True, timeout=15)
-        require(proc.returncode == 0 and proc.stdout.strip() == b"ACL_VERIFIED", "PRIVATE_ACL_UNVERIFIED")
+        if proc.returncode != 0 or proc.stdout.strip() != b"ACL_VERIFIED":
+            # No baseline was written; remove only our known new empty directory.
+            self.directory.rmdir()
+            if b"PrivilegeNotHeldException" in proc.stderr:
+                raise Blocked("WINDOWS_ACL_PRIVILEGE_NOT_HELD")
+            raise Blocked("PRIVATE_ACL_UNVERIFIED")
 
     def write(self, name, value):
         require(name in {"baseline.json", "recovery.json", "ledger.json", "body.json"}, "PRIVATE_NAME_REJECTED")
@@ -126,6 +240,7 @@ class PrivateStore:
 
 class Azure:
     def __init__(self, store):
+        require(LIVE_ADAPTER_QUALIFIED, "LIVE_ADAPTER_BLOCKED_SCM_AND_ACL_UNQUALIFIED")
         self.store, self.entry = store, cli_entry()
         self.rollback = None
         self.logging = None
@@ -254,6 +369,7 @@ def main(argv=None):
     if not args.apply:
         result = execute(None, None)
     else:
+        require(LIVE_ADAPTER_QUALIFIED, "LIVE_APPLY_BLOCKED_SCM_AND_ACL_UNQUALIFIED")
         require(args.approve_exact_live_apply, "EXACT_LIVE_APPROVAL_REQUIRED")
         require(args.approve_conditional_rollback, "CONDITIONAL_ROLLBACK_APPROVAL_REQUIRED")
         store = PrivateStore()
