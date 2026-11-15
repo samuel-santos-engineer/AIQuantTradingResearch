@@ -1,6 +1,6 @@
 # Release 1.15 WP61 - local historical candle comparison
 
-Date: 2026-11-14. Status: LOCAL_BROWSER_QUALIFICATION_PASS; OWNER_REVIEW_PENDING.
+Date: 2026-11-14. Status: SELECTOR_RECONCILIATION_TESTS_PASS; REVISED_RUNTIME_NOT_RUN; OWNER_REVIEW_PENDING. Earlier build/browser results below are historical.
 
 ## Baseline, scope and operator use
 
@@ -90,3 +90,56 @@ Empty/single/pruned/zero-denominator/incompatible-generation cases are **fake-on
 Final read-only verification found PR **#445 MERGED** (observed head `fdb4f423f04744402e2bcf3d7d9b906b574d0187`) and **#447 MERGED** (observed head `e6b4b8b571f904d6c61b35dc75023dad7f89a0e1`); #446 remains OPEN at `187e6584571ed4d978511f0abfc7caa3021ea481`. These were external changes, not WP61 actions. The owner's requested open status cannot be preserved retroactively; no attempt to reopen/revert or modify those PRs was made. WP61 remains based on the explicitly verified `0cfb4886db626aab7487ce3ac7794e6d818e5fac`, with no rebase, new main incorporation or unmerged initializer.
 
 **Local acceptance recommended; mark #450 ready for owner review after final checks, leave OPEN/UNMERGED.** Final evidence uses UTF-8/LF/no BOM and git diff --check; no source/dependency changes after the84-test pass. No Azure/quota/registry/production/provider/acquisition/import/data-transfer operations. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+## PR #450 selector reconciliation and upstream integration - 2026-11-15 UTC
+
+Original reviewed PR head `20c9cb9b4f9f67534c63283946e15bf0565c2736`, original base `0cfb4886db626aab7487ce3ac7794e6d818e5fac`. Clean isolated worktree and live OPEN/UNMERGED/MERGEABLE state were verified before editing; initial GitHub check rollup was empty (not a green-CI claim). Remote branch head was independently verified with git ls-remote. Operator checkout/private assets were not modified.
+
+Fetched current main `92aff046f24b1353670f57a79576e495f4dd0394`. Its two upstream commits are merged #445 (`34f2600`) and #447 (`92aff04`), documentation/evidence only. Upstream introduces the WP58 plan and deployment evidence plus execution-plan append. These are preserved through a normal merge, not copied into this PR's diff or overwritten. No #446 initializer integration or changes.
+
+### Reproduced defect and narrow correction
+
+The prior renderer first reconciled model selections, but then trusted an existing keyed selectbox value whenever that value was still in the snapshot. After pruning removed model A, the keyed widget could hold a different surviving timestamp and silently replace the model's authoritative reset. It also called compare_candles a second time, clearing reset-cause state.
+
+A lightweight Streamlit fake models keyed values, widget creation and pre-rerun on_change ordering. The existing panel was extracted without behavioral changes to expose a deterministic render test. An initial seam extraction omitted its local instrument variable and errored; that test-seam issue was corrected before measuring the product regression. The intended pre-fix pruning regression then **failed with an assertion, exit1**: model A retained the stale-but-valid widget timestamp rather than the first available candle. No real dataset/UTC value was used; all fixtures are fake.
+
+Fix commit **`fa7083d30f2af0519c55e778e976d2409c5a10b4`**:
+
+- Supported native selectbox on_change callbacks record explicit user intent in the instrument model before rerun.
+- The comparison renderer reconciles exactly once against the current validated snapshot; resulting model selections are authoritative.
+- Both keyed widget values are synchronized before selectbox creation, including still-valid stale values after reset. Widget return values no longer overwrite that reconciliation.
+- Reset notices survive display/state inspection; incompatible generation/date/transform changes reset both, while valid intentional choices and compatible version refresh remain intact.
+- Empty/missing comparison state clears its applicable widget keys and returns before creating invalid controls; one-candle snapshots use the same available UTC for A/B truthfully.
+
+No DTO, viewport, inspection, Decimal policy, API, schema or dependency changes. No new event channel or JavaScript. The callback/session handshake is isolated per instrument and session.
+
+### Actual tests and scope
+
+```text
+PYTHONPATH=python/presentation
+python -B -m unittest test_research_chart.ComparisonWidgetHandshakeTests.test_pruning_authoritative_reset_overrides_stale_but_valid_widget_value -v
+python -B -m unittest test_research_chart.ComparisonWidgetHandshakeTests -v
+python -B -m unittest test_research_chart test_research_snapshot_client -q
+```
+
+| Execution | Actual result |
+| --- | --- |
+| Intended old-behavior pruning regression | FAIL,1 case, exit1 (expected pre-fix failure) |
+| Post-fix handshake suite | 6 passed, exit0,0.017 seconds |
+| Final focused chart/client suite | **90 passed, exit0,19.389 seconds, no skips** |
+| Intermediate suite before sixth isolation case | 89 passed, exit0; superseded by90 |
+| UTF-8/LF/no BOM and git diff --check | PASS |
+
+Six new deterministic cases cover both symbols: stale-but-valid keyed state after pruning, removed widget values, generation/displayDate/transformEpoch resets and persistent notice/single reconciliation, ordinary A/B callback changes (including a valid user choice before a pruned rerun), compatible version refresh with current corrected values, missing/empty/single candles, and instrument/two-session callback independence. Tests preserve DTO, viewport and inspection state and retain all Decimal/null/no-gap/WP59/WP60 regressions. Existing bare-mode Streamlit ScriptRunContext warnings occurred; no product failure or runtime evidence is inferred from those warnings.
+
+### Safe branch reconciliation
+
+Committed the tested fix, then ran **git merge --no-edit origin/main**. Clean conflict-free merge commit **`0715ba6ad3c32968e48c947e6f4c0d57794d5596`** includes verified main `92aff046...`. Hash checks proved both tested Python files byte-identical across this documentation-only upstream merge, so the90-test run remains the applicable source result; no duplicate test-count claim or unjustified broad rerun. No rebase or force-push. The final evidence commit/head is reported in the PR handoff.
+
+The effective diff against reconciled main remains exactly the same three authorized paths: chart module, chart tests and this existing WP61 evidence document. Upstream #445/#447 documents remain present with their merged content. #446 remains separate and untouched. Final push is a normal fast-forward of the existing PR branch; GitHub mergeability/check status is inspected after publication.
+
+### Qualification limits and recommendation
+
+**Revised image build, Docker/runtime and browser qualification: NOT_RUN.** This continuation's boundaries prohibit touching retained SQLite, observations, service key, TLS or rollback images. The supported launcher would recreate the retained pair and use these assets, so it was not invoked. No Docker, credential, private artifact, TLS or existing-container inspection/mutation occurred in this reconciliation. The prior local image/browser passes and earlier failed attempts remain recorded above, but do **not** qualify this revised callback/render code. Existing loopback URL is historical here; no fresh availability claim.
+
+Recommendation: approve the deterministic selector correction and reconciled PR for merge after owner review, with post-fix actual-browser qualification explicitly outstanding rather than silently waived or represented as passed. No merge is performed by this task. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. No Azure/public/production/provider/acquisition/import/data-transfer/registry/dependency operations.
