@@ -38,3 +38,25 @@ No app HTTP requests, start/stop/restart, deployment, configuration edit, log st
 Separate continuation reviewed public Microsoft Learn documentation only; zero Azure management/staging requests. The [exact API2023-12-01 List Usages reference](https://learn.microsoft.com/en-us/rest/api/appservice/app-service-plans/list-usages?view=rest-appservice-2023-12-01), CsmUsageQuota definition, types nextResetTime as string(date-time) and describes its next-reset purpose. It does not specify an assumed timezone for an offset-free returned value, nor a last-updated field or freshness guarantee for the counter in the listed quota schema. This bounded reference review does not establish that no other Microsoft documentation defines these semantics. No UTC assumption or freshness promise derived from it. A direct public raw-spec URL lookup returned404 and supplied no additional schema evidence.
 
 Consequently the ambiguity stop remains justified under WP62-B as written; no event read or new quota query followed. Practical proposed owner amendment: allow supplied reset timestamps to remain UNKNOWN without blocking only the already bounded research-app event observation, when a newly approved quota snapshot reports valid current/limit below threshold. Keep freshness uncertainty explicit; stop for exceeded/missing/malformed counters, unsafe data or request failure. This is a proposed policy disposition for this task, not an implemented rule or a technical fix. Until explicitly approved, no further live operation. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Owner-approved amendment and separate observation ? 2026-11-15
+
+Owner explicitly approved retaining reset timezone and counter freshness as UNKNOWN while allowing the fixed event read after valid below-limit quota metadata. This supersedes only the ambiguity progression rule for this separate attempt; original one-read stop evidence remains unchanged. No broad discovery, probes or mutation authority inferred.
+
+Observation start2026-11-15T12:24:39.164645Z /09:24:39.164645-03:00 Sao Paulo. Exactly **2 GETs**, sequential, one invocation each, no retries/pagination/follow-up, combined elapsed3.214seconds. Same installed CLI Python-module invocation, exact targets/API versions/filter as above. Streaming stdout/stderr combined cap1MiB per response, per-request15-second deadline and overall30-second budget; no raw responses retained. No login command or credential output.
+
+GET1: WPStopRequests0/15 Count, CpuTime1299/3600000Milliseconds, CpuTimeShortPeriod0/180000Milliseconds. Raw nextResetTime values respectively2026-11-15T13:00:00,2026-11-16T00:00:00,2026-11-15T12:29:00. Offset timezone and telemetry freshness UNKNOWN, not inferred. Below-limit snapshot is not durable recovery or application health.
+
+GET2 fixed research-app window2026-11-15T03:00:00Z through04:31:00Z, exact resourceUri equality, top20. Returned resource IDs validated against exact app/config children; four records, nextLink absent, bounded result COMPLETE for this query. Caller presence classified only as IDENTITY_WITHHELD; no identifiers/IPs/claims/properties or correlation values published.
+
+| Event UTC | Sao Paulo | Operation class | Status |
+| --- | --- | --- | --- |
+| 03:54:55.831076Z | 00:54:55.831076 | config-write | started |
+| 03:54:57.3623811Z | 00:54:57.3623811 | config-write | succeeded |
+| 03:55:01.65443Z | 00:55:01.65443 | config-write | started |
+| 03:55:03.7638351Z | 00:55:03.7638351 | config-write | succeeded |
+
+Four lifecycle records represent two completed writes. Their times align with prior temporary logging changes, but this projection does not establish exact payload/caller or full restoration equality. No start/stop/restart operation classified in this bounded research-app result. This cannot exclude automatic platform recycling, process failure, UI/shared-plan contribution, external data-plane activity or counter/window semantics. It does not explain57/15 or establish keys caused any failure. Running image identity, process health, authenticated API/data/chart readiness remain UNKNOWN. No Azure/staging operations beyond these two GETs.
+
+Smallest next step is offline review of whether merged fixed-stage diagnostics are included in the exact currently configured API artifact, using already recorded source/artifact evidence only. Do not rebuild, inspect retained runtime, query registry, deploy or probe automatically. If no attributable startup channel exists, prepare a separate exact bounded candidate-image/observation plan for owner review rather than repeat quota/event reads. Root cause UNKNOWN. PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
