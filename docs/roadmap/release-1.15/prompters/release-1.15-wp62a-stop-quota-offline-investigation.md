@@ -13,7 +13,7 @@ Targets in prior evidence: shared West US 2 F1 plan `asp-aiq-r112-wp05-wus2-7f5e
 Sources:
 
 - [Phase G evidence](release-1.15-wp58-phase-g-staging-deployment-evidence.md), sections Private baseline and exact mutation / Actual serving and post-apply diagnosis / Reconciliation with current main.
-- [Phase H authority](release-1.15-wp58-phase-h-f1-stop-quota-diagnosis-codex.md), recorded quota snapshot and H1 constraints.
+- Owner-provided Phase H authority (not tracked on current main), recorded quota snapshot and H1 constraints; corroborating historical snapshot is tracked in Phase G.
 - [Phase F runbook](release-1.15-wp58-phase-f-staging-initialization-runbook.md), Bounded Linux failure diagnostics / Authorized compatible-state Linux qualification.
 - [WP61 acceptance](release-1.15-wp61-post-merge-local-browser-qualification.md), Final retained-assets verification and cleanup / Handoff.
 - WP62/continuation session's sanitized tool results and owner WP62-A authority. These recent measurements were not previously committed repository evidence; this document records their provenance as session observations, without raw responses or private artifacts.
