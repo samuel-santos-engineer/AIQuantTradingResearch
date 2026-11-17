@@ -68,3 +68,14 @@ python -B eng/docker/release-1.15/wp65_local_image_metadata.py
 Final **7 new +18 WP64 +31 parser/collector =56 passed,0 failed/skipped**, each suite exit0. Default plan exit0/no daemon call. Actual Windows host; no Linux export/permissions qualification claimed. Python compile-only syntax, UTF-8/LF/no BOM, Markdown links/tables, exact three-file scope and git diff --check validated before publication. Prior helper/verifier/parser/collector files/tests unchanged. No raw inspect output or raw stderr stored; only safe observation metadata retained. PR OPEN/UNMERGED.
 
 **ZERO Azure/registry/credential operations. Exactly one authorized Docker image-inspect attempt; ZERO exports/builds/pulls/pushes/tags/container/volume operations.** `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Separately approved single retry ? 2026-11-16 Sao Paulo
+
+Owner explicitly approved the next one-inspect numeric-exit/sanitized-error scope. Exactly one new image inspect against the same fixed WP61 ID and explicit existing desktop-linux context, no context switch or other daemon/image call. Docker override presence check still passed.10-second request cap/combined1MiB capture, direct argument array, suspended owned Windows Job; cleanup accounting verified0active processes and pipe readers joined. No export.
+
+Start2026-11-17T01:52:13.303181Z /2026-11-16T22:52:13.303181-03:00. Numeric inspect exit **1**, captured operation duration0.395seconds. Fixed stderr categories: templateError=true; imageNotFound=false; daemonUnavailable=false; permissionDenied=false. No raw stderr or sensitive field values persisted/displayed. Classifier is limited phrase evidence, not proof every unrecognized condition is absent. The specific template field/message was not retained, so exact defect UNKNOWN. This supersedes only the earlier unclassified numeric-exit gap; prior single-attempt history stays unchanged.
+
+Observed failure is in local formatting/projection. It does NOT establish image missing, corrupted, unpublished or runtime failure. No safe image response yet; accepted local-kind/OCI/index/child/config/RepoDigest and Azure relationship remain UNVERIFIED. No extra inspect, fallback, export, registry or Azure action followed. Smallest next step is offline review/correction of the projection template and safe error-field classification, then separate authorization for a single corrected inspect if needed. Do not rebuild/export/redeploy to address a formatting error. Current helper template must not be considered live-qualified.
+
+Only this evidence document changed for the retry record; UTF-8/LF/no BOM and git diff --check passed. Existing56 offline tests remain preceding results, not rerun for this documentary addendum. PR OPEN/UNMERGED. ZERO Azure/registry/credential operations; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
