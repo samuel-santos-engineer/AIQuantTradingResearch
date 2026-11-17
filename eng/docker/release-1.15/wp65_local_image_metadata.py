@@ -6,9 +6,22 @@ from wp64_oci_provenance import WP61
 
 CONTEXT = "desktop-linux"
 ENDPOINT = "npipe:////./pipe/dockerDesktopLinuxEngine"
-FORMAT = ('{"Id":{{json .Id}},"Os":{{json .Os}},"Architecture":{{json .Architecture}},'
-          '"User":{{json .Config.User}},"ExposedPorts":{{json .Config.ExposedPorts}},'
-          '"Entrypoint":{{json .Config.Entrypoint}},"Cmd":{{json .Config.Cmd}},"RepoDigests":{{json .RepoDigests}}}')
+# Docker's json-template root is modeled as decoded inspect metadata. Unsupported shapes return null fields.
+# No full-object serialization, custom functions, Env, labels or filesystem access.
+_ROOT_TYPE = 'map[string]interface {}'
+_ROOT_FIELDS = ('Id', 'Os', 'Architecture', 'RepoDigests')
+_CONFIG_FIELDS = ('User', 'ExposedPorts', 'Entrypoint', 'Cmd')
+_NULL_OBJECT = '{' + ','.join('"' + key + '":null' for key in _ROOT_FIELDS + _CONFIG_FIELDS) + '}'
+FORMAT = (
+    '{{if eq (printf "%T" .) "' + _ROOT_TYPE + '"}}'
+    '{{$config := index . "Config"}}{'
+    + ','.join('"' + key + '":{{json (index . "' + key + '")}}' for key in _ROOT_FIELDS)
+    + ',' + ','.join('"' + key + '":{{if eq (printf "%T" $config) "' + _ROOT_TYPE + '"}}'
+                    '{{json (index $config "' + key + '")}}{{else}}null{{end}}' for key in _CONFIG_FIELDS)
+    + '}{{else}}' + _NULL_OBJECT + '{{end}}'
+)
+TEMPLATE_GO_EVALUATED = False  # Remains false until an actual offline Go harness is run and reviewed.
+
 LIMIT = 1048576
 
 
@@ -33,9 +46,11 @@ def project(raw):
         if not isinstance(d, dict): return safe
         if d.get("Id") != WP61:
             safe["reason"] = "WRONG_IMAGE_ID"; return safe
+        if not all(isinstance(d.get(name), str) for name in ("Os", "Architecture", "User")): return safe
         ports = d.get("ExposedPorts")
-        if not isinstance(ports, dict) or any(not re.fullmatch(r"[0-9]{1,5}/(?:tcp|udp)", name) for name in ports): return safe
-        entry, cmd = d.get("Entrypoint"), d.get("Cmd") or []
+        if not isinstance(ports, dict) or any(not re.fullmatch(r"[0-9]{1,5}/(?:tcp|udp)", name) or not 1 <= int(name.split("/")[0]) <= 65535 for name in ports): return safe
+        entry, cmd = d.get("Entrypoint"), d.get("Cmd")
+        if cmd is None: cmd = []  # Nil Cmd is valid; false/empty-string/wrong types must not be coerced.
         if not isinstance(entry, list) or not isinstance(cmd, list) or not all(isinstance(x, str) for x in entry + cmd): return safe
         prefix = ["/opt/venv/bin/python", "-B", "-m", "streamlit", "run", "/app/python/presentation/realtime_financial_visualization.py"]
         args = entry[6:] + cmd
@@ -60,7 +75,7 @@ def project(raw):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__); parser.parse_args(argv)
     print(json.dumps({"result": "PLAN_ONLY", "imageId": WP61, "context": CONTEXT,
-                      "dockerOperations": 0, "exportAuthorized": False, "PUBLIC_RUNTIME_VERIFIED": False,
+                      "dockerOperations": 0, "templateGoEvaluated": TEMPLATE_GO_EVALUATED, "exportAuthorized": False, "PUBLIC_RUNTIME_VERIFIED": False,
                       "liveAttemptReady": False}, sort_keys=True))
     return 0
 
