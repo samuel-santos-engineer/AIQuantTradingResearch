@@ -113,3 +113,38 @@ Final **13 WP65 +18 WP64 +31 parser/collector =62 passed,0 failed/skipped**, sui
 Next owner decision is **one new separately authorized bounded exact-image inspect** using the minimal projection above: current desktop-linux/local-pipe identity qualification,10second request deadline, combined1MiB capture, numeric exit/fixed stderr categories, owned-process cleanup, no retry/fallback. No prior attempt approval is reused. This correction authorizes ZERO Docker commands of any kind, ZERO daemon/image/export/container/volume/build/pull/push/tag operations, ZERO registry/Azure/credential/private-runtime/public-probe/deployment operations; none occurred. No requirement to install or run another language first.
 
 Accepted API-first/UI-second sequence and auth/TLS/storage/ports unchanged. **WP61 UI OCI provenance UNVERIFIED**; publication necessity **NOT PROVEN**. No image presence/RepoDigest/index/child/config/registry-availability/runtime-readiness claim. PR #461 OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## WP66 ? one authorized minimal identity/platform observation ? 2026-11-18
+
+Base current main4a36cd983c7730d89736b7d0f0db0da122f7411b contains merged #461. New focused evidence branch/PR only; prior WP65 original CLI_FAILED and approved retry exit1/0.395seconds/templateError=true remain verbatim above. WP61/WP64 receipts and merged Python-only helper/tests reviewed. No Go/toolchain activity or new dependencies. #457 untouched.
+
+Preflight verified original Windows host by in-memory exact host comparison (machine identifier not output), absent DOCKER_HOST/DOCKER_TLS_VERIFY/DOCKER_CERT_PATH override names (values not read), current contextdesktop-linux and exact existing local Docker Desktop Linux named-pipe endpoint. Two local metadata-only commands: docker context show; docker context inspect desktop-linux --format '{{json .Endpoints.docker.Host}}'. Both exit0; no context change/other daemon contacted. No docker version/info, image inventory or other daemon probing.
+
+Exactly **one** authorized daemon/image operation, helper-generated direct argument array:
+
+```text
+docker --context desktop-linux image inspect sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69 --format '{"Id":{{json .Id}},"Os":{{json .Os}},"Architecture":{{json .Architecture}}}'
+```
+
+Observation start **2026-11-19T02:28:01.896395Z /2026-11-18T23:28:01.896395-03:00 Sao Paulo**. Numeric exit **0**; request duration **0.244seconds**.10second request deadline/combined1MiB stdout+stderr cap; previously qualified suspended owned Windows Job/capture primitive used without Azure adapter. Job accounting0active processes and pipe-reader cleanup verified, no orphan reported. Raw command output/stderr transient only, cleared without persistence/display; only safe booleans/recorded exact ID retained. Error categories not applicable to successful return. No retry or richer projection followed.
+
+| Safe WP66 assertion | Result |
+| --- | --- |
+| Exact local Docker image ID equals accepted WP61 receipt | MATCH: sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69 |
+| OS / architecture | Linux / amd64 verified in minimal response |
+| Original host/current local context/endpoint | Preflight PASS |
+| Owned descendant / pipe cleanup | VERIFIED |
+| UID/ports/entrypoint/Cmd/RepoDigests | NOT_REQUESTED, UNKNOWN |
+| Config/index/linux child kind and digests | UNVERIFIED |
+| Publication / deployable registry reference / Azure equivalence | UNVERIFIED; none established |
+
+Existing project(raw) parsed the transient three-field JSON: contract.linuxAmd64=true and exact localId match; overall result **UNVERIFIED**, intentionally. This is a successful evaluation of this minimal formatter on the actual local host for this one image, not evidence richer/nested formatting works. Earlier formatting failures remain historical, not evidence of image absence/corruption. A local ID is not promoted to a config/index/child digest by this success; no raw OCI metadata was collected or fed to the offline verifier. Local image existence/platform now observed, not current container/chart health. Docker CLI may internally obtain richer metadata from daemon; formatter emitted only the three requested fields, no sensitive output captured.
+
+Required offline suites ran BEFORE and AFTER this single possible inspect: each run13WP65+18WP64+31parser/collector=**62passed,0failed/skipped**, exit0. No source/test changes necessary; same62 cases repeated for before/after, not124distinct tests. Python syntax, UTF-8/LF/no BOM, links/tables, exact one-file diff and git diff --check validated before publication. Previous source/helpers/tests unchanged.
+
+Smallest separate next proposal: one new bounded exact-image inspect requesting only root Id and RepoDigests with safe existing-repository@fullSHA256 projection,10seconds/1MiB/numeric-exit/sanitized-error/owned-cleanup/no-retry limits, same qualified host/context. No nested Config/richer private fields. If no safe RepoDigest exists, retain publication UNKNOWN rather than assume nonpublication; propose separately bounded local OCI metadata resolution later. A RepoDigest would still require exact registry index/child/config chain verification under future explicit registry scope before a deployable reference is accepted. No new inspection/export/registry approval inferred here.
+
+Preserve accepted API-first/UI-second order: accepted research child2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3, diagnostic d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c remains separate. Historical Azure UIa06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07 not proved equivalent to WP61. No auth/TLS/storage/port/data behavior changed.
+
+**ZERO Azure/registry/credential/runtime/volume/public-probe operations. Exactly1 daemon image inspect plus2 local context-metadata commands; ZERO exports/builds/pulls/pushes/tags/container operations.** PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
