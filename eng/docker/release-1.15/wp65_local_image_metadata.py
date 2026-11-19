@@ -76,6 +76,47 @@ def project(raw):
     return safe
 
 
+REPODIGEST_FORMAT = '{"Id":{{json .Id}},"RepoDigests":{{json .RepoDigests}}}'
+MAX_REPODIGESTS = 16
+
+
+def repodigest_command(context):
+    if context != CONTEXT: raise ValueError("CONTEXT_UNVERIFIED")
+    return ["docker", "--context", context, "image", "inspect", WP61, "--format", REPODIGEST_FORMAT]
+
+
+def project_repodigests(raw):
+    safe = {"result": "UNVERIFIED", "repoDigestState": "UNKNOWN", "ociProvenance": "UNVERIFIED",
+            "PUBLIC_RUNTIME_VERIFIED": False, "liveAttemptReady": False}
+    try:
+        if not isinstance(raw, bytes) or len(raw) > LIMIT: return safe
+        def unique(pairs):
+            out = {}
+            for key, value in pairs:
+                if key in out: raise ValueError("DUPLICATE")
+                out[key] = value
+            return out
+        data = json.loads(raw, object_pairs_hook=unique)
+        if not isinstance(data, dict) or data.get("Id") != WP61 or "RepoDigests" not in data: return safe
+        safe["exactIdMatch"] = True
+        refs = data["RepoDigests"]
+        if refs is None:
+            safe.update(result="OBSERVED", repoDigestState="NULL")
+            return safe
+        if not isinstance(refs, list): return safe
+        if len(refs) > MAX_REPODIGESTS:
+            safe["repoDigestState"] = "COUNT_LIMIT_STOP"
+            return safe
+        if not all(isinstance(ref, str) and re.fullmatch(r"ghcr[.]io/samuel-santos-engineer/aiquanttradingresearch@sha256:[a-f0-9]{64}", ref) for ref in refs):
+            safe["repoDigestState"] = "UNSAFE_REFERENCE_WITHHELD"
+            return safe
+        safe.update(result="OBSERVED", repoDigestState="SAFE_REFS" if refs else "EMPTY",
+                    safeRepoDigestCount=len(refs), safeRepoDigests=refs)
+    except (ValueError, UnicodeError, TypeError, AttributeError, RecursionError):
+        pass
+    return safe
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__); parser.parse_args(argv)
     print(json.dumps({"result": "PLAN_ONLY", "imageId": WP61, "context": CONTEXT,

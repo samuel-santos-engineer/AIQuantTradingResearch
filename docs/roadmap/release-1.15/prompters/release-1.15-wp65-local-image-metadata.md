@@ -148,3 +148,37 @@ Smallest separate next proposal: one new bounded exact-image inspect requesting 
 Preserve accepted API-first/UI-second order: accepted research child2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3, diagnostic d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c remains separate. Historical Azure UIa06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07 not proved equivalent to WP61. No auth/TLS/storage/port/data behavior changed.
 
 **ZERO Azure/registry/credential/runtime/volume/public-probe operations. Exactly1 daemon image inspect plus2 local context-metadata commands; ZERO exports/builds/pulls/pushes/tags/container operations.** PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## WP67 ? one authorized RepoDigest-only observation ? 2026-11-18
+
+Current main27875afd437846a1eaeae84ea7470ddf955eb1b6 verified with #462 merged; focused new branch. WP65/WP66 history preserved verbatim above. #457 untouched. Existing helper's general project parser deliberately does not distinguish RepoDigest-null/empty/failure, so a small explicit RepoDigest-only command/classifier plus4 synthetic tests were necessary. No existing OCI/provenance semantics changed.
+
+Before the single inspect, Python-only tests passed:17WP65 (13existing+4new),18WP64,31parser/collector, total66. Classifier requires exact WP61 ID,1MiB input cap, duplicate/schema rejection; RepoDigests null/empty/safe reference states distinct; at most16refs accepted for classification. Any non-string/incomplete/malformed/non-allowlisted reference withholds the entire set (no safe partial list). Only fixed application repository@full lowercaseSHA256 values may ever be output. A local RepoDigest never proves OCI kind/publication/current availability.
+
+Original Windows host compared in memory (private machine identifier not output); Docker override variable names absent without reading values; two local metadata commands verified current desktop-linux and exact existing local Docker Desktop Linux pipe: docker context show; docker context inspect desktop-linux --format '{{json .Endpoints.docker.Host}}'. Both exit0; no context changes/fallback/daemon start or probes. Exactly one daemon/image operation:
+
+```text
+docker --context desktop-linux image inspect sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69 --format '{"Id":{{json .Id}},"RepoDigests":{{json .RepoDigests}}}'
+```
+
+Direct argument array/no shell;10second request deadline, combined stdout/stderr1MiB cap, qualified suspended owned Windows Job and bounded pipe cleanup. Observation start **2026-11-19T02:44:28.565405Z /2026-11-18T23:44:28.565405-03:00 Sao Paulo**. Numeric exit **0**, request0.174seconds. Job accounting0active processes/pipe cleanup VERIFIED. No raw stdout/stderr/unknown refs persisted or displayed; buffers cleared. Fixed error categories not applicable to zero exit. No other image/daemon operation, no retry/richer query/export.
+
+| Safe classification | Result |
+| --- | --- |
+| Exact accepted WP61 local ID | MATCH |
+| Inspect command outcome | Success, exit0 |
+| RepoDigest collection | UNVERIFIED; UNSAFE_REFERENCE_WITHHELD |
+| Meaning of unsafe label | At least one value did not meet strict existing-repository@fullSHA256 string allowlist; not proof of a credential, malicious content or image corruption |
+| Permitted safe refs/count | UNKNOWN/not disclosed; entire set withheld, no partial list retained |
+| Null versus empty collection | Neither reported by classifier; unexpected-reference branch triggered, not inspection failure |
+| Runtime UI contract/user/ports/entrypoint | NOT_REQUESTED; historical WP61 evidence only |
+| Config/index/child/registry publication/current availability/Azure equivalence | UNVERIFIED |
+
+The classifier processed an exact-ID response and an in-cap reference list, but intentionally withheld all values after an unexpected member. No raw image/ENV/labels/history/layers/filesystem or paths requested. Docker CLI can receive richer daemon metadata internally before --format; only the fixed two fields were captured transiently. This establishes no safe GHCR immutable mapping, and no requirement to republish/rebuild. No deployable UI reference emitted. Older Azure UIa06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07 remains historical configuration, not verified equivalence.
+
+Smallest separately approvable next step: first offline review of the strict classifier's distinction between non-allowlisted repository and malformed reference, without changing the allowed-output repository. If owner then authorizes one new exact-ID RepoDigest inspect, classify only fixed structural categories (such as complete digest, application-repository match, other-repository present, malformed/userinfo present) without exposing any other repository/value or broadening the allowlist. This is a proposal, NOT RUN; consumed authority does not permit reinspection or using discarded raw output. Only after a trustworthy immutable mapping exists may an exact separate registry metadata footprint be proposed; no registry call requested/performed now. Image export remains outside this scope.
+
+Post-inspect suites also passed:17WP65+18WP64+31parser/collector=**66passed,0failed/skipped**, exit0, same66cases repeated before/after (not132distinct tests). Actual Windows host, no Go/toolchain/runtime dependency. Python syntax, UTF-8/LF/no BOM, Markdown links/tables, exact three-path scope and git diff --check validated before publication. Existing WP64/parser/collector source/tests unchanged. Helper default remains plan-only/no Docker. No synthetic result used as actual OCI/provenance evidence.
+
+**Exactly1 authorized image inspect plus2 local context metadata commands. ZERO registry/Azure/credential/public-probe/private-runtime operations; ZERO exports/builds/pulls/pushes/tags/containers/volumes.** Preserve accepted API-first/UI-second order, accepted API2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3, diagnostic d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c separate. PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

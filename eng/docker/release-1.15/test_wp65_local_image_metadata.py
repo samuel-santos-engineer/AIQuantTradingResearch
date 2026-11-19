@@ -101,4 +101,35 @@ class OfflineTemplateTests(unittest.TestCase):
             self.assertEqual("UNVERIFIED", m.project(json.dumps(data).encode())["result"])
 
 
+class RepoDigestTests(unittest.TestCase):
+    def test_fixed_two_field_command(self):
+        command = m.repodigest_command(m.CONTEXT)
+        self.assertEqual(["docker", "--context", "desktop-linux", "image", "inspect", m.WP61], command[:6])
+        self.assertEqual('{"Id":{{json .Id}},"RepoDigests":{{json .RepoDigests}}}', command[-1])
+        self.assertNotIn("Config", command[-1])
+        with self.assertRaises(ValueError): m.repodigest_command("other")
+
+    def test_null_empty_safe_reference_distinct(self):
+        reference = "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:" + "a" * 64
+        for refs, expected in [(None, "NULL"), ([], "EMPTY"), ([reference], "SAFE_REFS")]:
+            value = m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+            self.assertEqual("OBSERVED", value["result"])
+            self.assertEqual(expected, value["repoDigestState"])
+            self.assertEqual("UNVERIFIED", value["ociProvenance"])
+
+    def test_untrusted_ref_never_disclosed_or_partially_returned(self):
+        for refs in [["fake-sensitive-secret"], [None], ["ghcr.io/user/repo@sha256:" + "a" * 64], ["https://user:fake-sensitive-secret@host/repo"]]:
+            value = m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+            self.assertEqual("UNVERIFIED", value["result"])
+            self.assertEqual("UNSAFE_REFERENCE_WITHHELD", value["repoDigestState"])
+            self.assertNotIn("fake-sensitive", json.dumps(value))
+            self.assertNotIn("safeRepoDigests", value)
+
+    def test_missing_wrong_id_schema_duplicates_caps(self):
+        for raw in [b"{}", b"{", b"[]", b'{"Id":1,"Id":2}', json.dumps({"Id": "wrong", "RepoDigests": []}).encode(), json.dumps({"Id": m.WP61}).encode(), b"x" * (m.LIMIT + 1)]:
+            self.assertEqual("UNVERIFIED", m.project_repodigests(raw)["result"])
+        value = m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": ["x"] * 17}).encode())
+        self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+
+
 if __name__ == "__main__": unittest.main()
