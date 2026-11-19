@@ -389,3 +389,77 @@ No such operation is authorized or executed here. No classification proves a
 reachable/published index, child/config chain, deployable equivalence, Azure
 health or working public UI. Preserve API-first/UI-second order and existing
 auth/TLS/storage/ports.
+
+
+## WP71 ? bounded WP61 RepoDigest shape observation ? 2026-11-19
+
+Fresh main `c04fad45c59d5988e79d3c56dc501dc8ea594725` contains both required
+merges: #465 `a88e8a4c880a38e969b6017dcd24037bd649b339` and #466
+`c04fad45c59d5988e79d3c56dc501dc8ea594725`. Work used a clean isolated branch;
+owner changes and all WP65?WP70 evidence are preserved. Helper/tests unchanged.
+
+UTC: **2026-11-19T23:46:32.846963+00:00**;
+America/Sao_Paulo: **2026-11-19 20:46:32.846963-03:00**.
+The established in-memory original Windows host comparison passed without
+publishing or persisting its identifier. Prohibited Docker override names were
+absent; their values were not read. The two authorized local context metadata
+commands verified the expected current context and local pipe, without storing
+or exposing endpoint values. No daemon operation preceded qualification.
+
+Exactly one helper-generated direct-argv image inspect ran with the unchanged
+Id/RepoDigests formatter and accepted WP61 local image ID
+`sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69`.
+Numeric exit **0**, duration **0.416 seconds**; exact-ID match **true**.
+The existing suspended-process Windows Job and bounded pipe capture enforced a
+10-second request deadline and 1 MiB combined stdout/stderr cap. All owned Jobs
+verified zero active processes; pipe readers joined and pipes closed before
+return. No orphan descendants remained in the owned Jobs.
+
+| Fixed structural category | Observed count |
+| --- | --- |
+| EXPECTED_REPOSITORY_DIGEST | 0 |
+| OTHER_REPOSITORY_DIGEST | 0 |
+| UNSUPPORTED_REFERENCE_SHAPE | 0 |
+| MALFORMED_REFERENCE | 1 |
+| UNEXPECTED_VALUE_TYPE | 0 |
+
+Classifier result **UNVERIFIED**, state **UNSAFE_REFERENCE_WITHHELD**.
+No explicit-port shape was recognized by this grammar. All reference strings
+were withheld, including any potentially allowlisted members; only fixed counts
+and execution metadata were retained. Raw stdout/stderr stayed transient in
+memory, buffer references were cleared after classification, and no raw-output
+artifact was written. This is not a claim of secure process-memory erasure.
+The conservative classifier can reject legitimate unsupported syntax. No
+corruption, credential presence, nonpublication, registry reachability or
+rebuild/publication need is inferred. This is a fresh observation, not a
+retroactive reclassification of WP69's discarded value or WP67's observation.
+
+| Offline suite command, before and after | Each run |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 26 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+
+75 distinct tests passed before and again after; zero failures/skips. Repeated
+runs are not counted as 150 distinct cases. Default helper returned PLAN_ONLY,
+exit 0 and dockerOperations 0. Syntax compilation, UTF-8/LF/no BOM, Markdown
+links/tables, prior evidence byte-prefix preservation, unchanged helper/tests,
+exact one-path diff and git diff --check passed before PR publication.
+
+Operation inventory: **2 local context commands, 1 exact image inspect, 0
+retries/fallbacks/other Docker operations**. Zero registry/GHCR HTTP, Azure,
+credential, provider, public probe, image export/build/pull/push/tag,
+container/volume, runtime or deployment activity. Authorized Git/PR lifecycle
+only publishes this append-only evidence; no auth/TLS/storage/port or deployment
+sequence changes. PR remains OPEN/UNMERGED.
+
+Next smallest decision: offline-only review of additional bounded structural
+predicates using synthetic fixtures and source-backed syntax reasoning, without
+broadening value output. This work package does not authorize that follow-up or
+another Docker call. No safe immutable mapping emerged; any future observation
+or exact registry verification requires separate explicit approval. Preserve
+API-first/UI-second sequencing. Local metadata is not proof of index/manifest/
+config provenance, deployment equivalence, Azure health or a working public UI.
+
+**OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
