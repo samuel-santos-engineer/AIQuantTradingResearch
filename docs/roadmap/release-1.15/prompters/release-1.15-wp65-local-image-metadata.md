@@ -182,3 +182,60 @@ Smallest separately approvable next step: first offline review of the strict cla
 Post-inspect suites also passed:17WP65+18WP64+31parser/collector=**66passed,0failed/skipped**, exit0, same66cases repeated before/after (not132distinct tests). Actual Windows host, no Go/toolchain/runtime dependency. Python syntax, UTF-8/LF/no BOM, Markdown links/tables, exact three-path scope and git diff --check validated before publication. Existing WP64/parser/collector source/tests unchanged. Helper default remains plan-only/no Docker. No synthetic result used as actual OCI/provenance evidence.
 
 **Exactly1 authorized image inspect plus2 local context metadata commands. ZERO registry/Azure/credential/public-probe/private-runtime operations; ZERO exports/builds/pulls/pushes/tags/containers/volumes.** Preserve accepted API-first/UI-second order, accepted API2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3, diagnostic d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c separate. PR OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## WP68 ? offline RepoDigest structural classifier ? 2026-11-19
+
+Base: merged PR #463, `9f6fa36cee1282d17016835bfb7da6a0787b661f`.
+The isolated branch preserves unrelated owner checkout changes. Only the existing
+Python helper, its synthetic tests and this appended evidence entry change.
+All authored text is UTF-8/LF without BOM; previous evidence is preserved verbatim.
+
+The transient, bounded list now produces four fixed category counts:
+`EXPECTED_REPOSITORY_DIGEST`, `OTHER_REPOSITORY_DIGEST`, `MALFORMED_REFERENCE`
+and `UNEXPECTED_VALUE_TYPE`. The deliberately conservative full-match grammar
+accepts dotted lowercase DNS registry names and lowercase repository components
+with single internal separators, followed by `@sha256:` and 64 lowercase hex
+characters; it caps each accepted reference at 1024 characters. Ports, schemes,
+userinfo, whitespace, uppercase, bare tags, incomplete digests and ambiguous
+forms are rejected. Valid references outside this subset can be classified as
+malformed: this is a conservative syntax classifier, not a complete OCI parser.
+
+Exact image ID, duplicate-key rejection, 1 MiB input limit, 16-reference cap,
+NULL/EMPTY/UNKNOWN semantics, command construction and plan-only default remain.
+Reference values are emitted only when the entire collection belongs to the
+unchanged exact application-repository allowlist. Mixed, other-repository,
+malformed and unexpected-type collections stay UNVERIFIED with all values
+withheld; only fixed counts are added. No raw exception text is returned.
+WP66 identity/platform evidence is unchanged. WP67's discarded real values cannot
+be retroactively reclassified; its UNSAFE_REFERENCE_WITHHELD result remains the
+only supported classification of that historical observation.
+
+| Actual offline validation | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 23 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+| `python -B eng/docker/release-1.15/wp65_local_image_metadata.py` | PLAN_ONLY, exit 0, zero Docker operations |
+
+Total: 72 tests passed, zero skips and zero failures. New synthetic cases cover
+category separation, mixed-list redaction, malformed and ambiguous strings,
+unexpected types, early guards, count boundaries, and import/default execution
+under process/network-failure mocks. Syntax compilation, UTF-8/LF/no BOM,
+Markdown links/tables, evidence-prefix preservation, exact three-path scope and
+`git diff --check` were checked before publication of the PR.
+
+Offline classifier only: no new Docker inspection or Docker command of any kind;
+no registry/Azure/provider/public HTTP operations, credentials, private baseline,
+exports, builds or runtime actions. Git remote/PR operations only publish the
+reviewable repository delta. OCI provenance UNVERIFIED; publication necessity
+NOT PROVEN; registry reachability, manifest/index/config kind, deployable
+equivalence and Azure runtime state remain unknown.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+Possible next decision after review/merge: separately authorize one bounded
+exact-image RepoDigest inspection on the qualified original host/context, with
+the existing 10-second/1 MiB limits, numeric exit, sanitized errors, owned-process
+cleanup and no retry/fallback. No such inspection is authorized or executed here.
+A future safe mapping would require separately approved exact registry metadata
+verification, not an assumption of publication or a rebuild.

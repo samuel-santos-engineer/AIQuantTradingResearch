@@ -78,6 +78,25 @@ def project(raw):
 
 REPODIGEST_FORMAT = '{"Id":{{json .Id}},"RepoDigests":{{json .RepoDigests}}}'
 MAX_REPODIGESTS = 16
+# Conservative subset: dotted lowercase DNS registry, no port/userinfo/tag,
+# lowercase alphanumeric repository components with single internal separators.
+# Syntactic acceptance is not a registry lookup or publication attestation.
+IMMUTABLE_REFERENCE = re.compile(
+    r"(?=.{1,1024}\Z)(?:[a-z0-9]+(?:-[a-z0-9]+)*[.])+"
+    r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*/"
+    r"[a-z0-9]+(?:[._-][a-z0-9]+)*"
+    r"(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*@sha256:[a-f0-9]{64}"
+)
+EXPECTED_REFERENCE = re.compile(
+    r"ghcr[.]io/samuel-santos-engineer/aiquanttradingresearch@sha256:[a-f0-9]{64}"
+)
+
+
+def reference_category(ref):
+    if not isinstance(ref, str): return "UNEXPECTED_VALUE_TYPE"
+    if not IMMUTABLE_REFERENCE.fullmatch(ref): return "MALFORMED_REFERENCE"
+    if EXPECTED_REFERENCE.fullmatch(ref): return "EXPECTED_REPOSITORY_DIGEST"
+    return "OTHER_REPOSITORY_DIGEST"
 
 
 def repodigest_command(context):
@@ -107,7 +126,13 @@ def project_repodigests(raw):
         if len(refs) > MAX_REPODIGESTS:
             safe["repoDigestState"] = "COUNT_LIMIT_STOP"
             return safe
-        if not all(isinstance(ref, str) and re.fullmatch(r"ghcr[.]io/samuel-santos-engineer/aiquanttradingresearch@sha256:[a-f0-9]{64}", ref) for ref in refs):
+        counts = {category: 0 for category in (
+            "EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
+            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE")}
+        for ref in refs:
+            counts[reference_category(ref)] += 1
+        safe["referenceCategories"] = counts
+        if counts["EXPECTED_REPOSITORY_DIGEST"] != len(refs):
             safe["repoDigestState"] = "UNSAFE_REFERENCE_WITHHELD"
             return safe
         safe.update(result="OBSERVED", repoDigestState="SAFE_REFS" if refs else "EMPTY",

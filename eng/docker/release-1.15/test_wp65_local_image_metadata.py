@@ -1,6 +1,7 @@
 """Synthetic inspect fixtures only."""
 import contextlib
 import io
+import importlib
 import json
 import unittest
 from unittest.mock import patch
@@ -130,6 +131,82 @@ class RepoDigestTests(unittest.TestCase):
             self.assertEqual("UNVERIFIED", m.project_repodigests(raw)["result"])
         value = m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": ["x"] * 17}).encode())
         self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+
+
+class StructuralCategoryTests(unittest.TestCase):
+    expected = "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:" + "a" * 64
+    other = "registry.example.org/team/fake-image@sha256:" + "b" * 64
+
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_expected_and_other_are_syntax_only(self):
+        for ref, category in [(self.expected, "EXPECTED_REPOSITORY_DIGEST"), (self.other, "OTHER_REPOSITORY_DIGEST")]:
+            value = self.project([ref])
+            self.assertEqual(1, value["referenceCategories"][category])
+            self.assertEqual("UNVERIFIED", value["ociProvenance"])
+            self.assertFalse(value["PUBLIC_RUNTIME_VERIFIED"])
+            self.assertFalse(value["liveAttemptReady"])
+            if ref == self.expected:
+                self.assertEqual([ref], value["safeRepoDigests"])
+            else:
+                self.assertEqual("UNVERIFIED", value["result"])
+                self.assertNotIn(ref, json.dumps(value))
+
+    def test_mixed_collection_withholds_every_reference(self):
+        value = self.project([self.expected, self.other, "fake-sensitive", None])
+        self.assertEqual({name: 1 for name in (
+            "EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
+            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE")}, value["referenceCategories"])
+        self.assertEqual("UNVERIFIED", value["result"])
+        self.assertNotIn("safeRepoDigests", value)
+        rendered = json.dumps(value)
+        for ref in [self.expected, self.other, "fake-sensitive"]:
+            self.assertNotIn(ref, rendered)
+        self.assertLess(len(rendered), 1024)
+
+    def test_malformed_ambiguous_and_uppercase_withheld(self):
+        for ref in ["https://" + self.other, "user:fake-sensitive@" + self.other,
+                    self.other + "\n", " " + self.other, self.other.upper(),
+                    self.other[:-1], self.other.replace("@sha256:", ":tag@sha256:"),
+                    "registry/repo@sha256:" + "a" * 64,
+                    "registry.example.org:443/repo@sha256:" + "a" * 64,
+                    self.other.replace("/team/", "/../"), self.other.replace("/team/", "//"),
+                    "registry.example.org/repo:tag", "x" * 2048]:
+            with self.subTest(length=len(ref)):
+                value = self.project([ref])
+                self.assertEqual(1, value["referenceCategories"]["MALFORMED_REFERENCE"])
+                self.assertNotIn(ref, json.dumps(value))
+                self.assertNotIn("safeRepoDigests", value)
+
+    def test_nonstring_values_and_collection_type(self):
+        for ref in [None, True, 1, {}, [], {"fake-sensitive": "value"}]:
+            value = self.project([ref])
+            self.assertEqual(1, value["referenceCategories"]["UNEXPECTED_VALUE_TYPE"])
+            self.assertNotIn("fake-sensitive", json.dumps(value))
+        for refs in [True, 1, {}, "fake-sensitive"]:
+            value = self.project(refs)
+            self.assertEqual("UNKNOWN", value["repoDigestState"])
+            self.assertNotIn("referenceCategories", value)
+
+    def test_guards_precede_classification(self):
+        for raw in [json.dumps({"Id": "wrong", "RepoDigests": [self.other]}).encode(),
+                    ('{"Id":"' + m.WP61 + '","RepoDigests":[],"RepoDigests":[]}').encode(),
+                    json.dumps({"Id": m.WP61}).encode(), b"x" * (m.LIMIT + 1)]:
+            value = m.project_repodigests(raw)
+            self.assertEqual("UNKNOWN", value["repoDigestState"])
+            self.assertNotIn("referenceCategories", value)
+        value = self.project([self.expected] * m.MAX_REPODIGESTS)
+        self.assertEqual(m.MAX_REPODIGESTS, value["safeRepoDigestCount"])
+        value = self.project([self.other] * (m.MAX_REPODIGESTS + 1))
+        self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+        self.assertNotIn("referenceCategories", value)
+
+    def test_import_and_default_plan_have_no_external_operations(self):
+        with patch("subprocess.Popen", side_effect=AssertionError("process forbidden")), patch("socket.socket", side_effect=AssertionError("network forbidden")), contextlib.redirect_stdout(io.StringIO()) as output:
+            importlib.reload(m)
+            self.assertEqual(0, m.main([]))
+        self.assertEqual("PLAN_ONLY", json.loads(output.getvalue())["result"])
 
 
 if __name__ == "__main__": unittest.main()
