@@ -239,3 +239,72 @@ the existing 10-second/1 MiB limits, numeric exit, sanitized errors, owned-proce
 cleanup and no retry/fallback. No such inspection is authorized or executed here.
 A future safe mapping would require separately approved exact registry metadata
 verification, not an assumption of publication or a rebuild.
+
+
+## WP69 ? bounded real RepoDigest structural observation ? 2026-11-19
+
+Base: merged PR #464, `3ea0804e9819c8d073131bd79d699cb417e7b7ac`.
+Observation UTC: 2026-11-19T23:30:24.455955+00:00;
+America/Sao_Paulo: 2026-11-19 20:30:24.455955-03:00.
+The original Windows host identity was compared privately in memory and matched.
+The three prohibited Docker override names were absent; values were not read.
+Both authorized local context commands passed, verifying the qualified context
+and local named-pipe endpoint without publishing identifiers.
+
+Exactly one daemon/image inspect ran with the unchanged two-field command and
+accepted WP61 local ID
+`sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69`.
+It returned numeric exit **0** in **0.358 seconds**, within the 10-second request
+limit and 1 MiB combined stdout/stderr cap. The existing suspended-process
+Windows Job ownership and bounded pipe-capture mechanism was used. All owned
+Jobs verified zero active processes after termination; pipe readers joined and
+pipes closed before classification returned. Exact-ID match: **true**.
+
+| Safe structural category | Count |
+| --- | --- |
+| EXPECTED_REPOSITORY_DIGEST | 0 |
+| OTHER_REPOSITORY_DIGEST | 0 |
+| MALFORMED_REFERENCE | 1 |
+| UNEXPECTED_VALUE_TYPE | 0 |
+
+Projection result: **UNVERIFIED**, state **UNSAFE_REFERENCE_WITHHELD**.
+No reference values or partial expected-repository collection were retained or
+published. Raw stdout/stderr remained transient in memory and references to
+those buffers were cleared after classification; no raw-output artifact was
+written. This does not claim secure erasure of Python process memory.
+The conservative grammar may reject legitimate unsupported OCI syntax.
+This outcome does not establish corruption, credential presence, nonpublication,
+registry availability or a need to rebuild/republish. No safe immutable mapping
+was established. This new observation does not reclassify WP67's discarded raw
+values. WP66 identity/Linux-amd64 and prior evidence remain unchanged.
+
+| Offline command (before and after observation) | Each run |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 23 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+
+72 distinct tests passed before and again after, zero failures/skips; repeated
+runs are not 144 distinct cases. Default helper execution returned PLAN_ONLY,
+exit 0, dockerOperations 0. Helper/tests were not changed. Syntax compilation,
+UTF-8/LF/no BOM, Markdown links/tables, exact one-path diff, prior evidence byte
+prefix and `git diff --check` passed before PR publication.
+
+Operation inventory: two local context-metadata commands, one exact image
+inspect, zero retries/fallbacks/other Docker operations. Zero registry, Azure,
+credential, provider, public-probe, export, build, pull, push/tag image,
+container/volume or deployment operations. Repository Git/PR publication only;
+PR #457 untouched. Owner checkout and retained runtime resources unchanged.
+
+Smallest next step: offline review of the conservative grammar and synthetic
+unsupported-form cases to decide whether a narrower fixed-category diagnostic
+would be useful. That would not identify this discarded value. Any future real
+observation needs separate exact approval; do not broaden the value allowlist,
+query a registry, rebuild or publish by assumption. Preserve API-first/UI-second
+order and existing auth/TLS/storage/ports.
+
+OCI provenance **UNVERIFIED**; publication necessity **NOT PROVEN**.
+Local RepoDigests do not prove registry reachability, current publication,
+index/child/config chain, deployment equivalence or Azure health; the local image
+ID is not reinterpreted as an OCI digest.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
