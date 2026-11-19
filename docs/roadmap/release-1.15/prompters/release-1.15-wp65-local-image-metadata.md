@@ -308,3 +308,84 @@ Local RepoDigests do not prove registry reachability, current publication,
 index/child/config chain, deployment equivalence or Azure health; the local image
 ID is not reinterpreted as an OCI digest.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP70 ? offline RepoDigest grammar review ? 2026-11-19
+
+Fresh main: `3ea0804e9819c8d073131bd79d699cb417e7b7ac` (merged #464).
+Live GitHub verification found #465 OPEN/UNMERGED at
+`f40c5ce24ac5fc73a5a1bfb17064411fcb155ca2`, based on that same main.
+WP70 branches independently from main; no #465 evidence was copied, rewritten
+or cherry-picked. Both append to this document's former end, so an append-hunk
+conflict is possible after either merges. Reconcile by retaining both complete,
+separately dated WP69 and WP70 sections; never replace either chronology.
+No merge of #465 is performed or authorized by this work package.
+
+Offline review of the existing Python expressions found deliberate exclusions:
+explicit registry ports, localhost/single-label registries, IPv6, repeated
+repository separators, uppercase names/digests and tagged references. Local
+repository material does not supply an authoritative vendored Docker reference
+parser/specification for validating all these forms. No external documentation
+was fetched. This review therefore does not claim authoritative Docker/OCI
+format validation, and does not label a value UNSUPPORTED_VALID_SHAPE.
+
+The smallest refinement is **UNSUPPORTED_REFERENCE_SHAPE** for a dotted lowercase
+DNS authority with an explicit canonical decimal TCP port in 1..65535, the
+existing conservative repository subset, and full lowercase sha256 hex. Offline
+reasoning: the colon before the first slash unambiguously separates a decimal
+port from this DNS authority; the digest separator remains after the path. This
+recognizes an explicit-port shape without claiming a registry exists, accepts
+that reference, or has published content. Ports with leading zeroes, signs,
+zero/out-of-range values, userinfo, schemes or ambiguous forms remain malformed.
+Single-label/localhost, IPv6, repeated separators and tag-plus-digest remain
+conservatively malformed pending reliable source-backed reasoning. Legitimate
+unsupported syntax may still fall into MALFORMED_REFERENCE.
+
+| Synthetic fixture only | Fixed classification |
+| --- | --- |
+| Exact allowed application repository plus lowercase sha256 | EXPECTED_REPOSITORY_DIGEST |
+| `registry.example.org/team/repo@sha256:` plus 64 lowercase hex | OTHER_REPOSITORY_DIGEST |
+| Same authority with explicit `:5000` before repository path | UNSUPPORTED_REFERENCE_SHAPE |
+| Scheme/userinfo, bare tag, incomplete/uppercase hex or invalid port | MALFORMED_REFERENCE |
+| Nonstring entry | UNEXPECTED_VALUE_TYPE |
+
+All category counts remain fixed/bounded by the 16-entry limit; raw input is
+capped at 1 MiB. The exact application-repository emission allowlist is unchanged.
+Any unsupported/other/malformed/unexpected or mixed collection stays UNVERIFIED
+and withholds every reference value. Exact-ID/duplicate-key guards, null/empty/
+unknown/count-limit states, sanitized errors and default PLAN_ONLY remain.
+The inspect argv and both formatter constants are byte-for-byte unchanged.
+
+| Actual validation command | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 26 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+| `python -B eng/docker/release-1.15/wp65_local_image_metadata.py` | PLAN_ONLY, exit 0, dockerOperations 0 |
+
+Total 75 tests passed, zero failures/skips (prior baseline 72). Three new tests
+cover port boundaries/ambiguities and mixed redaction/count bounds. Existing
+synthetic port expectation was updated to the new fixed category; other negative
+intentions and assertions remain. Import/default tests deny process/network
+creation. Syntax, UTF-8/LF/no BOM, Markdown links/tables, exact three-path scope,
+prior evidence prefix, unchanged command construction and git diff --check
+passed before PR publication. Owner worktree changes are preserved.
+
+WP69 remains historically one MALFORMED_REFERENCE under its then-current WP68
+grammar; WP67 remains UNSAFE_REFERENCE_WITHHELD. Their discarded values were not
+accessed and cannot be retroactively classified. WP66 accepted identity/platform
+and WP61 local ID are unchanged. No rebuild/publication requirement is inferred.
+
+Offline grammar review only: zero Docker commands/inspection, registry HTTP,
+Azure, credentials, Go/toolchain, image/runtime/data or deployment operations.
+Only authorized Git remote/PR lifecycle operations publish this source delta.
+OCI provenance UNVERIFIED; publication necessity NOT PROVEN.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+Any future real observation requires separate explicit authorization with original
+host/context qualification, one exact-image operation, 10-second/1 MiB bounds,
+numeric exit, sanitized errors, owned-process cleanup and no retries/fallback.
+No such operation is authorized or executed here. No classification proves a
+reachable/published index, child/config chain, deployable equivalence, Azure
+health or working public UI. Preserve API-first/UI-second order and existing
+auth/TLS/storage/ports.

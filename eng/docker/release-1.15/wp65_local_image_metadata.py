@@ -91,9 +91,22 @@ EXPECTED_REFERENCE = re.compile(
     r"ghcr[.]io/samuel-santos-engineer/aiquanttradingresearch@sha256:[a-f0-9]{64}"
 )
 
+# Offline syntax recognition only, not an authoritative Docker/OCI validator.
+# Keep explicit ports outside the supported/emittable grammar. Require the same
+# dotted lowercase DNS/repository subset and a canonical decimal TCP port.
+PORT_REFERENCE = re.compile(
+    r"(?=.{1,1024}\Z)((?:[a-z0-9]+(?:-[a-z0-9]+)*[.])+"
+    r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*):([1-9][0-9]{0,4})/"
+    r"[a-z0-9]+(?:[._-][a-z0-9]+)*"
+    r"(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)*@sha256:[a-f0-9]{64}"
+)
+
 
 def reference_category(ref):
     if not isinstance(ref, str): return "UNEXPECTED_VALUE_TYPE"
+    port_shape = PORT_REFERENCE.fullmatch(ref)
+    if port_shape and int(port_shape.group(2)) <= 65535:
+        return "UNSUPPORTED_REFERENCE_SHAPE"
     if not IMMUTABLE_REFERENCE.fullmatch(ref): return "MALFORMED_REFERENCE"
     if EXPECTED_REFERENCE.fullmatch(ref): return "EXPECTED_REPOSITORY_DIGEST"
     return "OTHER_REPOSITORY_DIGEST"
@@ -128,7 +141,7 @@ def project_repodigests(raw):
             return safe
         counts = {category: 0 for category in (
             "EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
-            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE")}
+            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE", "UNSUPPORTED_REFERENCE_SHAPE")}
         for ref in refs:
             counts[reference_category(ref)] += 1
         safe["referenceCategories"] = counts

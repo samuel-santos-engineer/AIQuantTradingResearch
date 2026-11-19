@@ -155,9 +155,9 @@ class StructuralCategoryTests(unittest.TestCase):
 
     def test_mixed_collection_withholds_every_reference(self):
         value = self.project([self.expected, self.other, "fake-sensitive", None])
-        self.assertEqual({name: 1 for name in (
-            "EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
-            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE")}, value["referenceCategories"])
+        self.assertEqual({"EXPECTED_REPOSITORY_DIGEST": 1, "OTHER_REPOSITORY_DIGEST": 1,
+                          "MALFORMED_REFERENCE": 1, "UNEXPECTED_VALUE_TYPE": 1,
+                          "UNSUPPORTED_REFERENCE_SHAPE": 0}, value["referenceCategories"])
         self.assertEqual("UNVERIFIED", value["result"])
         self.assertNotIn("safeRepoDigests", value)
         rendered = json.dumps(value)
@@ -170,7 +170,6 @@ class StructuralCategoryTests(unittest.TestCase):
                     self.other + "\n", " " + self.other, self.other.upper(),
                     self.other[:-1], self.other.replace("@sha256:", ":tag@sha256:"),
                     "registry/repo@sha256:" + "a" * 64,
-                    "registry.example.org:443/repo@sha256:" + "a" * 64,
                     self.other.replace("/team/", "/../"), self.other.replace("/team/", "//"),
                     "registry.example.org/repo:tag", "x" * 2048]:
             with self.subTest(length=len(ref)):
@@ -207,6 +206,55 @@ class StructuralCategoryTests(unittest.TestCase):
             importlib.reload(m)
             self.assertEqual(0, m.main([]))
         self.assertEqual("PLAN_ONLY", json.loads(output.getvalue())["result"])
+
+
+class UnsupportedShapeTests(unittest.TestCase):
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_explicit_port_shapes_are_withheld_not_publication(self):
+        for port in [1, 443, 5000, 65535]:
+            ref = "registry.example.org:" + str(port) + "/team/fake-image@sha256:" + "a" * 64
+            value = self.project([ref])
+            self.assertEqual(1, value["referenceCategories"]["UNSUPPORTED_REFERENCE_SHAPE"])
+            self.assertEqual("UNVERIFIED", value["result"])
+            self.assertEqual("UNVERIFIED", value["ociProvenance"])
+            self.assertFalse(value["PUBLIC_RUNTIME_VERIFIED"])
+            self.assertFalse(value["liveAttemptReady"])
+            self.assertNotIn(ref, json.dumps(value))
+            self.assertNotIn("safeRepoDigests", value)
+
+    def test_ports_with_ambiguous_or_invalid_forms_remain_malformed(self):
+        for authority in ["registry.example.org:0", "registry.example.org:65536",
+                          "registry.example.org:0443", "registry.example.org:+443",
+                          "registry.example.org:", "localhost:5000", "[::1]:5000",
+                          "user:fake-sensitive@registry.example.org:443"]:
+            ref = authority + "/team/repo@sha256:" + "a" * 64
+            value = self.project([ref])
+            self.assertEqual(1, value["referenceCategories"]["MALFORMED_REFERENCE"])
+            self.assertNotIn(ref, json.dumps(value))
+        base = "registry.example.org:443/team/repo@sha256:" + "a" * 64
+        for ref in ["https://" + base, base + "\n", base.upper(), base[:-1],
+                    base.replace("/team/", "//"), base.replace("@sha256:", ":tag@sha256:")]:
+            self.assertEqual("MALFORMED_REFERENCE", m.reference_category(ref))
+
+    def test_mixed_count_bounds_and_no_partial_values(self):
+        expected = StructuralCategoryTests.expected
+        refs = [expected, StructuralCategoryTests.other,
+                "registry.example.org:5000/repo@sha256:" + "b" * 64,
+                "fake-sensitive", None]
+        value = self.project(refs)
+        self.assertEqual(5, sum(value["referenceCategories"].values()))
+        self.assertTrue(all(count == 1 for count in value["referenceCategories"].values()))
+        self.assertNotIn("safeRepoDigests", value)
+        for ref in refs[:-1]: self.assertNotIn(ref, json.dumps(value))
+        self.assertLess(len(json.dumps(value)), 1024)
+        for count in [0, 1, m.MAX_REPODIGESTS]:
+            value = self.project([refs[2]] * count)
+            self.assertEqual(count, sum(value["referenceCategories"].values()))
+        value = self.project([refs[2]] * (m.MAX_REPODIGESTS + 1))
+        self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+        self.assertNotIn("referenceCategories", value)
 
 
 if __name__ == "__main__": unittest.main()
