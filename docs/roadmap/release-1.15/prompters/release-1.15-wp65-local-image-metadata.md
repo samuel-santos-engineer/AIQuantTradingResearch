@@ -463,3 +463,81 @@ config provenance, deployment equivalence, Azure health or a working public UI.
 
 **OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP72 ? offline RepoDigest structural diagnostics ? 2026-11-19
+
+Fresh main `94029c6036435efb6a85af5c5dcade14f38d59db` contains required merged
+#467/WP71, #466/WP70 and #465/WP69 commits. Work used an isolated clean branch;
+owner changes, PR #457 and prior WP65?WP71 evidence remain untouched.
+
+Reviewed the existing IMMUTABLE_REFERENCE, PORT_REFERENCE, EXPECTED_REFERENCE,
+reference_category and project_repodigests implementation, existing synthetic
+tests and prior evidence. Repository filename search for reference/regexp/
+grammar/distribution material found no authoritative Docker/OCI grammar/parser;
+matching repository reference scripts and application fixtures are not format
+specifications. No external source, package/credential cache or raw observation
+was accessed. This is a bounded repository review, not a claim that no such
+material exists anywhere on the host. No rule below claims universal OCI validity.
+
+Decision: **no helper/production change**. Reliable local evidence does not
+justify expanding the grammar or adding another category. Added four tests and
+a compact 16-case synthetic matrix to the existing test file. Categories below
+are deliberately conservative current behavior, not authoritative validity:
+
+| Synthetic candidate shape | Current category and limitation |
+| --- | --- |
+| localhost; single-label authority; localhost with port | MALFORMED_REFERENCE; unsupported authority recognition, actual validity not established |
+| bracketed IPv6, with and without port | MALFORMED_REFERENCE; unsupported, validity not established |
+| tag plus immutable digest | MALFORMED_REFERENCE; tag/digest combinations not recognized |
+| repeated slash, double underscore, double hyphen in path | MALFORMED_REFERENCE; separator exclusions may reject legitimate syntax |
+| uppercase host; uppercase path | MALFORMED_REFERENCE; case behavior not authoritatively validated |
+| dotted lowercase DNS with canonical port 5000 | UNSUPPORTED_REFERENCE_SHAPE; existing heuristic only |
+| leading-zero port | MALFORMED_REFERENCE; deliberately ambiguous/unsupported |
+| URL scheme; synthetic userinfo | MALFORMED_REFERENCE; never treated as safe image references |
+| dotted lowercase DNS other repository with full digest | OTHER_REPOSITORY_DIGEST; structural only, no publication claim |
+
+Every matrix string uses a synthetic lowercase full sha256 suffix. All 16 cases
+are tested individually and mixed with the exact expected repository. A full
+16-entry collection proves bounded aggregate counts; a seventeenth entry stops
+before classification. Another test compares different synthetic lengths,
+characters and ordering with equal categories: outputs are identical, with no
+substrings, hashes, lengths, samples or per-position diagnostics. Output keys
+and fixed category keys are asserted exactly. Existing tests retain malformed/
+uppercase digest, duplicate JSON key, exact-ID, null/empty/schema, raw-size,
+count-cap, nonstring and import/default process/network denial coverage.
+
+| Actual offline validation | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 30 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+| `python -B eng/docker/release-1.15/wp65_local_image_metadata.py` | PLAN_ONLY, exit 0, dockerOperations 0 |
+
+Total **79 tests passed, zero failures/skips**, including four new tests (matrix
+subcases are not separately counted). Syntax compilation, UTF-8/LF/no BOM,
+Markdown links/tables, git diff --check, exact two-path test/documentation scope,
+unchanged helper bytes/command construction and prior evidence byte-prefix
+preservation passed before PR publication. No new dependency or category.
+All-or-nothing exact allowlist, duplicate/ID/size/count guards, plan default,
+10-second request and Windows Job/pipe cleanup implementation remain unchanged.
+
+Actual WP67/WP69/WP71 strings were not accessed, inferred or retrospectively
+reclassified. Their historical outcomes remain unchanged. Synthetic coverage
+cannot determine a safe immutable mapping from discarded metadata. No rebuild
+or publication requirement is established.
+
+Smallest separately approvable next action with a new benefit: offline review of
+an owner-supplied public authoritative reference-grammar excerpt, without any
+real RepoDigest value. It could resolve selected unsupported syntax accurately
+with zero runtime/secret exposure. No new image observation is proposed merely
+to repeat the same fixed-category result. If later a distinct bounded diagnostic
+is justified, a real operation would still need separate explicit approval.
+
+**Offline structural diagnostics only.** Zero Docker commands (including context),
+registry/GHCR HTTP, Azure, credentials, providers, public probes, runtime,
+export/build/pull/image-push/tag/container/volume or deployment operations.
+Only ordinary Git/GitHub branch and PR publication occurred. API-first/UI-second
+order and existing auth/TLS/storage/ports are unchanged.
+**OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
