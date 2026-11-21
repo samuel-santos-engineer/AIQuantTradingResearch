@@ -306,3 +306,38 @@ restart, public probe or deployment. Stop on quota pressure/error/drift. This
 prepares the reviewed API-first configuration phase without claiming it is approved.
 Private settings/key-preservation and cloud data handoff remain later explicit scopes.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Approved continuation - quota-first read-only preflight stopped - 2026-11-20
+
+Owner approved the proposed maximum8 projected ARM reads, 15s each/120s total,
+no retries, no settings/keys/mutations. A transient installed-CLI Python worker
+was prepared offline with exact GET target allowlist, no redirects/retries,
+3s connect/10s socket read limits,1MiB response cap, and fixed safe projections.
+The parent used the existing owned Windows Job/pipe capture with a15s per-worker
+request deadline. Installed CLI source inspection used signature/disassembly
+because inspect.getsource was unavailable; no authentication ran in that step.
+
+Observed UTC2026-11-21T01:39:15.283189+00:00
+(Sao Paulo2026-11-20 22:39:15.283189-03:00): **STOP_PREFLIGHT at QUOTA**.
+One worker/query invocation attempted; duration0.914s, process exit0 with a
+structured BLOCKED result. Owned Job/pipe cleanup verified. Fixed category:
+ARM_TRANSPORT_STATUS_OR_SCHEMA_UNVERIFIED. No quota counters, HTTP status,
+Azure configuration baseline or current app state were successfully returned.
+The worker did not retain the internal HTTP-send count on this failure path,
+so actual completed ARM request count is UNKNOWN (not asserted as one).
+The remaining7 approved metadata queries were NOT_RUN. No automatic retry.
+No settings/key read, registry/Docker action, health/browser probe, mutation,
+restart, data transfer or deployment occurred in this continuation.
+
+This result does not establish quota exhaustion, authentication failure or
+Azure app health; it only blocks the current preflight. Earlier verified UI
+publication/mapping remains valid as timestamped evidence. Source/runtime
+implementation and existing10-test result unchanged. This evidence append was
+checked for UTF-8/LF/no BOM and git diff --check before publication to #471.
+
+Smallest next step: offline fake-transport qualification of this temporary
+worker's installed-CLI wrapper and fixed failure-stage reporting. A new live
+quota attempt requires separate approval after that work, because the approved
+preflight stopped on first failure and prohibited retries. Do not deploy from an
+incomplete baseline. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
