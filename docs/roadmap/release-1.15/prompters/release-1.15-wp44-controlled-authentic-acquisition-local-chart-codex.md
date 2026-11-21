@@ -1,0 +1,34 @@
+# Codex prompt — Release 1.15 WP44: controlled authentic acquisition and local chart verification
+
+## Confirmed baseline
+
+Repository: `samuel-santos-engineer/AIQuantTradingResearch`.
+PR #430 was squash-merged to `main` at `4a41bc49396d6a5bbd5db3c1afb373fbcd09e8d8`. WP43 completed cached-only preparation, fresh Worker/UI images and 185 offline tests. WP42 introduced eleven fixed diagnostic categories and updated the C# producer and Python strict parser together. Historical WP41 BTC/USD HTTP 200 / `response_parse` / `INVALID_PROVIDER_PAYLOAD` remains unexplained; no historical response or credits are known. The WP41 approval was consumed.
+
+Current flags: `AUTHENTIC_DATA_NOT_IMPORTED=True`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
+
+## Objective
+
+Advance Release 1.15 toward a genuinely working **local** BTC/USD and ETH/USD historical candle chart with authentic observed-provider data, without fabricating acceptance. Perform offline verification first, request explicit owner approval for one bounded live acquisition, and conditionally import, start, verify and test the local chart if and only if acquisition succeeds. Produce a reviewable PR documenting evidence. No Azure operations.
+
+## Instructions
+
+1. Inspect `AGENTS.md` and all applicable instructions, the merged WP39–WP43 runbooks, governance, acquisition implementation, diagnostic contracts, chart verification workflow and current `main`. Use a clean isolated worktree/branch. Do not modify the owner's dirty checkout or private artifacts. Do not add governance/licensing approval gates.
+2. Verify `origin/main` contains merge `4a41bc49396d6a5bbd5db3c1afb373fbcd09e8d8`. Record exact commit, changes and applicable source/runtime identities. If baseline has moved, review relevant changes before proceeding.
+3. **Offline phase:** execute existing `Prepare` into a new owned private destination using cached-only inputs, no downloads or pulls. Verify fresh assembly hashes and local image IDs against manifest, owner/SYSTEM ACL, no conflicting sessions/state, absent bundle/receipt/database/qualification and actual certificate SAN/lifetime. WP43 certificate expires 2026-11-08 20:49:18 UTC; never assume it remains valid. Run existing focused C# acquisition/adapter/initializer tests, Python workflow tests, chart/client regressions, and strict Worker→Python negative diagnostic with approval removed and zero sends. Record actual counts and failures. Stop on any failed prerequisite. No provider request or credential read in this phase.
+4. **Mandatory owner checkpoint:** before any provider operation, present a concise summary of successful offline evidence, the precise proposed call budget, and ask for a *new, explicit owner approval*. A prior approval, this prompt, a command flag, or PR merge does **not** grant live authority. If approval is absent, STOP and publish only offline evidence as a draft/open PR. Never infer approval or execute a speculative probe.
+5. **Only following explicit approval**, recheck immediately: clean source/head, build/manifest identity, private ACL, valid TLS, no conflicting session, destination absence, and availability of the exact Windows User registry setting name `TwelveData__ApiKey`. Do not read its value outside the approved acquisition operation. Temporarily map the setting to process-only `AIQ_WP39_PROVIDER_KEY` inside the existing approved Acquire workflow and restore the previous environment in `finally`. Never print, persist or place key material in arguments, URLs, Docker, Git, logs, evidence or browser.
+6. Execute **exactly one** existing WP39 `Acquire` invocation with its established explicit approval and base-asset-volume confirmation flags. Maximum **two sequential HTTPS GETs** to `https://api.twelvedata.com/time_series`, BTC/USD then ETH/USD, `interval=1min`, `outputsize=1000`, `timezone=UTC`, `order=ASC`, existing latest-24-hour/completed-candle window and 15-second grace. **No retry, pagination, fallback, additional endpoints, account/credit probes, DNS/HEAD preflight or extra invocation.** Stop immediately on first failure or unknown outcome. Actual credit usage is unknown unless independently established without extra provider operations.
+7. Record only the bounded version-1 diagnostic envelope and child exit status: `failedStage`, `instrument`, `httpStatus`, `requestsStarted`, `responsesReceived`, `outcomeUnknown`, `failureCode`, `bundlePublished`, plus artifact presence. Preserve the eleven WP42 codes. Never record raw response bodies, headers, exception strings, provider message/code, secrets or private paths. HTTP 200 is not proof of valid data. Never assign a prospective WP42 category retroactively to WP41.
+8. If and only if the full authentic observed-provider bundle is atomically published and passes existing provenance/hash/validation checks, execute existing `Import` → `Start` → `Verify` → `Stop` workflow locally, preserving private data and state. Verify both instruments' UTC timestamps, OHLCV, base-asset volume labeling, candle counts/gaps, receipt and snapshot generation identity, TLS/authentication, readiness/continuity, instrument switching, 100/300/1000 presets, zoom and Refresh retention, and explicit observed-provider provenance in the browser. Do not substitute synthetic fixtures, alter the importer to accept bad data, or claim browser verification unless performed. On any failure stop safely, report sanitized facts and preserve private artifacts.
+9. Keep Azure deployment, public website verification, registry publication and external sharing **out of scope**. Never equate local acceptance with public acceptance. `PUBLIC_RUNTIME_VERIFIED` remains `False` regardless of local success.
+10. Create a new WP44 runbook under `docs/roadmap/release-1.15/prompters/` and append a concise WP44 status to `RELEASE_1.15_EXECUTION_PLAN.md`. Include actual commands, test results, observed diagnostics, approval checkpoint/outcome, build identities, privacy safeguards and exact change inventory. Ensure UTF-8/LF/no BOM, `git diff --check`, no sensitive/private artifacts. Open a WP44 PR against `main` and leave it **OPEN/UNMERGED** for owner review. Do not merge automatically.
+
+## Stop conditions and acceptance
+
+- No owner approval → offline-only evidence, no live request.
+- One failed/unknown Acquire → zero retries, no import/start/browser; leave `AUTHENTIC_DATA_NOT_IMPORTED=True`, `liveAttemptReady=false`.
+- Successful validated authentic import and local chart verification → document evidence and update only substantiated local readiness flags; keep `PUBLIC_RUNTIME_VERIFIED=False`.
+- Report separately what is observed, inferred and unknown. Preserve historical WP41 uncertainty and all original owner files.
+
+Return the PR URL, exact head SHA, actual changed paths, test counts, live request count and sanitized result, artifact/import/chart status, and any unresolved blocker.
