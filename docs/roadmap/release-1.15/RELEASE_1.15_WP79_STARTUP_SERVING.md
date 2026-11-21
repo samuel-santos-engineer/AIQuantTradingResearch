@@ -145,3 +145,66 @@ diff checks passed. No new work package was created. PR #478 stays OPEN/UNMERGED
 Next smallest bounded action is one existing startup-detector projection under
 a new explicit continuation, without another quota loop. No automatic retry.
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Approved single API startup-detector continuation - 2026-11-21
+
+Reconciled main632e636... and OPEN #478 head17fb2d6... before execution; clean
+existing PR worktree, owner edits untouched. Authority covered only one API
+LinuxRunningContainersPerHost GET plus offline interpretation, no follow-up.
+
+UTC2026-11-21T21:20:41.168706+00:00 (Sao Paulo18:20:41.168706-03:00):
+exact API detector resource, API-version2023-12-01, fixed requested UTC window
+**2026-11-21T21:05:41.168706+00:00 to2026-11-21T21:20:41.168706+00:00**.
+One authenticated read-only ARM send, **HTTP400**,1.605s total;15s owned-process
+cap,3s connect/10s socket,1MiB combined capture/body cap. No redirects/resource
+retry/fallback/polling. Owned Windows Job/pipe cleanup verified. Only fixed status/
+stage emitted: BLOCKED, STATUS_OR_SCHEMA, ValueError. Raw response/error/header/
+record/address/identifier/key/settings values were not persisted or output.
+
+No usable structured detector result was obtained. Dataset/table/rows,
+startup/pull/termination/exit/restart events, timestamps, fresh app/main-container
+attribution, exit codes and exact runtime child match all remain **UNKNOWN**.
+HTTP400 is a rejected diagnostic request, not evidence of a container startup
+failure, unhealthy image or current quota condition. Its detailed server reason
+was not retained, so the specific rejection cause is unproven.
+
+A transient safe projection was prepared offline with three fake assertions
+(empty/missing data stays unverified, startup marker count, no identifying fake
+value output); those assertions passed but the projection never received real
+detector data because the server rejected the request. This is not a claim of
+full parser/schema qualification or three distinct unittest cases. No source
+helper/framework or dependency was added to the repository.
+
+Offline installed-SDK inspection confirms DiagnosticsOperations exposes
+get_site_detector_response with datetime start_time/end_time and optional
+time_grain. A fake credential and capture-only transport, which throws before
+network access, confirmed GET on the same known resource and startTime/endTime
+query keys. Its UTC serialization was `...T21:05:41.000Z`/`...T21:20:41.000Z`;
+the installed SDK default API-version was2025-05-01. The actual live request used
+2023-12-01 and microsecond+00:00 timestamps. These observed serialization/version
+differences do **not** prove the cause of400 and do not authorize a version
+upgrade or another request. No real token/authentication/network occurred in
+the fake SDK inspection. No raw historical detector values were accessed.
+
+Live inventory: **one API detector GET only**. No API site/health follow-up,
+quota/usages, logging/config/settings/key read, UI fallback, registry/Docker,
+provider/data/authenticated snapshot/browser, Azure mutation/restart/scale/image
+change or import. Historical403, header timeouts and quota readings remain
+distinct and unchanged. No new state/cause inferred from the rejected request.
+
+Smallest next observation requires separate owner approval: one replacement
+same-detector read with installed-SDK-serialized UTC-Z timestamps and the
+explicit existing2023-12-01 API version, retaining the same bounded window,
+no retries and safe projection. First verify that exact query offline; do not
+switch endpoints or versions automatically. If rejected again, retain only a
+fixed allowlisted error-code category to distinguish unsupported time input
+from resource/permission failure, never a raw error body. No new work package.
+
+Documentation-only append; UTF-8/LF/no BOM, historical evidence prefix and diff
+checks passed. No application/source changes or unnecessary20-test rerun;
+previous executed20-test result stands. PR #478 OPEN/UNMERGED.
+UI_IMAGE_CONFIGURED=true/SAME_KEY_PRESENT=true remain WP77 evidence;
+UI_RUNNING_IMAGE_VERIFIED=false; API_HEALTH_ACCEPTED=false;
+BTC_ETH_BROWSER_ACCEPTED=false; PUBLIC_RUNTIME_VERIFIED=False;
+liveAttemptReady=false.
