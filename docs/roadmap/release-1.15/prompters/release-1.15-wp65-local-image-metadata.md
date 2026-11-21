@@ -627,3 +627,101 @@ from this review. It cannot determine the discarded value's syntax.
 
 **OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP74 - bounded aggregate diagnostic design - 2026-11-20
+
+Fresh main `3c340b8fecef248f48c8613fc0044dd791d9602f` contains merged #469.
+Reviewed helper/tests, WP69-WP73 appendices and existing capture/Job code.
+Isolated branch preserves owner changes and unrelated PRs. No historical raw
+reference values were read or inferred. All previous evidence is a byte prefix.
+
+Source basis is the versioned material already reviewed in WP73, not a new
+lookup or Go execution:
+[distribution/reference v0.6.0 regexp.go](https://github.com/distribution/reference/blob/v0.6.0/regexp.go),
+[reference.go](https://github.com/distribution/reference/blob/v0.6.0/reference.go),
+and [go-digest v1.0.0 algorithm.go](https://github.com/opencontainers/go-digest/blob/v1.0.0/algorithm.go).
+The latter's encoded regexes specify lowercase SHA384/96 and SHA512/128 hex;
+its Validate checks length/encoding. Reference parsing adds semantic checks.
+Sources are authoritative versioned implementations, not universal OCI validity
+or evidence of the installed daemon's serialization/algorithm availability.
+
+### Decision table
+
+N below means the already-supported conservative no-port, dotted lowercase DNS
+and repository-name subset, tested by the unchanged IMMUTABLE_REFERENCE after
+substituting a constant sha256 suffix. L means the entire original input string
+is at most the existing 1024-character shape bound. Candidate rows require
+string input and run only after existing raw/ID/type/count guards.
+
+| Candidate | Precise disjoint predicate / basis | Decision benefit, ambiguity, privacy |
+| --- | --- | --- |
+| UNSUPPORTED_DIGEST_SHAPE (selected) | L and N; exactly one effective digest delimiter; lowercase sha384 with 96 lowercase hex OR sha512 with 128 lowercase hex; go-digest v1.0.0 algorithm regexes | Separates a known alternative digest-policy mismatch from name-grammar rejection. Next question becomes whether algorithm metadata is in scope, not whether to broaden name parsing. One fixed count, no algorithm-specific values/details. No parser/publication claim. |
+| New authority/name category (rejected) | Would require sha256/64 lowercase hex plus a source-backed broader name predicate excluding existing expected/other/port categories | Localhost, IPv6, normalization and separator combinations need a larger parser subset. No single concrete downstream action justifies that expansion; leave local MALFORMED_REFERENCE. |
+| Broad digest-failure category (rejected) | Would require N, exclusion of sha256/64 and selected alternative shapes, and an exact enumerated semantic failure | Conflates unsupported algorithms, case, lengths and invalidity without choosing a useful next action. Adds disclosure without sufficient benefit; keep rejection bucket. |
+
+Exactly **one** new fixed category is implemented. It recognizes SHA384/SHA512
+encoded shapes only on N, does not generalize authorities/ports/tags, and does
+not report which algorithm matched. Existing exact expected, other-repository
+and explicit-port categories require sha256/64, so cannot overlap. Nonstring
+values retain UNEXPECTED_VALUE_TYPE. All remaining rejections retain
+MALFORMED_REFERENCE, meaning local-policy rejection, not upstream invalidity.
+
+Implementation reuses the existing name matcher with a constant replacement
+digest, transiently in memory. It does not compute any hash, return normalized
+names, expose length/snippets/positions, or emit derived reference data. The
+exact emission allowlist and all-or-nothing rule are unchanged: the new category
+always results in UNVERIFIED with every reference withheld, including mixed
+expected-repository entries. The count vocabulary grows from five to six keys;
+strict external consumers comparing exact key sets must accept the added key.
+No such production consumer was modified. All other output keys remain stable.
+
+Four new synthetic test methods cover algorithm length/case boundaries; name
+exclusions and precedence; all six categories mixed with total/count equality;
+value/order noninterference; exact output key set; 16/17-entry boundary;
+1 MiB exact/over-limit raw inputs; duplicate-key and wrong-ID early guards.
+Three existing vocabulary assertions were updated for the additional zero count;
+existing matrix/negative intentions and all-or-nothing assertions remain.
+Subtests/fixtures are not counted as separate test methods.
+
+| Actual offline command | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 36 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+| `python -B eng/docker/release-1.15/wp65_local_image_metadata.py` | PLAN_ONLY, exit 0, dockerOperations 0 |
+
+**85 distinct tests passed, zero failures/skips.** Existing import/default tests
+deny process/network creation. Syntax compilation, UTF-8/LF/no BOM, Markdown
+links/tables, exact three-path scope, historical evidence prefix preservation,
+unchanged command/default AST and formatter values, unchanged capture/Job bytes,
+and git diff --check passed before PR publication.
+
+Contract review: the existing capture function accepts a seconds argument (its
+generic default is 15); earlier authorized image observations explicitly used
+10 seconds. WP74 changes neither that API nor the required 10-second live
+request bound. Combined 1 MiB capture, suspended Job ownership/zero-active
+verification, pipe joining/closure and no-retry boundary remain unchanged;
+no live switch or invocation is added. Exact-ID/duplicate/type/raw/count/null/
+empty/unknown and plan-only protections remain.
+
+Risk: subset recognition is not full name/digest parser validation (including
+upstream path-length/algorithm-availability behavior). A positive count only
+supports a decision to scope offline algorithm-policy review; it does not permit
+emission, registry access, a rebuild or publication. No matching count is claimed
+for WP67/WP69/WP71, whose original discarded values remain unknown.
+
+Smallest separately approvable next step: owner review/merge of this diagnostic
+and decision whether alternative-algorithm metadata merits any future handling.
+No further observation is needed for the design's synthetic acceptance. If an
+owner later chooses to measure this new category, separately authorize a single
+exact-image bounded count-only operation only after reviewing these privacy tests;
+none is authorized or executed by WP74. Do not repeat prior inspections by default.
+
+Operation inventory: offline repository source review and synthetic tests only,
+plus ordinary Git/GitHub publication. Zero Docker commands, registry/GHCR,
+Azure, credentials, external docs/network probes, dependencies, image/runtime/
+data operations, build/pull/push/tag or deployment. No other PR merged/modified.
+Docker-first/dual-process, API-first/UI-second, auth/TLS/storage/ports preserved.
+**OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

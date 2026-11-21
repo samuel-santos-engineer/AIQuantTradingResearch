@@ -102,11 +102,22 @@ PORT_REFERENCE = re.compile(
 )
 
 
+def unsupported_digest_shape(ref):
+    # WP73 sources: go-digest v1.0.0 algorithm.go encoded regexes.
+    # Reuse ONLY the already-supported name subset; no general parser or output.
+    if len(ref) > 1024: return False
+    name, separator, digest = ref.rpartition("@")
+    if not separator or not re.fullmatch(r"(?:sha384:[a-f0-9]{96}|sha512:[a-f0-9]{128})", digest):
+        return False
+    return bool(IMMUTABLE_REFERENCE.fullmatch(name + "@sha256:" + "0" * 64))
+
+
 def reference_category(ref):
     if not isinstance(ref, str): return "UNEXPECTED_VALUE_TYPE"
     port_shape = PORT_REFERENCE.fullmatch(ref)
     if port_shape and int(port_shape.group(2)) <= 65535:
         return "UNSUPPORTED_REFERENCE_SHAPE"
+    if unsupported_digest_shape(ref): return "UNSUPPORTED_DIGEST_SHAPE"
     if not IMMUTABLE_REFERENCE.fullmatch(ref): return "MALFORMED_REFERENCE"
     if EXPECTED_REFERENCE.fullmatch(ref): return "EXPECTED_REPOSITORY_DIGEST"
     return "OTHER_REPOSITORY_DIGEST"
@@ -141,7 +152,8 @@ def project_repodigests(raw):
             return safe
         counts = {category: 0 for category in (
             "EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
-            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE", "UNSUPPORTED_REFERENCE_SHAPE")}
+            "MALFORMED_REFERENCE", "UNEXPECTED_VALUE_TYPE", "UNSUPPORTED_REFERENCE_SHAPE",
+            "UNSUPPORTED_DIGEST_SHAPE")}
         for ref in refs:
             counts[reference_category(ref)] += 1
         safe["referenceCategories"] = counts

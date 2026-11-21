@@ -157,7 +157,7 @@ class StructuralCategoryTests(unittest.TestCase):
         value = self.project([self.expected, self.other, "fake-sensitive", None])
         self.assertEqual({"EXPECTED_REPOSITORY_DIGEST": 1, "OTHER_REPOSITORY_DIGEST": 1,
                           "MALFORMED_REFERENCE": 1, "UNEXPECTED_VALUE_TYPE": 1,
-                          "UNSUPPORTED_REFERENCE_SHAPE": 0}, value["referenceCategories"])
+                          "UNSUPPORTED_REFERENCE_SHAPE": 0, "UNSUPPORTED_DIGEST_SHAPE": 0}, value["referenceCategories"])
         self.assertEqual("UNVERIFIED", value["result"])
         self.assertNotIn("safeRepoDigests", value)
         rendered = json.dumps(value)
@@ -245,7 +245,8 @@ class UnsupportedShapeTests(unittest.TestCase):
                 "fake-sensitive", None]
         value = self.project(refs)
         self.assertEqual(5, sum(value["referenceCategories"].values()))
-        self.assertTrue(all(count == 1 for count in value["referenceCategories"].values()))
+        self.assertEqual(0, value["referenceCategories"]["UNSUPPORTED_DIGEST_SHAPE"])
+        self.assertEqual(5, sum(count == 1 for count in value["referenceCategories"].values()))
         self.assertNotIn("safeRepoDigests", value)
         for ref in refs[:-1]: self.assertNotIn(ref, json.dumps(value))
         self.assertLess(len(json.dumps(value)), 1024)
@@ -332,7 +333,7 @@ class StructuralMatrixTests(unittest.TestCase):
                           "exactIdMatch", "referenceCategories"}, set(value))
         self.assertEqual({"EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
                           "UNSUPPORTED_REFERENCE_SHAPE", "MALFORMED_REFERENCE",
-                          "UNEXPECTED_VALUE_TYPE"}, set(value["referenceCategories"]))
+                          "UNEXPECTED_VALUE_TYPE", "UNSUPPORTED_DIGEST_SHAPE"}, set(value["referenceCategories"]))
 
 
 class CanonicalReviewPolicyTests(unittest.TestCase):
@@ -369,6 +370,73 @@ class CanonicalReviewPolicyTests(unittest.TestCase):
             self.assertEqual(1, sum(value["referenceCategories"].values()))
             self.assertNotIn("safeRepoDigests", value)
             self.assertNotIn(ref, json.dumps(value))
+
+
+class DigestDiagnosticTests(unittest.TestCase):
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_supported_subset_digest_boundaries(self):
+        for algorithm, length in [("sha384", 96), ("sha512", 128)]:
+            for name in ["registry.example.org/team/repo",
+                         "ghcr.io/samuel-santos-engineer/aiquanttradingresearch"]:
+                ref = name + "@" + algorithm + ":" + "a" * length
+                self.assertEqual("UNSUPPORTED_DIGEST_SHAPE", m.reference_category(ref))
+                for wrong in [length - 1, length + 1]:
+                    self.assertEqual("MALFORMED_REFERENCE", m.reference_category(
+                        name + "@" + algorithm + ":" + "a" * wrong))
+                self.assertEqual("MALFORMED_REFERENCE", m.reference_category(
+                    name + "@" + algorithm + ":" + "A" * length))
+
+    def test_name_constraints_and_existing_precedence(self):
+        for name in ["localhost/repo", "registry/repo", "[::1]/repo",
+                     "registry.example.org:5000/repo", "registry.example.org/repo:tag",
+                     "registry.example.org/team//repo", "REGISTRY.example.org/repo",
+                     "https://registry.example.org/repo", "user:fake@registry.example.org/repo"]:
+            self.assertEqual("MALFORMED_REFERENCE", m.reference_category(name + "@sha512:" + "a" * 128))
+        samples = [(StructuralCategoryTests.expected, "EXPECTED_REPOSITORY_DIGEST"),
+                   (StructuralCategoryTests.other, "OTHER_REPOSITORY_DIGEST"),
+                   ("registry.example.org:5000/repo@sha256:" + "a" * 64, "UNSUPPORTED_REFERENCE_SHAPE"),
+                   ("fake-sensitive", "MALFORMED_REFERENCE"), (None, "UNEXPECTED_VALUE_TYPE")]
+        for ref, category in samples: self.assertEqual(category, m.reference_category(ref))
+
+    def test_aggregate_only_mixed_withholding_and_noninterference(self):
+        a = "registry.example.org/repo@sha384:" + "a" * 96
+        b = "other.example.net/longer/fake-name@sha512:" + "b" * 128
+        self.assertEqual(self.project([a]), self.project([b]))
+        refs = [StructuralCategoryTests.expected, StructuralCategoryTests.other,
+                "registry.example.org:5000/repo@sha256:" + "c" * 64,
+                "fake-sensitive", None, a]
+        value = self.project(refs)
+        self.assertEqual(value, self.project(list(reversed(refs))))
+        self.assertTrue(all(n == 1 for n in value["referenceCategories"].values()))
+        self.assertEqual("UNVERIFIED", value["result"])
+        self.assertEqual("UNVERIFIED", value["ociProvenance"])
+        self.assertFalse(value["PUBLIC_RUNTIME_VERIFIED"])
+        self.assertFalse(value["liveAttemptReady"])
+        self.assertEqual({"result", "repoDigestState", "ociProvenance",
+                          "PUBLIC_RUNTIME_VERIFIED", "liveAttemptReady",
+                          "exactIdMatch", "referenceCategories"}, set(value))
+        for ref in refs:
+            if isinstance(ref, str): self.assertNotIn(ref, json.dumps(value))
+        self.assertNotIn("safeRepoDigests", value)
+        self.assertLess(len(json.dumps(value)), 1024)
+
+    def test_count_and_raw_caps_and_guards_precede_diagnostic(self):
+        ref = "registry.example.org/repo@sha512:" + "a" * 128
+        value = self.project([ref] * m.MAX_REPODIGESTS)
+        self.assertEqual(m.MAX_REPODIGESTS, value["referenceCategories"]["UNSUPPORTED_DIGEST_SHAPE"])
+        value = self.project([ref] * (m.MAX_REPODIGESTS + 1))
+        self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+        self.assertNotIn("referenceCategories", value)
+        raw = json.dumps({"Id": m.WP61, "RepoDigests": [ref]}).encode()
+        self.assertEqual("UNSUPPORTED_DIGEST_SHAPE", m.reference_category(ref))
+        value = m.project_repodigests(raw + b" " * (m.LIMIT - len(raw)))
+        self.assertEqual(1, value["referenceCategories"]["UNSUPPORTED_DIGEST_SHAPE"])
+        self.assertNotIn("referenceCategories", m.project_repodigests(raw + b" " * (m.LIMIT + 1 - len(raw))))
+        for raw in [json.dumps({"Id": "wrong", "RepoDigests": [ref]}).encode(),
+                    ('{"Id":"' + m.WP61 + '","RepoDigests":[],"RepoDigests":[]}').encode()]:
+            self.assertNotIn("referenceCategories", m.project_repodigests(raw))
 
 
 if __name__ == "__main__": unittest.main()
