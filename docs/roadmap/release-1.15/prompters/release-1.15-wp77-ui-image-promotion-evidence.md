@@ -1,0 +1,120 @@
+# WP77 - accepted UI image promotion attempt - 2026-11-21
+
+Status: **STOPPED BEFORE WRITE: UI baseline state/security drift**.
+UI image deployment has NOT succeeded in this attempt; integration remains pending.
+Owner explicitly authorized promotion before API acceptance, superseding the
+prior API-first runtime gate for this image-only operation. API403 was not used
+as a gate. Required UI baseline checks still apply and stopped execution.
+
+## Reconciliation and scope
+
+Base main `54c222100ab7b9fbecc26527ebfa5f0084985a4a` contains merged #470/#471/
+#472/#473. PR #475 was verified OPEN at
+`ac59e40ef961bb086cba1e8338ce0cb1ac6f94ea`; it was read but not modified.
+New isolated follow-on branch preserves the owner's modified WP76 prompt and
+untracked WP77 prompt on main. Historical WP75/WP76 evidence unchanged.
+
+Exact UI target:
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde`.
+Accepted API child2744c4dc... remains selected; no API mutation/query was issued.
+The index/local ID3e323b0d... is not used as the runtime target. Historical UI
+baseline a06baf... is not substituted for the accepted UI child.
+
+## Minimal execution implementation
+
+`eng/azure-cli/r1.15-qualification/wp77_ui_promotion.py` implements only the
+exact UI baseline -> one targeted config/web PATCH -> private preservation and
+image readback transaction, using an injected request function. Its CLI default
+is PLAN_ONLY with no live adapter/process/network. No live switch was added.
+The approved operation was invoked through a transient existing-installed-CLI
+worker, using exact method/path/body allowlists, no redirects/resource retries,
+3s connect/12s socket limits,25s hard per-request worker timer,1MiB capture/body
+limits,180s owned Windows Job cap. Normal CLI authentication only. Worker files
+contain reviewed code/targets only; no baseline secret persisted or output.
+
+Before writing, the transaction requires exact site/platform/plan and Running/
+Normal/HTTPS checks, expected old-or-target image/empty startup, port8501,
+private settings/slot baseline. Missing UI key does NOT block image promotion.
+The PATCH can change ONLY linuxFxVersion to the exact target and appCommandLine
+to empty; no settings write/restart/API operation is available. It skips PATCH
+if already configured. Then it checks image/startup, unchanged settings/slots,
+selected web security fields and plan/HTTPS. No full auth requalification claim.
+Private baseline dictionaries are cleared after use, without secure-erasure claim.
+
+## Actual Azure result
+
+UTC2026-11-21T12:30:56.609889+00:00
+(Sao Paulo2026-11-21 09:30:56.609889-03:00):
+
+| Observed item | Result |
+| --- | --- |
+| Exact UI site GET | HTTP200,1.041s |
+| Exact resource identity and Linux/WestUS2 checks | Passed before the later combined gate |
+| Combined expected-plan/Running/usageNormal/availabilityNormal/HTTPS gate | Failed: SITE_STATE_OR_SECURITY_DRIFT |
+| Failed stage | UI_SITE_BASELINE |
+| Total bounded worker | 1.413s, owned Job/pipe cleanup verified |
+| PATCH attempts | **0** |
+| Azure may have changed from this attempt | **false** |
+| Retry / rollback / explicit restart | **0 / 0 / 0** |
+
+The first transaction version retained only the combined gate, not individual
+failed booleans or raw state. Which member failed is UNKNOWN. Do not invent
+quota pressure, plan drift, stopped state or HTTPS disablement as the cause.
+HTTP200 here is a management response, not application health. No follow-up
+query was executed after the stop. Fixed per-field siteChecks booleans were
+added OFFLINE afterward for a future separately approved attempt; they do not
+retroactively classify this response. No raw private value/error/address was
+printed or persisted.
+
+The site/config baseline is unsafe/incomplete under this gate, so WP77's stop
+condition overrides proceeding blindly. config/web/settings/slot reads, image
+PATCH/readback, health/startup/403 ingress-auth diagnostics and browser tests
+were NOT_RUN. No original-image rollback baseline was freshly captured, and
+no rollback was needed because no mutation occurred. Last historical UI key
+absence is not a new key observation in WP77.
+
+| Required acceptance flag | Current evidence |
+| --- | --- |
+| UI_IMAGE_CONFIGURED | UNVERIFIED in this attempt (boolean verification false) |
+| UI_RUNNING_IMAGE_VERIFIED | UNVERIFIED |
+| API_HEALTH_ACCEPTED | false; historical403, no new probe |
+| SAME_KEY_PRESENT | UNVERIFIED/false; no private settings read reached |
+| BTC_ETH_BROWSER_ACCEPTED | false, NOT_RUN |
+
+## Offline validation and limits
+
+Initial fake suite found one readback-variable defect (1 failure in8 tests);
+it was corrected BEFORE the Azure operation. Eight fake tests then passed.
+After the stopped operation, per-field fixed baseline reporting was added and
+all8 tests passed again. Existing WP75 suite:10 passed. Final distinct total:
+**18 passed, zero failures/skips**; repeated runs are not extra distinct cases.
+
+```text
+python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp77_ui_promotion.py -q
+python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q
+python -B eng/azure-cli/r1.15-qualification/wp77_ui_promotion.py
+```
+
+Default: PLAN_ONLY/azureOperations0. Tests cover missing-key non-gating,
+minimal one-PATCH scope, idempotence, settings/slot preservation, baseline drift,
+ambiguous-write no retry/rollback, post-write preservation failure reporting,
+non-disclosure and default/import process/network denial. Syntax compilation,
+UTF-8/LF/no BOM, exact three-path scope and git diff --check passed before PR.
+Cloud results above are independent of fake-test assertions; fake success is
+not proof of running image or settings preservation in Azure.
+
+Live inventory: **one UI site ARM GET, zero writes**. No API, quota/usages,
+logging, registry/GHCR/Docker/image, settings/key, slot/auth-restriction write,
+TLS/storage/plan/resource mutation, provider/data/import/health/browser or
+production operations. All existing data/settings/key/security retained by no
+mutation, not by a completed post-PATCH preservation test. No automatic retry.
+
+Next smallest exact action requires owner approval: one UI site-only projected
+read using the new fixed checks, to identify which required baseline condition
+changed (no quota/logging/private settings read). Once safely resolved/recovered,
+resume this exact accepted-image transaction; do not weaken the security gate or
+block it on API403. Missing UI key must later be entered by the owner through
+the established private portal workflow as the SAME retained API research key;
+never request the value in chat or rotate it. No rollback of a future correctly
+configured image solely for key absence. No integration success inferred.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
