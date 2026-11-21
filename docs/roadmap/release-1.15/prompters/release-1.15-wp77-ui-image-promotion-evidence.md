@@ -262,3 +262,42 @@ startup/ingress-auth checks; API403 and cloud data availability remain unresolve
 Source unchanged since the20-test pass; this evidence-only append passed
 UTF-8/LF/no BOM and diff checks. Earlier stopped attempts remain verbatim.
 PR #476 OPEN/UNMERGED. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Owner-authorized local key to UI setting - 2026-11-21
+
+Owner explicitly instructed using local AIQ_RESEARCH_API_KEY if available to set
+only the staging UI key. Process channel availability verified by boolean only.
+UTC2026-11-21T19:27:51.432342+00:00 (Sao Paulo16:27:51-03:00):
+**UI_KEY_SET_AND_PRIVATE_EQUALITY_VERIFIED**,8.453s, owned process/pipe cleanup
+verified. Local value matched the API retained key privately via constant-time
+comparison before any write. UI exact site/plan/Running/Normal/HTTPS and accepted
+image/empty-startup baseline passed; UI key was absent before write.
+
+Existing installed CLI merge function was invoked directly in the child process,
+not with secret-bearing CLI arguments. Underlying App Service settings API used
+one PUT of the privately merged dictionary; request-body guard required exact
+baseline plus ONLY the new AIQ_RESEARCH_API_KEY property. This was merge semantics
+on the full API collection representation, not an assumption of a property PATCH.
+Post-save full-dictionary equality verified unrelated settings unchanged, same
+key present, exact slot flags unchanged and accepted UI image/startup unchanged.
+No API write, key rotation/generation, explicit restart or other setting change.
+
+11 exact ARM resource calls, all200: UI site/web/settings-list/slot baseline;
+API settings-list equality check; CLI UI settings-list/site check;1UI settings
+PUT; UI settings-list/slot/web readback. Normal CLI authentication only, no
+credential-store inspection. Request scope bound to exact apps/paths; no
+redirect/resource retry;3s connect/10s socket,1MiB body/capture,120s owned-worker
+limits. Local key inherited through the process environment, stayed in memory
+and Azure's HTTPS settings channel, never stdout/stderr/log/file/clipboard/argv/
+fingerprint/hash output. Child environment/reference cleanup performed; no
+cryptographic memory-erasure claim. Parent local environment left unchanged.
+
+SAME_KEY_PRESENT is now **true** by private equality checks. UI_IMAGE_CONFIGURED
+remains true by fresh web readback. UI_RUNNING_IMAGE_VERIFIED/API_HEALTH_ACCEPTED/
+BTC_ETH_BROWSER_ACCEPTED remain unverified/false; no runtime probe followed this
+setting-only task. Saving app settings can recycle the UI normally; no separate
+restart or rollback. No quota/logging/registry/Docker/provider/data/browser call.
+Evidence-only append passed LF/UTF-8/no BOM and diff checks; source/tests unchanged,
+no live secret test rerun. PR #476 remains OPEN/UNMERGED.
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
