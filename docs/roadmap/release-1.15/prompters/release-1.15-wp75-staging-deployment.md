@@ -404,3 +404,20 @@ only,15s each/45s total, no retries, stopping on state/drift/error. No deploymen
 from the still-incomplete two-app baseline. No code changes; prior tests stand;
 UTF-8/LF/no BOM and diff checks passed for this append. PR #471 OPEN/UNMERGED.
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Approved UI baseline reads - 2026-11-20
+
+UTC2026-11-21T01:58:04.458619+00:00 (Sao Paulo2026-11-20 22:58:04-03:00):
+3 approved exact GETs, no retries,12.983s total, owned Job/pipe cleanup verified.
+UI site PASS: expected plan/region/Linux, Running, usage/availability Normal,
+HTTPS-only true. UI web PASS: startup empty, historical configured image
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:a06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07`.
+That image is not the newly verified WP61 runtime child6b59d205...; no accepted
+WP61 UI deployment is inferred. UI logging GET BLOCKED after10.580s, fixed
+ARM_TRANSPORT classification, ConnectionError; no HTTP status/raw error shown.
+Stop condition observed; no retry or mutation/probe/settings/key access.
+UI logging remains missing, so the two-app baseline is still incomplete.
+Next smallest scope: one separately approved bounded UI config/logs retry only.
+No code changes; prior10 tests stand. Evidence LF/UTF-8/no BOM/diff checks passed.
+PR #471 remains OPEN/UNMERGED. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
