@@ -257,3 +257,43 @@ API_HEALTH_ACCEPTED=false; BTC_ETH_BROWSER_ACCEPTED=false;
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. PR #478 OPEN/UNMERGED.
 Evidence-only append passed UTF-8/LF/no BOM/diff checks; prior20 application
 fake tests were not unnecessarily rerun. No secret/private raw response persisted.
+
+
+## Approved corrected projection read - 2026-11-21
+
+UTC2026-11-21T21:33:30.229966+00:00 (Sao Paulo18:33:30.229966-03:00):
+one separately approved API detector GET, same2023-12-01 version and fixed
+UTC-Z15-minute window2026-11-21T21:05:41.000Z to21:20:41.000Z.
+**HTTP200; DETECTOR_PROJECTED;1.709s**, one ARM send,15s/1MiB bounds,
+no retries/fallbacks/redirects; owned Job/pipe cleanup verified.
+
+Safe projection actually returned: structured dataset true, table true,
+containsRows true, rowCount1; recognized semantic field kinds OTHER/REASON/STATE.
+No qualified TIMESTAMP/APP/ROLE/IMAGE fields were recognized. Thus freshness,
+exact app/main-container binding, runtime image identity, exit code and restart
+remain UNKNOWN/UNVERIFIED; qualified main/running-expected-image record counts0.
+All fixed event-marker counts0 (startup/pull/termination/exit/restart/pull-failure/
+quota/listener/configuration/storage). Zero pattern matches do **not** prove
+those events absent: this bounded summary/schema is insufficient for causality.
+No raw summary text/status/record/IDs/addresses/private values were output or
+persisted. The earlier projection defect is corrected; the result is now an
+actual inconclusive projected read, not a hidden local exception.
+
+No subsequent API site/health, UI, quota/logging/settings/key, authenticated
+BTC/ETH/browser/provider/data or Azure mutation/restart operation occurred.
+No current healthy main-container or startup failure is established. Historical
+403, timeouts, quota and earlier rejected/read failures remain unchanged.
+
+Evidence-only append passed UTF-8/LF/no BOM and diff checks; no code/new package
+or unnecessary application-test rerun. Prior full-worker2fake cases and20
+application fake tests remain their separately dated executed results.
+
+Single next useful scope, if owner chooses: one cold-start-aware API /health
+observation with up to20s HTTP-header allowance and a fixed overall owned-worker
+bound, no credential/redirect/retry, because the earlier~3s header bound did not
+resolve serving and this detector does not provide a cause. It would test actual
+serving, not certify running image identity. No such HTTP request is authorized
+or executed by this detector-only approval. No new work package/framework needed.
+PR #478 OPEN/UNMERGED; UI_RUNNING_IMAGE_VERIFIED=false;
+API_HEALTH_ACCEPTED=false; BTC_ETH_BROWSER_ACCEPTED=false;
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
