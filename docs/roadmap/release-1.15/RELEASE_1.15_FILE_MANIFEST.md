@@ -123,3 +123,13 @@ The owner subsequently authorized the five existing prerequisite source/test pat
 ## WP05 actual snapshot implementation after merged PR391 - 2026-10-24
 
 [Appended offline implementation evidence](RELEASE_1.15_WP03_WP04_FOUNDATION_PREFLIGHT.md#wp05-authenticated-snapshot-implementation-after-pr391---2026-10-24) records the fourteen literal implementation paths/hashes, actual durable-reader/HTTPS/Python vertical slice, independent complete-byte comparison,232 selected passing cases, bounds/security negatives and all15 preserved owner files including12 untracked prompts. Exactly14 approved source/test/build paths plus these2 existing append-only documents. PR391 baseline20a8647c901d3bffc1516b80603e7dab30d01c68; PR386/387 left open. No archives imported/created. Dockerfiles/PowerShell runner prepared but Linux execution deferred; no dependency/provider/Azure/production/staging/deployment action. Implementation review only, no acceptance/merge/issue closure; PUBLIC_RUNTIME_VERIFIED=False.
+
+## WP02 runtime preflight and exact-path proposal - 2026-10-23
+
+Execution order: owner acceptance/merge of WP01 PR #380 at `6f76697707e2363cc52820e0c805172815b92159`, this WP02 preflight, then separate literal-path approval before source mutation.
+
+- [Executed WP02 authority/prompt provenance](prompters/release-1.15-wp02-codex-docker-dual-process-runtime-and-isolation.md)
+- [WP02 exact-path implementation plan - approval pending](RELEASE_1.15_WP02_IMPLEMENTATION_PLAN.md)
+- [WP02 preflight evidence and stop reason](RELEASE_1.15_WP02_EVIDENCE.md)
+
+This index grants no source authority. WP01 owner acceptance supersedes historical review labels for its baseline only; Linux/Azure conformance remains unproven. Preserve default Release 1.14 runtime, historical fixtures and all acceptance rows. New/modified text is UTF-8/LF; `PUBLIC_RUNTIME_VERIFIED=False`.
