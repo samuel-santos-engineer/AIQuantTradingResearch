@@ -227,3 +227,82 @@ phase in section1 (including the bounded exact-tag conflict check), or supply an
 already verified immutable mapping to skip publication. This moves artifact
 delivery forward; API private data acceptance remains a separate concrete blocker.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Approved continuation - accepted UI publication/readback - 2026-11-20
+
+Owner directly approved the exact next publication/readback phase after PR #471
+was opened. This supersedes the earlier NOT RUN status for this phase only;
+Azure deployment/browser/data acceptance remain NOT RUN. No other live phase
+is inferred from this approval. Historical claims above remain dated evidence.
+
+Existing WP61 evidence confirms an allowlisted public-source build context,
+no private datasets/keys/TLS/fixtures, eleven application file hashes matching
+the accepted commit; no universal inherited-layer audit is claimed. The exact
+new tag conflict check used an anonymous scoped GHCR pull token in memory and
+one tag GET: HTTP404, target tag absent. Two requests total, no retries; bodies
+bounded at 1 MiB, socket timeout10s, TLS validation, no proxy inheritance.
+Token/value/raw-error output was not published or persisted.
+
+Exactly the reviewed Docker tag and push commands ran against accepted UI ID
+`sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69`
+and tag `ghcr.io/samuel-santos-engineer/aiquanttradingresearch:wp75-wp61-3e323b0d3008`.
+Tag: exit0, 0.288s (10s cap). Push: exit0, 5.417s (120s cap). Existing qualified
+Windows Job capture bounded combined stdout/stderr to1MiB and verified owned
+process/pipe cleanup. No Docker inspect/context/info/version, build/pull/export,
+container/volume operation or retry. Existing normal registry authentication was
+used by Docker; credential stores and values were not inspected. Push reported
+the root below; no raw Docker output was published or persisted.
+
+Anonymous readback at UTC2026-11-21T01:31:15.825319+00:00
+(Sao Paulo2026-11-20 22:31:15.825319-03:00) used six requests: scoped token,
+exact tag manifest, one selected Linux/amd64 runtime manifest, config blob
+including one approved-host HTTPS redirect without Authorization forwarding,
+and exact accepted API child manifest. Each request10s socket timeout, 1MiB
+body cap; seven-request budget, no retries. Raw metadata/token stayed in memory;
+only sanitized verification fields were retained. No full config/Env dump.
+
+| Verified UI metadata | Result |
+| --- | --- |
+| Registry index SHA256 | `sha256:3e323b0d3008a1e7256877c4c9f87484c25eee51448f57ac2dddd2a9d02bbd69` |
+| Selected Linux/amd64 child | `sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde` |
+| Config SHA256 | `sha256:224cb12b6ad9ca5edcb6c8675fbd19ec5ce06ab3cd38a557a2bc513bf994e7e8` |
+| Local ID mapping | MATCH to INDEX (verified from raw-byte hash chain, not assumed) |
+| Existing WP64 verifier | MATCH, chain MATCH, UI contract MATCH |
+| Revision label | UNKNOWN; absence is not proof of wrong source |
+| Layer content verification | false; metadata chain verification is not layer-content/runtime attestation |
+
+**Verified deployable UI reference:**
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde`.
+Accepted API child anonymous manifest GET/hash/media-type verification passed for
+`sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3`.
+API layers/config/runtime were not requalified by that one manifest check.
+
+The existing offline verifier labels publication RECORDED_MATCH_NOT_FRESH_ATTESTATION:
+this records actual readback at the timestamp above, not continuing reachability.
+UI OCI metadata provenance/mapping is now verified for that readback; universal
+layer provenance and actual Azure running identity remain unverified. Prior
+UNVERIFIED findings are not retroactively rewritten. Publication was an explicitly
+approved delivery action; its necessity was not proven by rejected RepoDigests.
+
+Concrete safe planner command now available (still prints argv, executes nothing):
+
+```text
+python -B eng/azure-cli/r1.15-qualification/wp75_staging_plan.py --phase UI --ui-digest sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde
+```
+
+No source changes or new tests were needed for this operational continuation;
+the prior10-test pass stands. UTF-8/LF/no BOM and diff checks rerun for this append.
+Exactly2 Docker commands and8 registry HTTP requests total across conflict check
+and readback; zero Azure/health/browser/provider/data/credential-store operations.
+No authenticated chart acceptance or Azure deploy has occurred.
+
+Single next approval requested: fresh **read-only staging baseline preflight**,
+up to8 exact ARM GETs: shared plan usages and metadata; each exact staging app's
+site, config/web and config/logs. Existing authenticated CLI only;15s/request,
+120s total, no retries; projected nonsecret identity/quota/state/usage/availability/
+HTTPS/image/startup/logging metadata only. No app-settings/key reads, mutation,
+restart, public probe or deployment. Stop on quota pressure/error/drift. This
+prepares the reviewed API-first configuration phase without claiming it is approved.
+Private settings/key-preservation and cloud data handoff remain later explicit scopes.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
