@@ -297,3 +297,32 @@ or executed by this detector-only approval. No new work package/framework needed
 PR #478 OPEN/UNMERGED; UI_RUNNING_IMAGE_VERIFIED=false;
 API_HEALTH_ACCEPTED=false; BTC_ETH_BROWSER_ACCEPTED=false;
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Approved one longer-header API health request - 2026-11-21
+
+UTC2026-11-21T21:38:07.993841+00:00 (Sao Paulo18:38:07.993841-03:00):
+one separately approved GET to exact staging API /health. DNS resolved, first
+selected TCP socket connected, TLS certificate/hostname verified. HTTP request
+sent once, **TimeoutError at HTTP_HEADERS**, no HTTP status or Alive body.
+20s header allowance; probe20.641s/overall20.786s;30s owned-process cap,
+3s connect/TLS bounds,2s body allowance/4096-byte accepted cap if reached.
+No proxy, credentials, redirect/fallback/retry; owned Job/pipe cleanup verified.
+No body/error/header/addresses/private identifiers persisted or exposed.
+
+The longer allowance did not yield serving acceptance. This is distinct from
+WP78's3s header timeouts and historical403; it does not prove permanent failure
+or which layer/container/port/auth/state caused the wait. No fresh HTTP403,
+quota diagnosis, running-image identity, exit/restart or cloud-data finding.
+No authenticated snapshot/UI/browser request followed a failed health prerequisite.
+No ARM/quota/logging/settings/key/registry/Docker/provider/data/mutation/restart
+operation in this continuation. Actual count1anonymous API health GET only.
+
+Evidence-only append passed UTF-8/LF/no BOM/diff checks; no source/test change
+or unnecessary test rerun. Next useful separate scope is exact API platform
+startup/ingress-to-container evidence (e.g. existing LinuxAppDown diagnostic),
+not another repeated /health timeout or the inconclusive per-host summary.
+Do not mutate images/security/ports based on this timeout alone. PR #478 stays
+OPEN/UNMERGED; API_HEALTH_ACCEPTED=false; BTC_ETH_BROWSER_ACCEPTED=false;
+UI_RUNNING_IMAGE_VERIFIED=false; PUBLIC_RUNTIME_VERIFIED=False;
+liveAttemptReady=false.
