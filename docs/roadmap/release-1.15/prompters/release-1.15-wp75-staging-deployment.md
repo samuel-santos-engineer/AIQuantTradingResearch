@@ -341,3 +341,49 @@ worker's installed-CLI wrapper and fixed failure-stage reporting. A new live
 quota attempt requires separate approval after that work, because the approved
 preflight stopped on first failure and prohibited retries. Do not deploy from an
 incomplete baseline. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Read-only quota and remaining metadata continuation - 2026-11-20
+
+Owner requested a fresh quota check, then explicitly requested continuing the
+remaining metadata queries. The transient worker's earlier failure was addressed
+by initializing CLI rest context and allowing normal CLI authentication transport;
+no credential value was printed. Two earlier quota-worker attempts sent zero ARM
+requests. A subsequent single actual quota GET returned CPU time0/3600000ms and
+WPStopRequests0/15. The helper required three selected counters and therefore
+reported BLOCKED despite capturing those two valid counters; short-period CPU
+remains UNVERIFIED. Do not equate that helper validation result with exhausted
+quota. No further quota GET was made in the remaining-query continuation.
+
+At UTC2026-11-21T01:52:59.656918+00:00
+(Sao Paulo2026-11-20 22:52:59.656918-03:00), the approved remaining-query run
+performed four exact ARM GETs sequentially, with one send each, no retry.
+Total14.346s, owned Windows Job/pipe cleanup verified; per-worker15s bounds.
+
+| Read | Result |
+| --- | --- |
+| Shared plan | PASS; exact West US2 Linux F1 identity |
+| API site | PASS; exact expected plan/site, Running, usage/availability Normal, HTTPS-only true |
+| API config/web | PASS; accepted child2744c4dc... configured, startup empty |
+| API config/logs | BLOCKED after10.539s; ARM_TRANSPORT_STATUS_OR_SCHEMA_UNVERIFIED, no usable logging projection |
+| UI site, config/web, config/logs | NOT_RUN; stopped at prior failure |
+
+Safe accepted API reference:
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3`.
+This is CONFIGURED_ONLY, not proof of running container bytes, health or dataset.
+The logging failure's exception type was withheld as OTHER; no HTTP status or
+specific cause is established. No logging retry occurred. Baseline remains
+incomplete; do not reconstruct missing logging/UI fields from past findings.
+
+No app-settings/key read, Azure mutation/restart, registry/Docker action, data
+transfer or health/browser probe occurred in these query continuations. Actual
+ARM inventory across fresh quota plus remaining run:1quota GET +4metadata GETs;
+previous zero-send worker attempts are not counted as cloud reads. Normal CLI
+authentication may perform its own token traffic, not additional resource queries.
+No code/test changes; prior10 focused tests stand. This append passed UTF-8/LF/no
+BOM and diff checks. PR remains OPEN/UNMERGED.
+
+Next smallest scoped action: separately approve one replacement read of only the
+failed API config/logs endpoint, with fixed transport/status/schema classification
+and no raw log data. No deployment from this incomplete baseline.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
