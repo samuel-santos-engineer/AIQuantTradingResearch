@@ -136,3 +136,39 @@ UI promotion must wait until the app is no longer quota-exceeded; one future
 site-only recovery confirmation needs owner authorization. PR #476 stays open;
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. Evidence-only append
 passed UTF-8/LF/no BOM and diff checks; source/tests unchanged.
+
+
+## Owner-approved quota check and conditional resumption - 2026-11-21
+
+Owner requested one quota check and continuation if reset. At
+UTC2026-11-21T18:04:12.642298+00:00 (Sao Paulo15:04:12-03:00), one shared-plan
+usages GET returned WPStopRequests0/15 and CpuTime5596/3600000ms: available
+for returned counters. No quota retry. Supplied reset fields were retained only
+as returned metadata, not interpreted as runtime readiness.
+
+Conditional UI transaction resumed once atUTC2026-11-21T18:04:40.736887+00:00
+(Sao Paulo15:04:40-03:00). Four exact ARM requests returned HTTP200: site0.927s,
+web0.903s, private settings-list0.635s, slotConfigNames0.865s. All five fixed
+siteChecks passed: expectedPlan/running/usageNormal/availabilityNormal/httpsOnly.
+UI key setting remained absent (value never read out/persisted).
+
+The transaction STOPPED at PRIVATE_SLOT_BASELINE with RESPONSE_IDENTITY.
+The expected slot resource-ID comparison failed; actual ID/name values were not
+retained, so absence versus differing identity is not established. Resource
+request scope was exact, but response identity was not proven. No automatic
+retry or relaxation. PATCH attempts0; azureMayHaveChanged=false. Worker3.746s,
+owned Job/pipe cleanup verified. Private settings stayed transient in memory.
+No image/settings/security write, API/health/browser/key/data operation or rollback.
+
+Offline review located existing WP21/WP22 slot-metadata validation, but that
+alone does not explain this response or justify silently skipping identity.
+No source changes or test rerun in this evidence-only continuation. Prior18-test
+pass remains historical. This append passed UTF-8/LF/no BOM and diff checks.
+Total live inventory:1quota GET +4transaction reads, zero mutation/retries.
+
+Next minimal separately authorized operation: one exact slotConfigNames GET
+projecting only id-present/exact-UI-resource-match and fixed schema/type flags,
+never raw slot names, IDs or settings. This can distinguish a nullable envelope
+from genuine target drift before a source-backed validation correction; do not
+rerun all baseline queries blindly. UI_IMAGE_CONFIGURED remains unverified;
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. PR #476 OPEN/UNMERGED.
