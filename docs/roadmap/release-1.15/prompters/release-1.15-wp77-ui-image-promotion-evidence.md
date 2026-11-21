@@ -118,3 +118,21 @@ the established private portal workflow as the SAME retained API research key;
 never request the value in chat or rotate it. No rollback of a future correctly
 configured image solely for key absence. No integration success inferred.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Approved single site-only follow-up - 2026-11-21
+
+UTC2026-11-21T12:33:35.048221+00:00 (Sao Paulo2026-11-21 09:33:35-03:00):
+owner approved exactly one read-only UI site check; one ARM GET,1.178s total,
+15s owned-process bound/cleanup. Fresh fixed projection: state **QuotaExceeded**,
+usage **Exceeded**, availability **Normal**, exact plan/Linux/WestUS2 and
+HTTPS-only checks true. Running and usageNormal checks false. This fresh result
+identifies an actual current hard quota-state blocker; it is not a retroactive
+raw-response classification or numeric quota-counter measurement. The earlier
+owner-supplied0/15 quota observation remains historical. No quota/usages GET,
+logging/settings/key reads, retry, health probe or mutation occurred.
+No image write, automatic restart/rollback, scaling or quota workaround.
+UI promotion must wait until the app is no longer quota-exceeded; one future
+site-only recovery confirmation needs owner authorization. PR #476 stays open;
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. Evidence-only append
+passed UTF-8/LF/no BOM and diff checks; source/tests unchanged.
