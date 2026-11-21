@@ -507,3 +507,135 @@ work package, classifier change or rebuild is needed. Missing cloud data/key
 channels may still be later blockers, but were not reached or diagnosed here.
 Docker-first/dual-process, API-first/UI-second and auth/TLS/storage/ports unchanged.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP76 resumed - supplied quota accepted, API serving blocked - 2026-11-21
+
+Updated owner authority accepts supplied stop requests0/15 and CPU5596/3600000ms
+as successful quota preflight and forbids another quota/plan-usages GET or the
+completed UI logging retry. Both prohibitions were respected: **zero quota and
+zero logging reads**. Base main `54c222100ab7b9fbecc26527ebfa5f0084985a4a`
+contains merged #470/#471/#472/#473. A clean isolated follow-on branch preserves
+the owner's currently modified WP76 prompt on local main and all historical
+WP75/WP76 evidence. No other branch/PR was overwritten.
+
+### Fresh target and private baseline read
+
+UTC2026-11-21T12:18:15.594608+00:00
+(Sao Paulo2026-11-21 09:18:15.594608-03:00):9 exact ARM resource requests,
+6.443s total, no resource retries, owned Windows Job/pipe cleanup verified:
+plan GET; for each exact staging app, site GET, config/web GET,
+config/appsettings/list POST (read-only) and config/slotConfigNames GET.
+Normal existing CLI authentication only; no token/secret output. Existing
+installed CLI2.89.1 fake-data merge proof passed offline with azureCalls0 before
+these operations. It is not a claim of an actual settings save.
+
+Transport allowed only those exact targets and normal login transport, no
+redirects/resource retries,1MiB response cap,3s connect/10s socket limit,
+15s hard per-request worker timer and120s total process cap. Entire settings
+collections/keys and slot metadata remained private in worker memory only,
+never printed/persisted or sent to Codex as values. References were cleared on
+worker exit; no secure-memory-erasure guarantee is claimed.
+
+| Fresh check | Result |
+| --- | --- |
+| Exact plan | West US2 Linux F1 identity PASS |
+| Both staging sites | Running, usage/availability Normal, HTTPS-only PASS |
+| API image | Accepted Linux/amd64 child2744c4dc... configured; startup empty |
+| API reviewed nonsecret settings | All match; no configuration save required |
+| API retained service-key setting | Present (value withheld) |
+| UI image | Still older a06baf... child, not accepted WP61 child |
+| UI reviewed nonsecret settings | Not all match (no values/unrelated names exposed) |
+| UI retained service-key setting | **Absent**; same-key condition false |
+| Both slot baselines | Captured privately in memory, not altered |
+
+The private settings/image/startup/HTTPS/slot baseline was captured for safe
+comparison, then cleared. No secret rollback artifact was persisted. With no
+mutation it was not needed for restoration; any future mutation must recapture
+and check a current in-memory rollback baseline. Logging was not reread because
+it was already complete and no logging change is proposed. No full auth/TLS
+configuration requalification is inferred from these checks.
+
+Accepted API already matched image/settings/empty-startup/HTTPS contracts;
+**no needless API repatch, settings save or restart was performed**. UI key
+absence is a concrete promotion blocker. No key generated, copied into a
+command, rotated or set in Azure. UI configuration remains untouched until
+API authentic data acceptance and a privately established same-key channel.
+
+### API runtime attempt and required stop
+
+UTC2026-11-21T12:18:47.221351+00:00
+(Sao Paulo2026-11-21 09:18:47.221351-03:00): one anonymous TLS-validating GET to
+the exact API /health,8s hard owned-worker cap,7s socket timeout,4096-byte
+accepted body cap plus one overflow sentinel, no proxy/credentials/redirects.
+It returned fixed **STOP_TLS_OR_TRANSPORT**, no HTTP status or Alive response,
+7.837s elapsed. No raw body/error/identifier was exposed. Owned process cleanup
+completed. TLS verification was enabled; no successful handshake is claimed.
+The sanitized result does not distinguish DNS/connect/TLS/read-timeout causes.
+
+WP76 explicitly requires stopping on transport/TLS failures; **no retry** was
+made, not a nine-request poll loop. Authenticated BTC/ETH snapshot verification,
+private state/UID/data inspection, UI image/settings promotion and browser
+acceptance are **NOT_RUN**. Health failure is not attributed to service-key
+mismatch, missing database, quota, the image or an Azure exception without
+evidence. A configured accepted image is not proof it is serving.
+
+### Validation, operation inventory and next concrete action
+
+| Executed offline validation | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q` | 10 passed, exit0, zero failures/skips |
+| `python -B eng/azure-cli/r1.15-qualification/wp75_staging_plan.py` | PLAN_ONLY, exit0, zero operations |
+| Existing installed CLI fake merge-preservation probe | PASS, CLI2.89.1, no actual key or Azure call |
+
+Only this evidence appendix changes; planner/source/tests remain unchanged.
+Its generic default blocker text is not refreshed cloud evidence or a reversal
+of WP75's verified UI mapping. Syntax compilation, UTF-8/LF/no BOM, Markdown
+links/tables, prior-evidence prefix, exact one-path scope and git diff --check
+passed before publishing the follow-on PR, which remains OPEN/UNMERGED.
+
+Actual live inventory:9 read-only ARM resource requests and1 API health GET.
+**Zero quota/plan-usages/logging/registry/Docker/provider calls; zero Azure
+mutations/restarts/deployment, key rotation, data transfer/import or UI/browser
+probes.** Same fixed accepted API2744c4dc... and UI6b59d205... child artifacts;
+no diagnostic substitution, build/push, production target or quota workaround.
+Auth/TLS/storage/ports and API-first/UI-second sequence preserved.
+
+Immediate next action requires a new narrow scope: a single exact API serving
+attempt with fixed DNS/connect/TLS/HTTP stage reporting, or existing supported
+startup evidence if preferred, because current transport failure stopped this
+execution. Do not repeat quota/logging/classifier work. Before UI promotion,
+owner must also enter the SAME retained research key privately as UI
+AIQ_RESEARCH_API_KEY using the established owner-controlled portal workflow,
+under an exact-setting authorization; do not request the key in chat. Private
+Azure data availability remains unverified, not diagnosed as missing. No broad
+private-data transfer or new import endpoint is proposed without an actual
+state result. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP76 approved continuation - staged API serving request - 2026-11-21
+
+Owner said continue after the prior stopped serving attempt and the proposed
+narrow staged check. UTC2026-11-21T12:22:10.907962+00:00
+(Sao Paulo2026-11-21 09:22:10.907962-03:00): exactly one GET to API /health,
+no redirect/proxy/credentials/retry/fallback. DNS resolved, first selected socket
+connected, TLS certificate/hostname validation passed. **HTTP403**, body not
+Alive; bounded body <=4096 bytes (one overflow sentinel permitted). Response
+body/headers/addresses were not output or persisted. Probe1.061s, total1.178s,
+8s owned-process cap and verified cleanup. This is a fresh request, not a
+retroactive explanation of the previous transport failure.
+
+API is reachable through validated TLS, but serving acceptance FAIL: not200Alive.
+403 origin remains UNDETERMINED; no claim of quota, service-key mismatch,
+application auth, access restriction, database failure or running image identity.
+No authenticated snapshot/data probe or UI promotion. Stop condition respected;
+no automatic follow-up. Zero ARM/quota/logging/settings reads, Azure mutation,
+registry/Docker/provider/data/key operations in this continuation.
+
+Evidence-only append: LF/UTF-8/no BOM and diff checks passed; no source/test
+changes or redundant suite rerun. Existing10-test pass remains historical.
+Next concrete scope, if separately authorized: selected read-only API ingress/
+authentication configuration metadata to classify the403, with values/credentials
+withheld; do not change access restrictions or auth based on this status alone.
+UI key absence remains a later promotion blocker. PUBLIC_RUNTIME_VERIFIED=False;
+liveAttemptReady=false. PR #475 remains OPEN/UNMERGED.
