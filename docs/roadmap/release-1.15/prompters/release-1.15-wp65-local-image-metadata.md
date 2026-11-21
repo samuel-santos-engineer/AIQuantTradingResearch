@@ -627,3 +627,17 @@ from this review. It cannot determine the discarded value's syntax.
 
 **OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP74 - SHA256-only simplification and deployment handoff - 2026-11-20
+
+Owner direction: this is an internal greenfield research lab. SHA256 is the sole supported image digest algorithm. Internal output schemas may change without compatibility ceremony; update real consumers and tests together if needed. Prioritize completing the working deployment; stop speculative reference-grammar/category work.
+
+PR #470 was reconciled to remove the proposed UNSUPPORTED_DIGEST_SHAPE production category and its SHA384/SHA512-specific parsing. The production helper is restored byte-for-byte to merged WP73 main. SHA384, SHA512 and unknown digest algorithms are handled through the existing conservative MALFORMED_REFERENCE rejection bucket; no value is emitted and no mixed collection is partially disclosed. Added only synthetic regression tests to lock this SHA256-only policy. This is a local-policy rejection, not an assertion that upstream OCI syntax is universally invalid. WP67/WP69/WP71 historical observations remain unchanged and cannot be retroactively reclassified.
+
+No Docker, registry, Azure, credentials, runtime or deployment operation was performed during this reconciliation. The historical record above is preserved verbatim. No image provenance or publication is established here.
+
+**Next priority: deployment, not more classifier work.** Start with a concise, actionable deployment work package that establishes the actual accepted UI image's deployable immutable mapping (or an explicitly authorized minimal publication path if no mapping exists), then API-first/UI-second Azure staging configuration, bounded health verification and browser BTC/ETH chart acceptance. Use existing Docker-first/dual-process and auth/TLS/storage/ports contracts. Do not assume the local image ID equals a published manifest/index digest or that the older Azure UI digest matches WP61. Any Docker/registry/Azure action must be separately scoped and explicitly authorized before execution; avoid creating new governance/licensing/compatibility gates.
+
+**OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

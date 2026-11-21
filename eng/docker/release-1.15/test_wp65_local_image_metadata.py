@@ -371,4 +371,34 @@ class CanonicalReviewPolicyTests(unittest.TestCase):
             self.assertNotIn(ref, json.dumps(value))
 
 
+
+class Sha256OnlyPolicyTests(unittest.TestCase):
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_other_digest_algorithms_are_generic_rejections(self):
+        prefix = "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@"
+        for suffix in ["sha384:" + "a" * 96, "sha512:" + "b" * 128,
+                       "sha256:" + "A" * 64, "fakealgo:" + "a" * 64]:
+            ref = prefix + suffix
+            with self.subTest(algorithm=suffix.split(":")[0]):
+                value = self.project([ref])
+                self.assertEqual("MALFORMED_REFERENCE", m.reference_category(ref))
+                self.assertEqual(1, value["referenceCategories"]["MALFORMED_REFERENCE"])
+                self.assertNotIn("safeRepoDigests", value)
+                self.assertNotIn(ref, json.dumps(value))
+
+    def test_sha256_only_mixed_collection_withholds_all(self):
+        expected = StructuralCategoryTests.expected
+        other = "registry.example.org/repo@sha512:" + "c" * 128
+        value = self.project([expected, other])
+        self.assertEqual("UNVERIFIED", value["result"])
+        self.assertEqual(1, value["referenceCategories"]["EXPECTED_REPOSITORY_DIGEST"])
+        self.assertEqual(1, value["referenceCategories"]["MALFORMED_REFERENCE"])
+        self.assertNotIn("UNSUPPORTED_DIGEST_SHAPE", value["referenceCategories"])
+        self.assertNotIn("safeRepoDigests", value)
+        self.assertNotIn(expected, json.dumps(value))
+        self.assertNotIn(other, json.dumps(value))
+
+
 if __name__ == "__main__": unittest.main()
