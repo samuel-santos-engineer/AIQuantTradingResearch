@@ -207,3 +207,58 @@ reads, at most1targeted accepted-image PATCH,4post-check reads;9resource request
 maximum), no quota/logging/API reads, settings write/restart/retry. Key absence
 does not gate this image promotion; integration flags remain false until accepted.
 PR #476 OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## Approved corrected UI promotion - image configured - 2026-11-21
+
+Owner explicitly approved one corrected UI-only transaction, maximum9 resource
+requests/one image PATCH, no quota/logging/API checks/settings writes/restart/
+retry. UTC2026-11-21T18:34:29.566055+00:00
+(Sao Paulo2026-11-21 15:34:29.566055-03:00): **IMAGE DEPLOYMENT CONFIGURED;
+INTEGRATION ACCEPTANCE PENDING**. No API403 prerequisite was imposed.
+
+Exactly9 resource requests, all HTTP200,9.328s total, owned Job/pipe cleanup
+verified. In order: site GET1.182s; web GET0.983s; private settings-list POST
+(read-only)0.988s; slot GET0.952s; **web PATCH1.728s**; web GET0.952s; private
+settings-list POST(read-only)0.433s; slot GET0.893s; site GET0.815s.
+No retry/fallback/explicit restart/rollback. Existing hard request/worker/capture
+bounds and exact UI target/body allowlists applied. Read-only baseline captured
+privately in memory before the write; no secret collection/ID/name/raw response
+was printed or persisted. References cleared at exit, not a secure-erasure claim.
+
+Before:
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:a06baf213628603ab88d0fa0d4fff6977f3ae80c5e2114d174b98763bef6da07`.
+After (exact Azure config/web readback):
+`ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde`.
+Startup remains empty. The PATCH changed ONLY linuxFxVersion/appCommandLine.
+Private full settings equality, exact nullable slot-flag equality, selected web
+security-field equality and HTTPS/plan association checks passed after write.
+No key, TLS, storage setting, ingress rule, auth configuration or plan write.
+The slot-null-ID correction was exercised successfully; no slot values normalized.
+
+| Acceptance field | Current result |
+| --- | --- |
+| UI_IMAGE_CONFIGURED | **true**, exact accepted child and empty startup |
+| UI_RUNNING_IMAGE_VERIFIED | false / UNVERIFIED, no runtime identity claim |
+| API_HEALTH_ACCEPTED | false, no API request in this transaction |
+| SAME_KEY_PRESENT | false; UI service-key setting remains absent |
+| BTC_ETH_BROWSER_ACCEPTED | false / NOT_RUN |
+
+UI key absence did not block or undo the correctly configured image, as directed.
+No automatic rollback. API image/settings were not touched. No health/browser,
+API ingress/auth diagnostic, private data transfer/import, quota/usages/logging,
+registry/Docker/provider action occurred in this transaction. Azure normal
+container recycling from image save is possible; no separate restart was issued.
+
+Next concrete owner action: in the exact staging UI app's portal, privately add
+AIQ_RESEARCH_API_KEY using the SAME recoverably retained research service key
+already used by the API, preserving slot flags/unrelated settings. Do not send
+the value to Codex/chat/CLI argv/files/clipboard, rotate or generate a replacement.
+This is owner-controlled private entry, not a claim it has occurred. If owner
+cannot privately enter the retained value, report that exact channel blocker;
+do not remove the configured image. Separate scope is needed before runtime/
+startup/ingress-auth checks; API403 and cloud data availability remain unresolved.
+
+Source unchanged since the20-test pass; this evidence-only append passed
+UTF-8/LF/no BOM and diff checks. Earlier stopped attempts remain verbatim.
+PR #476 OPEN/UNMERGED. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
