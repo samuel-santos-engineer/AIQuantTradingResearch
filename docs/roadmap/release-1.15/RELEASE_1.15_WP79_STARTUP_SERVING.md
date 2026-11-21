@@ -208,3 +208,52 @@ UI_IMAGE_CONFIGURED=true/SAME_KEY_PRESENT=true remain WP77 evidence;
 UI_RUNNING_IMAGE_VERIFIED=false; API_HEALTH_ACCEPTED=false;
 BTC_ETH_BROWSER_ACCEPTED=false; PUBLIC_RUNTIME_VERIFIED=False;
 liveAttemptReady=false.
+
+
+## Approved UTC-Z replacement detector read - 2026-11-21
+
+Owner separately approved one replacement read on the same endpoint/version.
+Before execution, an installed SDK fake-credential/capture-only transport test
+explicitly pinned API-version2023-12-01 and verified the known detector GET,
+startTime/endTime serialized as UTC-Z; zero real authentication/network calls.
+
+UTC2026-11-21T21:27:20.582650+00:00 (Sao Paulo18:27:20.582650-03:00):
+one API LinuxRunningContainersPerHost GET, fixed window
+2026-11-21T21:05:41.000Z to2026-11-21T21:20:41.000Z (same15-minute interval,
+second-aligned SDK serialization), API-version2023-12-01. **HTTP200**, one ARM
+send,5.930s total,15s hard owned-process/1MiB bounds, no retry/redirect/fallback.
+Owned Job/pipe cleanup verified. No quota/site/health/UI/key/settings/logging
+configuration request or Azure mutation followed.
+
+The local worker then failed before projecting detector data. It used Path to
+load the offline projection but omitted its import. This is a Codex worker
+implementation defect, not an Azure container/serving failure. Structured result
+was BLOCKED/STATUS_OR_SCHEMA with exception OTHER; offline source inspection
+identified the missing import. HTTP200/JSON transport completed, but no usable
+startup/table/event/timestamp/exit/image findings were retained. Raw response
+was transient only and discarded; no recovery from logs/private artifacts and
+no additional live read was attempted. All runtime attribution remains UNKNOWN.
+
+Offline correction added the missing Path import to the transient worker.
+Two FULL-worker fake cases (missing dataset; synthetic startup-message dataset)
+then passed with mocked CLI/request and network creation forbidden. They assert
+DETECTOR_PROJECTED, no fake-sensitive text output and runtime identity remaining
+UNVERIFIED. Two fake cases are not a newly executed application unittest suite;
+no real token/key/network was used. This closes the local projection defect
+but does not reconstruct the discarded actual response or establish startup.
+No new repository framework/helper/source was added.
+
+The UTC-Z request succeeded where the earlier request returned400; this is
+consistent with a request-format sensitivity, not a proven server root cause
+because the prior error detail was not retained. Historical400/403/timeouts
+and quota observations remain separate, not rewritten. No image/key/config
+change is justified by a projection defect or metadata HTTP200 alone.
+
+Next smallest owner-approved action, if chosen: one same-endpoint/version/window
+read through the corrected FULL-worker-fake-tested projection, safe fixed fields
+only; no generic framework or new work package. No automatic repeat under this
+exhausted one-call approval. UI_RUNNING_IMAGE_VERIFIED=false;
+API_HEALTH_ACCEPTED=false; BTC_ETH_BROWSER_ACCEPTED=false;
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. PR #478 OPEN/UNMERGED.
+Evidence-only append passed UTF-8/LF/no BOM/diff checks; prior20 application
+fake tests were not unnecessarily rerun. No secret/private raw response persisted.
