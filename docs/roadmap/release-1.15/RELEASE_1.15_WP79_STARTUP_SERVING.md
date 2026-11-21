@@ -124,3 +124,24 @@ No new generic diagnostic framework or speculative fix is proposed.
 facts. `UI_RUNNING_IMAGE_VERIFIED=false` / UNVERIFIED;
 `API_HEALTH_ACCEPTED=false`; `BTC_ETH_BROWSER_ACCEPTED=false`;
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Owner continuation after successful quota reading - 2026-11-21
+
+Owner said quota reset and continue. The preceding separate owner-requested
+quota check atUTC2026-11-21T20:44:13.468546+00:00 reported stop0/15 and
+CPU7799/3600000ms. This continuation issued **zero quota/usages reads**.
+AtUTC2026-11-21T20:48:19.322810+00:00 (Sao Paulo17:48:19-03:00), the first
+exact API site safety GET failed: one ARM send, ConnectionError, failureStage
+ARM_TRANSPORT, no returned HTTP status/site state.15s owned-worker limit with
+3s connect/10s socket bounds, no retry or raw error output; cleanup completed.
+UI site, startup detectors, longer health, authenticated data/browser NOT_RUN.
+No Azure mutation, keys/settings/logging/data/registry/Docker/provider action.
+
+This does not establish quota exhaustion or another application failure; the
+last successful quota observation stays0/15 and current site state is UNKNOWN.
+No code/test changes; earlier20-test pass stands. Evidence UTF-8/LF/no BOM and
+diff checks passed. No new work package was created. PR #478 stays OPEN/UNMERGED.
+Next smallest bounded action is one existing startup-detector projection under
+a new explicit continuation, without another quota loop. No automatic retry.
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
