@@ -257,4 +257,82 @@ class UnsupportedShapeTests(unittest.TestCase):
         self.assertNotIn("referenceCategories", value)
 
 
+class StructuralMatrixTests(unittest.TestCase):
+    # Synthetic candidates only; labels are not emitted by the production helper.
+    digest = "@sha256:" + "c" * 64
+    matrix = (
+        ("localhost", "localhost/team/repo", "MALFORMED_REFERENCE"),
+        ("single_label", "registry/team/repo", "MALFORMED_REFERENCE"),
+        ("localhost_port", "localhost:5000/team/repo", "MALFORMED_REFERENCE"),
+        ("ipv6", "[2001:db8::1]/team/repo", "MALFORMED_REFERENCE"),
+        ("ipv6_port", "[2001:db8::1]:5000/team/repo", "MALFORMED_REFERENCE"),
+        ("tag_plus_digest", "registry.example.org/team/repo:fake-tag", "MALFORMED_REFERENCE"),
+        ("repeated_slash", "registry.example.org/team//repo", "MALFORMED_REFERENCE"),
+        ("double_underscore", "registry.example.org/team/fake__repo", "MALFORMED_REFERENCE"),
+        ("double_hyphen", "registry.example.org/team/fake--repo", "MALFORMED_REFERENCE"),
+        ("uppercase_host", "REGISTRY.example.org/team/repo", "MALFORMED_REFERENCE"),
+        ("uppercase_path", "registry.example.org/Team/repo", "MALFORMED_REFERENCE"),
+        ("canonical_port", "registry.example.org:5000/team/repo", "UNSUPPORTED_REFERENCE_SHAPE"),
+        ("leading_zero_port", "registry.example.org:05000/team/repo", "MALFORMED_REFERENCE"),
+        ("scheme", "https://registry.example.org/team/repo", "MALFORMED_REFERENCE"),
+        ("userinfo", "fake-user:fake-sensitive@registry.example.org/team/repo", "MALFORMED_REFERENCE"),
+        ("other_repository", "registry.example.org/team/repo", "OTHER_REPOSITORY_DIGEST"),
+    )
+
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_candidate_matrix_retains_conservative_categories(self):
+        for label, prefix, category in self.matrix:
+            with self.subTest(case=label):
+                ref = prefix + self.digest
+                value = self.project([ref])
+                self.assertEqual(category, m.reference_category(ref))
+                self.assertEqual(1, value["referenceCategories"][category])
+                self.assertEqual(1, sum(value["referenceCategories"].values()))
+                self.assertEqual("UNVERIFIED", value["result"])
+                self.assertNotIn(ref, json.dumps(value))
+                self.assertNotIn("safeRepoDigests", value)
+
+    def test_matrix_mixed_with_expected_withholds_all_values(self):
+        expected = StructuralCategoryTests.expected
+        for label, prefix, category in self.matrix:
+            with self.subTest(case=label):
+                ref = prefix + self.digest
+                value = self.project([expected, ref])
+                self.assertEqual(1, value["referenceCategories"]["EXPECTED_REPOSITORY_DIGEST"])
+                self.assertEqual(1, value["referenceCategories"][category])
+                self.assertNotIn(expected, json.dumps(value))
+                self.assertNotIn(ref, json.dumps(value))
+                self.assertNotIn("safeRepoDigests", value)
+
+    def test_all_matrix_categories_bounded_and_cap_stops(self):
+        refs = [prefix + self.digest for _, prefix, _ in self.matrix]
+        self.assertEqual(m.MAX_REPODIGESTS, len(refs))
+        value = self.project(refs)
+        self.assertEqual(len(refs), sum(value["referenceCategories"].values()))
+        self.assertTrue(all(type(n) is int and 0 <= n <= m.MAX_REPODIGESTS
+                            for n in value["referenceCategories"].values()))
+        self.assertLess(len(json.dumps(value)), 1024)
+        for ref in refs: self.assertNotIn(ref, json.dumps(value))
+        value = self.project(refs + [StructuralCategoryTests.expected])
+        self.assertEqual("COUNT_LIMIT_STOP", value["repoDigestState"])
+        self.assertNotIn("referenceCategories", value)
+        self.assertNotIn("safeRepoDigests", value)
+
+    def test_equal_categories_do_not_emit_shape_position_length_or_hash(self):
+        # Different synthetic lengths, characters and order produce identical output.
+        short = "localhost/repo" + self.digest
+        long = "https://fake-sensitive.invalid/" + "x" * 200 + self.digest
+        self.assertEqual(self.project([short]), self.project([long]))
+        self.assertEqual(self.project([short, long]), self.project([long, short]))
+        value = self.project([short])
+        self.assertEqual({"result", "repoDigestState", "ociProvenance",
+                          "PUBLIC_RUNTIME_VERIFIED", "liveAttemptReady",
+                          "exactIdMatch", "referenceCategories"}, set(value))
+        self.assertEqual({"EXPECTED_REPOSITORY_DIGEST", "OTHER_REPOSITORY_DIGEST",
+                          "UNSUPPORTED_REFERENCE_SHAPE", "MALFORMED_REFERENCE",
+                          "UNEXPECTED_VALUE_TYPE"}, set(value["referenceCategories"]))
+
+
 if __name__ == "__main__": unittest.main()
