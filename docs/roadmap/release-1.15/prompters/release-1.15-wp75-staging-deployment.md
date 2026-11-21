@@ -611,3 +611,31 @@ under an exact-setting authorization; do not request the key in chat. Private
 Azure data availability remains unverified, not diagnosed as missing. No broad
 private-data transfer or new import endpoint is proposed without an actual
 state result. `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP76 approved continuation - staged API serving request - 2026-11-21
+
+Owner said continue after the prior stopped serving attempt and the proposed
+narrow staged check. UTC2026-11-21T12:22:10.907962+00:00
+(Sao Paulo2026-11-21 09:22:10.907962-03:00): exactly one GET to API /health,
+no redirect/proxy/credentials/retry/fallback. DNS resolved, first selected socket
+connected, TLS certificate/hostname validation passed. **HTTP403**, body not
+Alive; bounded body <=4096 bytes (one overflow sentinel permitted). Response
+body/headers/addresses were not output or persisted. Probe1.061s, total1.178s,
+8s owned-process cap and verified cleanup. This is a fresh request, not a
+retroactive explanation of the previous transport failure.
+
+API is reachable through validated TLS, but serving acceptance FAIL: not200Alive.
+403 origin remains UNDETERMINED; no claim of quota, service-key mismatch,
+application auth, access restriction, database failure or running image identity.
+No authenticated snapshot/data probe or UI promotion. Stop condition respected;
+no automatic follow-up. Zero ARM/quota/logging/settings reads, Azure mutation,
+registry/Docker/provider/data/key operations in this continuation.
+
+Evidence-only append: LF/UTF-8/no BOM and diff checks passed; no source/test
+changes or redundant suite rerun. Existing10-test pass remains historical.
+Next concrete scope, if separately authorized: selected read-only API ingress/
+authentication configuration metadata to classify the403, with values/credentials
+withheld; do not change access restrictions or auth based on this status alone.
+UI key absence remains a later promotion blocker. PUBLIC_RUNTIME_VERIFIED=False;
+liveAttemptReady=false. PR #475 remains OPEN/UNMERGED.
