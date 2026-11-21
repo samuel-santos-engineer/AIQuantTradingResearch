@@ -421,3 +421,89 @@ UI logging remains missing, so the two-app baseline is still incomplete.
 Next smallest scope: one separately approved bounded UI config/logs retry only.
 No code changes; prior10 tests stand. Evidence LF/UTF-8/no BOM/diff checks passed.
 PR #471 remains OPEN/UNMERGED. PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
+
+
+## WP76 - actual staging execution stopped by fresh quota - 2026-11-20
+
+Owner authorized actual API-first/UI-second deployment subject to fresh quota,
+rollback/settings preservation and stop conditions. Live reconciliation found
+#471 already MERGED (head8e4248db1aede8c1fcf19ab8b6291bc1515c5801), not open.
+Current main `d392efcda4bf8deb461a7229ed56c5aa5bc3cad9` contains that merge and
+#470. A separate clean follow-on branch was created from main; the #471 branch,
+owner worktree and unrelated PRs including #457 were not overwritten/modified.
+No registry re-query or publication was needed: WP75's verified mapping remains
+timestamped historical evidence, not a new freshness claim.
+
+### Pending logging retry executed once
+
+UTC2026-11-21T02:30:04.689122+00:00
+(Sao Paulo2026-11-20 23:30:04.689122-03:00): one exact UI config/logs GET,
+PASS in2.194s, one ARM send,15s process cap, owned Job/pipe cleanup verified.
+Application filesystem level Off; HTTP filesystem logging, failed-request tracing
+and detailed errors disabled. Only projected fixed logging fields retained.
+No unrelated metadata query was folded into this logging-only operation.
+
+Offline installed Azure CLI merge proof also passed using the existing WP36
+fake-data verification, CLI2.89.1, no Azure call/real key. This proves the tested
+installed merge path on fake values, not actual retained-setting preservation.
+
+### Fresh deployment preflight stopped before mutation
+
+UTC2026-11-21T02:31:53.551494+00:00
+(Sao Paulo2026-11-20 23:31:53.551494-03:00): one exact shared-plan usages GET,
+worker result **BLOCKED**, failedStage **FRESH_QUOTA**, category
+**QUOTA_PRESSURE**,1.013s, one ARM send, process exit0 with structured failure;
+owned Job/pipe cleanup verified. Request uses15s hard worker timer,3s connect/
+10s read limits,1MiB cap, no redirects or resource retries; total120s cap.
+
+The worker rejects numeric watched CpuTime/WPStopRequests values unless
+0<=current<limit. At least one returned watched pair failed that condition.
+Its failure path did not retain which pair or its numeric values; do not invent
+the exhausted counter, exact usage, reset time or cause. This is the fresh
+preflight outcome, not proof that all earlier successful0-counter readings were
+wrong. No second quota GET or automatic retry was made in WP76. Future reporting
+should project both sanitized numeric counter pairs before evaluating the gate.
+
+**Stopped as WP76 explicitly requires on quota pressure.** All remaining plan,
+site/web, settings/slot rollback baseline reads in that worker were NOT_RUN.
+The baseline was designed for private in-memory retention only, but no settings,
+key or slot baseline was actually read because quota failed first. No private
+settings/credentials/datasets were printed or persisted. No full rollback
+baseline is claimed; no secret/data transport or initializer was accessed.
+
+API accepted-image/configuration apply, authenticated snapshot checks, UI
+promotion and browser acceptance were NOT_RUN. No health request was sent to
+consume app quota. Existing configured API accepted-child and UI old-image
+observations remain historical only, not freshly reverified by this preflight.
+The accepted UI child remains the WP75 verified6b59d205... artifact; no diagnostic
+API substitution, repatch, image build/push or deployment occurred. No config
+rollback was necessary or attempted because nothing was mutated.
+
+### Validation and exact inventory
+
+| Executed offline validation | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q` | 10 passed, exit0, zero failures/skips |
+| `python -B eng/azure-cli/r1.15-qualification/wp75_staging_plan.py` | PLAN_ONLY, exit0, zero operations |
+| Installed CLI existing fake merge probe | PASS, CLI2.89.1, azureCalls0, actualKeyUsed=false |
+
+The default planner still lists generic design prerequisites; its static blocker
+list is not a new assertion that WP75's recorded UI publication is unknown.
+No source changes were necessary; this follow-on PR changes only this append.
+Syntax compilation, UTF-8/LF/no BOM, Markdown link/table sanity, unchanged
+planner/tests bytes, prior-evidence byte-prefix and git diff --check passed.
+
+Live inventory: **2 exact read-only ARM resource requests** (one UI logging,
+one plan usages); normal existing CLI authentication only; no resource retry.
+No Docker, registry, settings/key access, Azure mutation/restart/scale/resource
+recreation, public/health/browser/provider/data-transfer operation or deployment.
+No quota workaround or paid upgrade. PR remains OPEN/UNMERGED.
+
+Concrete blocker: fresh F1 quota preflight not passing. The smallest next action
+is a separately requested single projected quota-only read after recovery,
+retaining both counter values and supplied reset fields if present. Do not run
+another deployment attempt or app probe before that succeeds. No new diagnostic
+work package, classifier change or rebuild is needed. Missing cloud data/key
+channels may still be later blockers, but were not reached or diagnosed here.
+Docker-first/dual-process, API-first/UI-second and auth/TLS/storage/ports unchanged.
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
