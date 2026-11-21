@@ -335,4 +335,40 @@ class StructuralMatrixTests(unittest.TestCase):
                           "UNEXPECTED_VALUE_TYPE"}, set(value["referenceCategories"]))
 
 
+class CanonicalReviewPolicyTests(unittest.TestCase):
+    # distribution/reference v0.6.0 syntax is broader than local policy.
+    # These assert local withholding, not execution of the upstream Go parser.
+    def project(self, refs):
+        return m.project_repodigests(json.dumps({"Id": m.WP61, "RepoDigests": refs}).encode())
+
+    def test_upstream_recognizable_shapes_do_not_expand_local_emission(self):
+        for prefix in ["localhost/team/repo", "registry/team/repo",
+                       "[2001:db8::1]:5000/team/repo",
+                       "registry.example.org/team/repo:fake-tag",
+                       "registry.example.org/team/fake__repo",
+                       "registry.example.org/team/fake--repo",
+                       "REGISTRY.example.org/team/repo",
+                       "registry.example.org:05000/team/repo"]:
+            ref = prefix + "@sha256:" + "d" * 64
+            value = self.project([StructuralCategoryTests.expected, ref])
+            self.assertEqual("UNVERIFIED", value["result"])
+            self.assertEqual(1, value["referenceCategories"]["MALFORMED_REFERENCE"])
+            self.assertNotIn("safeRepoDigests", value)
+            self.assertNotIn(ref, json.dumps(value))
+            self.assertNotIn(StructuralCategoryTests.expected, json.dumps(value))
+
+    def test_digest_regex_is_not_algorithm_validation_or_emission_policy(self):
+        base = "ghcr.io/samuel-santos-engineer/aiquanttradingresearch@"
+        for suffix in ["sha256:" + "A" * 64, "sha256:" + "a" * 32,
+                       "sha256:" + "a" * 65, "sha512:" + "a" * 128,
+                       "SHA256:" + "a" * 64, "fakealgo:" + "a" * 64]:
+            ref = base + suffix
+            value = self.project([ref])
+            self.assertEqual("UNVERIFIED", value["result"])
+            self.assertEqual("UNVERIFIED", value["ociProvenance"])
+            self.assertEqual(1, sum(value["referenceCategories"].values()))
+            self.assertNotIn("safeRepoDigests", value)
+            self.assertNotIn(ref, json.dumps(value))
+
+
 if __name__ == "__main__": unittest.main()

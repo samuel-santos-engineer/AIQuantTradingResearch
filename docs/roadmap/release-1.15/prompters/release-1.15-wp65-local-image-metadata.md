@@ -541,3 +541,89 @@ Only ordinary Git/GitHub branch and PR publication occurred. API-first/UI-second
 order and existing auth/TLS/storage/ports are unchanged.
 **OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## WP73 ? authoritative reference grammar review ? 2026-11-20
+
+Fresh main `d72f7e5d417b5c6805ea3de7fadd1354931ddf1e` includes merged #468.
+Isolated branch; owner changes and all previous evidence preserved byte-for-byte.
+No vendored canonical grammar was identified by the repository filename search.
+Four narrowly scoped public source-document lookups were performed through the
+browser tool, without image/repository-specific query metadata or registry calls.
+No source files/packages were downloaded into the checkout or installed.
+
+Source provenance (retrieved 2026-11-20; version tags, not independently resolved
+commit hashes or release dates; no claim of latest-version behavior):
+
+- [R: distribution/reference v0.6.0 regexp.go](https://github.com/distribution/reference/blob/v0.6.0/regexp.go), constants and referencePat, lines 37?119.
+- [P: distribution/reference v0.6.0 reference.go](https://github.com/distribution/reference/blob/v0.6.0/reference.go), Parse, lines 173?215.
+- [N: distribution/reference v0.6.0 normalize.go](https://github.com/distribution/reference/blob/v0.6.0/normalize.go), ParseNormalizedNamed/ParseDockerRef/splitDockerDomain, lines 50?158.
+- [D: opencontainers/go-digest v1.0.0 algorithm.go](https://github.com/opencontainers/go-digest/blob/v1.0.0/algorithm.go), algorithm regexes and Validate, lines 29?57 and 163?178.
+
+These are authoritative implementation sources for those versions, not a claim
+of universal normative OCI validity or the installed daemon's serialization.
+P applies path-length checks and digest.Parse after regex matching; an excerpt
+or regex match alone is not complete validation. No Go parser was executed.
+
+| Candidate | Source-backed distinction | Unchanged local policy |
+| --- | --- | --- |
+| localhost / single-label | N treats localhost specially; a lowercase bare first component may normalize as a namespace | malformed category, withheld |
+| ports | R accepts decimal port digits without local numeric/canonical restrictions | selected canonical ports unsupported; others malformed |
+| bracketed IPv6 | R has bracketed hex/colon syntax with exclusions | malformed, withheld |
+| tag plus digest | N accepts and removes tag in ParseDockerRef | malformed, withheld |
+| double underscore / repeated hyphen | R permits both within components | malformed, withheld |
+| repeated slash | R requires nonempty components | malformed, withheld |
+| uppercase host / path | R allows domain case but lowercase path atoms; N checks remote-path lowercase | malformed, withheld |
+| schemes / userinfo | R reference shape provides neither URL scheme nor credentials | malformed, withheld |
+| digest syntax | R regex is broader than algorithm validation | exact sha256 lowercase emission only |
+
+D requires exact encoded length and lowercase hex for supported SHA algorithms;
+algorithm availability is another check. Thus uppercase sha256 hex may match R's
+broad regex but fail D validation. SHA512 is recognized by D with a different
+length; that does not make it acceptable under this repository's emission rule.
+
+Decision: **helper unchanged**. Sources establish that MALFORMED_REFERENCE is a
+local-policy rejection bucket and may contain upstream-recognizable syntax.
+Automatically relabeling it would require a defined subset and semantic checks;
+porting a full parser or inventing a broad new category is unnecessary here.
+Existing OTHER_REPOSITORY_DIGEST also remains structural, not upstream parser
+attestation. No real discarded value is identified by the comparison.
+
+Added two synthetic test methods: eight upstream-recognizable candidate shapes
+mixed with the allowed repository remain fully withheld; six digest variants
+(uppercase, short/long sha256, sha512, uppercase/unknown algorithm) remain
+UNVERIFIED with no emitted values. No actual values or upstream code copied.
+Existing matrix/count-limit/aggregate-equality/import-default denial coverage
+continues to pass; subcases are not separately counted as tests.
+
+| Actual offline command | Result |
+| --- | --- |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp65_local_image_metadata.py -q` | 32 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p test_wp64_oci_provenance.py -q` | 18 passed, exit 0 |
+| `python -B -m unittest discover -s eng/docker/release-1.15 -p 'test_setting_name_*.py' -q` | 31 passed, exit 0 |
+| `python -B eng/docker/release-1.15/wp65_local_image_metadata.py` | PLAN_ONLY, exit 0, dockerOperations 0 |
+
+**81 distinct tests passed, zero failures/skips.** Syntax compilation,
+UTF-8/LF/no BOM, Markdown link/table sanity, prior evidence byte-prefix,
+unchanged helper bytes/inspect argv/formatters and exact two-path scope plus
+`git diff --check` passed. No command/deadline/Windows Job/pipe behavior changed.
+Exact allowlist, all-or-nothing output, ID/duplicate/1 MiB/16-entry/null/empty/
+unknown guards and flags remain unchanged.
+
+Operation inventory: four public documentation/source-browser lookups plus
+ordinary Git/GitHub publication. Zero Docker commands, registry/GHCR API,
+Azure, credential, provider/API, public runtime probe, Go/toolchain, package
+install/dependency upgrade, image/runtime/data or deployment operation.
+Offline tests require no network. No raw WP67/WP69/WP71 values accessed or
+reclassified; their historical outcomes are untouched. No OCI-chain, registry
+reachability, publication, Azure or UI acceptance established. API-first/UI-second
+order and auth/TLS/storage/ports preserved.
+
+Next offline question: if distinguishing specific rejected syntax is necessary,
+define a minimal source-backed subset with digest/name semantic constraints and
+prove bounded aggregate-only behavior before any separately authorized real
+observation. No inspection, registry query, rebuild or publication follows
+from this review. It cannot determine the discarded value's syntax.
+
+**OCI provenance UNVERIFIED; publication necessity NOT PROVEN.**
+`PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
