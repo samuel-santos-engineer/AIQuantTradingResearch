@@ -387,3 +387,20 @@ Next smallest scoped action: separately approve one replacement read of only the
 failed API config/logs endpoint, with fixed transport/status/schema classification
 and no raw log data. No deployment from this incomplete baseline.
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Approved API logging-only retry - 2026-11-20
+
+Owner separately approved one replacement API config/logs GET only.
+UTC2026-11-21T01:55:37.917047+00:00 (Sao Paulo2026-11-20 22:55:37-03:00):
+PASS, one ARM request,1.640s,15s process cap, owned Job/pipe cleanup verified.
+Application filesystem logging Off; HTTP filesystem logging disabled;
+failed-request tracing disabled; detailed errors disabled. Only projected
+nonsecret configuration was retained, not logs/content/credentials.
+No logging change, settings/key read, restart, health probe or other query.
+The previous failure remains historical; its cause was not established by success.
+UI site/web/logging remain NOT_RUN. Next phase needs approval for those3 reads
+only,15s each/45s total, no retries, stopping on state/drift/error. No deployment
+from the still-incomplete two-app baseline. No code changes; prior tests stand;
+UTF-8/LF/no BOM and diff checks passed for this append. PR #471 OPEN/UNMERGED.
+PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.
