@@ -29,6 +29,21 @@ def properties(value, path):
     return value["properties"]
 
 
+def slot_properties(value):
+    # Called only for the exact UI /config/slotConfigNames request, after site
+    # identity verification. The approved read observed an explicit null ID.
+    require(isinstance(value, dict) and "id" in value, "SLOT_RESPONSE_SCHEMA")
+    identity = value["id"]
+    require(identity is None or isinstance(identity, str) and
+            identity.lower() == (SITE + "/config/slotConfigNames").lower(), "RESPONSE_IDENTITY")
+    values = value.get("properties")
+    fields = {"appSettingNames", "connectionStringNames", "azureStorageConfigNames"}
+    require(isinstance(values, dict) and set(values) == fields, "SLOT_SCHEMA")
+    require(all(v is None or isinstance(v, list) and all(isinstance(x, str) for x in v)
+                for v in values.values()), "SLOT_SCHEMA")
+    return values
+
+
 def execute(request):
     result = {"result": "BLOCKED", "patchAttempts": 0, "UI_IMAGE_CONFIGURED": False,
               "UI_RUNNING_IMAGE_VERIFIED": False, "API_HEALTH_ACCEPTED": False,
@@ -58,7 +73,7 @@ def execute(request):
         require(settings.get("WEBSITES_PORT") == "8501", "UI_PORT_DRIFT")
         result["uiKeyPresent"] = bool(settings.get("AIQ_RESEARCH_API_KEY"))
         stage = "PRIVATE_SLOT_BASELINE"
-        slots = properties(request("GET", SITE + "/config/slotConfigNames"), SITE + "/config/slotConfigNames")
+        slots = slot_properties(request("GET", SITE + "/config/slotConfigNames"))
         private.append(slots)
         require(all(slots.get(k) is None or isinstance(slots[k], list) and all(isinstance(x, str) for x in slots[k])
                     for k in ("appSettingNames", "connectionStringNames", "azureStorageConfigNames")), "SLOT_SCHEMA")
@@ -79,7 +94,7 @@ def execute(request):
         private.append(after_settings)
         require(after_settings == settings, "SETTINGS_PRESERVATION_UNVERIFIED")
         stage = "PRIVATE_SLOT_READBACK"
-        after_slots = properties(request("GET", SITE + "/config/slotConfigNames"), SITE + "/config/slotConfigNames")
+        after_slots = slot_properties(request("GET", SITE + "/config/slotConfigNames"))
         private.append(after_slots)
         require(after_slots == slots, "SLOT_PRESERVATION_UNVERIFIED")
         stage = "UI_SECURITY_READBACK"

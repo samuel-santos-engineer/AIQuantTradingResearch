@@ -172,3 +172,38 @@ never raw slot names, IDs or settings. This can distinguish a nullable envelope
 from genuine target drift before a source-backed validation correction; do not
 rerun all baseline queries blindly. UI_IMAGE_CONFIGURED remains unverified;
 PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false. PR #476 OPEN/UNMERGED.
+
+
+## Approved slot-envelope read and offline correction - 2026-11-21
+
+UTC2026-11-21T18:12:55.614504+00:00 (Sao Paulo15:12:55-03:00): one separately
+approved exact UI slotConfigNames GET;1.680s total,15s owned-worker cap, no retry.
+Only fixed flags retained: id field PRESENT and explicitly NULL; name present/
+non-null but not the assumed slot-resource name; properties object with exactly
+all3 standard keys, each nullable string-list typed, no unexpected property keys.
+No raw ID/name/list/setting value was output or saved. No mutation or additional
+site/quota/logging/health read occurred. No claim of cross-target drift follows
+from a null ID; this establishes the observed nullable envelope shape only.
+
+Offline correction adds slot_properties for this exact endpoint only, called
+after exact UI site validation. Explicit null id is accepted; missing id, any
+wrong non-null id or nonstring id still reject. All3 exact property keys and
+nullable-string-list types are required, with no extra keys. Normal site/web/
+settings responses retain strict non-null identity validation. Request transport
+still binds exact UI path and forbids redirects. No broader identity bypass,
+settings write, slot normalization or change to PATCH scope.
+
+Existing WP22 nullable-list preservation logic was reviewed offline; lists are
+preserved verbatim, not normalized. The null-ID exception is justified by this
+approved observation plus exact transport/site binding, not a universal claim
+that all Azure resources allow missing IDs. Added2 fake tests for null-ID
+promotion/preservation and missing/wrong-ID/schema/type rejection before PATCH.
+Final tests:10 WP77 +10 WP75 = **20 distinct tests passed**, zero failures/skips.
+No live transaction rerun under this read-only approval. Syntax, UTF-8/LF/no BOM
+and diff checks passed before committing. Historical earlier failures preserved.
+
+Next exact approval: rerun the corrected UI-only transaction once (4baseline
+reads, at most1targeted accepted-image PATCH,4post-check reads;9resource requests
+maximum), no quota/logging/API reads, settings write/restart/retry. Key absence
+does not gate this image promotion; integration flags remain false until accepted.
+PR #476 OPEN/UNMERGED; PUBLIC_RUNTIME_VERIFIED=False; liveAttemptReady=false.

@@ -97,4 +97,42 @@ class Tests(unittest.TestCase):
         self.assertEqual(9, len(f.calls))
 
 
+class NullableSlotIdentityTests(unittest.TestCase):
+    def test_observed_explicit_null_id_preserves_lists_and_promotes(self):
+        fake = Fake()
+        original_slots = copy.deepcopy(fake.slots)
+        def request(method, path, body=None):
+            value = fake(method, path, body)
+            if path.endswith("/config/slotConfigNames"):
+                value["id"] = None
+                value["name"] = "FAKE_METADATA_ONLY"
+            return value
+        result = m.execute(request)
+        self.assertEqual("IMAGE_DEPLOYMENT_CONFIGURED_INTEGRATION_PENDING", result["result"])
+        self.assertEqual(1, result["patchAttempts"])
+        self.assertEqual(original_slots, fake.slots)
+        self.assertTrue(result["slotFlagsUnchanged"])
+        self.assertNotIn("FAKE_METADATA_ONLY", json.dumps(result))
+
+    def test_nullable_id_exception_is_exact_and_schema_bounded(self):
+        for mutation in [lambda d:d.pop("id"), lambda d:d.update(id="wrong"),
+                         lambda d:d.update(id=123), lambda d:d.update(properties={}),
+                         lambda d:d["properties"].update(extra=[]),
+                         lambda d:d["properties"].update(appSettingNames="wrong"),
+                         lambda d:d["properties"].update(connectionStringNames=[1])]:
+            fake = Fake()
+            def request(method, path, body=None):
+                value = fake(method, path, body)
+                if path.endswith("/config/slotConfigNames"):
+                    value["id"] = None
+                    mutation(value)
+                return value
+            result = m.execute(request)
+            self.assertEqual("PRIVATE_SLOT_BASELINE", result["failedStage"])
+            self.assertEqual(0, result["patchAttempts"])
+            self.assertFalse(any(c[0] == "PATCH" for c in fake.calls))
+        with self.assertRaises(m.Stop):
+            m.properties({"id": None, "properties": {}}, m.SITE)
+
+
 if __name__ == "__main__": unittest.main()
