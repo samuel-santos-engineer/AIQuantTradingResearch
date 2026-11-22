@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 4](#g4-attempt-4) | Verify the ten nonsecret staging API settings and key presence through the portal before another image update. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 5](#g4-attempt-5) | Check the effective main-container startup inputs or obtain a fixed failure stage before another deployment. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -311,3 +311,22 @@ The earlier clean candidate smoke returned health 200 with a valid empty store a
 For the next check, use the exact research staging app's portal to compare only the declared nonsecret settings above. Return MATCH, MISSING or MISMATCH by name and a key-present boolean. Keep the key and unrelated settings private. The ARM settings-list endpoint returns a settings dictionary, and client-side projection still delivers the full response to the client. It was not used. A complete match of those declared settings would still leave platform-injected role and kernel conditions unresolved. [Web Apps List Application Settings](https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/list-application-settings?view=rest-appservice-2025-03-01)
 
 No Azure, SCM, registry, provider, deployment, or credential operation occurred in this pass. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 5
+
+BLOCKED on dcd9976ef49754bd0a590b13e8c43dc26d6d0ae0 from 2026-11-22T18:28:11.351245Z to 2026-11-22T18:28:42.214057Z.
+
+One read-only Azure CLI settings request succeeded in 1.471 seconds. All ten declared startup settings exactly matched and AIQ_RESEARCH_API_KEY was present. Azure CLI processed the settings response internally; its output contained only fixed projections. Azure runtime-injected markers, key format and equality, storage, ingress and startup failure location remain unverified. No settings or image changed.
+
+Next action. Check the effective main-container startup inputs or obtain a fixed failure stage before another deployment.
+
+Azure mutations. 0.
+
+
+### Declared staging settings verified through Azure CLI
+
+Owner-authorized CLI read at 2026-11-22T18:28:11.351245Z to 2026-11-22T18:28:12.822282Z, one request, 1.471 seconds, no retry. Target was only `aiqr115researchstagingwus27f5eabb5`. The App Service list operation used HTTP POST for a read-only request. The projected resource ID matched the exact API app. All ten values in the preceding comparison matched, including explicit bootstrap `serve`. `AIQ_RESEARCH_API_KEY` was present. No setting value, unrelated setting name or credential was emitted. Azure CLI received the full settings response internally before projecting booleans.
+
+The successful comparison narrows the problem to evidence beyond the declared setting values. The Worker process inputs, Azure-injected instance and role markers, key validity, container storage boundary and listener start still require runtime evidence. Neither an app-setting mismatch nor a particular startup failure stage was established for the failed deployment. No health request, authenticated snapshot, UI operation, Azure write, restart or deployment occurred in this pass.
+
+API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

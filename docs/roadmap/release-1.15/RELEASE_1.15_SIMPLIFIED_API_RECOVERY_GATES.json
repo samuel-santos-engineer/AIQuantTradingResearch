@@ -709,6 +709,40 @@
       "rollback_state": "Most recent Azure readback confirmed the restored API image. Post-rollback health was not tested.",
       "next_action": "Verify the ten nonsecret staging API settings and key presence through the portal before another image update.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 5,
+      "started_at_utc": "2026-11-22T18:28:11.351245Z",
+      "ended_at_utc": "2026-11-22T18:28:42.214057Z",
+      "status": "BLOCKED",
+      "source_commit": "dcd9976ef49754bd0a590b13e8c43dc26d6d0ae0",
+      "environment": "staging",
+      "objective": "Verify the declared research app startup settings and API key name through the approved CLI session.",
+      "commands_or_test_ids": [
+        "az rest --method post --url <exact research API config/appsettings/list> --query <resource identity, ten equality/presence checks and key-name presence> --only-show-errors --output json"
+      ],
+      "expected": "Ten declared startup settings match and the API key setting name exists.",
+      "observed": "One read-only Azure CLI settings request succeeded in 1.471 seconds. All ten declared startup settings exactly matched and AIQ_RESEARCH_API_KEY was present. Azure CLI processed the settings response internally; its output contained only fixed projections. Azure runtime-injected markers, key format and equality, storage, ingress and startup failure location remain unverified. No settings or image changed.",
+      "exit_codes": {
+        "azure_cli": 0,
+        "offline_projection": 0
+      },
+      "test_counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Previously verified API rollback remains the last known image state. This read did not query the image or runtime.",
+      "next_action": "Check the effective main-container startup inputs or obtain a fixed failure stage before another deployment.",
+      "rest": []
     }
   ]
 }
