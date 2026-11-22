@@ -620,3 +620,22 @@ Next separately approvable action is an evidence-only review of one specific pla
 Validation used `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p <suite> -q`. WP80 diagnostic error passed 107 tests, including 13 new attribution tests. WP75 staging plan passed 10. WP62 staging observation passed 20 with four Windows opt-in skips. Total 141 discovered, 137 passed, four skipped. Syntax, UTF-8/LF/no BOM, Markdown and Git diff checks passed. The scope was the offline helper, its tests and this append. Azure, SCM, registry, Docker, credential, health, quota, log, build, deployment and runtime operations each numbered zero. No mutations to Azure occurred.
 
 `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
+
+
+## Azure Monitor startup attribution evidence review
+
+`DIAGNOSTIC_CAPTURE_READY=false`. The published App Service console and platform log schemas can support container-level correlation. They do not document the full main-container, running-image and startup-attempt binding required for WP80.
+
+| Required evidence | Documented Azure Monitor evidence | Qualification |
+| --- | --- | --- |
+| Exact record and container | AppServiceConsoleLogs provides ResultDescription, ContainerId, _ResourceId, Host and TimeGenerated. | A console entry can be associated with its reported resource, container and event time. The schema gives no occurrence link to a particular SCM VFS file record. |
+| Main role and actual Linux/amd64 child | Both schemas provide ContainerId and Host. | Neither schema documents a typed main role, immutable running image digest or a cross-table guarantee that the ID distinguishes successive process starts. |
+| Unique attempt and bounds | AppServicePlatformLogs adds ActivityId, DeploymentId, OperationName and TimeGenerated. | ActivityId is documented for event correlation and DeploymentId identifies a deployment. Neither is documented as a unique startup-attempt identifier or a complete start/end roster. The schemas provide no relative clock uncertainty bound. |
+
+Sources: [AppServiceConsoleLogs schema](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/appserviceconsolelogs) and [AppServicePlatformLogs schema](https://learn.microsoft.com/en-us/azure/azure-monitor/reference/tables/appserviceplatformlogs). A join on resource and container could help narrow an investigation if both streams were available. Joining them, parsing free-form messages, or substituting deployment time for attempt bounds would leave essential attribution unverified. Workspace availability, logging configuration and actual row contents were outside this review.
+
+One next evidence-only action is to obtain a Microsoft App Service capability statement or documented contract answering this question: Can an existing platform record or collector bind one console occurrence to the main container, actual Linux/amd64 image digest, unique process startup attempt, and authoritative UTC bounds with stated timestamp uncertainty? That contract must state how the record can be correlated without guessing from filenames, timestamps or message text. The proposal requires no diagnostic setting change, workspace provisioning or live log query. The separate staging substitution remains blocked pending that evidence.
+
+Only this evidence document changed. Append integrity, Markdown table and link structure, UTF-8/LF/no BOM and Git diff checks passed. The existing 137-pass, four-skip offline test baseline was left as historical evidence for this documentation-only pass. Azure resource, SCM, registry, Docker, credential, runtime, log-query and mutation operation counts were all zero. The API exit-code-1 and HTTP 503 cause remain unknown.
+
+`API_HEALTH_ACCEPTED=false` ? `PUBLIC_RUNTIME_VERIFIED=False` ? `liveAttemptReady=false`
