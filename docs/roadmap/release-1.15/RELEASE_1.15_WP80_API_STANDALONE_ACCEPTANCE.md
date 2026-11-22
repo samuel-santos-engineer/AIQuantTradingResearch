@@ -689,3 +689,16 @@ Nine temporary transport test methods passed, including the chunk-trailer charac
 Only this evidence document changed. The fake fixture remains in temporary local storage and has no live entry point. Append integrity, syntax, UTF-8/LF/no BOM, Markdown and Git diff checks passed. Azure, SCM, credential, health, quota, Docker, registry, deployment and image-substitution operations each numbered zero.
 
 `DIAGNOSTIC_CAPTURE_READY=false`, `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
+
+
+## Dedicated startup-file owned-worker rehearsal
+
+The temporary fake transport ran inside the existing Windows Job worker on the Windows host. One synthetic successful response produced exactly the collector's six fields and verified job cleanup in 0.906 seconds. The connect fixture created a synthetic descendant before it reported its stall. With the actual 15-second worker budget, the supervisor began abort at 15.007 seconds and returned with verified job cleanup at 15.014 seconds. A separate blocked body read with a 3-second rehearsal budget began abort at 3.005 seconds and completed cleanup at 3.014 seconds. The timed rehearsals returned only a fixed synthetic stall marker. A fourth check used the non-streaming mode and verified that TIMEOUT withholds partial worker output. These are measured host observations. The request deadline and elapsed time through cleanup are separate, and Windows scheduling and cleanup can add time.
+
+WP80 passed 118 tests, WP75 passed 10 and WP62 passed 20 with four opt-in skips in the default run. Nine transport fixture tests and four owned-worker integration tests passed separately. Total for this pass was 161 passed and four skipped. No ACL test or live connector was run. The repository change is this evidence append only. The temporary helpers have no real connector or credential path. Syntax, Markdown, append integrity, UTF-8/LF/no BOM and Git diff checks passed.
+
+The proposed next operation is one authenticated GET to https://aiqr115researchstagingwus27f5eabb5.scm.azurewebsites.net/api/startuplogs?latest=true. It requires separate owner approval including the existing CLI sign-in bearer channel. Bind the exact connector to the reviewed worker before execution and retain TLS verification, the 3-second connect and 8-second read bounds, a 15-second owned request deadline, at most 15 minutes of timestamp eligibility, strict length-delimited plaintext below 16 KiB and at most 256 lines, and non-streaming parent capture. Stop on every outcome after the single request. No retries, proxy, redirects, alternate calls, raw output or persistence. A chunked, stale, missing or unsupported result remains inconclusive. This read may yield a reported failure category but leaves runtime identity, attempt binding, API health and the root cause unverified.
+
+Zero Azure, SCM, credential, health, quota, Docker, registry, deployment or image-substitution operations occurred. The fixture rehearsed worker supervision and parser behavior. Live TLS, bearer acceptance and the served response contract remain unverified.
+
+`DIAGNOSTIC_CAPTURE_READY=false`, `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
