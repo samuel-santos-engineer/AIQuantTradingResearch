@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -147,7 +148,14 @@ public static class ResearchSnapshotEndpoint
             stage = "LISTENER";
             var addressText = setting("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
             if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException("Research configuration unavailable.");
-            await using var app = Create(store is null ? null : new ResearchSnapshotSource(store), key, certificate, 52731, IPAddress.Parse(addressText), transport);
+            const int researchPort = 52731;
+            var port = researchPort;
+            // Local Windows ports can be reserved by the host. Azure routing stays fixed.
+            if (!transport.PlatformHttp && setting("AIQ_RESEARCH_LOCAL_PORT") is { } localPort &&
+                (!int.TryParse(localPort, NumberStyles.None, CultureInfo.InvariantCulture, out port) ||
+                    port is < 1 or > 65535))
+                throw new ArgumentException("Research configuration unavailable.");
+            await using var app = Create(store is null ? null : new ResearchSnapshotSource(store), key, certificate, port, IPAddress.Parse(addressText), transport);
             app.Lifetime.ApplicationStarted.Register(() => diagnostics.WriteLine("Research snapshot listener started."));
             stage = "SERVING";
             await app.RunAsync(); return 0;

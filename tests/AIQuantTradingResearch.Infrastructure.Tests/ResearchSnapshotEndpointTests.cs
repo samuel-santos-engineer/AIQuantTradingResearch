@@ -20,12 +20,15 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutputHelper evidence)
 {
     [Theory]
-    [InlineData("CONFIGURATION")]
-    [InlineData("TRANSPORT")]
-    [InlineData("TLS")]
-    [InlineData("STORAGE")]
-    [InlineData("LISTENER")]
-    public async Task StartupFailureReportsOnlyFixedStage(string stage)
+    [InlineData("CONFIGURATION", null)]
+    [InlineData("TRANSPORT", null)]
+    [InlineData("TLS", null)]
+    [InlineData("STORAGE", null)]
+    [InlineData("LISTENER", null)]
+    [InlineData("LISTENER", "0")]
+    [InlineData("LISTENER", "65536")]
+    [InlineData("LISTENER", "+52731")]
+    public async Task StartupFailureReportsOnlyFixedStage(string stage, string? invalidLocalPort)
     {
         using var directory = new ResearchTestDirectory();
         var certificateFile = Path.Combine(Path.GetTempPath(), "aiq-startup-fake-" + Guid.NewGuid().ToString("N") + ".pfx");
@@ -49,6 +52,7 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
                 using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddMinutes(5));
                 await File.WriteAllBytesAsync(certificateFile, certificate.Export(X509ContentType.Pfx));
                 if (stage == "STORAGE") settings["AIQ_RESEARCH_PRIVATE_DIRECTORY"] = sensitive; // Relative path rejected before store access.
+                else if (invalidLocalPort is not null) settings["AIQ_RESEARCH_LOCAL_PORT"] = invalidLocalPort;
                 else settings["AIQ_RESEARCH_BIND_ADDRESS"] = sensitive; // Rejected before listener creation.
             }
             using var diagnostics = new StringWriter();
@@ -343,15 +347,15 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         if (string.IsNullOrEmpty(python)) return;
         using var dir = new ResearchTestDirectory();
         using var store = new SqliteResearchStateStore(dir.Path, true);
-        Seed(store); Provision(store);
+        SeedBrowserStore(store);
         using var cert = Certificate();
         using var alternateDirectory = new ResearchTestDirectory();
         using var alternate = new SqliteResearchStateStore(alternateDirectory.Path, true);
-        Seed(alternate); Provision(alternate);
+        SeedBrowserStore(alternate);
         foreach (var instrument in Enum.GetValues<ResearchInstrument>())
         {
             var state = alternate.Read(instrument);
-            alternate.Commit(new(instrument, Now, TimeSpan.Zero), new([ResearchTestDirectory.Candle(400, instrument, close: 104)]), state.Generation, state.Version);
+            alternate.Commit(new(instrument, Now, TimeSpan.Zero), new([BrowserCandle(400, instrument, close: 104)]), state.Generation, state.Version);
         }
         var reader = new BrowserReader(store);
         var clock = new Clock();
@@ -394,7 +398,7 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
                             foreach (var instrument in Enum.GetValues<ResearchInstrument>())
                             {
                                 var state = store.Read(instrument);
-                                var candle = ResearchTestDirectory.Candle(action == "gap" ? 405 : 400, instrument, close: action == "gap" ? 100 : 101);
+                                var candle = BrowserCandle(action == "gap" ? 405 : 400, instrument, close: action == "gap" ? 100 : 101);
                                 store.Commit(new(instrument, clock.Now, TimeSpan.Zero), new([candle]), state.Generation, state.Version);
                             }
                         }
@@ -436,6 +440,24 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         evidence.WriteLine(await stdout);
         Assert.True(process.ExitCode == 0, await stderr);
     }
+    private static void SeedBrowserStore(SqliteResearchStateStore store)
+    {
+        foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+        {
+            var state = store.Read(instrument);
+            var candles = Enumerable.Range(0, 401).Select(i => BrowserCandle(i, instrument));
+            store.Commit(new(instrument, Now, TimeSpan.Zero), new(candles), state.Generation, state.Version);
+        }
+        Provision(store);
+    }
+
+    private static CompletedResearchCandle BrowserCandle(int minute, ResearchInstrument instrument, decimal close = 100)
+    {
+        var candle = ResearchTestDirectory.Candle(minute, instrument, close);
+        return instrument == ResearchInstrument.BtcUsd ? candle : new(instrument, candle.OpenTimeUtc,
+            candle.Open, candle.High, candle.Low, candle.Close, volume: null);
+    }
+
     private static string FindRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

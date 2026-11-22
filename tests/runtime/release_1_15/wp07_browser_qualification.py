@@ -256,7 +256,12 @@ def main():
         report['cases']['refresh_unchanged'] = dict(result='PASS', graph=refreshed)
         browser.click('ETH/USD')
         eth = wait_for(lambda: (g if (g := browser.graph()) and g['instrument'] == 'ETH/USD' else None))
+        assert any(t['type'] == 'candlestick' for t in eth['traces']), eth
+        assert any('SMA20' in (t['name'] or '') for t in eth['traces']), eth
+        assert not any(t['type'] == 'bar' for t in eth['traces']), eth
+        assert browser.graph_js("g.layout.annotations.some(a=>a.text.includes('Volume unavailable'))")
         report['cases']['ETH_switch'] = dict(result='PASS', graph=eth)
+        report['cases']['ETH_OHLC_only'] = 'PASS'
         time.sleep(2)
         for count in (100, 1000, 300):
             browser.select('Retained candles', count)
@@ -342,10 +347,13 @@ def main():
             old = browser.graph()
             command(action); browser.click('Refresh')
             wait_for(lambda: 'Disconnected - showing last-known' in browser.js('document.body.innerText'))
-            assert browser.graph()['closes'] == old['closes']
+            retained = wait_for(lambda: (g if (g := browser.graph()) and
+                                         g['instrument'] == old['instrument'] else None))
+            assert retained['identity'] == old['identity'] and retained['closes'] == old['closes']
             report['cases'][action] = dict(result='PASS', retainedIdentity=old['identity'])
             command('online'); browser.click('Refresh')
             wait_for(lambda: 'Connected |' in browser.js('document.body.innerText'))
+            wait_for(lambda: (g if (g := browser.graph()) and g['instrument'] == old['instrument'] else None))
             report['cases'][action + '_reconnect'] = 'PASS'
 
         # A new browser context has a separate Streamlit session and sessionStorage.
@@ -422,6 +430,10 @@ def main():
 
         browser.click('BTC/USD')
         wait_for(lambda: (g if (g := browser.graph()) and g['instrument'] == 'BTC/USD' else None))
+        returned = browser.graph()
+        assert any(t['type'] == 'candlestick' for t in returned['traces'])
+        assert any(t['type'] == 'bar' for t in returned['traces'])
+        report['cases']['BTC_ETH_BTC_round_trip'] = 'PASS'
         browser.call('Emulation.setDeviceMetricsOverride', width=390, height=844, deviceScaleFactor=1, mobile=False)
         time.sleep(1)
         narrow = browser.graph()
@@ -459,7 +471,9 @@ def main():
                     process.wait(timeout=5)
         (output / 'result.json').write_text(json.dumps(report, indent=2) + "\n", encoding='utf-8', newline='\n')
         print('Owned local evidence:', output)
-        print(json.dumps(report, indent=2))
+        case_results = {key: value.get('result', 'OBSERVED') if isinstance(value, dict) else value
+                        for key, value in report['cases'].items()}
+        print(json.dumps(dict(result=report['result'], cases=case_results), indent=2))
 
 
 if __name__ == '__main__':
