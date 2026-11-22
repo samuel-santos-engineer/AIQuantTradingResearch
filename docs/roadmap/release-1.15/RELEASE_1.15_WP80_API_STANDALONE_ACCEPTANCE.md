@@ -238,3 +238,50 @@ Current blocker: no usable main-application console capture channel. Rapid API e
 Validation: two fake orchestration cases passed; existing 40-test classifier/plan baseline unchanged and not rerun for this documentation-only update. UTF-8/LF/no BOM and git diff --check passed. Only this evidence document changed; PR #479 remains OPEN/UNMERGED.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## SCM response-contract review (offline only, 2026-11-22)
+
+Authority: owner-supplied WP80 SCM response-contract review; ZERO live Azure/SCM/health/quota/browser/registry/provider/data requests and ZERO mutations in this pass. No credential reads, authentication execution, retained logs or discarded response bytes were accessed. GitHub main/PR metadata was refreshed as authorized. Base/main remained `632e636b9c39c94130aa1b58336f13a6d15471a2`; existing branch `docs/release-1.15-wp80-api-standalone` was clean at pre-review head `112f4afa479ac7af1333ab0e8b06a57ccceeef2e`. PR #479 OPEN; owner checkout and historical observations preserved.
+
+### Local authoritative client-source evidence and limits
+
+The installed Azure CLI's App Service custom module was inspected locally through Python signatures/bytecode, without constructing the CLI profile or invoking any command:
+
+- `get_streaming_log` appends `/logstream` to the SCM origin and calls `_get_log` in a daemon thread. It also calls ping_site and a source/auth helper; this wrapper is not safe to invoke blindly within a single-read budget.
+- `_get_log` performs an ordinary HTTP GET using urllib3 with preload_content=False, requires HTTP 200, and iterates response.stream(). It has no media-type allowlist, SSE parser or WebSocket handshake/upgrade implementation. Its permissive acceptance of any HTTP 200 is NOT proof that arbitrary 200 bodies are valid log output.
+- `get_scm_site_headers` may select basic authentication and fetch publishing credentials, or use the CLI's bearer helper. None of those authentication functions was invoked in this pass.
+- `get_bearer_token` obtains an existing-sign-in credential and uses the cloud App Service resource audience. SCM authentication is separate from the Research API's AIQ_RESEARCH_API_KEY; no API key can be inferred from or substituted for SCM authentication.
+
+No locally available authoritative SCM server implementation or current server media-type specification was found. Existing repository WP11 code assumes `/api/logstream`, whereas the installed CLI uses `/logstream`; that difference is unresolved, not authorization to try both. Existing repository references to Microsoft documentation remain useful historical pointers but were not fetched in this offline-only review. Therefore the client route/GET streaming mechanism is established; server media type, actual framing (chunked vs other), SSE status, authentication completion, and a reliable main-container log source are NOT established. HTTP 200 alone does not determine any of them. No live endpoint, package download or external documentation fetch was used to fill the gap.
+
+### Exact prior adapter audit
+
+The previous temporary adapter used GET to the exact research SCM `/logstream` route, Accept text/plain, Accept-Encoding identity, transient App Service bearer authentication, TLS verification and no stream proxy inheritance. Redirects/retries were disabled. It accepted status 200 and only text/plain or application/octet-stream; it checked those gates before iterating any stream body. Function-scoped AST/source audit confirmed that unsupported media returns before body iteration and closes the response in finally. The other body iterator in the worker belongs to the separately gated restart response; it is not a log-body bypass.
+
+It did NOT retain the unsupported media type, auth-challenge presence, redirect Location presence or upgrade/connection indicators. No raw challenge/header/body was inspected now. The exact historical media and why the server selected it cannot be recovered. Confirmed local reason for rejection is only failure of the adapter's two-media allowlist; the server explanation remains UNKNOWN. No retrospective claim of HTML, SSE, login redirection or authentication success/failure is justified.
+
+The stream had connect 3/read 45-second socket bounds inside a 60-second owned Windows Job, a 64 KiB transient cap, main logic ending within 54 seconds, and a 10-second capture-availability wait before any restart. A successful HTTP/media gate alone would not bind output to the main app, image or process. The observed gate failed: body unread, zero restart requests. Future metadata classification must not loosen that body-read guard or reuse the previous restart approval automatically.
+
+### Pure metadata classifier
+
+Added `classify_scm_metadata` in the existing WP80 classifier path. Input is exactly eight projected fields: status, contentType, transferEncoding, contentEncoding, authChallengePresent, locationPresent, upgradePresent, connectionUpgrade. Unknown/missing keys, wrong types, non-boolean presence indicators, non-ASCII/control characters, malformed media syntax, or caps exceeded fail closed. Status is an integer 100-599; content-type is at most 256 characters and each encoding field at most 64 (maximum 384 string characters). No raw challenge, cookie, Location/Upgrade value, token, URL, hostname, identifier or body field is accepted. Header presence booleans must be projected by a separately reviewed caller; this function performs no request or header acquisition.
+
+Output is a fixed eight-key enum/boolean projection only. It distinguishes 401/403, redirects/missing Location, unsupported or contradictory 101 upgrades, contradictory upgrade indicators on ordinary responses, 200 with challenge/Location ambiguity, missing/unknown media, declared SSE, HTML/JSON, transfer/content encoding and candidate plain/octet-stream bodies. Common charset/quoted parameters normalize safely. Declared chunked or event-stream metadata is not protocol verification. Even a candidate remains `HTTP_BODY_CANDIDATE_UNVERIFIED`, authentication UNVERIFIED, bodyReadAuthorized=false, retryAuthorized=false and logCaptureVerified=false. Every branch withholds arbitrary values. No cookie/token parsing, redirect following, body read, authentication action or live adapter was added.
+
+Validation commands actually run:
+
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -v`: 46 distinct tests passed (30 prior + 16 new SCM metadata tests), zero skips.
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q`: 10 tests passed; total 56 distinct tests.
+- New cases cover supported candidate/unsupported media, common parameters, missing/contradictory indicators, 401/403, redirect/101 handling, encoding, exact input/output keys and metadata caps/boundaries, malformed/control input, confidentiality/noninterference and no network/process/file/output side effects.
+- In-memory syntax compilation, UTF-8/LF/no BOM, Markdown structure/local link review and git diff --check passed. Only the existing classifier, tests and this append-only evidence changed.
+
+### Recommendation and exact next authorization
+
+A reliable body-capture contract is not established, so NO new successful-body capture route is proposed yet. Missing evidence: actual fixed media class, presence-only authentication/redirect/upgrade indicators on this route, authoritative server framing requirements, and a qualified main-application log source. No restart or route substitution is justified.
+
+The next separately approvable operation would be METADATA ONLY, not a capture: one authenticated GET with no response-body reads to `https://aiqr115researchstagingwus27f5eabb5.scm.azurewebsites.net/logstream`, same existing-sign-in App Service bearer class held only in process memory, Accept text/plain and Accept-Encoding identity, TLS verified, connect 3 seconds/total owned-worker 15 seconds, no proxy inheritance, redirects, retries or fallback, ZERO body bytes/lines consumed or persisted. Project only the eight bounded input fields (booleans for challenge/Location/upgrade indicators) and emit only the new classifier's fixed output plus safe status/timing. Stop and close on every outcome, including HTTP 200; no token retrieval in this offline pass. Oversized/malformed or duplicated relevant headers must be rejected by the future adapter, not concatenated into a guessed contract. Authentication token refresh, if needed, would require that future scope to explicitly cover the existing CLI sign-in channel; no publishing/service/API/provider credentials should be read.
+
+This is a proposed single exact-route metadata observation requiring explicit future authorization and fake-tested adapter integration, not permission to execute it now. It cannot establish container health or justify accepting unsupported content. No /api/logstream alternate, restart, health, UI, production, settings or log-body read may follow automatically. PR #479 remains OPEN/UNMERGED; startup exit-code-1 and API 503 causes remain UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

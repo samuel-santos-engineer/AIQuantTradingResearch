@@ -215,5 +215,114 @@ class LogTailTests(unittest.TestCase):
                           "mainProcessLiveness", "listener", "causeConfirmed", "retryAuthorized"}, set(r))
 
 
+class ScmMetadataTests(unittest.TestCase):
+    def value(self, **changes):
+        value = {"status": 200, "contentType": "text/plain", "transferEncoding": None,
+                 "contentEncoding": None, "authChallengePresent": False,
+                 "locationPresent": False, "upgradePresent": False, "connectionUpgrade": False}
+        value.update(changes)
+        return value
+
+    def classify(self, **changes):
+        return m.classify_scm_metadata(self.value(**changes))
+
+    def test_candidate_is_never_capture_or_authentication_success(self):
+        r = self.classify()
+        self.assertEqual("HTTP_BODY_CANDIDATE_UNVERIFIED", r["responseClass"])
+        self.assertEqual("UNVERIFIED", r["authentication"])
+        for key in ("bodyReadAuthorized", "retryAuthorized", "logCaptureVerified"):
+            self.assertFalse(r[key])
+
+    def test_common_content_type_parameters(self):
+        for content in (' Text/Plain; charset=utf-8 ', 'text/plain; charset="UTF-8"', 'text/plain; charset=utf-8; version=1'):
+            self.assertEqual(self.classify(), self.classify(contentType=content))
+        self.assertEqual("OCTET_STREAM", self.classify(contentType="application/octet-stream")["mediaClass"])
+
+    def test_unsupported_200_media(self):
+        for media, label in [("text/html", "HTML"), ("application/json", "JSON"), ("application/x-synthetic", "OTHER")]:
+            r = self.classify(contentType=media)
+            self.assertEqual("MEDIA_UNSUPPORTED", r["responseClass"])
+            self.assertEqual(label, r["mediaClass"])
+
+    def test_missing_or_empty_media(self):
+        for value in (None, "", "   "):
+            r = self.classify(contentType=value)
+            self.assertEqual("MEDIA_MISSING_UNKNOWN", r["responseClass"])
+            self.assertEqual("MISSING", r["mediaClass"])
+
+    def test_sse_is_declared_not_established(self):
+        r = self.classify(contentType="text/event-stream; charset=utf-8")
+        self.assertEqual("SSE_UNSUPPORTED", r["responseClass"])
+        self.assertFalse(r["bodyReadAuthorized"])
+
+    def test_authentication_denials(self):
+        self.assertEqual("CHALLENGE_PRESENT", self.classify(status=401, authChallengePresent=True)["authentication"])
+        self.assertEqual("DENIED_NO_CHALLENGE", self.classify(status=401)["authentication"])
+        self.assertEqual("ACCESS_DENIED", self.classify(status=403)["responseClass"])
+        self.assertEqual("DENIED_REASON_UNKNOWN", self.classify(status=403)["authentication"])
+
+    def test_redirects_never_followed(self):
+        for status in (301, 302, 303, 307, 308):
+            self.assertEqual("REDIRECT_BLOCKED", self.classify(status=status, locationPresent=True)["responseClass"])
+            self.assertEqual("REDIRECT_WITHOUT_LOCATION", self.classify(status=status)["responseClass"])
+            self.assertFalse(self.classify(status=status, locationPresent=True)["retryAuthorized"])
+
+    def test_upgrade_indicators_and_contradictions(self):
+        self.assertEqual("UPGRADE_UNSUPPORTED", self.classify(status=101, upgradePresent=True, connectionUpgrade=True)["responseClass"])
+        for status, upgrade, connection in [(101, False, False), (101, True, False), (200, True, True), (200, False, True)]:
+            self.assertEqual("CONTRADICTORY_UPGRADE", self.classify(status=status, upgradePresent=upgrade, connectionUpgrade=connection)["responseClass"])
+
+    def test_200_with_auth_or_location_is_ambiguous(self):
+        for changes in ({"authChallengePresent": True}, {"locationPresent": True}):
+            self.assertEqual("AMBIGUOUS_AUTH_OR_LOCATION", self.classify(**changes)["responseClass"])
+
+    def test_transfer_and_content_encoding(self):
+        self.assertEqual("CHUNKED_DECLARED", self.classify(transferEncoding="Chunked")["transferClass"])
+        self.assertEqual("IDENTITY_DECLARED", self.classify(transferEncoding="identity")["transferClass"])
+        for changes in ({"transferEncoding": "gzip, chunked"}, {"contentEncoding": "gzip"}):
+            self.assertEqual("UNSUPPORTED_ENCODING", self.classify(**changes)["responseClass"])
+
+    def test_metadata_types_keys_and_caps(self):
+        for value in (None, [], {}, self.value(extra="synthetic-only")):
+            self.assertEqual("INVALID_METADATA", m.classify_scm_metadata(value)["responseClass"])
+        for changes in ({"status": True}, {"status": "200"}, {"status": 600},
+                        {"contentType": []}, {"contentType": "x" * 257},
+                        {"transferEncoding": "x" * 65}, {"contentEncoding": "x" * 65},
+                        {"upgradePresent": "websocket"}, {"authChallengePresent": None}):
+            self.assertEqual("INVALID_METADATA", self.classify(**changes)["responseClass"])
+
+    def test_size_boundaries(self):
+        for field, cap in (("contentType", 256), ("transferEncoding", 64), ("contentEncoding", 64)):
+            value = ("application/" + "x" * (cap - 12)) if field == "contentType" else "x" * cap
+            self.assertNotEqual("INVALID_METADATA", self.classify(**{field: value})["responseClass"])
+            self.assertEqual("INVALID_METADATA", self.classify(**{field: value + "x"})["responseClass"])
+
+    def test_header_injection_and_malformed_media(self):
+        for value in ("text/plain\r\nX-Test: synthetic", "text/plain\x00", "not-a-media", "text/plain/extra", "text/plain; charset", 'text/plain; charset="unterminated'):
+            self.assertEqual("INVALID_METADATA", self.classify(contentType=value)["responseClass"])
+
+    def test_no_arbitrary_values_and_equal_output(self):
+        a = self.classify(contentType="application/x-synthetic-a")
+        b = self.classify(contentType="application/x-synthetic-b")
+        self.assertEqual(a, b)
+        self.assertNotIn("synthetic", json.dumps(a))
+        a = self.value();b = dict(reversed(list(a.items())))
+        self.assertEqual(m.classify_scm_metadata(a), m.classify_scm_metadata(b))
+
+    def test_no_network_process_file_or_output_side_effects(self):
+        out = io.StringIO()
+        with patch("socket.socket", side_effect=AssertionError("network")), patch("subprocess.Popen", side_effect=AssertionError("process")), patch("builtins.open", side_effect=AssertionError("file")), contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            r = self.classify()
+        self.assertEqual("", out.getvalue())
+        self.assertEqual({"responseClass", "mediaClass", "transferClass", "authentication", "protocolClass",
+                          "bodyReadAuthorized", "retryAuthorized", "logCaptureVerified"}, set(r))
+
+    def test_other_statuses_never_accepted(self):
+        for status in (100, 201, 204, 304, 400, 429, 500, 503):
+            r = self.classify(status=status)
+            self.assertIn(r["responseClass"], ("HTTP_ERROR", "UNSUPPORTED_STATUS"))
+            self.assertFalse(r["logCaptureVerified"])
+
+
 if __name__ == "__main__":
     unittest.main()

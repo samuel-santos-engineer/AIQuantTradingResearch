@@ -1,4 +1,4 @@
-"""Offline-only, fixed-output classification of ARM errors and bounded log tails.
+"""Offline-only, fixed-output ARM error, log-tail and SCM metadata classification.
 
 No request execution, CLI adapter, logging or file access. Hints describe an
 untrusted error response, never an application failure or a confirmed cause.
@@ -191,4 +191,73 @@ def sanitize_log_tail(status, content_type, body, window_start, window_end):
         markers.update(k for k, pattern in _LOG_MARKERS.items() if pattern.search(match[2]))
     out.update(responseClass="BOUNDED_TAIL", eventCategories=sorted(markers),
                freshness="HAS_IN_WINDOW_RECORD" if fresh else "NO_IN_WINDOW_RECORD" if dated else "UNKNOWN")
+    return out
+
+
+_SCM_FIELDS = {"status", "contentType", "transferEncoding", "contentEncoding",
+               "authChallengePresent", "locationPresent", "upgradePresent", "connectionUpgrade"}
+_MEDIA_CLASSES = {"text/plain": "TEXT_PLAIN", "application/octet-stream": "OCTET_STREAM",
+                  "text/event-stream": "EVENT_STREAM", "text/html": "HTML",
+                  "application/json": "JSON"}
+_MEDIA_SYNTAX = re.compile(r'[a-z0-9!#$&^_.+*-]+/[a-z0-9!#$&^_.+*-]+(?:\s*;\s*[a-z0-9!#$&^_.+-]+\s*=\s*(?:[a-z0-9!#$&^_.+*/:-]+|"[^"\\]*"))*', re.I)
+
+
+def classify_scm_metadata(metadata):
+    """Pure classification of eight projected fields, never raw HTTP headers.
+
+    A caller must project presence booleans rather than challenge, Location,
+    Upgrade or Connection values. Types/lengths are bounded before matching.
+    No response body, token, URL or arbitrary string can leave this function.
+    Client-source evidence is not a full server contract: even candidate media
+    cannot authorize a body read or attest authentication/log capture.
+    """
+    out = {"responseClass": "INVALID_METADATA", "mediaClass": "UNKNOWN",
+           "transferClass": "UNKNOWN", "authentication": "UNVERIFIED",
+           "protocolClass": "UNKNOWN", "bodyReadAuthorized": False,
+           "retryAuthorized": False, "logCaptureVerified": False}
+    if type(metadata) is not dict or len(metadata) != len(_SCM_FIELDS) or set(metadata) != _SCM_FIELDS:
+        return out
+    status = metadata["status"]
+    if type(status) is not int or not 100 <= status <= 599:
+        return out
+    for key in ("authChallengePresent", "locationPresent", "upgradePresent", "connectionUpgrade"):
+        if type(metadata[key]) is not bool:
+            return out
+    for key, cap in (("contentType", 256), ("transferEncoding", 64), ("contentEncoding", 64)):
+        value = metadata[key]
+        if value is not None and (type(value) is not str or len(value) > cap
+                                  or any(ord(c) < 32 or ord(c) > 126 for c in value)):
+            return out
+    content = metadata["contentType"]
+    if content is not None and content.strip() and not _MEDIA_SYNTAX.fullmatch(content.strip()):
+        return out
+    media = content.split(";", 1)[0].strip().lower() if content else ""
+    out["mediaClass"] = _MEDIA_CLASSES.get(media, "OTHER" if media else "MISSING")
+    transfer = (metadata["transferEncoding"] or "").strip().lower()
+    encoding = (metadata["contentEncoding"] or "").strip().lower()
+    out["transferClass"] = {"": "UNSPECIFIED", "chunked": "CHUNKED_DECLARED",
+                            "identity": "IDENTITY_DECLARED"}.get(transfer, "OTHER")
+    if status == 101:
+        out["responseClass"] = "UPGRADE_UNSUPPORTED" if metadata["upgradePresent"] and metadata["connectionUpgrade"] else "CONTRADICTORY_UPGRADE"
+        out["protocolClass"] = "UPGRADE_DECLARED_UNVERIFIED"
+    elif metadata["upgradePresent"] or metadata["connectionUpgrade"]:
+        out["responseClass"] = "CONTRADICTORY_UPGRADE"
+    elif status in (301, 302, 303, 307, 308):
+        out["responseClass"] = "REDIRECT_BLOCKED" if metadata["locationPresent"] else "REDIRECT_WITHOUT_LOCATION"
+    elif status == 401:
+        out.update(responseClass="AUTHENTICATION_REQUIRED", authentication="CHALLENGE_PRESENT" if metadata["authChallengePresent"] else "DENIED_NO_CHALLENGE")
+    elif status == 403:
+        out.update(responseClass="ACCESS_DENIED", authentication="DENIED_REASON_UNKNOWN")
+    elif status != 200:
+        out["responseClass"] = "HTTP_ERROR" if status >= 400 else "UNSUPPORTED_STATUS"
+    elif metadata["authChallengePresent"] or metadata["locationPresent"]:
+        out["responseClass"] = "AMBIGUOUS_AUTH_OR_LOCATION"
+    elif encoding not in ("", "identity") or out["transferClass"] == "OTHER":
+        out["responseClass"] = "UNSUPPORTED_ENCODING"
+    elif media in ("text/plain", "application/octet-stream"):
+        out.update(responseClass="HTTP_BODY_CANDIDATE_UNVERIFIED", protocolClass="HTTP_BODY_CANDIDATE")
+    elif media == "text/event-stream":
+        out.update(responseClass="SSE_UNSUPPORTED", protocolClass="SSE_DECLARED_UNVERIFIED")
+    else:
+        out["responseClass"] = "MEDIA_MISSING_UNKNOWN" if not media else "MEDIA_UNSUPPORTED"
     return out
