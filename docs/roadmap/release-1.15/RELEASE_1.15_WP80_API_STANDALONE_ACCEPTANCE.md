@@ -174,3 +174,27 @@ Candidate target is ONLY research staging API in the existing subscription/group
 The current error classifier does not parse successful log tails. Before requesting this candidate, the next smallest step is a fake-tested bounded success-payload sanitizer, with fixed categories for pull failure, process exit, startup timeout and listener readiness, and strict UTC/recent-window/role/image attribution limits. Output no raw lines, paths, arbitrary image/host/container identifiers or payloads; missing attribution remains UNKNOWN. No log stream, new process adapter or broad diagnostic framework is needed. Any implementation should use only existing `wp80_diagnostic_error.py`, `test_wp80_diagnostic_error.py` and this evidence document. No live operation has been approved or run by this review.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline successful-tail sanitizer qualification
+
+Owner approved preparation of a fake-tested success-payload sanitizer, not a live container-log read. This pass made ZERO Azure/SCM/runtime requests, accessed no retained log bodies or credentials, and changed only the existing classifier, its test file and this evidence document.
+
+Added pure `sanitize_log_tail(status, content_type, body, window_start, window_end)` alongside the error classifier. It accepts HTTP 200 or empty 204, at most 64 KiB bytes, at most 256 lines, and at most 2048 UTF-8 bytes per line. The requested local window must be timezone-aware, positive and no greater than 15 minutes. Unsupported status/media/encoding, control/archive content, invented JSON object/array schemas and cap violations fail closed. Documented media types application/octet-stream and application/json are accepted; JSON is limited to a string holding a tail. No ZIP extraction, raw output, persistence, execution, CLI or network adapter exists.
+
+Because the file payload has no documented record schema, support is deliberately narrow: ISO UTC Z-prefixed lines only. Unknown line shapes remain unclassified, not presumed fresh. Only records within the caller's fixed window can contribute fixed event categories: pull-failure, exit, startup-timeout and HTTP-ping-failure mentions, or exact application listener/configuration/storage markers confirmed against ResearchSnapshotEndpoint.cs. Such matches are untrusted mentions, not attributed failures. The original payload could be partial, historical, contain quoted messages, or lack app/main-container binding. Empty 204, no markers and no fresh records do not prove healthy startup.
+
+Every output retains runtimeImageIdentity, mainProcessLiveness and listener UNVERIFIED; causeConfirmed=false and retryAuthorized=false. No raw line, timestamp, arbitrary exit code, image/host/path/identifier, message substring, secret or payload can be emitted. No claim of a qualified runtime image, listening socket or 503 origin can follow from these categories alone.
+
+Validation:
+
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -v`: 30 distinct tests passed (16 existing error tests, 14 success-tail tests), zero skips.
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q`: 10 tests passed; total 40 distinct tests.
+- New coverage includes recent/stale/future/undated records, exact source markers, inclusive window endpoints, no-content semantics, JSON-string-only handling, malformed timestamps/media/types/encoding, control/archive rejection, byte/line/record cap boundaries, non-disclosure and equal-output noninterference across different synthetic values/order, exact output keys and no network/process/output side effects.
+- In-memory syntax compilation, UTF-8/LF/no BOM and git diff --check passed. These checks establish only synthetic sanitizer behavior.
+
+The previously proposed exact-API POST `/containerlogs?api-version=2025-03-01` remains NOT_RUN. A next separately approved read would need a small temporary, fake-tested adapter using the existing bounded worker: one request, 15-second worker deadline, 3-second connect/10-second read timeout, 64 KiB streaming cap before materialization, documented media/status handling, no redirects/retries/fallback, transient memory only, success sanitizer or fixed error classifier only, then stop. It must not enable logging, retrieve SCM credentials, probe health or call any UI/production/provider/data endpoint. Prior operation-unavailable/NotFound history remains a limitation, not a reason for silent fallback.
+
+PR #479 remains OPEN/UNMERGED. No application behavior or Azure configuration changed; 503 root cause remains UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
