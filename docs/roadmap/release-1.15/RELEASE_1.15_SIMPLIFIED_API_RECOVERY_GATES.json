@@ -621,6 +621,59 @@
       "rollback_state": "No mutation. API and UI remain on their verified baseline images.",
       "next_action": "Approve the exact API-only image update and conditional rollback checkpoint below.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 3,
+      "started_at_utc": "2026-11-22T18:02:47.039399Z",
+      "ended_at_utc": "2026-11-22T18:07:20.575454Z",
+      "status": "FAIL",
+      "source_commit": "6179d8f44edab7d01bf65bd3f64dfe99a1598c40",
+      "environment": "staging",
+      "objective": "Apply the approved API image only, verify health and conditionally roll back.",
+      "commands_or_test_ids": [
+        "az rest --method get against shared staging plan usages, API site and API config/web",
+        "az rest --method patch on the exact API config/web linuxFxVersion only",
+        "Bounded HTTPS GET /health using verified TLS and no redirects",
+        "Conditional image-only restore PATCH and API config readback"
+      ],
+      "expected": "API image readback matches candidate; exact GET /health 200 Alive; only then verify authenticated BTC and ETH snapshots.",
+      "observed": "Preflight passed with all three F1 counters below limit, expected API configuration and an available process key. Azure acknowledged the image-only apply, and candidate configuration readback matched. Three health observations yielded transport unverified with no HTTP status, HTTP 503 and HTTP 503. No later acceptance checks ran. The single conditional rollback was confirmed by config readback. UI, ports, keys, storage, app settings, plan and startup override were preserved. No explicit restart occurred.",
+      "exit_codes": {
+        "preflight": 0,
+        "apply_patch": 0,
+        "rollback_verified": 0
+      },
+      "test_counts": {
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 2
+      },
+      "rollback_state": "RESTORED_AND_VERIFIED for the configured API image. Post-rollback process health was not tested.",
+      "next_action": "Verify the Azure startup prerequisites against the Worker contract before another candidate attempt.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "Non-200 response. Body unread.",
+          "data_class": "no data"
+        },
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "Non-200 response. Body unread.",
+          "data_class": "no data"
+        }
+      ]
     }
   ]
 }

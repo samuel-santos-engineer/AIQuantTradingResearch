@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 2](#g4-attempt-2) | Approve the exact API-only image update and conditional rollback checkpoint below. |
+| G4 Staging API-first acceptance | FAIL | [G4 attempt 3](#g4-attempt-3) | Verify the Azure startup prerequisites against the Worker contract before another candidate attempt. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -241,3 +241,29 @@ Target for the next separately approved operation is only `aiqr115researchstagin
 Use the staging `az rest --method patch` command in the preceding checkpoint. Before applying, recheck the exact API image and startup baseline, quota and the owner-provided key channel without disclosing values. Stop before mutation on drift or a failed prerequisite. After apply, read back the API image and observe health for up to 180 seconds with at most three lightweight HTTPS requests, bounded to eight seconds each. Accept only literal 200 Alive. After health, make one authenticated snapshot POST per instrument, BTC first and ETH only after BTC passes. Require valid UTC-ordered v1.0 snapshots for actual staging BTC/USD and ETH/USD data. On failure, perform the single approved API image rollback and verify its configuration readback. The UI stays out of this checkpoint. API health and data must pass before any separate UI apply approval.
 
 Three synthetic projection tests passed. No app settings were listed, no startup override values were emitted and no health, quota, data or browser request occurred in this baseline phase.
+
+## G4 attempt 3
+
+FAIL on 6179d8f44edab7d01bf65bd3f64dfe99a1598c40 from 2026-11-22T18:02:47.039399Z to 2026-11-22T18:07:20.575454Z.
+
+Preflight passed with all three F1 counters below limit, expected API configuration and an available process key. Azure acknowledged the image-only apply, and candidate configuration readback matched. Three health observations yielded transport unverified with no HTTP status, HTTP 503 and HTTP 503. No later acceptance checks ran. The single conditional rollback was confirmed by config readback. UI, ports, keys, storage, app settings, plan and startup override were preserved. No explicit restart occurred.
+
+Next action. Verify the Azure startup prerequisites against the Worker contract before another candidate attempt.
+
+Azure image mutations. 2 for this attempt.
+
+
+### API-only apply and rollback details
+
+Target aiqr115researchstagingwus27f5eabb5 in rg-aiq-r112-wp05-wus2-7f5eabb5, subscription 7f5eabb5-80f5-4369-88be-b14a6de763f1. Preflight from 2026-11-22T18:02:47.039399Z to 2026-11-22T18:02:53.358982Z used three projected ARM GETs. It reported stop requests 0/15, daily CPU 0/3,600,000 ms and short-period CPU 0/180,000 ms. These are pre-change counters. Post-rollback counters are unknown. The key channel was present and passed shape validation without disclosing its value. Key equality and authentication were untested.
+
+| Step | Configured API Linux/amd64 child | Result |
+| --- | --- | --- |
+| Pre-apply | sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 | Verified rollback image and blank startup. |
+| Apply and config readback | sha256:aecb4586a30bf5be3f398bdcf1578127208e10198528a546324039da40c4c357 | Image-only PATCH acknowledged. Candidate configured. |
+| Health acceptance | sha256:aecb4586a30bf5be3f398bdcf1578127208e10198528a546324039da40c4c357 | First request captured no HTTP status. Second and third returned 503. Zero successful health responses. |
+| Rollback and config readback | sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 | Restored and verified. |
+
+The apply and rollback controller ran from 2026-11-22T18:04:30.389995Z to 2026-11-22T18:06:40.007166Z in 129.617 seconds. It made four API config GETs and two image-only PATCHes. The health checks were tentative within the bounded watch. No authenticated POST /v1/research/snapshot, UI or post-rollback health request followed. Candidate startup and running image identity remain unverified. HTTP 503 alone does not identify the failure stage. Azure dataset presence and the startup root cause remain unknown. There was no additional deployment or restart.
+
+The temporary controller passed seven synthetic preflight and sequencing cases, including quota exhaustion, key absence, baseline drift, conditional rollback, and stopping before ETH when BTC fails. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

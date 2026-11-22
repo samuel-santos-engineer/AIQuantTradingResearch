@@ -114,7 +114,7 @@ def validate_receipts(document):
             require((entry["method"], entry["path"]) in (
                 ("GET", "/health"), ("POST", "/v1/research/snapshot"), ("GET", "/_stcore/health")), "REST target")
             require(type(entry["http_status"]) is int and 100 <= entry["http_status"] <= 599, "REST status")
-            require(entry["data_class"] in ("fixture", "local cached", "verified staging"), "REST data class")
+            require(entry["data_class"] in ("fixture", "local cached", "verified staging", "no data"), "REST data class")
             require(is_text(entry["response_schema"]), "REST schema")
 
 
