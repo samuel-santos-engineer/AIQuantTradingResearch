@@ -324,5 +324,132 @@ class ScmMetadataTests(unittest.TestCase):
             self.assertFalse(r["logCaptureVerified"])
 
 
+class SseTests(unittest.TestCase):
+    start = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
+    end = start + dt.timedelta(minutes=15)
+    line = b"2026-01-01T00:05:00Z process exited"
+
+    def parse(self, body):
+        return m.sanitize_sse(body, self.start, self.end)
+
+    def test_complete_event_fixed_categories(self):
+        r = self.parse(b"data: " + self.line + b"\n\n")
+        self.assertEqual("SSE_DATA_CLASSIFIED", r["responseClass"])
+        self.assertEqual(["EXIT_MENTION"], r["eventCategories"])
+        self.assertEqual("HAS_IN_WINDOW_RECORD", r["freshness"])
+        for key in ("runtimeImageIdentity", "mainProcessLiveness", "listener"):
+            self.assertEqual("UNVERIFIED", r[key])
+        self.assertFalse(r["causeConfirmed"])
+        self.assertFalse(r["retryAuthorized"])
+
+    def test_multiline_data_join(self):
+        r = self.parse(b"data:" + self.line + b"\ndata:2026-01-01T00:06:00Z image pull failed\n\n")
+        self.assertEqual(["EXIT_MENTION", "PULL_FAILURE_MENTION"], r["eventCategories"])
+
+    def test_ids_retry_event_names_comments_are_opaque(self):
+        base = b"data:" + self.line + b"\n\n"
+        a = b": heartbeat fake-private-A\nid:fake-id-A\nretry:1\nevent:fake-A\n" + base
+        b = b": heartbeat fake-private-B\nid:fake-id-B\nretry:999999999999999\nevent:fake-B\n" + base
+        self.assertEqual(self.parse(base), self.parse(a))
+        self.assertEqual(self.parse(a), self.parse(b))
+        self.assertNotIn("fake", json.dumps(self.parse(a)))
+
+    def test_heartbeat_only_is_not_capture(self):
+        r = self.parse(b": heartbeat\n\nid:fake-id\nretry:1000\n\n")
+        self.assertEqual("SSE_FRAMING_ONLY", r["responseClass"])
+        self.assertEqual("UNKNOWN", r["freshness"])
+        self.assertEqual([], r["eventCategories"])
+
+    def test_incomplete_event_not_dispatched(self):
+        for suffix in (b"", b"\n"):
+            r = self.parse(b"data:" + self.line + suffix)
+            self.assertEqual("SSE_INCOMPLETE_EVENT", r["responseClass"])
+            self.assertEqual([], r["eventCategories"])
+
+    def test_complete_then_incomplete_withholds_all(self):
+        r = self.parse(b"data:" + self.line + b"\n\ndata:" + self.line)
+        self.assertEqual("SSE_INCOMPLETE_EVENT", r["responseClass"])
+        self.assertEqual([], r["eventCategories"])
+
+    def test_unknown_payload_is_not_invented_json_schema(self):
+        for value in (b'{"message":"synthetic"}', b'<html>synthetic</html>', b'synthetic text', b''):
+            r = self.parse(b"data:" + value + b"\n\n")
+            self.assertEqual("SSE_UNSUPPORTED_PAYLOAD", r["responseClass"])
+            self.assertEqual([], r["eventCategories"])
+
+    def test_line_endings_and_utf8_bom(self):
+        expected = self.parse(b"data:" + self.line + b"\n\n")
+        for body in (b"data:" + self.line + b"\r\n\r\n", b"data:" + self.line + b"\r\r", b"\xef\xbb\xbfdata:" + self.line + b"\n\n"):
+            self.assertEqual(expected, self.parse(body))
+
+    def test_data_field_case_and_optional_space(self):
+        self.assertEqual("SSE_FRAMING_ONLY", self.parse(b"Data:" + self.line + b"\n\n")["responseClass"])
+        self.assertEqual(self.parse(b"data:" + self.line + b"\n\n"), self.parse(b"data: " + self.line + b"\n\n"))
+        self.assertEqual("SSE_UNSUPPORTED_PAYLOAD", self.parse(b"data:  " + self.line + b"\n\n")["responseClass"])
+
+    def test_stale_and_future_events_do_not_match(self):
+        for stamp in (b"2025-12-31T23:59:59Z", b"2026-01-01T00:15:01Z"):
+            r = self.parse(b"data:" + stamp + b" process exited\n\n")
+            self.assertEqual("NO_IN_WINDOW_RECORD", r["freshness"])
+            self.assertEqual([], r["eventCategories"])
+
+    def test_total_line_and_record_caps(self):
+        self.assertEqual("BODY_CAP_EXCEEDED", self.parse(b"x" * (m.MAX_BYTES + 1))["responseClass"])
+        self.assertEqual("SSE_FRAMING_ONLY", self.parse(b":" + b"x" * 2047 + b"\n")["responseClass"])
+        self.assertEqual("SSE_RECORD_CAP_EXCEEDED", self.parse(b":" + b"x" * 2048 + b"\n")["responseClass"])
+        self.assertEqual("SSE_FRAMING_ONLY", self.parse(b":\n" * 512)["responseClass"])
+        self.assertEqual("SSE_RECORD_CAP_EXCEEDED", self.parse(b":\n" * 513)["responseClass"])
+
+    def test_event_count_boundaries(self):
+        event = b"data:" + self.line + b"\n\n"
+        self.assertEqual("SSE_DATA_CLASSIFIED", self.parse(event * 32)["responseClass"])
+        r = self.parse(event * 33)
+        self.assertEqual("SSE_EVENT_CAP_EXCEEDED", r["responseClass"])
+        self.assertEqual([], r["eventCategories"])
+
+    def test_event_size_cap(self):
+        line = b"data:2026-01-01T00:05:00Z " + b"x" * 2000 + b"\n"
+        self.assertEqual("SSE_EVENT_CAP_EXCEEDED", self.parse(line * 5 + b"\n")["responseClass"])
+
+    def test_exact_total_and_event_byte_boundaries(self):
+        body = (b":" + b"x" * 2046 + b"\n") * 32
+        self.assertEqual(m.MAX_BYTES, len(body))
+        self.assertEqual("SSE_FRAMING_ONLY", self.parse(body)["responseClass"])
+        prefix = b"2026-01-01T00:05:00Z "
+        records = [prefix + b"x" * (size - len(prefix)) for size in (1638, 1638, 1638, 1638, 1636)]
+        self.assertEqual(8192, len(b"\n".join(records)))
+        event = b"".join(b"data:" + record + b"\n" for record in records) + b"\n"
+        self.assertEqual("SSE_DATA_CLASSIFIED", self.parse(event)["responseClass"])
+        records[-1] += b"x"
+        event = b"".join(b"data:" + record + b"\n" for record in records) + b"\n"
+        self.assertEqual("SSE_EVENT_CAP_EXCEEDED", self.parse(event)["responseClass"])
+
+    def test_later_unknown_payload_withholds_prior_markers(self):
+        r = self.parse(b"data:" + self.line + b"\n\ndata:synthetic-unsupported\n\n")
+        self.assertEqual("SSE_UNSUPPORTED_PAYLOAD", r["responseClass"])
+        self.assertEqual([], r["eventCategories"])
+        self.assertEqual("UNKNOWN", r["freshness"])
+
+    def test_invalid_types_encoding_and_window(self):
+        self.assertEqual("INVALID_BODY_TYPE", self.parse("synthetic")["responseClass"])
+        for value in (b"\xff", b"data:fake\x00value\n\n", b"PK\x03\x04synthetic"):
+            self.assertEqual("UNSUPPORTED_ENCODING", self.parse(value)["responseClass"])
+        self.assertEqual("INVALID_WINDOW", m.sanitize_sse(b"", self.end, self.start)["responseClass"])
+        self.assertEqual("SSE_EMPTY", self.parse(b"")["responseClass"])
+
+    def test_equal_output_across_order_and_unknown_fields(self):
+        a = b"data:" + self.line + b"\n\n"
+        b = b"data:2026-01-01T00:06:00Z image pull failed\n\n"
+        self.assertEqual(self.parse(a + b), self.parse(b"synthetic-ignored-field:value\n" + b + a))
+
+    def test_exact_keys_and_no_network_process_file_output(self):
+        out = io.StringIO()
+        with patch("socket.socket", side_effect=AssertionError("network")), patch("subprocess.Popen", side_effect=AssertionError("process")), patch("builtins.open", side_effect=AssertionError("file")), contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            r = self.parse(b"data:" + self.line + b"\n\n")
+        self.assertEqual("", out.getvalue())
+        self.assertEqual({"responseClass", "freshness", "eventCategories", "runtimeImageIdentity",
+                          "mainProcessLiveness", "listener", "causeConfirmed", "retryAuthorized"}, set(r))
+
+
 if __name__ == "__main__":
     unittest.main()

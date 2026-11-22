@@ -261,3 +261,83 @@ def classify_scm_metadata(metadata):
     else:
         out["responseClass"] = "MEDIA_MISSING_UNKNOWN" if not media else "MEDIA_UNSUPPORTED"
     return out
+
+
+
+def sanitize_sse(body, window_start, window_end):
+    """Decode bounded SSE framing to fixed log categories; return no event data.
+
+    Input is one transient bounded capture, not an iterator or live connection.
+    Only blank-line-terminated events are dispatched. Event names, IDs, retry
+    directives and comments are discarded, never acted upon. The only supported
+    data schema is UTC-prefixed log lines, as in sanitize_log_tail. JSON objects,
+    HTML and arbitrary event data are unsupported, not guessed log records.
+    """
+    out = sanitize_log_tail(200, "application/octet-stream", b"", window_start, window_end)
+    if out["responseClass"] != "BOUNDED_TAIL":
+        return out
+    out["responseClass"] = "SSE_EMPTY"
+    if type(body) is not bytes:
+        out["responseClass"] = "INVALID_BODY_TYPE"
+        return out
+    if len(body) > MAX_BYTES:
+        out["responseClass"] = "BODY_CAP_EXCEEDED"
+        return out
+    try:
+        text = body.decode("utf-8-sig")
+    except UnicodeError:
+        out["responseClass"] = "UNSUPPORTED_ENCODING"
+        return out
+    if any(ord(c) < 32 and c not in "\r\n\t" or ord(c) == 127 for c in text):
+        out["responseClass"] = "UNSUPPORTED_ENCODING"
+        return out
+    if not text:
+        return out
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = text.split("\n")
+    if text.endswith("\n"):
+        lines.pop()  # A terminal line ending is not itself a blank record.
+    if len(lines) > 512 or any(len(line.encode("utf-8")) > 2048 for line in lines):
+        out["responseClass"] = "SSE_RECORD_CAP_EXCEEDED"
+        return out
+    pending, event_bytes, events, markers, freshness = [], 0, 0, set(), set()
+    for line in lines:
+        if line == "":
+            if not pending:
+                continue
+            events += 1
+            if events > 32:
+                out["responseClass"] = "SSE_EVENT_CAP_EXCEEDED"
+                return out
+            payload = "\n".join(pending)
+            pending, event_bytes = [], 0
+            records = payload.split("\n")
+            if not records or any(not _STAMP.fullmatch(record) for record in records):
+                out["responseClass"] = "SSE_UNSUPPORTED_PAYLOAD"
+                return out
+            result = sanitize_log_tail(200, "application/octet-stream", payload.encode("utf-8"), window_start, window_end)
+            if result["responseClass"] != "BOUNDED_TAIL":
+                out["responseClass"] = "SSE_UNSUPPORTED_PAYLOAD"
+                return out
+            markers.update(result["eventCategories"])
+            freshness.add(result["freshness"])
+        elif not line.startswith(":"):
+            field, separator, value = line.partition(":")
+            if field != "data":
+                continue
+            if not separator:
+                value = ""
+            elif value.startswith(" "):
+                value = value[1:]  # SSE strips at most one optional space.
+            event_bytes += len(value.encode("utf-8")) + (1 if pending else 0)
+            if event_bytes > 8192:
+                out["responseClass"] = "SSE_EVENT_CAP_EXCEEDED"
+                return out
+            pending.append(value)
+    if pending:
+        out["responseClass"] = "SSE_INCOMPLETE_EVENT"
+        return out
+    out.update(responseClass="SSE_DATA_CLASSIFIED" if events else "SSE_FRAMING_ONLY",
+               eventCategories=sorted(markers),
+               freshness="HAS_IN_WINDOW_RECORD" if "HAS_IN_WINDOW_RECORD" in freshness else "NO_IN_WINDOW_RECORD" if "NO_IN_WINDOW_RECORD" in freshness else "UNKNOWN")
+    return out

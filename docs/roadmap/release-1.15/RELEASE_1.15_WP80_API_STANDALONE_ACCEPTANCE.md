@@ -302,3 +302,29 @@ The smallest next step is OFFLINE preparation of a bounded SSE decoder and synth
 Evidence-only repository change; the eight fake integration checks were actually run. Existing 56-test offline classifier/plan baseline remains unchanged (not rerun for this append). UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline bounded SSE preparation
+
+Owner approved offline SSE decoder preparation following the EVENT_STREAM metadata observation. This pass made ZERO Azure/SCM/runtime/credential requests and ZERO mutations. No historical event body was available or inspected; the recorded response remains media/framing declaration only. Existing three-file WP80 scope preserved.
+
+Added pure `sanitize_sse(body, window_start, window_end)` in the existing classifier. It accepts one already bounded transient byte capture, not a socket, iterator or request adapter. UTF-8 (optional initial BOM), LF/CRLF/CR line endings, exact lowercase data fields and at most one optional post-colon space are handled. Multiple data fields join with newline; only a blank line dispatches an event. Comments/heartbeats, event names, IDs, retry directives and unknown SSE fields are discarded and never cause authentication, replay, delay, redirection, reconnection or output. No external dependency or live protocol implementation was installed.
+
+Caps: 64 KiB input, 512 framing lines, 2048 UTF-8 bytes per framing line, 32 data events and 8192 UTF-8 bytes per joined event. Invalid encoding/control/archive bytes, cap breach, incomplete data event or unsupported event payload fail closed with no partial category output. An EOF/terminal newline alone does not dispatch pending data. Comment-only/empty input is not log evidence. The caller still must enforce acquisition timeout/caps before materialization; complete-event parsing does not authorize another request or extend the capture deadline.
+
+The only supported data payload is the existing narrow UTC-prefixed text-log subset. JSON objects/envelopes, HTML, arbitrary text, blank data and unknown payloads remain unsupported; no undocumented SCM schema is invented. Recognized payloads pass through `sanitize_log_tail`, so stale/future records cannot contribute current event markers. Exact endpoint SSE framing and payload schema remain unverified because this is synthetic-only work. A real response might contain only comments, use an unknown envelope, end mid-event, or contain Kudu output. No declaration of event-stream media alone allows the parser to claim successful main-application capture.
+
+Fixed output contains responseClass, freshness, eventCategories, runtimeImageIdentity, mainProcessLiveness, listener, causeConfirmed and retryAuthorized only. No raw event fields/data, IDs, retry values, timestamps, private values, paths/hosts or identifying derivatives leave the function. Runtime image/process/listener remain UNVERIFIED; causeConfirmed=false and retryAuthorized=false throughout. Category matches remain untrusted mentions with no main-app/image attribution.
+
+Validation commands actually run:
+
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q`: 64 distinct tests passed (46 prior, 18 new SSE tests), zero skips.
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q`: 10 tests passed; 74 total distinct tests, zero skips.
+- New coverage includes multiline events, comments/IDs/retry noninterference, strict delimiters and case/space semantics, BOM/line endings, empty/heartbeat/incomplete input, stale/future records, unsupported JSON/HTML/text, exact and exceeded byte/line/record/event boundaries, prior-marker withholding on later failure, output keys and no network/process/file/output side effects.
+- In-memory syntax, UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. No live authentication, request adapter or token access was involved.
+
+The next separately approvable step is one exact research SCM `/logstream` GET with bounded SSE-body capture, using the existing sign-in App Service bearer class, TLS validation and fixed metadata precheck, then this decoder. Any proposal must specify a hard owned deadline, 64 KiB streaming cap, no retry/redirect/fallback/restart, no raw persistence/output, and STOP on unsupported status/media/auth/upgrade/encoding, incomplete/unknown payload or transport failure. A short capture may end mid-event; report that rather than extending or reconnecting. Main-container/image binding remains a separate requirement even if framing and log markers parse. No live capture or restart is authorized by this offline qualification.
+
+PR #479 remains OPEN/UNMERGED. The API startup exit and health 503 cause remain UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
