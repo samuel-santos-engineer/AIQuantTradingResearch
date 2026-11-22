@@ -198,3 +198,22 @@ The previously proposed exact-API POST `/containerlogs?api-version=2025-03-01` r
 PR #479 remains OPEN/UNMERGED. No application behavior or Azure configuration changed; 503 root cause remains UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Owner-approved direct container-log observation (2026-11-22)
+
+Owner separately approved one bounded direct API container-log read using the tested sanitizers. Exactly one read-only POST (empty body) targeted the established research API `/containerlogs?api-version=2025-03-01`. No detector/API-version fallback or health request followed.
+
+Observation completed at 2026-11-22 03:08:04.938769 UTC / 2026-11-22 00:08:04.938769 America/Sao_Paulo. Local classification window was fixed before execution: 02:52:53-03:07:53 UTC; it was NOT supplied as an unsupported server-side query parameter. Owned worker cap 15 seconds; per-request connect 3/read 10 seconds; streaming capture cap 64 KiB; no redirects/retries. Worker elapsed 11.765 seconds, with one ARM request counted. Result BLOCKED, ReadTimeout at ARM_TRANSPORT; no HTTP status or successful log projection was obtained. Owned worker completed and bounded capture cleanup returned. No raw body/log values were emitted or persisted.
+
+The temporary adapter was fake-tested before the sole live attempt: five cases passed for HTTP 200 tail, 204 no content, 400 structured error, cap breach and redirect rejection. Assertions verified exact POST target/version, empty body, one request, configured timeouts, redirects disabled and raw synthetic message withholding. An initial fake assertion incorrectly required Python None for the empty body; the requests library represented it as empty bytes. The test expectation was corrected to accept either empty representation and all five cases passed; no live request preceded that correction. No repository source change was necessary.
+
+This read timeout is a diagnostic transport failure, not an application HTTP 503 and not proof of a container crash, key problem or port mismatch. It yielded no fresh runtime-image, process/listener, pull/exit/startup or ingress witness. Prior observations and source/configuration contracts remain historical; current quota was not queried. Root cause remains UNKNOWN.
+
+Zero Azure mutations; no logging enablement, settings/secret readback, restarts, deployments, quota checks, health/API snapshots, UI/production/SCM/registry/provider/Docker/data operations in this continuation. Exactly one direct ARM log-tail read, then STOP.
+
+Validation: five fake adapter cases passed; existing 40-test offline qualification remains the source baseline (not rerun for this documentation-only append). UTF-8/LF/no BOM and git diff --check passed. Only this evidence document changed; PR #479 remains OPEN/UNMERGED.
+
+Next smallest action: owner review of this diagnostic-access blocker and a manual portal inspection of existing research API startup/container logs, without enabling logging or changing configuration. Share only a sanitized fixed error category or an explicitly approved narrow follow-up method; do not request raw logs, keys, screenshots containing identifiers or private data. Do not automatically retry the same timeout or compensate with a deployment/configuration change.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
