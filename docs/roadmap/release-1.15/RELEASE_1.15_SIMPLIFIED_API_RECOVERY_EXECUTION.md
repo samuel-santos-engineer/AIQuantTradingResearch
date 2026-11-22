@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | FAIL | [G4 attempt 3](#g4-attempt-3) | Verify the Azure startup prerequisites against the Worker contract before another candidate attempt. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 4](#g4-attempt-4) | Verify the ten nonsecret staging API settings and key presence through the portal before another image update. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -267,3 +267,47 @@ Target aiqr115researchstagingwus27f5eabb5 in rg-aiq-r112-wp05-wus2-7f5eabb5, sub
 The apply and rollback controller ran from 2026-11-22T18:04:30.389995Z to 2026-11-22T18:06:40.007166Z in 129.617 seconds. It made four API config GETs and two image-only PATCHes. The health checks were tentative within the bounded watch. No authenticated POST /v1/research/snapshot, UI or post-rollback health request followed. Candidate startup and running image identity remain unverified. HTTP 503 alone does not identify the failure stage. Azure dataset presence and the startup root cause remain unknown. There was no additional deployment or restart.
 
 The temporary controller passed seven synthetic preflight and sequencing cases, including quota exhaustion, key absence, baseline drift, conditional rollback, and stopping before ETH when BTC fails. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 4
+
+BLOCKED on 6179d8f44edab7d01bf65bd3f64dfe99a1598c40 from 2026-11-22T18:18:06.088092Z to 2026-11-22T18:19:13.854618Z.
+
+WP36 historically verified the ten declared app settings. WP80 later verified WEBSITES_PORT=52731. The recent API apply verified HTTPS-only, the configured rollback reference and an empty startup override. It did not reverify the app settings or effective runtime markers. Seven exact cached-image synthetic cases exited 1 at their expected fixed markers and all owned containers were removed. The Azure failure stage remains unknown.
+
+Next action. Verify the ten nonsecret staging API settings and key presence through the portal before another image update.
+
+Azure mutations. 0.
+
+
+### Startup settings comparison
+
+The [WP36 private post-save receipt](prompters/release-1.15-wp36-simplified-research-deploy.md) matched all ten declared settings and preserved the existing key. [WP80 routing evidence](RELEASE_1.15_WP80_API_STANDALONE_ACCEPTANCE.md) later matched port 52731. The G4 apply verified that the startup override remained empty. The bootstrap mode is an app setting independent of that startup override.
+
+| Check | Expected value or condition | Evidence available |
+| --- | --- | --- |
+| Bootstrap | `AIQ_RESEARCH_BOOTSTRAP_MODE=serve`. An empty or absent value defaults to serve. | WP36 matched. Current app setting unknown. |
+| Routing | `WEBSITES_PORT=52731` and `AIQ_RESEARCH_BIND_ADDRESS=0.0.0.0`. | WP80 matched port. Candidate image defaults the bind address. Effective injected values and ingress-to-listener delivery remain unverified. |
+| Transport | `AIQ_RESEARCH_TRANSPORT=azure-app-service-http` and `AIQ_RESEARCH_PLATFORM_HTTPS_ONLY=1`. | WP36 matched both. ARM verified frontend HTTPS-only. Current process transport opt-in remains unverified. |
+| Private storage | `AIQ_RESEARCH_PRIVATE_DIRECTORY=/tmp/aiq-research`, `AIQ_RESEARCH_STORAGE_SCOPE=azure-f1-staging-ephemeral`, `AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING=1`, `AIQ_RESEARCH_EXPECTED_MOUNT_PATH=/`, `WEBSITES_ENABLE_APP_SERVICE_STORAGE=false`. | WP36 matched all five. Effective values, UID, mount and directory checks were never verified in the candidate Azure container. |
+| Key | `AIQ_RESEARCH_API_KEY` exists, with a Worker-compatible format. | Historically present. The G4 operator process key passed a local shape check. Azure runtime presence, format and equality remain unverified. Check only the setting name in the portal. |
+| Managed process identity | Expected staging site and hostname, nonempty `WEBSITE_INSTANCE_ID` and `WEBSITE_ROLE_INSTANCE_ID=0`. | ARM identifies the site. The Worker requires the role literal, which the local smoke injected synthetically. No current main-container role value was observed. |
+
+Microsoft identifies WEBSITE_ROLE_INSTANCE_ID as a read-only current instance ID. The reference gives no guarantee that the Linux custom container receives a value of zero. Treat a missing or nonzero value as a hypothesis for the Azure STORAGE rejection. Do not add or spoof a WEBSITE identity variable as an app setting. Microsoft's custom container routing reference documents WEBSITES_PORT as the platform routing input. [App settings reference](https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings#language-specific-settings) ? [Custom container routing](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container#configure-port-number)
+
+The local matrix used exact API image ID `sha256:fefdccc43d8dec7c7b290813967fd29c936e9d95ffa30ed155d2dadd1a768393`, tied to the published candidate by the prior OCI receipts. Each case changed one synthetic setting, used a network-isolated owned container, and produced exit 1 and the expected fixed marker.
+
+| Synthetic variation | Observed fixed startup location |
+| --- | --- |
+| Unknown bootstrap mode | Shell bootstrap before the Worker |
+| Missing key | CONFIGURATION |
+| Platform HTTPS assertion set to zero | TRANSPORT |
+| Missing transport mode with no PFX fixture | TLS |
+| Missing managed role marker | STORAGE |
+| Managed role marker set to one | STORAGE |
+| Malformed key | LISTENER, before the listener starts |
+
+The earlier clean candidate smoke returned health 200 with a valid empty store and snapshot 503 DATASET_NOT_READY. Missing candles therefore do not explain a health 503 in that verified local configuration. Azure-specific settings, storage, listener and ingress remain possible causes.
+
+For the next check, use the exact research staging app's portal to compare only the declared nonsecret settings above. Return MATCH, MISSING or MISMATCH by name and a key-present boolean. Keep the key and unrelated settings private. The ARM settings-list endpoint returns a settings dictionary, and client-side projection still delivers the full response to the client. It was not used. A complete match of those declared settings would still leave platform-injected role and kernel conditions unresolved. [Web Apps List Application Settings](https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/list-application-settings?view=rest-appservice-2025-03-01)
+
+No Azure, SCM, registry, provider, deployment, or credential operation occurred in this pass. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

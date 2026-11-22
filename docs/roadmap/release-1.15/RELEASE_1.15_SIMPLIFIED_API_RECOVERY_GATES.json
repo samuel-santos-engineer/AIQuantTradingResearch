@@ -674,6 +674,41 @@
           "data_class": "no data"
         }
       ]
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 4,
+      "started_at_utc": "2026-11-22T18:18:06.088092Z",
+      "ended_at_utc": "2026-11-22T18:19:13.854618Z",
+      "status": "BLOCKED",
+      "source_commit": "6179d8f44edab7d01bf65bd3f64dfe99a1598c40",
+      "environment": "local",
+      "objective": "Compare staging startup prerequisites with the exact API candidate and verify selected failure modes locally.",
+      "commands_or_test_ids": [
+        "git inspection of research-bootstrap.sh, ResearchSnapshotEndpoint.cs and ResearchStorageBoundary.cs",
+        "Compare the WP36 settings receipt, WP80 routing evidence and latest ARM baseline",
+        "python -B <owned startup_settings_matrix.py> using docker create/start -a with --pull never and --network none"
+      ],
+      "expected": "Confirm setting requirements, classify gaps in staging evidence and reproduce candidate startup guard failures with synthetic input.",
+      "observed": "WP36 historically verified the ten declared app settings. WP80 later verified WEBSITES_PORT=52731. The recent API apply verified HTTPS-only, the configured rollback reference and an empty startup override. It did not reverify the app settings or effective runtime markers. Seven exact cached-image synthetic cases exited 1 at their expected fixed markers and all owned containers were removed. The Azure failure stage remains unknown.",
+      "exit_codes": {
+        "local_matrix": 0
+      },
+      "test_counts": {
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Most recent Azure readback confirmed the restored API image. Post-rollback health was not tested.",
+      "next_action": "Verify the ten nonsecret staging API settings and key presence through the portal before another image update.",
+      "rest": []
     }
   ]
 }
