@@ -1006,6 +1006,39 @@
       "rollback_state": "Previous API rollback remains the last image configuration verified. No image write or restart occurred.",
       "next_action": "Use an existing retained main-container record if the portal can access the exact historical window.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 12,
+      "started_at_utc": "2026-11-22T20:38:06.123504Z",
+      "ended_at_utc": "2026-11-22T20:38:06.124534Z",
+      "status": "BLOCKED",
+      "source_commit": "a04aba10bedc4fc51cb6cef7ee9af0dfae533311",
+      "environment": "staging",
+      "objective": "Reconcile the owner-provided Azure Portal incident report with the corrected-image attempt.",
+      "commands_or_test_ids": [
+        "Review the owner-provided Azure Portal report and the tracked apply, health and rollback receipt"
+      ],
+      "expected": "Identify whether the incident record establishes a main-container startup failure stage.",
+      "observed": "The owner-provided Portal report aligned the 2026-11-22 19:21:13 to 19:23:22 UTC impact window with a site configuration update and UpdateWebSite operation. It reported no Resource Health availability transition, no alert, no chartable series and no populated App Service Log Analytics table for the window. No direct main-container record established a Worker stage. A pre-start failure and a launch-time logging gap both remain possible.",
+      "exit_codes": {
+        "evidence_review": 0
+      },
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "The earlier API rollback was already verified by config readback. Current Running state is owner-reported and post-rollback health remains unverified.",
+      "next_action": "Verify a way to capture the main container's launch or fixed Worker stage before another image apply.",
+      "rest": []
     }
   ]
 }

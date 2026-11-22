@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 11](#g4-attempt-11) | Use an existing retained main-container record if the portal can access the exact historical window. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 12](#g4-attempt-12) | Verify a way to capture the main container's launch or fixed Worker stage before another image apply. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -473,3 +473,22 @@ Next action. Use an existing retained main-container record if the portal can ac
 Azure mutations. 0.
 
 Retry completed at 2026-11-22T20:20:05.520966+00:00 for the unchanged November 22 19:21:13?19:23:22 UTC evidence window. No VFS request or additional retry was sent. No ARM read, health probe, Azure write or restart occurred. The transport exception was classified generically. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 12
+
+BLOCKED on a04aba10bedc4fc51cb6cef7ee9af0dfae533311 from 2026-11-22T20:38:06.123504Z to 2026-11-22T20:38:06.124534Z.
+
+The owner-provided Portal report aligned the 2026-11-22 19:21:13 to 19:23:22 UTC impact window with a site configuration update and UpdateWebSite operation. It reported no Resource Health availability transition, no alert, no chartable series and no populated App Service Log Analytics table for the window. No direct main-container record established a Worker stage. A pre-start failure and a launch-time logging gap both remain possible.
+
+Next action. Verify a way to capture the main container's launch or fixed Worker stage before another image apply.
+
+Azure mutations. 0.
+
+
+### Owner-provided Azure Portal incident report
+
+The report describes the same research API target and the November 22, 2026 19:21:13?19:23:22 UTC window as the corrected-image attempt. A site configuration update and UpdateWebSite completed just before the reported impact. The tracked controller recorded an image-only PATCH, the candidate configuration readback, unsuccessful health checks and a verified rollback. The Portal event timing corroborates the configuration transition. It supplies no running-image attestation or failing Worker stage.
+
+The report identifies no Azure platform outage for the resource, no Resource Health availability transition, and no alert. No chartable runtime series or populated App Service Log Analytics table was available for the window. The separately supplied Kudu-sidecar excerpt was outside it. The combined evidence leaves pre-start failure and a main-container logging gap unresolved. The owner-reported current Running state is recovery-state management evidence. API health remains unverified.
+
+Before another separately authorized apply, confirm a capture path capable of distinguishing a main-container launch event from a Worker startup marker. The previous image was already restored and verified. This review made no Azure or SCM request and no alert, logging or configuration change. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
