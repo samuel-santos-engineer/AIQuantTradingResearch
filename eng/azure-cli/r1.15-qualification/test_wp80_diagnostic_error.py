@@ -332,6 +332,17 @@ class SseTests(unittest.TestCase):
     def parse(self, body):
         return m.sanitize_sse(body, self.start, self.end)
 
+    def test_source_style_raw_lines_are_not_sse_event_evidence(self):
+        body = b"2026-01-01T00:05:00Z process exited\n"
+        framed = self.parse(body)
+        plain = m.sanitize_log_tail(200, "application/octet-stream", body, self.start, self.end)
+        self.assertEqual("SSE_FRAMING_ONLY", framed["responseClass"])
+        self.assertEqual([], framed["eventCategories"])
+        self.assertEqual(["EXIT_MENTION"], plain["eventCategories"])
+        for result in (framed, plain):
+            self.assertFalse(result["causeConfirmed"])
+            self.assertEqual("UNVERIFIED", result["runtimeImageIdentity"])
+
     def test_complete_event_fixed_categories(self):
         r = self.parse(b"data: " + self.line + b"\n\n")
         self.assertEqual("SSE_DATA_CLASSIFIED", r["responseClass"])

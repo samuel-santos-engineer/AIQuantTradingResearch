@@ -411,3 +411,42 @@ Next smallest action: separately authorize review of PUBLIC Microsoft/Kudu sourc
 Validation: four synthetic AST shape checks passed; no application/helper source changed, so the existing 86-test qualification was not rerun for this documentation-only append. UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. Only this evidence document changed; PR #479 remains OPEN/UNMERGED. API exit-code-1 and health 503 cause remain UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Public Microsoft/Kudu contract research and interpretation correction
+
+Owner approved PUBLIC documentation/source review after the offline material proved insufficient. ZERO Azure/SCM/credential/runtime/log/data operations or mutations occurred. Public GitHub documentation and source were fetched through the GitHub connector and public web search; these are source-research operations, not reads of the deployed app. No actual inventory, href, log filename or retained response was accessed.
+
+Authoritative references reviewed:
+
+- [Microsoft custom-container documentation source](https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/app-service/configure-custom-container.md), Kudu API section: `/api/logs/docker` returns Docker-log metadata; href can retrieve an individual file; ZIP is a different broader operation.
+- [Azure App Service Linux documentation](https://github.com/Azure/app-service-linux-docs/blob/master/Things_You_Should_Know/things_you_should_know.md), Docker-log discovery section, supporting the inventory route.
+- [KuduLite DiagnosticsController](https://github.com/Azure-App-Service/KuduLite/blob/3854066bb50c3a1933aebbc4143c06c47535be68/Kudu.Services/Diagnostics/DiagnosticsController.cs#L100), exact reviewed commit `3854066bb50c3a1933aebbc4143c06c47535be68` (public dev-branch snapshot dated 2021-09-10).
+- [KuduLite Startup routing](https://github.com/Azure-App-Service/KuduLite/blob/3854066bb50c3a1933aebbc4143c06c47535be68/Kudu.Services.Web/Startup.cs#L644), inventory route plus separate ZIP route.
+- [KuduLite LogStreamManager](https://github.com/Azure-App-Service/KuduLite/blob/3854066bb50c3a1933aebbc4143c06c47535be68/Kudu.Services/Diagnostics/LogStreamManager.cs#L115), media setting and body writer behavior.
+
+The archived master snapshot was checked first; repository metadata identified dev as the default branch, and the findings above were verified against that pinned dev snapshot. These public versions are historical and do NOT establish which implementation/version the current Azure SCM service runs. Mutable documentation links are supporting references, not a runtime attestation.
+
+### Inventory contract now supported by source
+
+The controller returns a JSON sequence of objects with exactly these authored fields: machineName (filename-derived source string), lastUpdated (file LastWriteTimeUtc), size (file byte length), href (VFS link), path (full file path). It enumerates matching non-rolled Docker log names and uses source/date grouping with a historical threshold relative to the latest discovered date. This is not a guaranteed recent runtime event window or proof that every returned record belongs to the current main app. The controller opens up to ten files to refresh cached metadata but does not stream those file bodies to the inventory client. The separate ZIP operation is not required for listing.
+
+There is NO explicit main-container role, container ID binding, process state or image digest in this row contract. machineName includes a filename-derived log source and must not be treated as a typed role or printed as an identity. lastUpdated means file modification time, not event or container startup time. href/path must remain private and must not be followed automatically. The source supports a narrow metadata-only projection design, not blind newest-file selection or a claim of main-app absence when the list is empty. No guessed filename role classifier was added.
+
+### Important correction: event-stream media did not establish SSE framing
+
+The reviewed LogStreamManager sets Content-Type to event-stream media but writes initial messages, tailed log lines, heartbeats and updates directly through Response.WriteAsync. Its inspected writers do NOT wrap each log line in standard data-field/blank-line SSE events. Thus a standard SSE-data parser can ignore useful raw lines and report SSE_FRAMING_ONLY for this implementation. The installed CLI's direct streamed-byte reader is consistent with that behavior.
+
+Our earlier SSE parser direction was over-conservative and not source-backed as a match for this server implementation. Preserve its fail-closed behavior and prior results, but correct their interpretation: SSE_FRAMING_ONLY does NOT prove an empty log channel, valid heartbeat-only traffic, or absence of API console output. The actual discarded captures cannot be reclassified; current deployed body format remains UNKNOWN. This finding identifies a client-side contract mismatch hypothesis, NOT the API's startup crash/503 cause. No live parser mode was switched or media gate loosened in this pass.
+
+A new synthetic regression demonstrates the distinction: one fake UTC raw log line yields SSE_FRAMING_ONLY under the SSE parser and EXIT_MENTION under the existing text-tail sanitizer, with runtime identity UNVERIFIED and causeConfirmed=false in both. It tests the limitation without using any real captured bytes. No production/classifier implementation changed.
+
+### Next precise candidate: inventory metadata only
+
+The source review supports preparing one exact authenticated GET to the research SCM `/api/logs/docker`, using existing-sign-in App Service bearer authentication (not publishing/research/provider keys), TLS verification, Accept application/json, Accept-Encoding identity, no proxy/redirect/retry/fallback, 3-second connect/10-second read bounds inside a 15-second owned-worker deadline, at most 32 KiB transient response and 32 rows. Validate JSON duplicate keys, bounded source-backed row types, UTC file-time syntax and safe same-origin VFS references locally without printing or following them. Reject changed/unknown schemas, cap violations, unsafe links or access/transport errors and STOP. Output only fixed inventory/schema/freshness/selection classifications; no filenames, source identities, paths, URLs, exact file sizes/timestamps or log content. Runtime/main-role/image binding must remain UNVERIFIED.
+
+No row should be selected or file body retrieved in that same operation. A subsequent exact single-file read needs separately reviewed role selection and explicit authority. The legacy WP11 function must not be executed unchanged because of its extra anonymous/auth operations. Before any live inventory request, prepare and fake-test the narrow projection/temporary adapter in the existing approved WP80 paths. This paragraph is a proposal, not live authority.
+
+Validation: `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q` passed 77 distinct tests (one new source-contract regression); focused WP75 suite passed 10, total 87, zero skips. Syntax, UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. Changed only this append-only evidence and the existing WP80 test file. The existing classifier is unchanged; no new parser/dependency/framework. PR #479 remains OPEN/UNMERGED.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
