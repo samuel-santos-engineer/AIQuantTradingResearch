@@ -201,6 +201,16 @@ class LogTailTests(unittest.TestCase):
         self.assertEqual(m.MAX_BYTES, len(body))
         self.assertEqual("BOUNDED_TAIL", self.run_tail(body)["responseClass"])
 
+    def test_legacy_generic_failure_is_not_a_stage_witness(self):
+        legacy = b"2026-01-01T00:05:00Z Research snapshot service unavailable.\n"
+        staged = b"2026-01-01T00:05:00Z Research snapshot service unavailable. stage=STORAGE\n"
+        a, b = self.run_tail(legacy), self.run_tail(staged)
+        self.assertEqual([], a["eventCategories"])
+        self.assertEqual(["APP_STORAGE_FAILURE_MARKER"], b["eventCategories"])
+        for result in (a, b):
+            self.assertFalse(result["causeConfirmed"])
+            self.assertEqual("UNVERIFIED", result["runtimeImageIdentity"])
+
     def test_source_failure_stage_markers(self):
         for stage in ("CONFIGURATION", "STORAGE"):
             body = ("2026-01-01T00:05:00Z Research snapshot service unavailable. stage=" + stage).encode()

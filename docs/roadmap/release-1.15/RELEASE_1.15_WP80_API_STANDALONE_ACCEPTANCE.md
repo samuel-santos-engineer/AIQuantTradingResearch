@@ -517,3 +517,28 @@ The file is accessible, but a current recognized API startup error remains missi
 Only this append-only evidence changed. Eight fake adapter cases passed; existing 103-test repository qualification unchanged and not rerun. UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline accepted-image source and diagnostic-vocabulary reconciliation
+
+Owner approved offline receipt/source review only. ZERO Azure/SCM/registry/Docker/image-inspection/credential/log/runtime operations or mutations occurred. No retained preparation, private image/archive, dataset or discarded log bytes were inspected. Review used tracked receipts and local Git history; source and artifact identity remain separate.
+
+The [setting-name/provenance receipt](prompters/release-1.15-setting-name-presence-and-image-provenance.md) explicitly records accepted research local/index `1edebb818...` and runtime child `2744c4dc...` with exact source commit UNKNOWN. [WP55 qualification](prompters/release-1.15-wp55-ohlc-acquisition-qualification.md), [WP57 qualification](prompters/release-1.15-wp57-corrected-ui-local-browser-qualification.md), [WP61 qualification](prompters/release-1.15-wp61-post-merge-local-browser-qualification.md) and [Phase G publication](prompters/release-1.15-wp58-phase-g-staging-deployment-evidence.md) preserve the original API identifier. The Phase G byte audit records bootstrap correspondence, not a complete managed-assembly-to-source attestation. A source revision for the separately rebuilt UI does not supply an API revision.
+
+Exact accepted API source revision therefore remains UNKNOWN from this public repository evidence. No new hash, tag or chronology inference is substituted for the missing link. We cannot establish which startup diagnostic vocabulary the accepted API assembly contains, or infer that the configured artifact is wrong merely because current-source messages were not matched.
+
+Git source change `92da836bf36ffdb790549a1fe30f1e4665203f5e` introduced fixed startup stage labels and listener-start output. Its parent source has a generic catch message only: `Research snapshot service unavailable.` followed by return code 1, with no listener-start marker. The later source emits `Research snapshot service unavailable. stage=<fixed stage>` and `Research snapshot listener started.`. Supported stages are CONFIGURATION, TRANSPORT, TLS, STORAGE, LISTENER and SERVING. The provenance receipt attributes those diagnostics to source `c4513aebfb69afac9ecbc7633e79e69cae9e950a` and separately published diagnostic child `d33626a9...`, not automatically to the accepted `2744c4dc...` child. That diagnostic artifact remains a distinct unpromoted alternative, not a drop-in substitute authorized by this review.
+
+Three local Git-content assertions passed: parent has the generic catch, parent lacks listener marker, and the recorded diagnostic source contains staged/listener markers. They did not execute C# or inspect either image. The bootstrap's fixed reimport/unavailable messages were also reviewed as source, not attested accepted-image bytes.
+
+Conclusion: missing current-source stage/listener matches are not evidence of successful startup or absence of errors. Even observing the older generic failure message would not identify configuration, TLS, storage or bind cause because that source intentionally suppresses exception details. Re-reading the same old file only to recognize the generic phrase would add little beyond the owner's already established startup exit code 1. The actual discarded file content cannot be retrospectively reclassified, and this pass does not assert that it contained the generic phrase.
+
+One synthetic regression documents the vocabulary gap without changing classifier behavior: a fake generic UTC failure line yields no stage marker; the staged STORAGE variant yields the fixed storage marker, with causeConfirmed=false and identity UNVERIFIED in both. No application/helper implementation was modified and no new parser was added.
+
+Validation: WP80 offline suite 94 distinct tests passed (one new source-vocabulary regression), WP75 focused suite 10 passed; total 104, zero skips. Source-content assertions 3 passed separately and are not counted as unit tests. Syntax, UTF-8/LF/no BOM, Markdown link/fence review and git diff --check passed. Changed only the existing WP80 test and append-only evidence paths.
+
+Next smallest decision: owner review of a SOURCE-BOUND diagnostic startup plan if richer startup evidence is required. Such a plan must preserve the accepted-image baseline, explicitly choose and qualify any diagnostic artifact/source, establish a usable log retrieval channel and rollback safeguards, and obtain separate build/publication/deployment/restart authority as applicable. No automatic substitution of the diagnostic child, configuration fix or further blind stream/file read is authorized here. A source-bound diagnostic startup or a directly supplied application exception/category is needed to resolve cause; present source/receipt evidence alone cannot do so. API-first/UI-second boundaries remain intact; no UI or production work.
+
+PR #479 remains OPEN/UNMERGED; API startup exit-code-1/503 cause remains UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
