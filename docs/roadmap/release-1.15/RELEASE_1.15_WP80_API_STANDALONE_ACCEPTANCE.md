@@ -127,3 +127,20 @@ Validation: `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification
 The existing WP80 PR remains the review vehicle. Exact delta now comprises these two offline files and this append-only evidence document. No application, port, startup, dependency, provider, image, auth, TLS or storage changes. Next smallest separately approvable step: integrate this tested classifier into one bounded exact-API diagnostic request, with a concrete documented request contract and no automatic retry. No live request is authorized by this appendix.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Owner-approved classified diagnostic observation
+
+At 2026-11-22 02:15:44.501078 UTC (2026-11-21 23:15:44.501078 America/Sao_Paulo), one newly approved API LinuxLogViewer GET completed in 2.054 seconds. Fixed window: 02:00:42-02:15:42 UTC. Same exact API target, API version 2023-12-01, 15-second owned worker, 3-second connect/10-second read bounds, 1 MiB capture limit, no redirects/retries. No request parameters or source were changed to force acceptance.
+
+Before execution, two fake end-to-end worker cases verified classified HTTP 400 output, exact one-request behavior and withholding of synthetic private message text. The temporary worker imports the reviewed repository classifier; its only functional refinement is replacing the old HTTP error-body projection with `classify(status, body)`. This integration was tested without real Azure HTTP calls or credential access.
+
+Observed result: HTTP 400, `responseClass=UNSUPPORTED_SCHEMA`, empty `serverCategories` and `parameterHints`, `causeConfirmed=false`, `retryAuthorized=false`. The response was rejected by the conservative structural classifier; no fields, raw keys, body excerpts or messages were exposed or retained. This does not establish malformed query parameters, detector absence, a permission failure or the source of the API health 503. No historical response was reclassified.
+
+Stopped after exactly one management GET. No fallback, health/UI/production request, quota query, secret access, configuration write, restart, deployment or data operation. Main-container identity, process/listener readiness and 503 provenance remain UNVERIFIED/UNKNOWN. No correction to Azure configuration is justified.
+
+Next smallest step: offline review of a supported alternative startup-evidence source and its response contract, with a precise bounded proposal before any new live read. Do not repeat the same LinuxLogViewer request or weaken the schema classifier to expose arbitrary response content.
+
+Validation for this continuation: two fake end-to-end worker cases passed; the existing 15 classifier regression tests passed; UTF-8/LF/no BOM and git diff --check passed. Only this evidence document changed in this continuation. PR #479 remains OPEN/UNMERGED.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
