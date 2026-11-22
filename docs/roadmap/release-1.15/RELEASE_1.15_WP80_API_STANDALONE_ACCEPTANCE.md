@@ -390,3 +390,24 @@ This channel has still yielded no usable main-application log event. Another unc
 Only this evidence document changed. Eight fake adapter cases passed; existing 86-test repository qualification unchanged and not rerun for this append. UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED; API exit-code-1/503 root cause remains UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline log-file inventory contract review: no new parser justified
+
+Owner approved the proposed offline inventory review only. ZERO Azure/SCM/credential/runtime operations, file listings, log-body reads, restarts or other mutations occurred. No discarded response or retained log content was accessed. Existing WP80 classifier/test code is unchanged in this pass.
+
+Source reviewed: existing `wp11_research_diagnostic.py` fixes SCM_INDEX to the research app's `/api/logs/docker`, uses an authenticated GET with Accept application/json, rejects redirects, applies a 32 KiB body cap and bounded private-memory reading, then checks a list-of-dictionaries shape. The legacy helper also obtains a management-resource token and performs a second anonymous enforcement probe. It must NOT be invoked as a one-request inventory adapter: those extra operations/auth assumptions are outside a new exact single-listing scope. No helper function or CLI command was executed here.
+
+The reviewed source does not establish inventory row field names, a reliable main-container role, payload freshness, exact running-image binding, or safe file selection. Its indexSchemaRecognized predicate accepts both an empty list and objects with no relevant fields. Four synthetic checks evaluated ONLY that extracted AST expression (not the surrounding function): empty list true, one empty object true, unrelated synthetic object true, non-list object false. All four matched the source predicate. This demonstrates a local evidence limit, not a defect or a finding about the actual Azure inventory.
+
+Installed CLI bytecode inspection found `download_historical_logs` referencing `/dump`, an archive operation; it was not invoked and is not a narrow inventory substitute. A site-container log function also exists, but no verified classic-container inventory contract follows from its name or signature. No sidecar/classic mode assumptions, filename suffix heuristics or automatic href following were added. No raw filenames, paths, addresses, IDs, timestamps, links or credential values were acquired or emitted.
+
+Decision: NO production/classifier code change. A new role classifier or single-file fetch cannot yet be source-backed using available offline material. Guessing that a particular filename suffix proves the main application would risk confusing Kudu/platform logs with API console output, the same attribution gap already observed. An empty or generically recognized index is not proof that main-app logs are absent.
+
+The exact historical GET `/api/logs/docker` remains a candidate, not an executed or qualified new request. Missing prerequisites are an authoritative Microsoft/Kudu inventory row schema, file-role/freshness semantics and a supported exact body-read selection contract. The current offline-only scope did not fetch external source documentation or use a live listing to reverse-engineer those fields.
+
+Next smallest action: separately authorize review of PUBLIC Microsoft/Kudu source/documentation to establish that contract (not Azure/SCM access, no credentials or live resource requests). Only after that review should a fake-tested fixed-output inventory projection and one precise listing proposal be considered. No additional stream capture, broad archive, filename-based guess or restart is recommended on the present evidence.
+
+Validation: four synthetic AST shape checks passed; no application/helper source changed, so the existing 86-test qualification was not rerun for this documentation-only append. UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. Only this evidence document changed; PR #479 remains OPEN/UNMERGED. API exit-code-1 and health 503 cause remain UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
