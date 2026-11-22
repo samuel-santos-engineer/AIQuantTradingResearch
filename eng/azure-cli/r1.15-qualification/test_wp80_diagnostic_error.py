@@ -451,5 +451,103 @@ class SseTests(unittest.TestCase):
                           "mainProcessLiveness", "listener", "causeConfirmed", "retryAuthorized"}, set(r))
 
 
+class SsePrefixTests(unittest.TestCase):
+    start = dt.datetime(2026, 1, 1, tzinfo=dt.timezone.utc)
+    end = start + dt.timedelta(minutes=15)
+    event = b"data:2026-01-01T00:05:00Z process exited\n\n"
+
+    def parse(self, body, **kwargs):
+        return m.sanitize_sse_prefix(body, self.start, self.end, **kwargs)
+
+    def test_first_complete_event_stops_acquisition(self):
+        r = self.parse(self.event)
+        self.assertTrue(r["captureStopRequired"])
+        self.assertEqual("SSE_DATA_CLASSIFIED", r["responseClass"])
+        self.assertEqual(["EXIT_MENTION"], r["eventCategories"])
+        self.assertEqual("UNVERIFIED", r["listener"])
+
+    def test_every_byte_boundary_waits_for_complete_event(self):
+        for i in range(len(self.event)):
+            r = self.parse(self.event[:i])
+            self.assertFalse(r["captureStopRequired"])
+            self.assertEqual([], r["eventCategories"])
+        self.assertTrue(self.parse(self.event)["captureStopRequired"])
+
+    def test_split_crlf_and_multibyte_sequences(self):
+        event = b": synthetic-" + "\u00e9".encode() + b"\r\ndata:2026-01-01T00:05:00Z process exited\r\n\r\n"
+        for i in range(len(event)):
+            self.assertFalse(self.parse(event[:i])["captureStopRequired"])
+        self.assertEqual("SSE_DATA_CLASSIFIED", self.parse(event)["responseClass"])
+
+    def test_heartbeat_frames_do_not_trigger_acceptance(self):
+        prefix = b": heartbeat\n\nid:synthetic\nretry:1\n\n"
+        self.assertFalse(self.parse(prefix)["captureStopRequired"])
+        self.assertEqual(["EXIT_MENTION"], self.parse(prefix + self.event)["eventCategories"])
+        self.assertEqual("SSE_FRAMING_ONLY", self.parse(prefix, final=True)["responseClass"])
+
+    def test_unknown_first_event_stops_without_searching_later(self):
+        r = self.parse(b'data:{"synthetic":"unsupported"}\n\n' + self.event)
+        self.assertTrue(r["captureStopRequired"])
+        self.assertEqual("SSE_UNSUPPORTED_PAYLOAD", r["responseClass"])
+        self.assertEqual([], r["eventCategories"])
+
+    def test_one_event_scope_not_whole_stream_acceptance(self):
+        a = self.parse(self.event + b'data:{"synthetic":"later"}\n\n')
+        b = self.parse(self.event)
+        self.assertEqual(a, b)
+        self.assertFalse(a["causeConfirmed"])
+        self.assertFalse(a["retryAuthorized"])
+        self.assertEqual("UNVERIFIED", a["runtimeImageIdentity"])
+
+    def test_final_incomplete_event_fails_closed(self):
+        r = self.parse(self.event[:-1], final=True)
+        self.assertTrue(r["captureStopRequired"])
+        self.assertEqual("SSE_INCOMPLETE_EVENT", r["responseClass"])
+        self.assertEqual([], r["eventCategories"])
+
+    def test_final_cr_delimiter_is_handled(self):
+        value = self.event.replace(b"\n", b"\r")
+        self.assertFalse(self.parse(value)["captureStopRequired"])
+        self.assertEqual("SSE_DATA_CLASSIFIED", self.parse(value, final=True)["responseClass"])
+
+    def test_exact_total_cap_stops_even_for_heartbeats(self):
+        body = (b":" + b"x" * 2046 + b"\n") * 32
+        self.assertEqual(m.MAX_BYTES, len(body))
+        self.assertTrue(self.parse(body)["captureStopRequired"])
+        r = self.parse(body + b"x")
+        self.assertTrue(r["captureStopRequired"])
+        self.assertEqual("BODY_CAP_EXCEEDED", r["responseClass"])
+
+    def test_caps_invalid_input_and_window(self):
+        self.assertEqual("SSE_RECORD_CAP_EXCEEDED", self.parse(b"x" * 2049)["responseClass"])
+        self.assertEqual("INVALID_PREFIX_INPUT", self.parse("synthetic")["responseClass"])
+        self.assertEqual("INVALID_PREFIX_INPUT", self.parse(b"", final="yes")["responseClass"])
+        self.assertEqual("INVALID_WINDOW", m.sanitize_sse_prefix(b"", self.end, self.start)["responseClass"])
+
+    def test_fake_capture_stops_before_next_chunk(self):
+        def chunks():
+            yield b": heartbeat\n\n"
+            yield self.event[:7]
+            yield self.event[7:]
+            raise AssertionError("read past first complete event")
+        captured = bytearray()
+        for chunk in chunks():
+            self.assertLessEqual(len(captured) + len(chunk), m.MAX_BYTES)
+            captured.extend(chunk)
+            result = self.parse(bytes(captured))
+            if result["captureStopRequired"]:
+                break
+        self.assertEqual("SSE_DATA_CLASSIFIED", result["responseClass"])
+        self.assertLess(len(captured), m.MAX_BYTES)
+
+    def test_no_network_process_file_or_output_and_fixed_keys(self):
+        out = io.StringIO()
+        with patch("socket.socket", side_effect=AssertionError("network")), patch("subprocess.Popen", side_effect=AssertionError("process")), patch("builtins.open", side_effect=AssertionError("file")), contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            r = self.parse(self.event)
+        self.assertEqual("", out.getvalue())
+        self.assertEqual({"responseClass", "freshness", "eventCategories", "runtimeImageIdentity", "mainProcessLiveness",
+                          "listener", "causeConfirmed", "retryAuthorized", "captureStopRequired"}, set(r))
+
+
 if __name__ == "__main__":
     unittest.main()

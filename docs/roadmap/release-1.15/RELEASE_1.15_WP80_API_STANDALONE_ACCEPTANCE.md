@@ -347,3 +347,27 @@ Current blocker is bounded capture acceptance, not a newly demonstrated applicat
 Only this append-only evidence document changed. Seven fake adapter cases passed; UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED; main-container runtime identity, listener and health acceptance remain unverified.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline same-budget incremental review and first-event refinement
+
+Owner requested continuation of offline incremental/cap review. ZERO live Azure/SCM/authentication/credential/runtime operations or mutations occurred. No discarded capture bytes were recovered or examined. Existing three-path scope and PR #479 were retained.
+
+Source audit of the previous temporary adapter confirmed that sanitize_sse was called only from finalization. It accumulated chunks until EOF/deadline/cap, and cap rejection cleared the buffer before decoding. This is a confirmed local batching limitation: a synthetic complete early event can be classified below the cap, while an otherwise ongoing capture can later invalidate the whole batch. It is NOT proof that the actual discarded response contained any complete or relevant event.
+
+Added pure `sanitize_sse_prefix` in the existing classifier, reusing sanitize_sse unchanged. A future caller passes its cumulative bounded prefix after each small chunk. Heartbeat/control-only frames wait; the FIRST complete data event, including an unknown payload, returns a fixed projection with captureStopRequired=true. The caller must close immediately on that signal and never scan past an unsupported first payload for a convenient message. A positive result is a one-event sample only, NOT acceptance of subsequent events or the whole stream. Subsequent content in an already received chunk is not claimed to be verified.
+
+The helper owns no socket, iterator, process, authentication, timer or reconnect behavior. It preserves the 64 KiB cumulative input budget, 512 framing-line and 2048-byte-line guards, the original per-event/payload limits and all UNVERIFIED runtime flags. Exact-cap input requires stopping even if it contains only heartbeats. Oversized input fails closed. End-of-window final=True handles pending/incomplete framing conservatively; no EOF-triggered partial data acceptance. A trailing CR is deferred until the next chunk or finalization to avoid splitting CRLF incorrectly, and incomplete trailing UTF-8 is not decoded before a complete event. Returned data remains fixed enums/booleans only; no event bytes, offsets, raw identifiers or contents leave the helper.
+
+A fake bounded-capture regression yields a heartbeat plus a split complete event and raises if the next chunk is requested. It passed, demonstrating that a caller honoring captureStopRequired can stop below the same cap without waiting for stream exhaustion. This is an offline design proof, not a test of a real SCM payload or a qualified live adapter. The old all-events sanitizer remains strict and retains its prior behavior; it was not weakened to claim successful partial-batch acceptance.
+
+Validation actually run:
+
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q`: 76 tests passed (64 previous + 12 prefix/caller regressions), zero skips.
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q`: 10 tests passed; total 86 distinct tests, zero skips.
+- Added coverage includes every byte boundary, split CRLF/multibyte data, heartbeat waiting, first unknown-payload stop, one-event scope, final incomplete/CR handling, exact/exceeded budgets, invalid windows/types, fake iterator early closure, exact output keys and no network/process/file/output side effects.
+- Syntax, UTF-8/LF/no BOM, Markdown review and git diff --check passed. Only the existing classifier/test/evidence paths changed.
+
+Next smallest separately approvable step: fake-test a small temporary adapter using this helper after each chunk, with the SAME exact research SCM route, 15-second owned deadline, 64 KiB cumulative budget, strict metadata gate and no restart/retry/fallback. If subsequently authorized for one live read, request only up to the remaining budget, close on the first complete data-event classification (including unsupported schema), and report the limited sample without extrapolation. Cap/deadline/unknown payload must still stop. No larger download or schema invention is proposed. No live adapter was executed in this pass; the API exit-code-1 and HTTP 503 causes remain UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

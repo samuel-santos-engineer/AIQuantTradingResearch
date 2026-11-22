@@ -341,3 +341,49 @@ def sanitize_sse(body, window_start, window_end):
                eventCategories=sorted(markers),
                freshness="HAS_IN_WINDOW_RECORD" if "HAS_IN_WINDOW_RECORD" in freshness else "NO_IN_WINDOW_RECORD" if "NO_IN_WINDOW_RECORD" in freshness else "UNKNOWN")
     return out
+
+
+
+def sanitize_sse_prefix(body, window_start, window_end, *, final=False):
+    """Classify the first complete data event from a bounded cumulative prefix.
+
+    Call after each small acquisition chunk. No socket/state/reconnection is
+    owned here. A stop result samples ONE event, not a complete log stream.
+    Unknown payloads stop too; never search past them for a convenient match.
+    The caller must stop acquisition on captureStopRequired and enforce the
+    same total byte/deadline caps, including while waiting through heartbeats.
+    """
+    out = sanitize_sse(b"", window_start, window_end)
+    out["captureStopRequired"] = True
+    if out["responseClass"] != "SSE_EMPTY":
+        return out
+    if type(final) is not bool or type(body) is not bytes:
+        out["responseClass"] = "INVALID_PREFIX_INPUT"
+        return out
+    if len(body) > MAX_BYTES:
+        out["responseClass"] = "BODY_CAP_EXCEEDED"
+        return out
+    # Defer a terminal CR until the next chunk (could be CRLF) or final=True.
+    view = body[:-1] if body.endswith(b"\r") and not final else body
+    view = view.replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    lines = view.split(b"\n")
+    if len(lines) - int(view.endswith(b"\n")) > 512 or any(len(line) > 2048 for line in lines):
+        out["responseClass"] = "SSE_RECORD_CAP_EXCEEDED"
+        return out
+    cursor = 0
+    while True:
+        end = view.find(b"\n\n", cursor)
+        if end < 0:
+            break
+        result = sanitize_sse(view[cursor:end + 2], window_start, window_end)
+        cursor = end + 2
+        if result["responseClass"] == "SSE_FRAMING_ONLY":
+            continue
+        result["captureStopRequired"] = True
+        return result
+    if final or len(body) == MAX_BYTES:
+        result = sanitize_sse(body, window_start, window_end)
+        result["captureStopRequired"] = True
+        return result
+    out.update(responseClass="SSE_WAITING_FOR_EVENT", captureStopRequired=False)
+    return out
