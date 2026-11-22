@@ -743,6 +743,75 @@
       "rollback_state": "Previously verified API rollback remains the last known image state. This read did not query the image or runtime.",
       "next_action": "Check the effective main-container startup inputs or obtain a fixed failure stage before another deployment.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 6,
+      "started_at_utc": "2026-11-22T18:37:01.970326Z",
+      "ended_at_utc": "2026-11-22T18:41:15.614220Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "local",
+      "objective": "Diagnose and correct the first reproducible startup assumption and verify local compatibility.",
+      "commands_or_test_ids": [
+        "dotnet test Infrastructure.Tests -c Release --no-restore --filter ResearchStorageBoundaryTests or ResearchSnapshotEndpointTests, excluding browser and export opt-ins",
+        "python -B -m unittest discover -s python/presentation -p test_research_chart.py -q",
+        "python -B -m unittest discover -s tests/runtime/release_1_15 -p test_recovery_gate_receipts.py -q",
+        "dotnet publish Worker -c Release --no-restore --self-contained false -p:UseAppHost=false",
+        "docker build --pull=false --network=none --platform=linux/amd64 -f container/release_1_15/research-api.Dockerfile",
+        "python -B <owned compat_matrix.py>; docker image save and hash-verify local OCI metadata"
+      ],
+      "expected": "G4-A, G4-B and G4-C pass with exact-image before/after evidence. G4-D is ready for separate approval once the immutable candidate plan is recorded.",
+      "observed": "G4-A PASS: the earlier candidate exits at STORAGE when the platform role identifier is absent or opaque. G4-B PASS: the exact staging exception no longer assumes the role ordinal equals zero. G4-C PASS: targeted suites and seven network-isolated Docker cases passed. The corrected candidate serves 200 Alive, rejects unauthenticated snapshots with 401 and answers authenticated empty-state snapshots with 503 DATASET_NOT_READY. G4-D READY_FOR_SEPARATE_APPROVAL. Azure root cause is unverified and G4 live acceptance remains blocked.",
+      "exit_codes": {
+        "dotnet": 0,
+        "python_chart": 0,
+        "receipt_schema": 0,
+        "publish_local": 0,
+        "docker_build": 0,
+        "docker_matrix": 0,
+        "local_oci": 0
+      },
+      "test_counts": {
+        "passed": 157,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [
+        "src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs",
+        "tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs"
+      ],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Last verified Azure rollback child remains sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. No staging action in this attempt.",
+      "next_action": "Approve publication and digest readback of the exact corrected API image.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 200,
+          "response_schema": "Literal Alive, platform HTTP on port 52731",
+          "data_class": "fixture"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 401,
+          "response_schema": "v1.0 error UNAUTHORIZED",
+          "data_class": "fixture"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 503,
+          "response_schema": "v1.0 error DATASET_NOT_READY with intentionally empty local state",
+          "data_class": "fixture"
+        }
+      ]
     }
   ]
 }

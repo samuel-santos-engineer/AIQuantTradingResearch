@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 5](#g4-attempt-5) | Check the effective main-container startup inputs or obtain a fixed failure stage before another deployment. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 6](#g4-attempt-6) | Approve publication and digest readback of the exact corrected API image. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -330,3 +330,52 @@ Owner-authorized CLI read at 2026-11-22T18:28:11.351245Z to 2026-11-22T18:28:12.
 The successful comparison narrows the problem to evidence beyond the declared setting values. The Worker process inputs, Azure-injected instance and role markers, key validity, container storage boundary and listener start still require runtime evidence. Neither an app-setting mismatch nor a particular startup failure stage was established for the failed deployment. No health request, authenticated snapshot, UI operation, Azure write, restart or deployment occurred in this pass.
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 6
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T18:37:01.970326Z to 2026-11-22T18:41:15.614220Z.
+
+G4-A PASS: the earlier candidate exits at STORAGE when the platform role identifier is absent or opaque. G4-B PASS: the exact staging exception no longer assumes the role ordinal equals zero. G4-C PASS: targeted suites and seven network-isolated Docker cases passed. The corrected candidate serves 200 Alive, rejects unauthenticated snapshots with 401 and answers authenticated empty-state snapshots with 503 DATASET_NOT_READY. G4-D READY_FOR_SEPARATE_APPROVAL. Azure root cause is unverified and G4 live acceptance remains blocked.
+
+Next action. Approve publication and digest readback of the exact corrected API image.
+
+Azure mutations. 0.
+
+
+### Startup compatibility correction and verification
+
+Startup runs shell bootstrap `serve`, then Worker configuration, transport/TLS, storage validation, listener and `GET /health`. The ten declared staging app settings matched the prior ARM read. The shell's empty/absent mode defaults to serve. Configuration requires the private directory and API key. Platform HTTP bypasses the local PFX only after exact app/hostname, a nonempty injected instance ID, explicit transport consent and bind address 0.0.0.0 pass. Storage separately requires explicit ephemeral opt-in, the fixed private path, Linux UID 1654, writable private root-overlay permissions and the same app identity. Listeners use port 52731 for platform HTTP. The key format is checked before listener startup.
+
+Microsoft defines WEBSITE_ROLE_INSTANCE_ID as a current instance identifier without guaranteeing a zero ordinal or its presence in this container. WEBSITE_INSTANCE_ID is separately described as a VM instance identifier. The fix removes only the exact-zero role comparison. It retains the nonempty instance check and keeps role presence as a fail-closed Azure marker outside the exact staging exception. No Azure marker is fabricated in deployment. [Microsoft App Service settings](https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings#language-specific-settings) ? [Custom container port routing](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container#configure-port-number)
+
+| Image and fixture variation | Fixed startup stage | Local result |
+| --- | --- | --- |
+| Earlier candidate, role absent | STORAGE | Exit 1 |
+| Earlier candidate, opaque role | STORAGE | Exit 1 |
+| Corrected candidate, role absent | SERVING | Health 200, unauthenticated 401, authenticated empty state 503 DATASET_NOT_READY |
+| Corrected candidate, opaque role | SERVING | Health 200, unauthenticated 401, authenticated empty state 503 DATASET_NOT_READY |
+| Corrected candidate, instance marker missing | TRANSPORT | Exit 1 |
+| Corrected candidate, read-only storage | STORAGE | Exit 1 |
+| Corrected candidate, wrong UID | STORAGE | Exit 1 |
+
+Earlier exact local index `sha256:fefdccc43d8dec7c7b290813967fd29c936e9d95ffa30ed155d2dadd1a768393` was verified against the earlier OCI receipt. Each case used an owned network-isolated container. Health and REST used only the container namespace's loopback. All seven fixtures passed and their owned containers were removed. The empty-state response came from a running process. Azure startup, effective identity, key and filesystem were not observed in this pass. ROOT_CAUSE_UNVERIFIED.
+
+Automation passed 87 .NET tests, 56 Python chart tests, and seven receipt tests. Seven Docker fixture cases passed. Browser and fixture-export opt-ins were excluded from the .NET run. UI source remained unchanged. The Python chart suite includes BTC volume, ETH OHLC-only and BTC to ETH to BTC state. No new real-browser or authentic-dataset acceptance is claimed.
+
+### Corrected API immutable image and approval plan
+
+| Item | Value |
+| --- | --- |
+| Source commit | f5fa4163dabb80817e7798175cdb56243b831136 |
+| Source tree | 6c6926284ddec759386aefb001a8ea4eab43d02b |
+| Build-context file hash manifest SHA-256 | 38adeedc7346d9d58d7e8aa19872fe9e99f9f6ee40235c6ecafee2a051518f96 |
+| Retained local tag | aiq-r115-compat:api-f5fa4163dabb |
+| Local OCI index and image ID | sha256:68073490abb07a4e13e7f498b9ce6105b2b1de3370fc0125287443c73a3236ea |
+| Local Linux/amd64 child | sha256:47b9bc01743b05790daf489d22da467db61a042791e4cd72d07c89fedd812be0 |
+| Local config | sha256:e6b1e1aed024a2b8c4169059acdadc0c759a2e91126123d06aeec0aad12f173b |
+| Proposed GHCR tag | ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-recovery-api-f5fa4163dabb |
+| Previously verified staging rollback child | sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 |
+
+The build used the tracked API Dockerfile and bootstrap, cached pinned ASP.NET base, framework-dependent publish and source revision OCI label. Archive verification hashed exact index, Linux/amd64 manifest and config bytes. The context had only published output and bootstrap. Registry operations require separate approval. Verify the approved tag and exact registry index, Linux/amd64 child and config mapping before proposing an API-only image update. Recheck staging configuration and quota under the future approval, preserve the rollback child and use the image-only rollback procedure above on failed health or data acceptance. The UI remains excluded from API apply. No Azure, SCM, image pushes or deployment occurred.
+
+G4-A PASS. G4-B PASS. G4-C PASS. G4-D READY_FOR_SEPARATE_APPROVAL. G4 remains blocked for live acceptance. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
