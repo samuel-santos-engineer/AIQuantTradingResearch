@@ -492,3 +492,83 @@ The report describes the same research API target and the November 22, 2026 19:2
 The report identifies no Azure platform outage for the resource, no Resource Health availability transition, and no alert. No chartable runtime series or populated App Service Log Analytics table was available for the window. The separately supplied Kudu-sidecar excerpt was outside it. The combined evidence leaves pre-start failure and a main-container logging gap unresolved. The owner-reported current Running state is recovery-state management evidence. API health remains unverified.
 
 Before another separately authorized apply, confirm a capture path capable of distinguishing a main-container launch event from a Worker startup marker. The previous image was already restored and verified. This review made no Azure or SCM request and no alert, logging or configuration change. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N0 attempt 1
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:49:13.803949Z to 2026-11-22T20:51:17.493640Z.
+
+Subscription and existing plan identity verified. West US 2 advertised Linux F1; watched existing plan quotas were all zero. Existing API Running, HTTPS-only and empty startup, with rollback image matched. The exact corrected Linux candidate passed health locally with the existing identity, then exited 1 at TRANSPORT with only the proposed new app name and hostname substituted. New plan admission and resource names remain unverified because the candidate cannot run on the proposed identity.
+
+Next action. Review a scoped image change allowing only the exact parallel lab identity.
+
+Azure mutations. 0.
+
+## N1 attempt 1
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:51:17.573157Z to 2026-11-22T20:51:17.573438Z.
+
+Provisioning stopped before writes because the pinned image rejects the new App Service identity. No resource group, plan, or app was created.
+
+Next action. Resolve N0 image compatibility before creating resources.
+
+Azure mutations. 0.
+
+## N2 attempt 1
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:51:17.651193Z to 2026-11-22T20:51:17.651472Z.
+
+No new app, diagnostic setup, image application, launch or startup capture.
+
+Next action. Revisit the built-in log capture path after N0 resolution.
+
+Azure mutations. 0.
+
+## N3 attempt 1
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:51:17.729468Z to 2026-11-22T20:51:17.729747Z.
+
+No new app or staging URL served. No HTTPS probe sent.
+
+Next action. Run bounded health probes only after N2.
+
+Azure mutations. 0.
+
+## N4 attempt 1
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:51:17.806654Z to 2026-11-22T20:51:17.806925Z.
+
+No authenticated request or dataset copy occurred.
+
+Next action. Run the approved instrument checks only after N3.
+
+Azure mutations. 0.
+
+## N5 attempt 1
+
+PASS on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T20:51:17.883750Z to 2026-11-22T20:51:17.884007Z.
+
+The local reproduction isolates a deterministic incompatibility of the pinned image with the fresh identity. Azure allocation and startup for the fresh app were not attempted. The old staging startup cause remains unknown.
+
+Next action. Approve a narrowly scoped new image retaining the original staging and storage safeguards.
+
+Azure mutations. 0.
+
+
+### Parallel experiment decision matrix
+
+| Check | Original research staging | Proposed parallel experiment |
+| --- | --- | --- |
+| Region and plan | West US 2, original Linux plan and app association verified | West US 2, separate Linux F1 advertised for the subscription. Allocation and create permissions remain unverified. |
+| Image | Currently configured rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. The earlier corrected candidate failed the health gate before rollback. | Exact intended child sha256:47b9bc01743b05790daf489d22da467db61a042791e4cd72d07c89fedd812be0. Previous registry mapping and cached local index sha256:68073490abb07a4e13e7f498b9ce6105b2b1de3370fc0125287443c73a3236ea were matched to source f5fa4163dabb80817e7798175cdb56243b831136. |
+| Identity and transport | The image contains the existing site and hostname literals. The local control served HTTP 200 Alive on port 52731. | The image rejects the new site/hostname pair at TRANSPORT before the listener, reproduced with otherwise identical settings. Storage also requires the original pair. |
+| Configuration and storage | Fresh HTTPS-only and empty startup readback. The ten app settings were verified in the earlier owner-authorized comparison. | Intended to retain the same nonsecret transport and port settings and use private ephemeral storage, with a separately supplied key. No runtime values were copied. |
+| Startup, health and snapshots | Last corrected-image attempt showed no status, 503, then 403. Startup stage and current health remain unknown. | No Azure container, startup marker, health request or snapshot result. The local control returned authenticated 503 DATASET_NOT_READY with empty storage. |
+| Quotas and costs | Existing-plan observation began at 2026-11-22T20:49:37.691744Z. Stop requests 0/15, daily CPU 0/3,600,000 ms, short CPU 0/180,000 ms. | No new plan or resource was created. No new ongoing cost. F1 admission has not been tested. |
+
+Proposed names are `rg-aiq-r115-parallel-lab-wus2-7f5eabb5`, `asp-aiq-r115-parallel-lab-wus2-7f5eabb5`, and `aiqr115-parallel-lab-wus2-7f5eabb5`. They are provisional and were not reserved or checked for name collisions. Azure F1 uses shared compute. Separate plan placement cannot establish physical-host isolation. [Azure CLI F1 location command](https://learn.microsoft.com/en-us/cli/azure/appservice?view=azure-cli-latest#az-appservice-list-locations) ? [App Service plans](https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans)
+
+The exact Git source shows two allowlist comparisons for the old identity in transport and storage. Azure supplies the app identity for its actual container. Reusing the old app identity in the new container would invalidate the experiment. A new image should add only the exact proposed lab app name and matching hostname, preserving the existing checks and rejecting other identities. The provision-and-deploy authority specified the published child above. It did not authorize an image change. No paid tier was needed or selected. [App Service environment reference](https://learn.microsoft.com/en-us/azure/app-service/reference-app-settings#app-environment)
+
+Proposed settings checklist for a future compatible image: preserve the ten declared nonsecret values from the staging comparison and set platform HTTPS-only. Supply a dedicated lab API key privately. No real key was inspected or transferred. Let Azure populate site, hostname, and instance markers, and use the new app's own private ephemeral path without reusing volumes, data, identity, or credentials. Existing built-in Linux filesystem logs are the first capture option to evaluate after the new app exists. Retention, availability, and bounded retrieval on the new app remain untested. [App Service diagnostics](https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs#enable-application-logging-linux-or-container)
+
+Azure mutations **0**. No resource IDs, endpoint, or continuing costs were created. The baseline receipt tests ran after the read-only checks and before the schema extension. The updated schema and append-only evidence were checked before commit. No Azure write phase occurred. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

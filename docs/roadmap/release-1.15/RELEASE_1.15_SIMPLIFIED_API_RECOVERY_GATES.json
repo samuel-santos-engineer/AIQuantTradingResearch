@@ -1039,6 +1039,206 @@
       "rollback_state": "The earlier API rollback was already verified by config readback. Current Running state is owner-reported and post-rollback health remains unverified.",
       "next_action": "Verify a way to capture the main container's launch or fixed Worker stage before another image apply.",
       "rest": []
+    },
+    {
+      "gate_id": "N0",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:49:13.803949Z",
+      "ended_at_utc": "2026-11-22T20:51:17.493640Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Verify a preflight baseline for an isolated parallel F1 experiment.",
+      "commands_or_test_ids": [
+        "az account show --subscription <target> with boolean projection",
+        "az appservice list-locations --sku F1 --linux-workers-enabled with West US 2 projection",
+        "az rest GET <existing plan>/usages, <existing API site> and <existing API>/config/web",
+        "python -B <owned parallel_identity_fixture.py>"
+      ],
+      "expected": "The exact image supports the fresh app identity, region and quota are verified, and minimum inputs are isolated.",
+      "observed": "Subscription and existing plan identity verified. West US 2 advertised Linux F1; watched existing plan quotas were all zero. Existing API Running, HTTPS-only and empty startup, with rollback image matched. The exact corrected Linux candidate passed health locally with the existing identity, then exited 1 at TRANSPORT with only the proposed new app name and hostname substituted. New plan admission and resource names remain unverified because the candidate cannot run on the proposed identity.",
+      "exit_codes": {
+        "feasibility_reads": 0,
+        "local_identity_cases": 0
+      },
+      "test_counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Review a scoped image change allowing only the exact parallel lab identity.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 200,
+          "response_schema": "Local fixture control with existing staging identity, literal Alive",
+          "data_class": "fixture"
+        }
+      ]
+    },
+    {
+      "gate_id": "N1",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:51:17.573157Z",
+      "ended_at_utc": "2026-11-22T20:51:17.573438Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Provision separate Linux F1 plan and app.",
+      "commands_or_test_ids": [
+        "No provisioning command"
+      ],
+      "expected": "Fresh app and plan with independent identity and storage.",
+      "observed": "Provisioning stopped before writes because the pinned image rejects the new App Service identity. No resource group, plan, or app was created.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Resolve N0 image compatibility before creating resources.",
+      "rest": []
+    },
+    {
+      "gate_id": "N2",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:51:17.651193Z",
+      "ended_at_utc": "2026-11-22T20:51:17.651472Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Configure startup diagnostics and launch the pinned image.",
+      "commands_or_test_ids": [
+        "No logging or launch command"
+      ],
+      "expected": "Configured immutable candidate and bounded startup evidence for the new app.",
+      "observed": "No new app, diagnostic setup, image application, launch or startup capture.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Revisit the built-in log capture path after N0 resolution.",
+      "rest": []
+    },
+    {
+      "gate_id": "N3",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:51:17.729468Z",
+      "ended_at_utc": "2026-11-22T20:51:17.729747Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Verify parallel API health.",
+      "commands_or_test_ids": [
+        "No health request"
+      ],
+      "expected": "HTTPS 200 Alive from the new staging API.",
+      "observed": "No new app or staging URL served. No HTTPS probe sent.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Run bounded health probes only after N2.",
+      "rest": []
+    },
+    {
+      "gate_id": "N4",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:51:17.806654Z",
+      "ended_at_utc": "2026-11-22T20:51:17.806925Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Verify authenticated BTC and ETH snapshots on the parallel API.",
+      "commands_or_test_ids": [
+        "No snapshot request"
+      ],
+      "expected": "Two bounded responses, classified by schema and provenance, after health.",
+      "observed": "No authenticated request or dataset copy occurred.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Run the approved instrument checks only after N3.",
+      "rest": []
+    },
+    {
+      "gate_id": "N5",
+      "attempt": 1,
+      "started_at_utc": "2026-11-22T20:51:17.883750Z",
+      "ended_at_utc": "2026-11-22T20:51:17.884007Z",
+      "status": "PASS",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "local",
+      "objective": "Compare the observations and choose the next engineering action.",
+      "commands_or_test_ids": [
+        "Compare the current existing-site projection, corrected-image receipt and local A/B fixture"
+      ],
+      "expected": "Decision matrix records the old result, new blocker, and uncertainty.",
+      "observed": "The local reproduction isolates a deterministic incompatibility of the pinned image with the fresh identity. Azure allocation and startup for the fresh app were not attempted. The old staging startup cause remains unknown.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
+      "next_action": "Approve a narrowly scoped new image retaining the original staging and storage safeguards.",
+      "rest": []
     }
   ]
 }
