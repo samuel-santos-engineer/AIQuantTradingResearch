@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 7](#g4-attempt-7) | Approve the exact API-only staging apply, acceptance checks, and conditional rollback. |
+| G4 Staging API-first acceptance | FAIL | [G4 attempt 9](#g4-attempt-9) | Establish the candidate's Azure startup stage before another image attempt. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -401,5 +401,44 @@ The next separately approved write may change only linuxFxVersion for `aiqr115re
 - Conditional rollback `ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3`
 
 Before applying, verify quota, key channel, exact expected image and blank startup override. Confirm the configured candidate digest after applying. Run the previous bounded health gate with at most three HTTPS probes and up to 180 seconds. After verified 200 Alive, send one authenticated BTC/USD snapshot and then one ETH/USD snapshot only if BTC passes. If required acceptance fails, restore the previous image once and verify its configuration readback. No explicit restart or automatic redeployment. G4 remains blocked until that separate approval and live qualification.
+
+API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 8
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T19:20:04.281369Z to 2026-11-22T19:23:39.478183Z.
+
+All three quotas were below limit, API site metadata reported Running and Normal, and the process key was available. The bounded API config read timed out, so no Azure write was sent in this attempt.
+
+Next action. Retry only the bounded API config/web read before any mutation.
+
+Azure mutations. 0.
+
+## G4 attempt 9
+
+FAIL on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T19:20:41.525072Z to 2026-11-22T19:23:39.643883Z.
+
+Config retry verified the rollback image and empty startup override. API apply acknowledged: True. Health: TRANSPORT_UNVERIFIED (no status), 503 HTTP_REJECTED, 403 HTTP_REJECTED. Snapshot requests: none. Result: API_HEALTH_FAILED. Final configured child: sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. Rollback: RESTORED_AND_VERIFIED. UI unchanged.
+
+Next action. Establish the candidate's Azure startup stage before another image attempt.
+
+Confirmed Azure image mutations. 2.
+
+
+### Corrected API candidate apply and outcome
+
+The quota read showed stop requests 0/15, daily CPU 0/3,600,000 ms and short-period CPU 0/180,000 ms before apply. A single retry of the timed-out configuration read succeeded at 2026-11-22T19:20:42.991346Z. The controller rechecked the API baseline before applying. No settings, UI or production operation occurred.
+
+| Item | Evidence |
+| --- | --- |
+| Target | aiqr115researchstagingwus27f5eabb5 |
+| Candidate | `sha256:47b9bc01743b05790daf489d22da467db61a042791e4cd72d07c89fedd812be0` |
+| Prior and conditional rollback | `sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3` |
+| Health | TRANSPORT_UNVERIFIED (no status), 503 HTTP_REJECTED, 403 HTTP_REJECTED |
+| Authenticated snapshots | none |
+| Rollback | RESTORED_AND_VERIFIED |
+| Last configured API image | `sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3` |
+
+The ownership-bounded controller ran from 2026-11-22T19:21:13.161929Z to 2026-11-22T19:23:22.222931Z in 129.061 seconds, made 4 API config reads and attempted 2 image PATCHes. The controller did not explicitly restart the app. Configuration evidence alone does not establish the running image or the cause of an unsuccessful startup. No Azure dataset or public UI acceptance is inferred.
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

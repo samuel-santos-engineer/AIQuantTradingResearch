@@ -849,6 +849,94 @@
       "rollback_state": "Last verified configured API rollback image sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. No new Azure state observation.",
       "next_action": "Approve the exact API-only staging apply, acceptance checks, and conditional rollback.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 8,
+      "started_at_utc": "2026-11-22T19:20:04.281369Z",
+      "ended_at_utc": "2026-11-22T19:23:39.478183Z",
+      "status": "BLOCKED",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Recheck quota, site and rollback image before the corrected API deployment.",
+      "commands_or_test_ids": [
+        "One staging plan usages GET, followed by one API site and one API config/web GET"
+      ],
+      "expected": "Quota below limit, key channel available, healthy site metadata and exact rollback image.",
+      "observed": "All three quotas were below limit, API site metadata reported Running and Normal, and the process key was available. The bounded API config read timed out, so no Azure write was sent in this attempt.",
+      "exit_codes": {
+        "preflight": 1
+      },
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No image write or rollback in the preflight attempt.",
+      "next_action": "Retry only the bounded API config/web read before any mutation.",
+      "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 9,
+      "started_at_utc": "2026-11-22T19:20:41.525072Z",
+      "ended_at_utc": "2026-11-22T19:23:39.643883Z",
+      "status": "FAIL",
+      "source_commit": "f5fa4163dabb80817e7798175cdb56243b831136",
+      "environment": "staging",
+      "objective": "Apply the approved role-ID compatibility API image only and verify bounded acceptance.",
+      "commands_or_test_ids": [
+        "One bounded retry of API config/web GET; exact rollback child and blank start confirmed",
+        "python -B <owned api_compat_apply.py> --offline-test",
+        "az rest --method patch on exact API config/web linuxFxVersion",
+        "Bounded HTTPS GET /health and conditional authenticated snapshot checks",
+        "Conditional API-only rollback and configuration readback"
+      ],
+      "expected": "Exact candidate configuration, 200 Alive, authenticated snapshot acceptance for both instruments, or one verified rollback.",
+      "observed": "Config retry verified the rollback image and empty startup override. API apply acknowledged: True. Health: TRANSPORT_UNVERIFIED (no status), 503 HTTP_REJECTED, 403 HTTP_REJECTED. Snapshot requests: none. Result: API_HEALTH_FAILED. Final configured child: sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. Rollback: RESTORED_AND_VERIFIED. UI unchanged.",
+      "exit_codes": {
+        "config_retry": 0,
+        "synthetic_controller": 0,
+        "apply_patch": 0,
+        "rollback_verified": 0
+      },
+      "test_counts": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 2
+      },
+      "rollback_state": "RESTORED_AND_VERIFIED. Final config readback sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3. No post-rollback health probe.",
+      "next_action": "Establish the candidate's Azure startup stage before another image attempt.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "Non-accepting health response",
+          "data_class": "no data"
+        },
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 403,
+          "response_schema": "Non-accepting health response",
+          "data_class": "no data"
+        }
+      ]
     }
   ]
 }
