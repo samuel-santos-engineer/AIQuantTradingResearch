@@ -52,3 +52,54 @@ Offline tests establish neither Azure health nor dataset availability.
 Owner review of this blocker. A separately authorized, single bounded API `LinuxAppDown` startup diagnostic could investigate termination evidence; it must preserve UNKNOWN when timestamps, role, image or cause are absent. Do not automatically poll quota, repeat health or change configuration. Resume dependent acceptance only after fresh evidence supports recovery. WP81/WP82 were not started.
 
 `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`. Historical local acceptance is unchanged.
+
+
+## Continuation: quota recovery, configuration and HTTP 503 diagnosis
+
+The earlier quota blocker above is preserved as a historical finding. Subsequent owner-authorized reads observed recovery; no retrospective claim is made about the earlier failure.
+
+All times below are UTC on 2026-11-22; America/Sao_Paulo is three hours earlier, on 2026-11-21. Each management read used an owned 15-second worker, 3-second connect/10-second read bounds, 1 MiB capture cap, exact target validation, and no redirects or retries. Configuration port reads were read-only POST appsettings-list requests: the collection remained transient in worker memory, only port-presence/equality booleans were emitted, and no service-key value was selected or displayed.
+
+| Observation UTC | Operation | Duration | Sanitized result |
+| --- | --- | --- | --- |
+| 01:18:17 completion | One plan usages GET, separately requested by owner | Bounded worker completed | CPU 0/3,600,000 ms; stop requests 0/15. Only returned counters established; no zero-consumption claim after this read. |
+| 01:21:16 completion | One API site GET | 1.532 s worker command | Running, usage/availability Normal, expected plan/region/Linux/HTTPS-only. |
+| 01:24:15 completion | API config/web GET | Within 15 s cap | Exact accepted API child configured; startup empty. |
+| 01:24:16 completion | API port-only projection | Within 15 s cap | WEBSITES_PORT present and equals 52731. |
+| 01:26:22 completion | One LinuxAppDown GET; window 01:11:21-01:26:21 | Within 15 s cap | HTTP 503; nonstandard error-body classification; no startup evidence obtained. Stopped. |
+| 01:27:49 request start | One anonymous API GET /health, separately approved | 21.888 s | TLS verified, HTTP 503 text/html, not exact Alive. No retry. |
+| 01:38:00 completion | Fresh API config/web GET under attached diagnostic authority | 1.676 s | Exact accepted API child configured; startup empty. |
+| 01:38:01 completion | Fresh API port-only projection | 1.047 s | WEBSITES_PORT present and equals 52731. |
+| 01:38:02 completion | One LinuxLogViewer GET; window 01:23:01-01:38:01 | 1.529 s | HTTP 400; unclassified HTTP error. Stopped without fallback or retry. |
+
+The health worker used direct anonymous HTTPS, certificate validation, a 3-second connection bound, 30-second owned-worker total cap and 4 KiB response cap. No cookies, authorization, proxy inheritance, redirect following or response body disclosure. No second health request occurred during the subsequent diagnosis.
+
+The existing quota worker was initially rejected by automatic approval review because it contained unreachable broader settings-reading code. That rejected execution made no request. A temporary copy removed those branches and allowed only the exact plan usages GET; its one successful request is recorded above. Repository GitHub metadata refresh initially encountered sandbox network denial; the permitted network execution then confirmed unchanged main and PR heads. These were not Azure retries.
+
+### Latest repository and source reconciliation
+
+Fresh origin/main remains `632e636b9c39c94130aa1b58336f13a6d15471a2`. WP80 [PR #479](https://github.com/samuel-santos-engineer/AIQuantTradingResearch/pull/479) remains OPEN on `docs/release-1.15-wp80-api-standalone`; pre-continuation head was `72a0aa3283500bd2f8c8e2cd2a6ff3b214d8f201`. WP79 #478 remains OPEN at `7a79de30e18e9c0851b2d2f8ece832d30b887e3d`; no history or findings were overwritten. Owner changes remain in the original checkout.
+
+Source review reconfirmed shell bootstrap to the Worker research API mode, explicit Kestrel binding and anonymous health routing before authentication. Offline review found prior LinuxLogViewer evidence, but no guaranteed timestamped main-container/image schema. This continuation selected that source once, rather than repeating the uninformative running-containers table. Its HTTP 400 prevented projection; no raw body or log text was output. No claim is made about why that source rejected the request.
+
+### Current evidence limits and disposition
+
+| Layer | Latest evidence | Classification |
+| --- | --- | --- |
+| Site | Running / Normal at 01:21 UTC | Management state only; not a process witness. |
+| Image/startup | Exact accepted child and empty startup at 01:38 UTC | CONFIGURED_ONLY. |
+| Routing setting | WEBSITES_PORT equals 52731 | Matches expected classic-container setting; actual ingress-to-process delivery UNVERIFIED. |
+| Main container / process | No qualified startup or lifecycle record | UNVERIFIED. |
+| Listener 0.0.0.0:52731 | Source contract only | UNVERIFIED at runtime. |
+| External health | TLS success, HTTP 503 text/html | FAIL; origin and root cause UNKNOWN. |
+| Authenticated snapshots / cloud historical data | Not requested | NOT_RUN / UNKNOWN. |
+
+Historical 403, header timeouts, detector 503 and endpoint 503 remain distinct observations. No diagnostic result proves container exit, startup timeout, pull failure, wrong port, key failure, application exception or ingress provenance. The verified routing setting provides no demonstrated mismatch to correct. No speculative fix is proposed.
+
+This diagnostic continuation made exactly three read-only management requests (config/web, port projection, LinuxLogViewer), zero health requests, zero quota queries and zero mutations. The preceding separately approved operations are individually inventoried above. No UI/production access, Docker/registry/provider operation, data import, authenticated snapshot, restart, logging change or configuration change occurred.
+
+Validation: focused WP75 staging-plan offline suite passed 10 tests; temporary diagnostic syntax and empty-schema fail-closed projection passed. UTF-8/LF/no BOM, exact one-document diff and git diff --check passed. No application code or dependency changes. Tests do not prove Azure runtime readiness.
+
+Single next smallest action: offline review of the existing LinuxLogViewer request contract and sanitized error-classification capability to determine whether a corrected, separately bounded source request is defensible. Do not retry it, poll health or change Azure configuration automatically. No acceptance pass until readiness evidence justifies one.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
