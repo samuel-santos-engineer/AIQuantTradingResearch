@@ -208,6 +208,24 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         using var dir = new ResearchTestDirectory(); using var store = dir.Open();
         Assert.Throws<ArgumentException>(() => ResearchSnapshotEndpoint.Create(new(store), Key, null));
     }
+    [Theory]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net", true)]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", true)]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", false)]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net", false)]
+    [InlineData("unlisted-app", "unlisted-app.azurewebsites.net", false)]
+    public void PlatformTransportRequiresAnExactStagingHostPair(string siteName, string hostname, bool accepted)
+    {
+        var settings = PlatformSettings();
+        settings["WEBSITE_SITE_NAME"] = siteName;
+        settings["WEBSITE_HOSTNAME"] = hostname;
+
+        if (accepted)
+            Assert.True(ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k)).PlatformHttp);
+        else
+            Assert.Throws<ArgumentException>(() => ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k)));
+    }
+
     [Fact] public async Task ExplicitPlatformBackendPreservesAuthenticationRoutingAndBodyBounds()
     {
         var settings = PlatformSettings(); var mode = ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k));

@@ -50,14 +50,19 @@ public static class ResearchStorageBoundary
     private static readonly string[] AzureMarkers = ["WEBSITE_INSTANCE_ID", "WEBSITE_SITE_NAME", "WEBSITE_HOSTNAME", "WEBSITE_ROLE_INSTANCE_ID"];
     internal const string StagingScope = "azure-f1-staging-ephemeral";
     internal const string StagingDirectory = "/tmp/aiq-research";
+    /// <summary>Require an exact staging site and hostname pair supplied by App Service.</summary>
+    public static bool IsSupportedStagingHost(string? siteName, string? hostname) =>
+        (siteName, hostname) is
+            ("aiqr115researchstagingwus27f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net") or
+            ("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net");
+
     internal static bool ValidateHost(Func<string, string?> setting)
     {
         var scope = setting("AIQ_RESEARCH_STORAGE_SCOPE");
         var optIn = setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING");
         // The role instance ID is platform metadata, with no guaranteed zero ordinal.
         if (scope == StagingScope && optIn == "1" &&
-            setting("WEBSITE_SITE_NAME") == "aiqr115researchstagingwus27f5eabb5" &&
-            setting("WEBSITE_HOSTNAME") == "aiqr115researchstagingwus27f5eabb5.azurewebsites.net" &&
+            IsSupportedStagingHost(setting("WEBSITE_SITE_NAME"), setting("WEBSITE_HOSTNAME")) &&
             !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) &&
             setting("WEBSITES_ENABLE_APP_SERVICE_STORAGE") == "false" &&
             setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/") return true;

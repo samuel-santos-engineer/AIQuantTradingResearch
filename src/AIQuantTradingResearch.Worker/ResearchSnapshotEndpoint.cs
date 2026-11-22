@@ -22,8 +22,7 @@ public sealed record ResearchSnapshotTransport
         var mode = setting("AIQ_RESEARCH_TRANSPORT") ?? "local-https";
         if (mode == "local-https") return new(false);
         if (mode != "azure-app-service-http" ||
-            setting("WEBSITE_SITE_NAME") != "aiqr115researchstagingwus27f5eabb5" ||
-            setting("WEBSITE_HOSTNAME") != "aiqr115researchstagingwus27f5eabb5.azurewebsites.net" ||
+            !ResearchStorageBoundary.IsSupportedStagingHost(setting("WEBSITE_SITE_NAME"), setting("WEBSITE_HOSTNAME")) ||
             string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) ||
             setting("AIQ_RESEARCH_PLATFORM_HTTPS_ONLY") != "1" ||
             setting("AIQ_RESEARCH_BIND_ADDRESS") != "0.0.0.0")

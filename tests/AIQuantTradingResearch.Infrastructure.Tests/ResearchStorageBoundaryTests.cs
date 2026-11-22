@@ -59,15 +59,24 @@ public sealed class ResearchStorageBoundaryTests
         ["WEBSITES_ENABLE_APP_SERVICE_STORAGE"] = "false",
         ["AIQ_RESEARCH_EXPECTED_MOUNT_PATH"] = "/"
     };
-    [Fact] public void OnlyCompleteExplicitStagingIdentitySelectsEphemeralMode()
+    [Theory]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net")]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net")]
+    public void OnlyCompleteExplicitStagingIdentitySelectsEphemeralMode(string siteName, string otherHostname)
     {
         var settings = Staging();
+        settings["WEBSITE_SITE_NAME"] = siteName;
+        settings["WEBSITE_HOSTNAME"] = siteName + ".azurewebsites.net";
         Assert.True(ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
         foreach (var name in settings.Keys)
         {
-            var incomplete = Staging(); incomplete.Remove(name);
+            var incomplete = new Dictionary<string, string?>(settings);
+            incomplete.Remove(name);
             Assert.Throws<ResearchUnavailableException>(() => ResearchStorageBoundary.ValidateHost(k => incomplete.GetValueOrDefault(k)));
         }
+
+        settings["WEBSITE_HOSTNAME"] = otherHostname;
+        Assert.Throws<ResearchUnavailableException>(() => ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
     }
     [Theory]
     [InlineData(null)]
