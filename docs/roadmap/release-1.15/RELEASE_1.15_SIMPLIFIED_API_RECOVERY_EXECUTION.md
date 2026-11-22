@@ -5,8 +5,8 @@
 | G0 Baseline and reproducibility | PASS | [G0 attempt 1](#g0-attempt-1) | None |
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
-| G3 Source-bound images and rollback | BLOCKED | [G3 attempt 3](#g3-attempt-3) | Approve projected read-only staging baseline verification for the two apps. |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 1](#g4-attempt-1) | Complete G3 publication and baseline verification before an exact image-only apply checkpoint. |
+| G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 2](#g4-attempt-2) | Approve the exact API-only image update and conditional rollback checkpoint below. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -202,3 +202,42 @@ Registry publication and readback completed at 2026-11-22T16:18:38.380284Z in 24
 | UI | ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-recovery-ui-6179d8f44eda | sha256:6bdc3136aa0c17db366561b9deb5730486cf6efea8decba86abcb0c5c8769b6e | sha256:d26e2ea9a15699b19124dc88e1a26e01e3dd7f8e9ea5fa0a777010d6574c5f14 | sha256:ac97152a84d6ed7d0c3a7780ebd7ed6c24dd7b59c92da43377eb1269fa86596d |
 
 The next approval checkpoint is four projected ARM GETs, one site and one config/web read for each staging app. Confirm exact app and plan identity, HTTPS-only and configured image references, and an empty startup override. No app-settings list or credential read is proposed. Stop on missing evidence or drift from the historical rollback references. G4 remains blocked pending a complete baseline and explicit image-only apply approval.
+
+## G3 attempt 4
+
+PASS on 392fb8f3323318aa1a0a85e41d03a2f72fcc0e2e from 2026-11-22T16:40:56.326262Z to 2026-11-22T16:41:59.623253Z.
+
+Four successful ARM metadata reads in 12.565 seconds. Both exact Linux West US 2 staging apps are enabled, Running, HTTPS-only, and on the expected shared plan. Site usage and availability both report Normal. Both startup overrides are empty and both configured image digests match the historical rollback references. The immutable candidate mappings were verified in the preceding G3 publication attempt. No runtime identity, health, quota counters, app settings or dataset content was read.
+
+Next action. Obtain exact API-only image apply and conditional rollback approval.
+
+Azure mutations. 0.
+
+## G4 attempt 2
+
+BLOCKED on 392fb8f3323318aa1a0a85e41d03a2f72fcc0e2e from 2026-11-22T16:41:08.891065Z to 2026-11-22T16:41:59.849460Z.
+
+G3 image baseline is verified. This authority covered four ARM GETs only. No staging health, authentication, dataset, deployment, rollback or browser operation occurred.
+
+Next action. Approve the exact API-only image update and conditional rollback checkpoint below.
+
+Azure mutations. 0.
+
+
+## Fresh staging baseline and API-only approval checkpoint
+
+Observed 2026-11-22T16:40:56.326262Z to 2026-11-22T16:41:08.891065Z. Four ARM GETs, no retries, no Azure writes. Each read used a ten-second owned-worker request budget. Both staging site records identify Linux in West US 2 on the expected plan. Site records report Running, Enabled, HTTPS-only, usage Normal and availability Normal. These are management observations. Current F1 quota counters and actual running container identities are unverified.
+
+| Role | Site GET seconds | Config GET seconds | Configured rollback child | Startup override |
+| --- | ---: | ---: | --- | --- |
+| API | 6.477 | 1.923 | sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 | Empty |
+| UI | 2.287 | 1.878 | sha256:6b59d2052fdd99d77aae248aa159a0cadba740a91094fbeb0872935a96877dde | Empty |
+
+Target for the next separately approved operation is only `aiqr115researchstagingwus27f5eabb5` in `rg-aiq-r112-wp05-wus2-7f5eabb5`, subscription `7f5eabb5-80f5-4369-88be-b14a6de763f1`. The sole setting change would be `linuxFxVersion`. Keep the current startup, port 52731, HTTPS-only, authentication, ephemeral storage and plan. Allow configuration-triggered startup and zero explicit restarts.
+
+- Apply body `{"properties":{"linuxFxVersion":"DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:aecb4586a30bf5be3f398bdcf1578127208e10198528a546324039da40c4c357"}}`
+- Conditional rollback body `{"properties":{"linuxFxVersion":"DOCKER|ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3"}}`
+
+Use the staging `az rest --method patch` command in the preceding checkpoint. Before applying, recheck the exact API image and startup baseline, quota and the owner-provided key channel without disclosing values. Stop before mutation on drift or a failed prerequisite. After apply, read back the API image and observe health for up to 180 seconds with at most three lightweight HTTPS requests, bounded to eight seconds each. Accept only literal 200 Alive. After health, make one authenticated snapshot POST per instrument, BTC first and ETH only after BTC passes. Require valid UTC-ordered v1.0 snapshots for actual staging BTC/USD and ETH/USD data. On failure, perform the single approved API image rollback and verify its configuration readback. The UI stays out of this checkpoint. API health and data must pass before any separate UI apply approval.
+
+Three synthetic projection tests passed. No app settings were listed, no startup override values were emitted and no health, quota, data or browser request occurred in this baseline phase.

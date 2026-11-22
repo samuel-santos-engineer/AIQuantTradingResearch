@@ -552,6 +552,75 @@
       "rollback_state": "No staging change. Historical API and UI rollback references still require fresh readback.",
       "next_action": "Approve projected read-only staging baseline verification for the two apps.",
       "rest": []
+    },
+    {
+      "gate_id": "G3",
+      "attempt": 4,
+      "started_at_utc": "2026-11-22T16:40:56.326262Z",
+      "ended_at_utc": "2026-11-22T16:41:59.623253Z",
+      "status": "PASS",
+      "source_commit": "392fb8f3323318aa1a0a85e41d03a2f72fcc0e2e",
+      "environment": "staging",
+      "objective": "Verify the fresh staging image-only rollback baseline after publication.",
+      "commands_or_test_ids": [
+        "az rest --method get --subscription <staging subscription> --url <API site and config/web> --query <nonsecret metadata projection>",
+        "az rest --method get --subscription <staging subscription> --url <UI site and config/web> --query <nonsecret metadata projection>"
+      ],
+      "expected": "Four projected reads verify exact app and plan identities, HTTPS-only, blank startup and exact historical rollback digests.",
+      "observed": "Four successful ARM metadata reads in 12.565 seconds. Both exact Linux West US 2 staging apps are enabled, Running, HTTPS-only, and on the expected shared plan. Site usage and availability both report Normal. Both startup overrides are empty and both configured image digests match the historical rollback references. The immutable candidate mappings were verified in the preceding G3 publication attempt. No runtime identity, health, quota counters, app settings or dataset content was read.",
+      "exit_codes": {
+        "api_site": 0,
+        "api_config": 0,
+        "ui_site": 0,
+        "ui_config": 0,
+        "offline_projection": 0
+      },
+      "test_counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Both current configured staging rollback digests confirmed by the image and startup readback.",
+      "next_action": "Obtain exact API-only image apply and conditional rollback approval.",
+      "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 2,
+      "started_at_utc": "2026-11-22T16:41:08.891065Z",
+      "ended_at_utc": "2026-11-22T16:41:59.849460Z",
+      "status": "BLOCKED",
+      "source_commit": "392fb8f3323318aa1a0a85e41d03a2f72fcc0e2e",
+      "environment": "staging",
+      "objective": "Obtain explicit approval before API-first staging image substitution.",
+      "commands_or_test_ids": [
+        "No staging image write executed. See the exact API-first approval checkpoint below."
+      ],
+      "expected": "Separate approval for the exact API candidate, bounded checks and conditional rollback.",
+      "observed": "G3 image baseline is verified. This authority covered four ARM GETs only. No staging health, authentication, dataset, deployment, rollback or browser operation occurred.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No mutation. API and UI remain on their verified baseline images.",
+      "next_action": "Approve the exact API-only image update and conditional rollback checkpoint below.",
+      "rest": []
     }
   ]
 }
