@@ -494,3 +494,26 @@ Next smallest step: define an owner-reviewed application-console file selection 
 Evidence-only append. Eight fake adapter cases passed; the existing 103-test repository qualification was unchanged and not rerun. UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED. API startup/503 cause remains UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Separately approved application-output candidate selection and read
+
+Owner approved defining a specific application-log selection and one bounded sanitized file read. Public [Microsoft employee troubleshooting guidance](https://learn.microsoft.com/en-gb/answers/questions/1139705/how-to-deploy-custom-docker-image-%28blazor-server-w) identifies `_default_docker.log` as an application-output diagnostic candidate. This is a filename convention, not a typed role/image attestation. The selector therefore kept role/runtime identity UNVERIFIED, required a direct-child dated default-output filename with file modification within 24 hours, excluded Kudu/SCM-labelled source strings, required a unique latest timestamp and nonempty size, and stopped on missing/empty/ambiguous candidates. It did not blindly follow every inventory href or assert main-app identity.
+
+The operation used one fresh validated research SCM `/api/logs/docker` inventory because earlier hrefs had not been retained, then at most one selected same-origin VFS GET. Entire inventory schema/links were validated by the existing pure projection before selection. Source paths, identities and links remained transient and were not emitted/persisted. Cookies were cleared before the file request; the same existing-sign-in App Service bearer class was used, never publishing/research/provider keys. The file body required a strict plain/octet-stream HTTP 200 gate with no auth challenge, redirect, upgrade or unsupported encoding. No range support was assumed: the adapter read at most a 16 KiB PREFIX, not an unverified tail.
+
+Eight fake adapter cases passed before execution: unique selection, Kudu-only/no-candidate, tied ambiguity, empty candidate, unsafe inventory link, file access denial, capped prefix and empty inventory. They verify at most two exact GETs, no cookie/raw/token disclosure, rejected bodies unread, no extra link following/restarts, and fixed unattributed stage extraction. No live request occurred in those fake cases.
+
+Actual completion: 2026-11-22 11:32:50.965527 UTC / 2026-11-22 08:32:50.965527 America/Sao_Paulo. Worker elapsed 2.011 seconds. Exactly TWO SCM GETs: inventory HTTP 200, then one selected file HTTP 200. Selection classification RECENT_DEFAULT_OUTPUT_CANDIDATE_ROLE_UNVERIFIED. FileComplete=true: EOF arrived within the 16 KiB limit; no extra file or larger read followed.
+
+Fixed file projection: BOUNDED_TAIL, freshness NO_IN_WINDOW_RECORD for the final 15-minute event window, eventCategories empty, runtimeImageIdentity/mainProcessLiveness/listener UNVERIFIED, causeConfirmed=false, retryAuthorized=false. The existing fixed diagnostic matcher also found no recognized startup-stage or listener marker; candidateBound=false. These are matcher results, not proof that the file was empty, contained no error, or belonged to the current accepted image. File-modification freshness from inventory does not imply fresh log-event timestamps. No raw content was subsequently inspected or retained for another parser pass.
+
+Bounds: connect 3/read 10-second per-request socket timeouts, 30-second total owned Windows Job for both requests, inventory 32 KiB/32 rows and file 16 KiB. File reads used at most the remaining budget; an incomplete capped final line would be dropped before matching. The file happened to complete. Only bounded supported UTF-8 tail input could reach the existing source-fixed stage matcher, whose stages are explicitly unattributed and not event freshness proof. Owned worker/pipe and response cleanup completed.
+
+ZERO restart requests or Azure mutations. No settings/key/config/logging change, deployment, health/quota, stream, UI/production, provider/registry/Docker/import/data operation. The selection/read relied on this NEW explicit owner authority; the pure inventory classifier's fileSelectionAuthorized/logBodyReadAuthorized=false defaults were not weakened or treated as self-authorization.
+
+The file is accessible, but a current recognized API startup error remains missing. Do not automatically fetch another file, repeat the inventory or restart. Next smallest step is offline reconciliation of the accepted image's recorded source revision and emitted diagnostic vocabulary before proposing any additional live read or fresh startup capture. A missing match against current source markers must not be interpreted as absence of an error in an older image. The deployment/exit-code-1/503 cause remains UNKNOWN.
+
+Only this append-only evidence changed. Eight fake adapter cases passed; existing 103-test repository qualification unchanged and not rerun. UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
