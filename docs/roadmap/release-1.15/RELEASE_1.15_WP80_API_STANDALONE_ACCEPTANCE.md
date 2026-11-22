@@ -103,3 +103,27 @@ Validation: focused WP75 staging-plan offline suite passed 10 tests; temporary d
 Single next smallest action: offline review of the existing LinuxLogViewer request contract and sanitized error-classification capability to determine whether a corrected, separately bounded source request is defensible. Do not retry it, poll health or change Azure configuration automatically. No acceptance pass until readiness evidence justifies one.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline diagnostic-error refinement (2026-11-22 UTC)
+
+Owner approved the smallest offline classifier improvement after the diagnostic-request review. This pass made ZERO Azure requests or other runtime probes and did not inspect historical raw error bodies. The original HTTP 400 cause remains UNKNOWN.
+
+Two narrow paths added:
+
+- `eng/azure-cli/r1.15-qualification/wp80_diagnostic_error.py`: pure byte-to-fixed-category classifier; no CLI, adapter, network/process execution, persistence or output.
+- `eng/azure-cli/r1.15-qualification/test_wp80_diagnostic_error.py`: synthetic-only regression tests.
+
+The classifier accepts only 400-599 integer status and at most 64 KiB UTF-8 JSON. Duplicate keys, nonstandard JSON constants, excessive depth/records, malformed schemas and oversized bodies fail closed. It examines bounded ARM error records, including details/innererror. Only fixed server categories and fixed parameter hints (start/end time, API version, time grain, detector) can leave the function; raw codes/messages/targets, identifiers and bodies cannot. Unrecognized codes remain unclassified. Message/target keyword hints are untrusted mentions, not proof that a parameter is invalid. A service-failure code does not establish application failure. Every output retains `causeConfirmed=false` and `retryAuthorized=false`.
+
+No request automatically invokes this classifier. Any future integration must enforce the existing exact-app request, deadline/capture/cleanup and no-retry contracts separately, pass the bounded response bytes in memory, emit only the classifier projection, and discard the response. The module authorizes no live request, fallback, API-version change or diagnostic-source change.
+
+Offline request review: current GET `/sites/{siteName}/detectors/{detectorName}` and optional startTime/endTime match the documented operation shape. Synthetic UTC percent-encoding round-trip and 15-minute arithmetic passed; the observed HTTP 400 preceded local identity/projection validation. The accessible Microsoft operation reference describes version 2025-03-01; it does not independently prove the selected 2023-12-01 LinuxLogViewer contract or detector-specific requirements. No supported correction to those parameters has yet been demonstrated.
+
+[Microsoft custom-container routing](https://learn.microsoft.com/en-us/azure/app-service/configure-custom-container#configure-port-number) documents WEBSITES_PORT for a custom listener. Port 52731 requires no separate public-port permission for this classic App Service arrangement: public HTTPS remains 443, routing setting remains 52731, runtime listener remains UNVERIFIED. No port or firewall change is proposed. [Microsoft detector-response contract](https://learn.microsoft.com/en-us/rest/api/appservice/diagnostics/get-site-detector-response?view=rest-appservice-2025-03-01) supports the operation-shape review, subject to the version limitation above.
+
+Validation: `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -v` passed 15 distinct tests (parameter boundaries, nested codes, access/service/throttle categories, unknown-code withholding, non-disclosure, no network/process/output, equal-output synthetic noninterference, exact output keys, malformed/duplicate/UTF-8/schema failures, byte/record/depth caps). The existing focused WP75 suite passed 10 tests separately: 25 total distinct tests, zero skips. In-memory syntax compilation, UTF-8/LF/no BOM and git diff --check passed. This is synthetic qualification, not evidence about Azure's discarded HTTP 400 body or the API's HTTP 503 cause.
+
+The existing WP80 PR remains the review vehicle. Exact delta now comprises these two offline files and this append-only evidence document. No application, port, startup, dependency, provider, image, auth, TLS or storage changes. Next smallest separately approvable step: integrate this tested classifier into one bounded exact-API diagnostic request, with a concrete documented request contract and no automatic retry. No live request is authorized by this appendix.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
