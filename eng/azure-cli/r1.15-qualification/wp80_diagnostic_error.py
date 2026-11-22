@@ -6,6 +6,7 @@ untrusted error response, never an application failure or a confirmed cause.
 import datetime as dt
 import json
 import re
+from urllib.parse import unquote, urlsplit
 
 MAX_BYTES = 65536
 _CODES = {
@@ -386,4 +387,86 @@ def sanitize_sse_prefix(body, window_start, window_end, *, final=False):
         result["captureStopRequired"] = True
         return result
     out.update(responseClass="SSE_WAITING_FOR_EVENT", captureStopRequired=False)
+    return out
+
+
+_INVENTORY_FIELDS = {"machineName", "lastUpdated", "size", "href", "path"}
+_INVENTORY_HOST = "aiqr115researchstagingwus27f5eabb5.scm.azurewebsites.net"
+
+
+def classify_log_inventory(body, observed_utc):
+    """Project documented inventory metadata, never select or fetch a log file.
+
+    lastUpdated is file modification time, not a runtime event. Source names
+    and safe VFS links are validated privately, never returned or followed.
+    Even an empty/recognized inventory cannot attest main-container absence.
+    """
+    out = {"responseClass": "UNSUPPORTED_SCHEMA", "schemaRecognized": False,
+           "inventoryState": "UNKNOWN", "fileTimeClass": "UNKNOWN",
+           "mainContainerRole": "UNVERIFIED", "runtimeImageIdentity": "UNVERIFIED",
+           "fileSelectionAuthorized": False, "logBodyReadAuthorized": False,
+           "retryAuthorized": False}
+    if (not isinstance(observed_utc, dt.datetime) or observed_utc.tzinfo is None
+            or observed_utc.utcoffset() != dt.timedelta(0)):
+        out["responseClass"] = "INVALID_OBSERVATION_TIME"
+        return out
+    if type(body) is not bytes:
+        out["responseClass"] = "INVALID_BODY_TYPE"
+        return out
+    if len(body) > 32768:
+        out["responseClass"] = "BODY_CAP_EXCEEDED"
+        return out
+    try:
+        value = json.loads(body.decode("utf-8"), object_pairs_hook=_pairs,
+                           parse_constant=lambda _: (_ for _ in ()).throw(ValueError()))
+    except (ValueError, UnicodeError, RecursionError):
+        out["responseClass"] = "NONSTANDARD_BODY"
+        return out
+    if type(value) is not list:
+        return out
+    if len(value) > 32:
+        out["responseClass"] = "ROW_CAP_EXCEEDED"
+        return out
+    recent = False
+    for row in value:
+        if type(row) is not dict or set(row) != _INVENTORY_FIELDS:
+            return out
+        for field, cap in (("machineName", 256), ("lastUpdated", 40), ("href", 2048), ("path", 1024)):
+            text = row[field]
+            if type(text) is not str or not 0 < len(text) <= cap or any(ord(c) < 32 or ord(c) == 127 for c in text):
+                return out
+        if type(row["size"]) is not int or not 0 <= row["size"] <= 2**63 - 1:
+            return out
+        stamp = row["lastUpdated"]
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[.]\d{1,7})?(?:Z|[+]00:00)", stamp):
+            out["responseClass"] = "INVALID_FILE_TIME"
+            return out
+        try:
+            timestamp = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except ValueError:
+            out["responseClass"] = "INVALID_FILE_TIME"
+            return out
+        if timestamp > observed_utc:
+            out["responseClass"] = "FUTURE_FILE_METADATA"
+            return out
+        try:
+            href = row["href"]
+            url = urlsplit(href)
+            decoded = unquote(url.path, errors="strict")
+            path = row["path"]
+            safe = (href == href.strip() and url.scheme == "https" and url.hostname == _INVENTORY_HOST
+                    and url.port in (None, 443) and url.username is None and url.password is None
+                    and not url.query and not url.fragment and "?" not in href and "#" not in href
+                    and decoded.startswith("/api/vfs/LogFiles/") and path.startswith("/home/LogFiles/")
+                    and decoded == "/api/vfs" + path[len("/home"):]
+                    and all(part not in ("", ".", "..") for part in decoded.split("/")[1:]))
+            if not safe or any(c in decoded or c in path for c in ("\\", "%", "?", "#")):
+                raise ValueError()
+        except (ValueError, UnicodeError):
+            out["responseClass"] = "UNSAFE_REFERENCE"
+            return out
+        recent = recent or observed_utc - timestamp <= dt.timedelta(hours=24)
+    out.update(responseClass="INVENTORY_PROJECTED", schemaRecognized=True,
+               inventoryState="NONEMPTY" if value else "EMPTY",
+               fileTimeClass="WITHIN_24H_PRESENT" if recent else "OLDER_ONLY" if value else "UNKNOWN")
     return out

@@ -450,3 +450,28 @@ No row should be selected or file body retrieved in that same operation. A subse
 Validation: `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q` passed 77 distinct tests (one new source-contract regression); focused WP75 suite passed 10, total 87, zero skips. Syntax, UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. Changed only this append-only evidence and the existing WP80 test file. The existing classifier is unchanged; no new parser/dependency/framework. PR #479 remains OPEN/UNMERGED.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline inventory projection preparation
+
+Owner approved preparing and fake-testing the source-backed inventory projection. This pass made ZERO Azure/SCM/authentication/credential/runtime operations and ZERO mutations. No inventory/file listing, href, retained response or log body was accessed. Changes remain in the existing classifier/test paths and this append-only evidence.
+
+Added pure `classify_log_inventory(body, observed_utc)`. It accepts at most 32 KiB UTF-8 JSON and 32 rows, rejects duplicate keys/nonstandard constants, and requires the exact five documented row fields. Source identifier, file-time, href and path strings have explicit caps (256/40/2048/1024 characters), no controls; size is an integer within a nonnegative signed-64-bit range, excluding booleans. Caller observation time must be UTC-aware. File times require UTC syntax/calendar validity; future metadata fails closed. The output's WITHIN_24H_PRESENT/OLDER_ONLY is an explicit local file-modification-age policy, NOT startup/event freshness or health.
+
+References are validated privately: HTTPS to only the exact research SCM origin, no credentials/query/fragment, only default/443 port, VFS under `/api/vfs/LogFiles/`, matching the row's `/home/LogFiles/` path. Traversal, empty path components, backslashes, double encoding and mismatched paths are rejected. These are deliberately narrow local safety rules; a different valid server deployment/root/schema may be rejected, not silently generalized. No href is returned or followed. No filename/source/path, exact size/time, URL, hash or derived identity is emitted.
+
+Output is exactly nine fixed enum/boolean fields: responseClass, schemaRecognized, inventoryState, fileTimeClass, mainContainerRole, runtimeImageIdentity, fileSelectionAuthorized, logBodyReadAuthorized and retryAuthorized. Empty inventory does not prove absence of main-app logs. A recent record does not establish current application output. Role/image remain UNVERIFIED; file selection/log-body read/retry remain false. Synthetic `_kudu` and `_default` source labels deliberately produce equal output; neither label becomes a runtime role assertion. Later invalid rows withhold earlier partial schema/freshness conclusions.
+
+Validation actually run:
+
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q`: 93 distinct tests passed (77 prior + 16 inventory tests), zero skips.
+- `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp75_staging_plan.py -q`: 10 tests passed; total 103 distinct tests, zero skips.
+- New coverage includes documented/empty inventories, 24-hour boundary/mixed/old/future timestamps, strict keys/types/caps, duplicate JSON/invalid UTF-8, unsafe cross-origin/auth/query/fragment links, traversal/double-encoding/path mismatch, valid encoded names/default HTTPS port, no filename-role inference, equal-output noninterference across private values/order, row/body cap boundaries, all-or-nothing conclusions and no network/process/file/output side effects.
+- The first local run failed to import because the new expression lacked a closing parenthesis. It was corrected locally and the complete suite then passed. No live operation occurred before/after that correction.
+- Syntax, UTF-8/LF/no BOM, Markdown links/fences and git diff --check passed. No application/dependency/port/image/auth/storage changes or new framework.
+
+The next separately approvable operation is ONE exact authenticated GET to research SCM `/api/logs/docker`, with existing-sign-in App Service bearer class, TLS, strict JSON/no-auth-challenge/no-redirect/upgrade metadata checks, 3-second connect/10-second read inside a 15-second owned-worker deadline, 32 KiB streaming cap and this fixed inventory projection. Fake-test a small temporary adapter before the live operation. No publishing/service/provider key access, body persistence or raw output; no automatic href following, log-file body read, stream request, restart, retries/fallback, UI/production/settings/health/quota/provider/registry/data operation. Metadata JSON is read only within that explicitly approved inventory scope; logBodyReadAuthorized=false does not mean zero inventory bytes. Stop on any failure or unknown schema and leave main-role/runtime binding UNVERIFIED. No such request ran in this preparation pass.
+
+PR #479 remains OPEN/UNMERGED. The API startup exit and health 503 cause remain UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

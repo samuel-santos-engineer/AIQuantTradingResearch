@@ -560,5 +560,127 @@ class SsePrefixTests(unittest.TestCase):
                           "listener", "causeConfirmed", "retryAuthorized", "captureStopRequired"}, set(r))
 
 
+class InventoryTests(unittest.TestCase):
+    observed = dt.datetime(2026, 1, 2, tzinfo=dt.timezone.utc)
+
+    def row(self, source="synthetic-source", stamp="2026-01-01T12:00:00Z"):
+        file = "2026_01_01_" + source + "_docker.log"
+        return {"machineName": source, "lastUpdated": stamp, "size": 123,
+                "href": "https://" + m._INVENTORY_HOST + "/api/vfs/LogFiles/" + file,
+                "path": "/home/LogFiles/" + file}
+
+    def project(self, rows):
+        return m.classify_log_inventory(encode(rows), self.observed)
+
+    def test_documented_row_projects_no_identity_or_selection(self):
+        r = self.project([self.row()])
+        self.assertEqual("INVENTORY_PROJECTED", r["responseClass"])
+        self.assertTrue(r["schemaRecognized"])
+        self.assertEqual("NONEMPTY", r["inventoryState"])
+        self.assertEqual("WITHIN_24H_PRESENT", r["fileTimeClass"])
+        self.assertEqual("UNVERIFIED", r["mainContainerRole"])
+        self.assertEqual("UNVERIFIED", r["runtimeImageIdentity"])
+        for key in ("fileSelectionAuthorized", "logBodyReadAuthorized", "retryAuthorized"):
+            self.assertFalse(r[key])
+
+    def test_empty_does_not_prove_no_main_logs(self):
+        r = self.project([])
+        self.assertEqual("EMPTY", r["inventoryState"])
+        self.assertEqual("UNKNOWN", r["fileTimeClass"])
+        self.assertEqual("UNVERIFIED", r["mainContainerRole"])
+
+    def test_freshness_boundary_old_and_mixed(self):
+        self.assertEqual("WITHIN_24H_PRESENT", self.project([self.row(stamp="2026-01-01T00:00:00Z")])["fileTimeClass"])
+        old = self.row(stamp="2025-12-31T23:59:59Z")
+        self.assertEqual("OLDER_ONLY", self.project([old])["fileTimeClass"])
+        self.assertEqual("WITHIN_24H_PRESENT", self.project([old, self.row()])["fileTimeClass"])
+
+    def test_future_invalid_and_non_utc_time_rejected(self):
+        for stamp in ("2026-01-01", "2026-99-01T00:00:00Z", "2026-01-01T00:00:00-03:00"):
+            self.assertEqual("INVALID_FILE_TIME", self.project([self.row(stamp=stamp)])["responseClass"])
+        self.assertEqual("FUTURE_FILE_METADATA", self.project([self.row(stamp="2026-01-02T00:00:01Z")])["responseClass"])
+        self.assertEqual("INVENTORY_PROJECTED", self.project([self.row(stamp="2026-01-01T12:00:00.1234567Z")])["responseClass"])
+
+    def test_known_fields_only_and_typed_rows(self):
+        row = self.row();row["extra"] = "synthetic"
+        for rows in ([{}], [row], ["synthetic"], {"value": []}):
+            self.assertEqual("UNSUPPORTED_SCHEMA", self.project(rows)["responseClass"])
+        row = self.row();row.pop("path")
+        self.assertEqual("UNSUPPORTED_SCHEMA", self.project([row])["responseClass"])
+
+    def test_size_and_string_types_and_caps(self):
+        for field, value in [("size", True), ("size", -1), ("size", 2**63), ("machineName", []),
+                             ("machineName", "x" * 257), ("href", "x" * 2049),
+                             ("path", "x" * 1025), ("lastUpdated", "x" * 41), ("machineName", "x\n")]:
+            row = self.row();row[field] = value
+            self.assertEqual("UNSUPPORTED_SCHEMA", self.project([row])["responseClass"])
+
+    def test_cross_origin_credentials_query_fragment_and_scheme(self):
+        row = self.row();valid = row["href"]
+        for href in [valid.replace(m._INVENTORY_HOST, "synthetic.invalid"), valid.replace("https://", "http://"),
+                     valid.replace("https://", "https://synthetic:synthetic@"), valid + "?synthetic=value", valid + "#fragment",
+                     valid + "?", valid + "#", " " + valid, valid.replace(m._INVENTORY_HOST, m._INVENTORY_HOST + ":444")]:
+            row = self.row();row["href"] = href
+            self.assertEqual("UNSAFE_REFERENCE", self.project([row])["responseClass"])
+
+    def test_traversal_double_encoding_and_mismatched_path(self):
+        for suffix in ("../synthetic.log", "%2e%2e/synthetic.log", "%252e%252e/synthetic.log", "synthetic%5c.log"):
+            row = self.row();row["href"] = "https://" + m._INVENTORY_HOST + "/api/vfs/LogFiles/" + suffix
+            self.assertEqual("UNSAFE_REFERENCE", self.project([row])["responseClass"])
+        row = self.row();row["path"] = "/home/LogFiles/different.log"
+        self.assertEqual("UNSAFE_REFERENCE", self.project([row])["responseClass"])
+
+    def test_explicit_https_port_and_encoded_filename(self):
+        row = self.row("synthetic space")
+        row["href"] = row["href"].replace("synthetic space", "synthetic%20space")
+        self.assertEqual("INVENTORY_PROJECTED", self.project([row])["responseClass"])
+        row["href"] = row["href"].replace(m._INVENTORY_HOST, m._INVENTORY_HOST + ":443")
+        self.assertEqual("INVENTORY_PROJECTED", self.project([row])["responseClass"])
+
+    def test_no_role_inference_from_kudu_or_default_suffix(self):
+        a = self.project([self.row("synthetic_kudu")])
+        b = self.project([self.row("synthetic_default")])
+        self.assertEqual(a, b)
+        self.assertEqual("UNVERIFIED", a["mainContainerRole"])
+
+    def test_noninterference_source_sizes_links_paths_and_order(self):
+        a = self.row("synthetic-a");b = self.row("synthetic-b");b["size"] = 987
+        self.assertEqual(self.project([a]), self.project([b]))
+        self.assertEqual(self.project([a,b]), self.project([b,a]))
+        r = json.dumps(self.project([a]))
+        for fragment in ("synthetic", "2026-", "https://", "LogFiles"):
+            self.assertNotIn(fragment, r)
+
+    def test_row_count_and_byte_caps(self):
+        self.assertEqual("INVENTORY_PROJECTED", self.project([self.row()] * 32)["responseClass"])
+        self.assertEqual("ROW_CAP_EXCEEDED", self.project([self.row()] * 33)["responseClass"])
+        body = encode([self.row()]);body += b" " * (32768 - len(body))
+        self.assertEqual("INVENTORY_PROJECTED", m.classify_log_inventory(body, self.observed)["responseClass"])
+        self.assertEqual("BODY_CAP_EXCEEDED", m.classify_log_inventory(body + b" ", self.observed)["responseClass"])
+
+    def test_duplicate_invalid_json_and_encoding(self):
+        for body in (b'[{"size":1,"size":2}]', b'NaN', b'\xff', b'<html>synthetic</html>'):
+            self.assertEqual("NONSTANDARD_BODY", m.classify_log_inventory(body, self.observed)["responseClass"])
+
+    def test_invalid_observation_time_or_body(self):
+        for observed in (None, self.observed.replace(tzinfo=None), self.observed.astimezone(dt.timezone(dt.timedelta(hours=-3)))):
+            self.assertEqual("INVALID_OBSERVATION_TIME", m.classify_log_inventory(b"[]", observed)["responseClass"])
+        self.assertEqual("INVALID_BODY_TYPE", m.classify_log_inventory("[]", self.observed)["responseClass"])
+
+    def test_later_bad_row_discards_prior_partial_evidence(self):
+        r = self.project([self.row(), {}])
+        self.assertFalse(r["schemaRecognized"])
+        self.assertEqual("UNKNOWN", r["fileTimeClass"])
+        self.assertEqual("UNKNOWN", r["inventoryState"])
+
+    def test_no_network_process_file_output_and_exact_keys(self):
+        body = encode([self.row()]);out = io.StringIO()
+        with patch("socket.socket", side_effect=AssertionError("network")), patch("subprocess.Popen", side_effect=AssertionError("process")), patch("builtins.open", side_effect=AssertionError("file")), contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            r = m.classify_log_inventory(body, self.observed)
+        self.assertEqual("", out.getvalue())
+        self.assertEqual({"responseClass", "schemaRecognized", "inventoryState", "fileTimeClass", "mainContainerRole",
+                          "runtimeImageIdentity", "fileSelectionAuthorized", "logBodyReadAuthorized", "retryAuthorized"}, set(r))
+
+
 if __name__ == "__main__":
     unittest.main()
