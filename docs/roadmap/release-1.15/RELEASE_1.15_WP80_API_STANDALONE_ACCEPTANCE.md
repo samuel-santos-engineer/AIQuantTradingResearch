@@ -475,3 +475,22 @@ The next separately approvable operation is ONE exact authenticated GET to resea
 PR #479 remains OPEN/UNMERGED. The API startup exit and health 503 cause remain UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Separately approved inventory listing: recognized metadata
+
+Owner approved one exact research SCM inventory GET, not a log download or restart. A temporary adapter was fake-tested against eight cases before execution: recognized/empty JSON inventories, unknown schema, unsafe reference, HTML/401/duplicate-header body blocking and exact 32 KiB acquisition stop. They verify one exact GET, closed response, requested-size/cumulative budget, fixed output, no private identifiers/token disclosure, no href following and zero restarts. No real requests were used in those tests.
+
+Actual completion: 2026-11-22 11:25:03.609534 UTC / 2026-11-22 08:25:03.609534 America/Sao_Paulo. Worker elapsed 2.923 seconds. Exactly ONE authenticated GET targeted research SCM `/api/logs/docker`. HTTP 200 passed the strict JSON/header gate. Fixed projection: responseClass=INVENTORY_PROJECTED, schemaRecognized=true, inventoryState=NONEMPTY, fileTimeClass=WITHIN_24H_PRESENT. Main-container role and runtime-image identity remain UNVERIFIED; fileSelectionAuthorized=false, logBodyReadAuthorized=false, retryAuthorized=false. This confirms accessible recognized inventory metadata with at least one recent file modification, not a selected application log, current event freshness or API health.
+
+Limits: TLS validation, existing-sign-in App Service bearer held transiently, no stream proxy inheritance, no redirect/retry/fallback; connect 3/read 10-second bounds within 15-second owned Windows Job; exact same research origin; 32 KiB response budget and 32-row classifier limit. The adapter requests at most the remaining application-level budget; reaching the exact cap without EOF fails closed rather than reading beyond it or accepting an unverified truncated JSON body. Actual observation completed below the cap. Unknown/changed/unsafe schemas would stop. Owned worker/process/pipe cleanup completed and response closed.
+
+Inventory metadata was inspected only in transient worker memory by the pure projection. No raw metadata, filename/source, path, href, exact file timestamp/size, credential or body excerpt was printed or persisted. No file was selected, link followed, log body fetched or historical metadata retained for a later operation. Publishing/research/provider service keys were not requested. Restart requests ZERO; Azure mutations ZERO. No stream, health/quota, ARM settings, UI/production/provider/registry/Docker/data operations followed.
+
+The prior root-cause gap is unchanged: this list has no typed main-container role or runtime digest. Recent file modification may concern Kudu/platform or application logs and is not evidence of a successful listener. A single-file selection must be explicitly reviewed/owner-assisted; do not infer main-app identity from a filename/source suffix or blindly download the latest entry. Any subsequent retrieval requires separate exact authority and bounded same-origin VFS validation; no file-body read is authorized by this listing result.
+
+Next smallest step: define an owner-reviewed application-console file selection and one bounded sanitized single-file read, using the documented inventory/VFS contract. The successfully listed hrefs were not retained or exposed; no later selection may pretend to know their values. If a fresh inventory is required to obtain an approved selector, that additional metadata read must be included explicitly in the next scope. Do not automatically repeat the stream, list, follow all hrefs, request an archive or restart.
+
+Evidence-only append. Eight fake adapter cases passed; the existing 103-test repository qualification was unchanged and not rerun. UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED. API startup/503 cause remains UNKNOWN.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
