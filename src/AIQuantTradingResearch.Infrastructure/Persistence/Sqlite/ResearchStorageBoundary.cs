@@ -54,13 +54,13 @@ public static class ResearchStorageBoundary
     {
         var scope = setting("AIQ_RESEARCH_STORAGE_SCOPE");
         var optIn = setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING");
+        // The role instance ID is platform metadata, with no guaranteed zero ordinal.
         if (scope == StagingScope && optIn == "1" &&
             setting("WEBSITE_SITE_NAME") == "aiqr115researchstagingwus27f5eabb5" &&
             setting("WEBSITE_HOSTNAME") == "aiqr115researchstagingwus27f5eabb5.azurewebsites.net" &&
             !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) &&
             setting("WEBSITES_ENABLE_APP_SERVICE_STORAGE") == "false" &&
-            setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/" &&
-            setting("WEBSITE_ROLE_INSTANCE_ID") == "0") return true;
+            setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/") return true;
         // Presence of any marker, unknown scope, or partial opt-in still denies by default.
         if (AzureMarkers.Any(name => setting(name) is not null) || optIn is not null ||
             setting("AIQ_RESEARCH_TRANSPORT") == "azure-app-service-http" ||
