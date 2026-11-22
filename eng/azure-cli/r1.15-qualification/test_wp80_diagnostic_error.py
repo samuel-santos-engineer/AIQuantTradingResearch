@@ -1,6 +1,7 @@
 """Synthetic WP80 error-classification tests; no Azure adapter or real bodies."""
 import contextlib
 import datetime as dt
+import hashlib
 import importlib
 import io
 import json
@@ -690,6 +691,144 @@ class InventoryTests(unittest.TestCase):
         self.assertEqual("", out.getvalue())
         self.assertEqual({"responseClass", "schemaRecognized", "inventoryState", "fileTimeClass", "mainContainerRole",
                           "runtimeImageIdentity", "fileSelectionAuthorized", "logBodyReadAuthorized", "retryAuthorized"}, set(r))
+
+
+class StartupAttributionTests(unittest.TestCase):
+    window = ("2026-01-01T00:00:00Z", "2026-01-01T00:01:00Z")
+
+    def setUp(self):
+        self.record = b"Research snapshot service unavailable. stage=STORAGE"
+        ids = dict(instanceId="synthetic-worker", containerId="synthetic-container",
+                   attemptId="synthetic-attempt")
+        self.attempt = dict(ids, role="MAIN", imageDigest=m._DIAGNOSTIC_CHILD,
+                            startedUtc="2026-01-01T00:00:00Z",
+                            observedThroughUtc="2026-01-01T00:01:00Z")
+        self.envelope = dict(ids, recordUtc="2026-01-01T00:00:30Z", clockErrorMs=100,
+                             sha256=hashlib.sha256(self.record).hexdigest())
+
+    def evaluate(self):
+        return m.evaluate_startup_attribution(self.record, trusted_attempts=encode([self.attempt]),
+                                              trusted_record=encode(self.envelope),
+                                              observation_window=self.window)
+
+    def test_single_attempt_and_exact_vocabulary(self):
+        for category, record in {**{stage: m._STAGE_PREFIX + stage.encode()
+                                   for stage in m._STARTUP_STAGES},
+                                 "LISTENER_STARTED": b"Research snapshot listener started."}.items():
+            with self.subTest(category=category):
+                self.record = record
+                self.envelope["sha256"] = hashlib.sha256(record).hexdigest()
+                self.assertEqual(self.evaluate(), dict(mainContainerBound=True,
+                    diagnosticImageBound=True, startupAttemptBound=True, recordWithinAttempt=True,
+                    diagnosticCaptureReady=True, diagnosticCategory=category,
+                    reason="CONSISTENT_TRUSTED_EVIDENCE"))
+
+    def test_legitimate_stage_without_independent_evidence(self):
+        result = m.evaluate_startup_attribution(self.record)
+        self.assertFalse(result["diagnosticCaptureReady"])
+        self.assertEqual("TRUSTED_BINDING_MISSING", result["reason"])
+        self.assertEqual("UNKNOWN", result["diagnosticCategory"])
+
+    def test_main_role_and_immutable_image_are_separate_requirements(self):
+        cases = [("role", None, "mainContainerBound"), ("role", "SIDECAR", "mainContainerBound"),
+                 ("imageDigest", "sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3",
+                  "diagnosticImageBound"), ("imageDigest", "synthetic-tag", "diagnosticImageBound"),
+                 ("imageDigest", None, "diagnosticImageBound")]
+        for key, value, binding in cases:
+            with self.subTest(key=key, value=value):
+                original = self.attempt[key]
+                self.attempt[key] = value
+                result = self.evaluate()
+                self.attempt[key] = original
+                self.assertFalse(result[binding])
+                self.assertTrue(result["startupAttemptBound"])
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_reused_file_and_previous_attempt_cannot_match_current_attempt(self):
+        self.envelope["attemptId"] = "synthetic-previous"
+        result = self.evaluate()
+        self.assertTrue(result["recordWithinAttempt"])
+        self.assertFalse(result["startupAttemptBound"])
+        self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_conflicting_container_or_instance_identity(self):
+        for key in ("instanceId", "containerId"):
+            with self.subTest(key=key):
+                self.envelope[key] = "synthetic-other"
+                result = self.evaluate()
+                self.envelope[key] = self.attempt[key]
+                self.assertEqual("CONTAINER_IDENTITY_MISMATCH", result["reason"])
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_multiple_instances_containers_or_overlapping_attempts_fail(self):
+        for variant in (dict(instanceId="synthetic-other"), dict(containerId="synthetic-other"),
+                        dict(attemptId="synthetic-other"), {}):
+            with self.subTest(variant=variant):
+                roster = [self.attempt, dict(self.attempt, **variant)]
+                result = m.evaluate_startup_attribution(self.record, trusted_attempts=encode(roster),
+                                                        trusted_record=encode(self.envelope),
+                                              observation_window=self.window)
+                self.assertEqual("ATTEMPT_ROSTER_NOT_UNIQUE", result["reason"])
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_stale_future_and_clock_boundary_uncertainty(self):
+        for stamp in ("2025-12-31T23:59:59Z", "2026-01-01T00:01:01Z",
+                      "2026-01-01T00:00:00.050Z", "2026-01-01T00:00:59.950Z"):
+            with self.subTest(stamp=stamp):
+                self.envelope["recordUtc"] = stamp
+                result = self.evaluate()
+                self.assertTrue(result["startupAttemptBound"])
+                self.assertFalse(result["recordWithinAttempt"])
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_consistent_old_or_future_witness_is_outside_current_observation(self):
+        for day in ("2025-12-31", "2026-01-02"):
+            self.window = (day + "T00:00:00Z", day + "T00:01:00Z")
+            result = self.evaluate()
+            self.assertEqual("INVALID_TIME_EVIDENCE", result["reason"])
+            self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_invalid_utc_or_clock_uncertainty(self):
+        original = dict(self.envelope)
+        for changes in ({"recordUtc": "2026-02-30T00:00:00Z"},
+                        {"recordUtc": "2026-01-01T00:00:30+00:00"},
+                        {"recordUtc": "2026-01-01T00:00:30.1234567Z"},
+                        {"clockErrorMs": 2001}, {"clockErrorMs": True}):
+            with self.subTest(changes=changes):
+                self.envelope = dict(original, **changes)
+                result = self.evaluate()
+                self.assertEqual("INVALID_TIME_EVIDENCE", result["reason"])
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_missing_attempt_or_role_field_is_rejected(self):
+        for key in ("attemptId", "role"):
+            with self.subTest(key=key):
+                old = self.attempt.pop(key)
+                self.assertFalse(self.evaluate()["diagnosticCaptureReady"])
+                self.attempt[key] = old
+
+    def test_malformed_oversized_and_duplicate_metadata(self):
+        for metadata in (b"{", b" " * 4097, b'[{"attemptId":"a","attemptId":"b"}]',
+                         b'{"machineName":"synthetic_default"}', b"\xff"):
+            with self.subTest(size=len(metadata)):
+                result = m.evaluate_startup_attribution(self.record, trusted_attempts=metadata,
+                                                        trusted_record=encode(self.envelope),
+                                              observation_window=self.window)
+                self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_rotated_or_forged_record_breaks_integrity(self):
+        self.record = b"Research snapshot service unavailable. stage=TLS"
+        result = self.evaluate()
+        self.assertEqual("RECORD_INTEGRITY_UNVERIFIED", result["reason"])
+        self.assertFalse(result["diagnosticCaptureReady"])
+
+    def test_marker_inside_authenticated_but_unsupported_text_fails(self):
+        self.record = b"synthetic noise " + self.record
+        self.envelope["sha256"] = hashlib.sha256(self.record).hexdigest()
+        result = self.evaluate()
+        self.assertEqual("UNSUPPORTED_RECORD", result["reason"])
+        self.assertFalse(result["diagnosticCaptureReady"])
+        self.assertNotIn("synthetic", json.dumps(result))
 
 
 if __name__ == "__main__":

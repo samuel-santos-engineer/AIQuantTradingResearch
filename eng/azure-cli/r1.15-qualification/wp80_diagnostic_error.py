@@ -4,6 +4,8 @@ No request execution, CLI adapter, logging or file access. Hints describe an
 untrusted error response, never an application failure or a confirmed cause.
 """
 import datetime as dt
+import hashlib
+import hmac
 import json
 import re
 from urllib.parse import unquote, urlsplit
@@ -470,3 +472,110 @@ def classify_log_inventory(body, observed_utc):
                inventoryState="NONEMPTY" if value else "EMPTY",
                fileTimeClass="WITHIN_24H_PRESENT" if recent else "OLDER_ONLY" if value else "UNKNOWN")
     return out
+
+
+_DIAGNOSTIC_CHILD = "sha256:d33626a975e9f134bc0089a0d7289ed2c3afaf681747ae8485064bfd3665ba8c"
+_BINDING_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}")
+_BINDING_KEYS = {"instanceId", "containerId", "attemptId"}
+_STARTUP_STAGES = {"CONFIGURATION", "TRANSPORT", "TLS", "STORAGE", "LISTENER", "SERVING"}
+_STAGE_PREFIX = b"Research snapshot service unavailable. stage="
+_STAGE_MESSAGES = {_STAGE_PREFIX + stage.encode("ascii"): stage for stage in _STARTUP_STAGES}
+
+
+def _attribution_metadata(raw):
+    if type(raw) is not bytes or len(raw) > 4096:
+        raise ValueError("metadata bound")
+    return json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs)
+
+
+def _attribution_utc(value):
+    # Restrict to microsecond precision to avoid dropping a boundary fraction.
+    if not isinstance(value, str) or len(value) > 27 or not re.fullmatch(
+            r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.][0-9]{1,6})?Z", value):
+        raise ValueError("invalid UTC")
+    return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
+def evaluate_startup_attribution(record, *, trusted_attempts=None, trusted_record=None, observation_window=None):
+    """Evaluate independently verified evidence under a synthetic offline contract.
+
+    The trusted arguments must come from outside SCM inventory, filenames and
+    message text. No current Azure adapter supplies them. The caller must verify
+    origin and completeness of the attempt roster for the observation window
+    and verify that the record envelope authenticates this occurrence and its
+    exact payload bytes. Supply the current controller window independently.
+    This function checks consistency only. It cannot certify the caller's trust.
+    """
+    result = dict(mainContainerBound=False, diagnosticImageBound=False,
+                  startupAttemptBound=False, recordWithinAttempt=False,
+                  diagnosticCaptureReady=False, diagnosticCategory="UNKNOWN",
+                  reason="INVALID_METADATA")
+    if type(record) is not bytes or not 0 < len(record) <= 256:
+        result["reason"] = "INVALID_RECORD"
+        return result
+    if trusted_attempts is None or trusted_record is None or observation_window is None:
+        result["reason"] = "TRUSTED_BINDING_MISSING"
+        return result
+    try:
+        attempts = _attribution_metadata(trusted_attempts)
+        envelope = _attribution_metadata(trusted_record)
+    except (ValueError, RecursionError):
+        return result
+    if not isinstance(attempts, list):
+        return result
+    if len(attempts) != 1:
+        result["reason"] = "ATTEMPT_ROSTER_NOT_UNIQUE"
+        return result
+    attempt = attempts[0]
+    if (not isinstance(attempt, dict) or set(attempt) != _BINDING_KEYS | {
+            "role", "imageDigest", "startedUtc", "observedThroughUtc"}
+            or not isinstance(envelope, dict) or set(envelope) != _BINDING_KEYS | {
+                "recordUtc", "sha256", "clockErrorMs"}):
+        return result
+    if any(not isinstance(item[key], str) or not _BINDING_ID.fullmatch(item[key])
+           for item in (attempt, envelope) for key in _BINDING_KEYS):
+        return result
+    digest = envelope["sha256"]
+    if (not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            or not hmac.compare_digest(hashlib.sha256(record).hexdigest(), digest)):
+        result["reason"] = "RECORD_INTEGRITY_UNVERIFIED"
+        return result
+    if any(attempt[key] != envelope[key] for key in ("instanceId", "containerId")):
+        result["reason"] = "CONTAINER_IDENTITY_MISMATCH"
+        return result
+    result["mainContainerBound"] = attempt["role"] == "MAIN"
+    result["diagnosticImageBound"] = attempt["imageDigest"] == _DIAGNOSTIC_CHILD
+    result["startupAttemptBound"] = attempt["attemptId"] == envelope["attemptId"]
+    try:
+        if type(observation_window) is not tuple or len(observation_window) != 2:
+            raise ValueError("invalid observation window")
+        lower, upper = map(_attribution_utc, observation_window)
+        started = _attribution_utc(attempt["startedUtc"])
+        observed = _attribution_utc(attempt["observedThroughUtc"])
+        stamp = _attribution_utc(envelope["recordUtc"])
+        clock_error = envelope["clockErrorMs"]
+        if (type(clock_error) is not int or not 0 <= clock_error <= 2000
+                or not dt.timedelta(0) < upper - lower <= dt.timedelta(seconds=180)
+                or not lower <= started < observed <= upper):
+            raise ValueError("invalid window")
+    except ValueError:
+        result["reason"] = "INVALID_TIME_EVIDENCE"
+        return result
+    margin = dt.timedelta(milliseconds=clock_error)
+    result["recordWithinAttempt"] = (stamp - started >= margin
+                                     and observed - stamp >= margin)
+    category = ("LISTENER_STARTED" if record == b"Research snapshot listener started."
+                else _STAGE_MESSAGES.get(record, "UNKNOWN"))
+    for satisfied, reason in (
+        (result["mainContainerBound"], "MAIN_ROLE_UNVERIFIED"),
+        (result["diagnosticImageBound"], "DIAGNOSTIC_IMAGE_UNVERIFIED"),
+        (result["startupAttemptBound"], "ATTEMPT_IDENTITY_MISMATCH"),
+        (result["recordWithinAttempt"], "RECORD_OUTSIDE_SAFE_WINDOW"),
+        (category != "UNKNOWN", "UNSUPPORTED_RECORD"),
+    ):
+        if not satisfied:
+            result["reason"] = reason
+            return result
+    result.update(diagnosticCaptureReady=True, diagnosticCategory=category,
+                  reason="CONSISTENT_TRUSTED_EVIDENCE")
+    return result
