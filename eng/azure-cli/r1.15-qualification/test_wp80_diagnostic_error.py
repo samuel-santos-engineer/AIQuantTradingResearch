@@ -100,6 +100,18 @@ class Tests(unittest.TestCase):
             node = {"code": "BadRequest", "innererror": node}
         self.assertEqual("STRUCTURED_ERROR", m.classify(400, encode(node))["responseClass"])
 
+    def test_documented_string_innererror_is_opaque(self):
+        a = {"error": {"code": "BadRequest", "target": "startTime", "innererror": "fake-private-A endTime"}}
+        b = {"error": {"code": "BadRequest", "target": "startTime", "innererror": "fake-private-B api-version"}}
+        result = m.classify(400, encode(a))
+        self.assertEqual("STRUCTURED_ERROR", result["responseClass"])
+        self.assertEqual(["BAD_REQUEST"], result["serverCategories"])
+        self.assertEqual(["START_TIME"], result["parameterHints"])
+        self.assertEqual(result, m.classify(400, encode(b)))
+        for invalid in (None, [], 42, True):
+            value = {"code": "BadRequest", "innererror": invalid}
+            self.assertEqual("UNSUPPORTED_SCHEMA", m.classify(400, encode(value))["responseClass"])
+
     def test_long_message_not_scanned(self):
         r = m.classify(400, encode({"code": "BadRequest", "message": "startTime " + "x" * 8192}))
         self.assertEqual([], r["parameterHints"])

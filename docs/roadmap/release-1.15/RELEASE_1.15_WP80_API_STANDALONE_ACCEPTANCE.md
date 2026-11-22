@@ -144,3 +144,33 @@ Next smallest step: offline review of a supported alternative startup-evidence s
 Validation for this continuation: two fake end-to-end worker cases passed; the existing 15 classifier regression tests passed; UTF-8/LF/no BOM and git diff --check passed. Only this evidence document changed in this continuation. PR #479 remains OPEN/UNMERGED.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Offline alternative-source review and documented error-schema correction
+
+This pass made ZERO Azure/SCM/registry/provider/runtime requests and accessed no retained log/error bodies or credentials. Public Microsoft documentation and installed SDK inspection were used offline; no logging configuration or dependency changes.
+
+| Candidate | Source-backed capability | Limit / disposition |
+| --- | --- | --- |
+| Direct ARM container log tail | Microsoft Get Web Site Container Logs documents POST `/sites/{name}/containerlogs`; returns last Docker log lines, 200 file or 204 no content. | Better candidate for startup/pull/exit/readiness messages than generic detector tables; availability and runtime attribution are unproven. Historical unavailable/timeout/NotFound findings remain. Not executed. |
+| ZIP log archive | Broad Docker/container console archive. | Rejected for this narrow pass: excess capture and unrelated historical content. |
+| SCM log stream / exec | Requires separate endpoint/access and safe protocol review. | Not selected; no token acquisition, process access, shell or stream operation. |
+| Repeated LinuxLogViewer / generic running-container detector | Already rejected or lacked qualified main/image evidence. | No unchanged repeat justified. |
+
+[Microsoft container-log-tail contract](https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/get-web-site-container-logs?view=rest-appservice-2025-03-01) specifies POST, not GET, and media types application/octet-stream or application/json. It documents no server-side start/end-time or line-count parameter: any recent-window selection must happen locally, and a cap may prevent a complete window. A fake installed-SDK pipeline independently generated exactly one POST to the fake app's `/containerlogs`, API version 2025-05-01, without invoking any transport/authentication policy. The documentation reviewed uses 2025-03-01; these versions must not be silently substituted or confused with prior 2023-12-01 observations. A future proposal can explicitly pin the documented 2025-03-01 operation; successful availability is not assumed.
+
+### Concrete classifier limitation found and corrected
+
+The same Microsoft DefaultErrorResponse contract defines `innererror` as a string. A synthetic valid error containing a string innererror reproduced UNSUPPORTED_SCHEMA in our original classifier. This is a confirmed local schema-coverage limitation, NOT a finding about any actual discarded Azure response. No historical HTTP 400 is retrospectively attributed to this shape.
+
+Within the existing approved classifier/test paths, string innererror is now accepted as opaque and ignored entirely; its content cannot contribute categories/hints. Bounded nested-object compatibility remains. Other types fail closed. A regression verifies that different synthetic innererror strings, even mentioning different parameters, produce equal fixed output. No request scope, retry authority, size/depth caps, image/port/runtime behavior or Azure configuration changed.
+
+Validation: 16 classifier tests plus 10 existing WP75 tests passed (26 distinct tests, zero skips), with one separate fake SDK-route check. Syntax, UTF-8/LF/no BOM and git diff --check passed. Changes remain confined to the existing two classifier/test paths and this append-only evidence document; PR #479 stays OPEN/UNMERGED.
+
+### Bounded candidate, not live authorization
+
+Candidate target is ONLY research staging API in the existing subscription/group, one POST with no request body to `/sites/aiqr115researchstagingwus27f5eabb5/containerlogs?api-version=2025-03-01`. This is a documented read operation despite POST. Proposed owned-worker cap 15 seconds, connect 3/read 10 seconds, capture at most 64 KiB in transient memory, no redirects/retries/fallback, no ZIP extraction or persistence. Accept only documented media types and statuses; unknown binary/archive/schema content must be rejected. Non-2xx can use the fixed error classifier. Stop after the single outcome, including 204/404/timeout/cap breach. No health, UI, quota, setting, credential, restart or configuration requests.
+
+The current error classifier does not parse successful log tails. Before requesting this candidate, the next smallest step is a fake-tested bounded success-payload sanitizer, with fixed categories for pull failure, process exit, startup timeout and listener readiness, and strict UTC/recent-window/role/image attribution limits. Output no raw lines, paths, arbitrary image/host/container identifiers or payloads; missing attribution remains UNKNOWN. No log stream, new process adapter or broad diagnostic framework is needed. Any implementation should use only existing `wp80_diagnostic_error.py`, `test_wp80_diagnostic_error.py` and this evidence document. No live operation has been approved or run by this review.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.

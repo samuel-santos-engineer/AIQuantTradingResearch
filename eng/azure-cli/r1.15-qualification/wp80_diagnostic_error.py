@@ -97,7 +97,14 @@ def classify(status, body):
             return out
         pending.extend((v, depth + 1) for v in details)
         if "innererror" in node:
-            pending.append((node["innererror"], depth + 1))
+            inner = node["innererror"]
+            # ARM DefaultErrorResponse allows opaque string innererror. Ignore
+            # its contents; preserve the bounded object form for compatibility.
+            if isinstance(inner, dict):
+                pending.append((inner, depth + 1))
+            elif not isinstance(inner, str):
+                out["responseClass"] = "UNSUPPORTED_SCHEMA"
+                return out
     out.update(responseClass="STRUCTURED_ERROR", serverCategories=sorted(categories),
                parameterHints=sorted(hints))
     return out
