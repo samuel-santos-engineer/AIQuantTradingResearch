@@ -702,3 +702,14 @@ The proposed next operation is one authenticated GET to https://aiqr115researchs
 Zero Azure, SCM, credential, health, quota, Docker, registry, deployment or image-substitution operations occurred. The fixture rehearsed worker supervision and parser behavior. Live TLS, bearer acceptance and the served response contract remain unverified.
 
 `DIAGNOSTIC_CAPTURE_READY=false`, `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
+
+
+## Dedicated startup-file staging observation
+
+One owner-approved authenticated GET targeted research staging SCM /api/startuplogs?latest=true using the existing Azure CLI App Service bearer channel. The worker recorded 2026-11-22 14:23:44.641763 UTC (11:23:44.641763 Sao Paulo) at the start. Elapsed time, including the bearer channel and worker cleanup, was 5.839 seconds. TLS verification succeeded and the endpoint returned HTTP 200 with supported fixed-length framing. The header gate returned MEDIA_UNSUPPORTED and stopped with zero application body bytes consumed. The raw Content-Type value, headers, credential and body were withheld. There was one SCM request and zero redirects, retries or fallback requests.
+
+The endpoint responded to this request. The result does not establish a supported startup-log format, record freshness, the running image, API health or the cause of the reported exit 1 and API HTTP 503. Failure, exit-code and vocabulary classes all remained UNKNOWN. An HTTP 200 from the SCM route alone cannot provide those conclusions.
+
+Five synthetic cases passed before the read on the exact input path, including short bodies, HTTP 404, unsupported framing and an authentication timeout that sends no SCM request. The first tool launch could not open the private temporary script and ran no Python worker. The same script was then hash-verified in the isolated worktree and executed once. The one-use worktree copy was removed by exact filename and hash. No ARM resource query, credential disclosure, Azure mutation, health or quota probe, restart, image substitution or deployment occurred. This document alone changed. Append integrity, Markdown, UTF-8/LF/no BOM and Git diff checks passed.
+
+`DIAGNOSTIC_CAPTURE_READY=false`, `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
