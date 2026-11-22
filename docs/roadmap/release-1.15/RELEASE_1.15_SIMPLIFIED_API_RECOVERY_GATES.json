@@ -513,6 +513,45 @@
       "rollback_state": "Unchanged. No apply or rollback invoked.",
       "next_action": "Complete G3 publication and baseline verification before an exact image-only apply checkpoint.",
       "rest": []
+    },
+    {
+      "gate_id": "G3",
+      "attempt": 3,
+      "started_at_utc": "2026-11-22T16:18:13.961324Z",
+      "ended_at_utc": "2026-11-22T16:19:16.181113Z",
+      "status": "BLOCKED",
+      "source_commit": "6179d8f44edab7d01bf65bd3f64dfe99a1598c40",
+      "environment": "local",
+      "objective": "Publish the two approved exact local candidates and verify their registry mappings.",
+      "commands_or_test_ids": [
+        "docker image inspect <approved exact local API and UI tags>",
+        "docker buildx imagetools inspect --raw <approved publication tag>",
+        "docker image tag <verified local image ID> <approved publication tag>",
+        "docker image push <approved publication tag>",
+        "docker buildx imagetools inspect --raw <registry tag and immutable Linux/amd64 child>"
+      ],
+      "expected": "Both exact OCI index and Linux child digests match the local qualification, including child config descriptor.",
+      "observed": "Both approved GHCR tags were published and verified. The raw registry index and Linux/amd64 manifest each matched the local SHA-256 byte hash, and their config descriptors matched the local verified configs. No Docker login, direct credential read or Azure call occurred. The historical staging rollback configuration remains unverified in this pass.",
+      "exit_codes": {
+        "api_push_and_readback": 0,
+        "ui_push_and_readback": 0
+      },
+      "test_counts": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0,
+        "registry_image_tags": 2
+      },
+      "rollback_state": "No staging change. Historical API and UI rollback references still require fresh readback.",
+      "next_action": "Approve projected read-only staging baseline verification for the two apps.",
+      "rest": []
     }
   ]
 }

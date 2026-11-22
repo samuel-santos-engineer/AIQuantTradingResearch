@@ -5,7 +5,7 @@
 | G0 Baseline and reproducibility | PASS | [G0 attempt 1](#g0-attempt-1) | None |
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
-| G3 Source-bound images and rollback | BLOCKED | [G3 attempt 2](#g3-attempt-2) | Approve exact candidate registry publication and digest readback. |
+| G3 Source-bound images and rollback | BLOCKED | [G3 attempt 3](#g3-attempt-3) | Approve projected read-only staging baseline verification for the two apps. |
 | G4 Staging API-first acceptance | BLOCKED | [G4 attempt 1](#g4-attempt-1) | Complete G3 publication and baseline verification before an exact image-only apply checkpoint. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
@@ -183,3 +183,22 @@ if ($LASTEXITCODE -ne 0) { throw 'UI registry readback failed' }
 ```
 
 Verify each manifest and config by digest during readback before creating a staging apply checkpoint. Seven strict receipt-schema tests passed, including positive PASS, FAIL and BLOCKED fixtures and rejected portable-path, key and artifact mutations.
+
+## G3 attempt 3
+
+BLOCKED on 6179d8f44edab7d01bf65bd3f64dfe99a1598c40 from 2026-11-22T16:18:13.961324Z to 2026-11-22T16:19:16.181113Z.
+
+Both approved GHCR tags were published and verified. The raw registry index and Linux/amd64 manifest each matched the local SHA-256 byte hash, and their config descriptors matched the local verified configs. No Docker login, direct credential read or Azure call occurred. The historical staging rollback configuration remains unverified in this pass.
+
+Next action. Approve projected read-only staging baseline verification for the two apps.
+
+Azure mutations. 0.
+
+Registry publication and readback completed at 2026-11-22T16:18:38.380284Z in 24.419 seconds. Two GHCR image tags were written.
+
+| Role | Verified registry tag | OCI index | Linux/amd64 child | Child config descriptor |
+| --- | --- | --- | --- | --- |
+| API | ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-recovery-api-6179d8f44eda | sha256:fefdccc43d8dec7c7b290813967fd29c936e9d95ffa30ed155d2dadd1a768393 | sha256:aecb4586a30bf5be3f398bdcf1578127208e10198528a546324039da40c4c357 | sha256:6e0519660d51dbeb161a02925cc9448e80b082c4106b46635640bdac7387be3f |
+| UI | ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-recovery-ui-6179d8f44eda | sha256:6bdc3136aa0c17db366561b9deb5730486cf6efea8decba86abcb0c5c8769b6e | sha256:d26e2ea9a15699b19124dc88e1a26e01e3dd7f8e9ea5fa0a777010d6574c5f14 | sha256:ac97152a84d6ed7d0c3a7780ebd7ed6c24dd7b59c92da43377eb1269fa86596d |
+
+The next approval checkpoint is four projected ARM GETs, one site and one config/web read for each staging app. Confirm exact app and plan identity, HTTPS-only and configured image references, and an empty startup override. No app-settings list or credential read is proposed. Stop on missing evidence or drift from the historical rollback references. G4 remains blocked pending a complete baseline and explicit image-only apply approval.

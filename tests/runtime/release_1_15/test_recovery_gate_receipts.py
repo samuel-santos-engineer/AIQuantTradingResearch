@@ -101,7 +101,10 @@ def validate_receipts(document):
         counts = item["test_counts"]
         require(type(counts) is dict and set(counts) == {"passed", "failed", "skipped"}, "test_counts")
         mutations = item["mutations"]
-        require(type(mutations) is dict and set(mutations) == {"azure"}, "mutations")
+        require(type(mutations) is dict and (
+            set(mutations) == {"azure"} or
+            gate == "G3" and set(mutations) == {"azure", "registry_image_tags"}
+        ), "mutations")
         require(all(type(value) is int and value >= 0 for value in (*counts.values(), *mutations.values())), "counts")
         exits = item["exit_codes"]
         require(type(exits) is dict and all(is_text(key) and type(code) is int for key, code in exits.items()), "exit_codes")
