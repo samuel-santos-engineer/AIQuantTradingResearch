@@ -831,5 +831,119 @@ class StartupAttributionTests(unittest.TestCase):
         self.assertNotIn("synthetic", json.dumps(result))
 
 
+class StartupFileTests(unittest.TestCase):
+    window = ("2026-01-01T00:00:00Z", "2026-01-01T00:01:00Z")
+    header = dict(status=200, contentType="text/plain; charset=UTF-8", transferEncoding=None,
+                  contentEncoding=None, authChallengePresent=False, locationPresent=False,
+                  upgradePresent=False, connectionUpgrade=False)
+    prefix = b"2026-01-01T00:00:30.1234567Z "
+    exit_record = (
+        b"State: Stopping, Action: CancellingStartup, LastError: ContainerStartupFailure, "
+        b"LastErrorTimestamp: 01/01/2026 00:00:30, LastErrorDetails: Container exited with exit code 1 "
+        b"during startup after 0.3s. Please inspect your container logs for more details., "
+        b"Details: synthetic-private, DetailsLevel: ERR"
+    )
+
+    def collect(self, chunks, **headers):
+        return m.collect_startup_file(dict(self.header, **headers), chunks,
+                                      observation_window=self.window)
+
+    def test_complete_platform_exit_with_chunk_split_and_redaction(self):
+        body = self.prefix + self.exit_record + b"\r\n"
+        result = self.collect([body[:31], body[31:-1], body[-1:]])
+        self.assertEqual(result, dict(responseClass="REPORTED_EVIDENCE",
+            failureCategory="PLATFORM_REPORTED_STARTUP_EXIT", exitCodeClass="ONE",
+            vocabularyClass="PLATFORM_LIFECYCLE", freshness="IN_WINDOW",
+            diagnosticCaptureReady=False))
+        changed = body.replace(b"synthetic-private", b"unrelated-placeholder")
+        self.assertEqual(result, self.collect([changed]))
+        self.assertNotIn("synthetic", json.dumps(result))
+
+    def test_fixed_worker_vocabulary_stays_unattributed(self):
+        for stage in m._STARTUP_STAGES:
+            result = self.collect([self.prefix + m._STAGE_PREFIX + stage.encode() + b"\n"])
+            self.assertEqual(stage, result["failureCategory"])
+            self.assertEqual("STAGED_WORKER_MARKER_UNATTRIBUTED", result["vocabularyClass"])
+            self.assertFalse(result["diagnosticCaptureReady"])
+        generic = self.collect([self.prefix + b"Research snapshot service unavailable.\n"])
+        self.assertEqual("GENERIC_WORKER_MARKER", generic["vocabularyClass"])
+
+    def test_blocked_headers_never_consume_body(self):
+        def forbidden():
+            self.fail("unexpected body read")
+            yield b""
+        cases = ((dict(status=404), "HTTP_NOT_FOUND"),
+                 (dict(status=401, authChallengePresent=True), "AUTHENTICATION_REQUIRED"),
+                 (dict(status=403), "ACCESS_DENIED"),
+                 (dict(status=302, locationPresent=True), "REDIRECT_BLOCKED"),
+                 (dict(status=200, locationPresent=True), "AMBIGUOUS_AUTH_OR_LOCATION"),
+                 (dict(contentType="application/json"), "MEDIA_UNSUPPORTED"),
+                 (dict(contentType="application/octet-stream"), "UNSUPPORTED_MEDIA"),
+                 (dict(contentType="text/plain; charset=latin1"), "UNSUPPORTED_MEDIA"),
+                 (dict(contentEncoding="gzip"), "UNSUPPORTED_ENCODING"))
+        for header, expected in cases:
+            with self.subTest(header=header):
+                self.assertEqual(expected, self.collect(forbidden(), **header)["responseClass"])
+
+    def test_byte_and_line_caps_do_not_pull_next_chunk(self):
+        for content, expected in ((b"x" * 16384, "BODY_CAP_REACHED"),
+                                  (b"\n" * 257, "LINE_CAP_EXCEEDED")):
+            def chunks():
+                yield content
+                self.fail("read past cap")
+            result = self.collect(chunks())
+            self.assertEqual(expected, result["responseClass"])
+            self.assertEqual("UNKNOWN", result["failureCategory"])
+
+    def test_incomplete_invalid_and_unsupported_bodies(self):
+        for body, expected in ((b"", "EMPTY_BODY"),
+                               (self.prefix + self.exit_record, "INCOMPLETE_BODY"),
+                               (b'{"content":"synthetic"}\n', "UNSUPPORTED_BODY"),
+                               (b"\xff\n", "UNSUPPORTED_BODY"),
+                               (b"2026-02-30T00:00:30Z fake\n", "UNSUPPORTED_BODY")):
+            with self.subTest(expected=expected):
+                self.assertEqual(expected, self.collect([body] if body else [])["responseClass"])
+
+    def test_stale_future_and_submicrosecond_boundary(self):
+        for stamp in (b"2025-12-31T23:59:59Z ", b"2026-01-01T00:01:01Z ",
+                      b"2026-01-01T00:01:00.0000001Z "):
+            result = self.collect([stamp + self.exit_record + b"\n"])
+            self.assertEqual("OUTSIDE_WINDOW", result["freshness"])
+            self.assertEqual("UNKNOWN", result["failureCategory"])
+
+    def test_disagreeing_stages_withhold_classification(self):
+        log = b"".join(self.prefix + m._STAGE_PREFIX + name + b"\n" for name in (b"STORAGE", b"TLS"))
+        result = self.collect([log])
+        self.assertEqual("AMBIGUOUS_EVIDENCE", result["responseClass"])
+        self.assertEqual("UNKNOWN", result["failureCategory"])
+
+    def test_platform_and_worker_records_do_not_establish_a_join(self):
+        log = self.prefix + self.exit_record + b"\n" + self.prefix + m._STAGE_PREFIX + b"TLS\n"
+        result = self.collect([log])
+        self.assertEqual("AMBIGUOUS_EVIDENCE", result["responseClass"])
+        self.assertEqual("UNKNOWN", result["failureCategory"])
+        self.assertEqual("UNKNOWN", result["exitCodeClass"])
+        self.assertEqual("UNKNOWN", result["vocabularyClass"])
+
+    def test_invalid_chunks_fail_closed(self):
+        for chunks in (None, [b""], ["text"], b"raw"):
+            with self.subTest(chunks=chunks):
+                self.assertEqual("INVALID_CHUNK", self.collect(chunks)["responseClass"])
+
+    def test_transport_error_drops_already_seen_line(self):
+        def interrupted():
+            yield self.prefix + self.exit_record + b"\n"
+            raise TimeoutError("synthetic-private")
+        result = self.collect(interrupted())
+        self.assertEqual("TRANSPORT_FAILURE", result["responseClass"])
+        self.assertEqual("UNKNOWN", result["failureCategory"])
+
+    def test_quoted_or_suffix_marker_is_unknown(self):
+        for content in (b"quoted " + m._STAGE_PREFIX + b"STORAGE",
+                        m._STAGE_PREFIX + b"STORAGE extra"):
+            self.assertEqual("UNKNOWN",
+                             self.collect([self.prefix + content + b"\n"])["failureCategory"])
+
+
 if __name__ == "__main__":
     unittest.main()

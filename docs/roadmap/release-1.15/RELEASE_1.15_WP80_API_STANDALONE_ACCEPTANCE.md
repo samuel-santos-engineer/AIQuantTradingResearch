@@ -661,3 +661,16 @@ A scoped startup file can add actionable evidence if it contains an explicit pla
 Validation used `python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p <suite> -q`. WP80 107 passed, WP75 10 passed and WP62 20 passed with four opt-in skips. Total 141 discovered, 137 passed and four skipped. Syntax, append integrity, UTF-8/LF/no BOM, Markdown and Git diff checks passed. This pass changed this evidence file only. Azure, SCM, log queries, credential access, registry, Docker, builds, publication, deployment, health, quota and runtime operations and Azure mutations each numbered zero.
 
 `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.
+
+
+## Dedicated startup-file collector offline qualification
+
+Implemented and qualified the offline parser for the dedicated Linux startup-file route. The collector checks the existing SCM response metadata gate before reading any body chunks. It accepts HTTP 200 with plain text and an optional UTF-8 charset. A complete, newline-terminated body must fit below 16 KiB and within 256 lines, and all nonempty lines must have valid UTC timestamps. Candidate records must fall within the supplied UTC observation window, which is limited to 15 minutes. A cap, interrupted read, unexpected format or invalid record withholds the classification.
+
+The parser recognizes the previously observed platform startup-cancellation line and the existing fixed generic and staged Worker markers. Its synthetic-only qualification covers split UTF-8 plaintext/CRLF input, redaction, blocked HTTP/media/auth/redirect metadata without body reads, size and line caps, stale/future records, malformed and incomplete responses, transport interruption and quoted markers. Mixed platform and Worker evidence returns AMBIGUOUS_EVIDENCE, even when the reported timestamps agree. Outputs contain fixed classifications only. A match reports the text's vocabulary and reported freshness. Source, main-container role, running image, startup attempt and root cause remain unverified. Legitimate live files outside the strict supported shape may also return unknown.
+
+Ran python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p <suite> -q. WP80 passed 118, including 11 new collector tests. WP75 passed 10. WP62 passed 20 with four opt-in cases skipped. Total 152 discovered, 148 passed and four skipped. Syntax, append integrity, UTF-8/LF/no BOM, Markdown and Git diff checks passed.
+
+The next offline step is to review and fake-test the temporary transport adapter for the previously proposed single staging SCM request to /api/startuplogs?latest=true. The adapter must own exact host and TLS validation, authentication, the 15-second worker deadline, 3-second connect and 8-second read bounds, bounded stream reads and cleanup. That review is separate from any live request. No Azure, SCM, credential, registry, Docker, health or quota operation occurred in this pass. No deployment or image substitution occurred. The exit-code-1 and HTTP 503 cause remains unknown.
+
+`DIAGNOSTIC_CAPTURE_READY=false`, `API_HEALTH_ACCEPTED=false`, `PUBLIC_RUNTIME_VERIFIED=False`, `liveAttemptReady=false`.

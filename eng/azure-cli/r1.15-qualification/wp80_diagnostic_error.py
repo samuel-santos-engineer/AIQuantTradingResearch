@@ -579,3 +579,124 @@ def evaluate_startup_attribution(record, *, trusted_attempts=None, trusted_recor
     result.update(diagnosticCaptureReady=True, diagnosticCategory=category,
                   reason="CONSISTENT_TRUSTED_EVIDENCE")
     return result
+
+
+_STARTUP_FILE_BYTES = 16 * 1024
+_STARTUP_FILE_LINES = 256
+_STARTUP_EXIT = re.compile(
+    r"State: Stopping, Action: CancellingStartup, LastError: ContainerStartupFailure, "
+    r"LastErrorTimestamp: [0-9/ :]+, LastErrorDetails: Container exited with exit code "
+    r"([0-9]{1,3}) during startup after [0-9]+(?:[.][0-9]+)?s[.] "
+    r"Please inspect your container logs for more details[.]"
+    r"(?:, Details: .+, DetailsLevel: ERR)?"
+)
+
+
+def collect_startup_file(metadata, chunks, *, observation_window):
+    """Reduce one bounded plaintext startup file to reported evidence categories.
+
+    The caller owns the exact-route, authentication and deadline checks and
+    supplies bounded chunks. This offline collector never establishes record
+    provenance, even when a line matches the diagnostic source vocabulary.
+    """
+    result = dict(responseClass="UNKNOWN", failureCategory="UNKNOWN",
+                  exitCodeClass="UNKNOWN", vocabularyClass="UNKNOWN",
+                  freshness="UNKNOWN", diagnosticCaptureReady=False)
+    gate = classify_scm_metadata(metadata)
+    if gate["responseClass"] != "HTTP_BODY_CANDIDATE_UNVERIFIED":
+        result["responseClass"] = ("HTTP_NOT_FOUND" if gate["responseClass"] == "HTTP_ERROR"
+                                   and metadata["status"] == 404 else gate["responseClass"])
+        return result
+    if not re.fullmatch(r'\s*text/plain\s*(?:;\s*charset\s*=\s*(?:utf-8|"utf-8")\s*)?',
+                        metadata["contentType"], re.I):
+        result["responseClass"] = "UNSUPPORTED_MEDIA"
+        return result
+    try:
+        if type(observation_window) is not tuple or len(observation_window) != 2:
+            raise ValueError("window")
+        start, end = map(_attribution_utc, observation_window)
+        if not dt.timedelta(0) < end - start <= dt.timedelta(minutes=15):
+            raise ValueError("window")
+    except ValueError:
+        result["responseClass"] = "INVALID_WINDOW"
+        return result
+
+    payload = bytearray()
+    try:
+        iterator = iter(chunks)
+    except TypeError:
+        result["responseClass"] = "INVALID_CHUNK"
+        return result
+    try:
+        for chunk in iterator:
+            if type(chunk) is not bytes or not chunk:
+                result["responseClass"] = "INVALID_CHUNK"
+                return result
+            # At the exact limit EOF is unverified. Stop without another pull.
+            if len(chunk) >= _STARTUP_FILE_BYTES - len(payload):
+                result["responseClass"] = "BODY_CAP_REACHED"
+                return result
+            payload.extend(chunk)
+            if payload.count(b"\n") > _STARTUP_FILE_LINES:
+                result["responseClass"] = "LINE_CAP_EXCEEDED"
+                return result
+    except OSError:
+        result["responseClass"] = "TRANSPORT_FAILURE"
+        return result
+    if not payload or not payload.endswith(b"\n"):
+        result["responseClass"] = "EMPTY_BODY" if not payload else "INCOMPLETE_BODY"
+        return result
+    try:
+        text = payload.decode("utf-8").replace("\r\n", "\n")
+    except UnicodeError:
+        result["responseClass"] = "UNSUPPORTED_BODY"
+        return result
+    if any(ord(char) < 32 and char not in "\t\n" or ord(char) == 127 for char in text):
+        result["responseClass"] = "UNSUPPORTED_BODY"
+        return result
+
+    matches = set()
+    dated = False
+    fresh = False
+    for line in text.split("\n"):
+        if not line:
+            continue
+        match = _STAMP.fullmatch(line)
+        if match is None:
+            result["responseClass"] = "UNSUPPORTED_BODY"
+            return result
+        stamp, message = match.groups()
+        # Platform examples include seven fractional digits. Preserve the
+        # seventh digit when checking bounds against a microsecond UTC window.
+        remainder = int(stamp[-2]) if len(stamp) == 28 else 0
+        try:
+            timestamp = _attribution_utc(stamp[:-2] + "Z" if len(stamp) == 28 else stamp)
+        except ValueError:
+            result["responseClass"] = "UNSUPPORTED_BODY"
+            return result
+        dated = True
+        if not (start, 0) <= (timestamp, remainder) <= (end, 0):
+            continue
+        fresh = True
+        exit_record = _STARTUP_EXIT.fullmatch(message)
+        if exit_record:
+            code = int(exit_record[1])
+            if 1 <= code <= 255:
+                matches.add(("PLATFORM_REPORTED_STARTUP_EXIT", "ONE" if code == 1 else "OTHER_NONZERO",
+                             "PLATFORM_LIFECYCLE"))
+        elif message == "Research snapshot service unavailable.":
+            matches.add(("WORKER_FAILURE_MENTION", "UNKNOWN", "GENERIC_WORKER_MARKER"))
+        elif (stage := _STAGE_MESSAGES.get(message.encode("utf-8"))) is not None:
+            matches.add((stage, "UNKNOWN", "STAGED_WORKER_MARKER_UNATTRIBUTED"))
+
+    result["freshness"] = "IN_WINDOW" if fresh else "OUTSIDE_WINDOW" if dated else "UNKNOWN"
+    if not matches:
+        result["responseClass"] = "NO_RECOGNIZED_FAILURE"
+        return result
+    if len(matches) > 1:
+        result["responseClass"] = "AMBIGUOUS_EVIDENCE"
+        return result
+    category, exit_code, vocabulary = next(iter(matches))
+    result.update(responseClass="REPORTED_EVIDENCE", failureCategory=category,
+                  exitCodeClass=exit_code, vocabularyClass=vocabulary)
+    return result
