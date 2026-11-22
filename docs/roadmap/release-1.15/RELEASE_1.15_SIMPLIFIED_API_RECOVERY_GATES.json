@@ -937,6 +937,42 @@
           "data_class": "no data"
         }
       ]
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 10,
+      "started_at_utc": "2026-11-22T19:34:12.184615Z",
+      "ended_at_utc": "2026-11-22T19:34:39.960742Z",
+      "status": "BLOCKED",
+      "source_commit": "4f6a31b2b22ab504c7ed7b1ed0985c9e814ef598",
+      "environment": "staging",
+      "objective": "Retrieve a bounded historical startup marker for the corrected API application container using the existing Azure CLI session.",
+      "commands_or_test_ids": [
+        "Local historical-window synthetic projection checks",
+        "One CLI-authenticated exact SCM GET /api/logs/docker with body gating",
+        "Conditional single same-origin application log prefix read if a unique dated candidate is available"
+      ],
+      "expected": "Recognized stage and UTC timestamp from the 19:21:13 to 19:23:22 UTC window, or explicit access/data blocker.",
+      "observed": "The one authorized SCM inventory GET returned HTTP 403 and access denied with reason unknown. The collector stopped at headers. No inventory or log body was read, no file was selected and no stage was recovered. The first local launcher failed during import before authentication or an SCM request.",
+      "exit_codes": {
+        "synthetic_window_checks": 0,
+        "sanitized_scm_worker": 0
+      },
+      "test_counts": {
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Previous configured API rollback remains the last verified Azure image. No image or Azure setting was queried or changed in this pass.",
+      "next_action": "Obtain an existing main-container stage record from the exact window through the owner portal if available.",
+      "rest": []
     }
   ]
 }

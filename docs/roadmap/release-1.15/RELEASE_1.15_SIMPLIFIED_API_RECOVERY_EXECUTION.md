@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | FAIL | [G4 attempt 9](#g4-attempt-9) | Establish the candidate's Azure startup stage before another image attempt. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 10](#g4-attempt-10) | Obtain an existing main-container stage record from the exact window through the owner portal if available. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -442,3 +442,22 @@ The quota read showed stop requests 0/15, daily CPU 0/3,600,000 ms and short-per
 The ownership-bounded controller ran from 2026-11-22T19:21:13.161929Z to 2026-11-22T19:23:22.222931Z in 129.061 seconds, made 4 API config reads and attempted 2 image PATCHes. The controller did not explicitly restart the app. Configuration evidence alone does not establish the running image or the cause of an unsuccessful startup. No Azure dataset or public UI acceptance is inferred.
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 10
+
+BLOCKED on 4f6a31b2b22ab504c7ed7b1ed0985c9e814ef598 from 2026-11-22T19:34:12.184615Z to 2026-11-22T19:34:39.960742Z.
+
+The one authorized SCM inventory GET returned HTTP 403 and access denied with reason unknown. The collector stopped at headers. No inventory or log body was read, no file was selected and no stage was recovered. The first local launcher failed during import before authentication or an SCM request.
+
+Next action. Obtain an existing main-container stage record from the exact window through the owner portal if available.
+
+Azure mutations. 0.
+
+
+### Historical startup evidence via Azure CLI
+
+As requested, the collection used the installed Azure CLI App Service bearer session for one SCM inventory GET to the research staging app. Historical event window was 2026-11-22 19:21:13.161929 to 19:23:22.222931 UTC. The UTC completion stamp was 2026-11-22T19:34:13.801615+00:00. The owned worker reported 1.617 seconds and HTTP 403 ACCESS_DENIED at the inventory response header gate. Application body bytes consumed were zero. The conditional application file request was not sent. This SCM access denial does not establish the cause of the earlier API health 403.
+
+Six offline checks exercised exact UTC boundaries, strict startup marker matching and unique/ambiguous/Kudu-only file selection. The local launcher initially could not import the tracked helper in the installed CLI's isolated interpreter. A local import check confirmed the issue, and the same scoped worker was launched with the required import path. Only one live SCM GET occurred. No Azure write, ARM query, setting read, restart, UI, health, or alternate log request occurred. No raw headers, log content, or token was emitted.
+
+Startup stage and running image remain unverified. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
