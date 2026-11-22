@@ -1239,6 +1239,73 @@
       "rollback_state": "No new resource created. Existing API rollback child sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3 was confirmed read-only.",
       "next_action": "Approve a narrowly scoped new image retaining the original staging and storage safeguards.",
       "rest": []
+    },
+    {
+      "gate_id": "N0",
+      "attempt": 2,
+      "started_at_utc": "2026-11-22T20:55:05.397570Z",
+      "ended_at_utc": "2026-11-22T20:58:07.447008Z",
+      "status": "BLOCKED",
+      "source_commit": "fb6d9a5e6567e5ab78cd026c78ea9bd278997305",
+      "environment": "local",
+      "objective": "Implement and locally qualify a source-bound API candidate for the exact isolated staging identity.",
+      "commands_or_test_ids": [
+        "dotnet test Infrastructure.Tests -c Release --no-restore --filter ResearchStorageBoundaryTests or ResearchSnapshotEndpointTests, excluding opt-in browser and export fixtures",
+        "python -B -m unittest discover -s tests/runtime/release_1_15 -p test_recovery_gate_receipts.py -q",
+        "dotnet publish Worker -c Release --no-restore --self-contained false -p:UseAppHost=false",
+        "docker build --pull=false --network=none --platform=linux/amd64 from the exact reviewed source",
+        "python -B <owned parallel_candidate_verify.py> <revision> <local tag>"
+      ],
+      "expected": "Both explicit pairs reach the platform HTTP listener, cross-pairs and unlisted sites are rejected, and storage permissions remain enforced.",
+      "observed": "The exact two staging site/hostname pairs now share one checked allowlist in transport and storage. Both served health 200 on port 52731 and preserved snapshot 401/503 behavior in the isolated empty-store fixture. Mixed and unknown identities exited 1 at TRANSPORT. Read-only storage and wrong UID exited 1 at STORAGE. Local OCI SHA-256 checks passed on the source-bound candidate. N0 still awaits registry publication of the new candidate and a fresh Azure provisioning preflight.",
+      "exit_codes": {
+        "dotnet": 0,
+        "receipt_schema": 0,
+        "dotnet_publish": 0,
+        "docker_build_and_fixtures": 0
+      },
+      "test_counts": {
+        "passed": 108,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [
+        "src/AIQuantTradingResearch.Worker/ResearchSnapshotEndpoint.cs",
+        "src/AIQuantTradingResearch.Infrastructure/Persistence/Sqlite/ResearchStorageBoundary.cs",
+        "tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchSnapshotEndpointTests.cs",
+        "tests/AIQuantTradingResearch.Infrastructure.Tests/ResearchStorageBoundaryTests.cs"
+      ],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure operation. The existing API, UI, and production were untouched.",
+      "next_action": "Approve publication and registry verification of the exact parallel API candidate.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 200,
+          "response_schema": "Literal Alive on local port 52731 for each exact identity",
+          "data_class": "fixture"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 401,
+          "response_schema": "v1.0 error UNAUTHORIZED without key for each identity",
+          "data_class": "fixture"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 503,
+          "response_schema": "v1.0 error DATASET_NOT_READY with intentionally empty isolated store",
+          "data_class": "fixture"
+        }
+      ]
     }
   ]
 }

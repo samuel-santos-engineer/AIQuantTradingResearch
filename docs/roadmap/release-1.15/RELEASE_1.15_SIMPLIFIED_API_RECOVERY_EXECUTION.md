@@ -572,3 +572,41 @@ The exact Git source shows two allowlist comparisons for the old identity in tra
 Proposed settings checklist for a future compatible image: preserve the ten declared nonsecret values from the staging comparison and set platform HTTPS-only. Supply a dedicated lab API key privately. No real key was inspected or transferred. Let Azure populate site, hostname, and instance markers, and use the new app's own private ephemeral path without reusing volumes, data, identity, or credentials. Existing built-in Linux filesystem logs are the first capture option to evaluate after the new app exists. Retention, availability, and bounded retrieval on the new app remain untested. [App Service diagnostics](https://learn.microsoft.com/en-us/azure/app-service/troubleshoot-diagnostic-logs#enable-application-logging-linux-or-container)
 
 Azure mutations **0**. No resource IDs, endpoint, or continuing costs were created. The baseline receipt tests ran after the read-only checks and before the schema extension. The updated schema and append-only evidence were checked before commit. No Azure write phase occurred. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N0 attempt 2
+
+BLOCKED on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-22T20:55:05.397570Z to 2026-11-22T20:58:07.447008Z.
+
+The exact two staging site/hostname pairs now share one checked allowlist in transport and storage. Both served health 200 on port 52731 and preserved snapshot 401/503 behavior in the isolated empty-store fixture. Mixed and unknown identities exited 1 at TRANSPORT. Read-only storage and wrong UID exited 1 at STORAGE. Local OCI SHA-256 checks passed on the source-bound candidate. N0 still awaits registry publication of the new candidate and a fresh Azure provisioning preflight.
+
+Next action. Approve publication and registry verification of the exact parallel API candidate.
+
+Azure mutations. 0.
+
+
+### Parallel identity correction and locally qualified image
+
+Transport and storage share an exact site/hostname-pair check. The allowlist accepts `aiqr115researchstagingwus27f5eabb5` with its existing Azure hostname and `aiqr115-parallel-lab-wus2-7f5eabb5` with `aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net`. The valid pair checks remain case-sensitive. The nonempty platform instance marker, transport opt-in, private ephemeral storage constraints, UID, HTTPS assertions, authentication, and port 52731 still apply. Neither experiment sets Azure's managed identity markers.
+
+| Network-isolated Docker cases | Result |
+| --- | --- |
+| Original identity and exact parallel identity with absent role marker | Both reached SERVING, health 200, unauthorized snapshot 401, valid-key empty-store snapshot 503 |
+| Both mixed identity pairs and a completely unlisted pair | All exited 1 at TRANSPORT |
+| Exact parallel identity with read-only root or wrong UID | Both exited 1 at STORAGE |
+
+All seven containers were removed after verification. Scoped .NET suites passed 93 selected tests, and all eight receipt tests passed. Browser and fixture-export opt-ins were excluded. The synthetic Docker tests do not establish a real Azure hostname, capacity, health or data.
+
+| Image identity | Verified local value |
+| --- | --- |
+| Source commit | fb6d9a5e6567e5ab78cd026c78ea9bd278997305 |
+| Git tree | 6c076ce5b4aa4fad4cc145a5852defeee84624b2 |
+| Build-context file manifest SHA-256 | 6a59de3687bc88bc9a96d593157343723008a59ab38cd57839943ff5bc9428e2 |
+| Local tag | aiq-r115-parallel:api-fb6d9a5e6567 |
+| Local index and image ID | sha256:60ad871ee2b74225ef9bf24e3432f9ad64f3ac4e93862de145c9ad21e7e8ac41 |
+| Linux/amd64 child | sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914 |
+| Config digest | sha256:4bdc4b6abf70d3cc76a739a69f1f61840e1b681f8aa61c0c43160459d64140dd |
+| Proposed GHCR tag | ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-parallel-api-fb6d9a5e6567 |
+
+The verified image uses the pinned cached ASP.NET base, tracked bootstrap and exact revision label. Next approval is for GHCR publication and digest readback of that image. Before any separate creation or apply, verify actual default hostname and exact app identity against the allowed pair, F1 admission and the private dedicated-lab key channel. If Azure assigns a different default hostname, stop at that mismatch. N1?N4 remain blocked. No Azure or GHCR operations, new resources, or incremental cloud cost occurred in this pass.
+
+API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
