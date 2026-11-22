@@ -328,3 +328,22 @@ The next separately approvable step is one exact research SCM `/logstream` GET w
 PR #479 remains OPEN/UNMERGED. The API startup exit and health 503 cause remain UNKNOWN.
 
 `API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
+
+
+## Separately approved bounded SSE capture: cap stop
+
+Owner approved one exact research SCM `/logstream` SSE capture, no restart/retry/fallback. A temporary adapter reused the strict metadata projection, existing-sign-in App Service bearer class and pure SSE sanitizer. It made no publishing/service/API/provider key read. TLS verification, no stream proxy inheritance, no redirects/retries, 3-second connect/8-second socket read timeout, 12-second internal timer and 15-second owned Windows Job deadline were applied. Accumulated transient body buffer was limited to 64 KiB; no raw event/body was printed or persisted.
+
+Before execution, seven fake adapter cases passed: supported SSE data, HTML/401/redirect body blocking, unknown payload, incomplete event and capture-cap rejection. Tests asserted exact one GET, response closure, no body reads on rejected metadata, fixed-output/no-token/no-raw-event behavior and zero restarts. They ran against fake transports, not Azure. Existing 74-test repository baseline was unchanged and not rerun for this evidence-only append.
+
+Actual completion: 2026-11-22 10:47:59.610406 UTC / 2026-11-22 07:47:59.610406 America/Sao_Paulo. Worker elapsed 2.251 seconds. One SCM GET returned HTTP 200; fixed metadata remained EVENT_STREAM, CHUNKED_DECLARED, SSE_DECLARED_UNVERIFIED, authentication UNVERIFIED. While reading 512-byte chunks, the next chunk would exceed the 64 KiB accumulated buffer cap. The worker cleared the buffer, returned CAPTURE_CAP_EXCEEDED and closed the response. A cap-detection chunk can be received transiently beyond the accumulated-buffer limit; no oversized body is retained or sanitized. Underlying HTTP transport buffering is not proof of an exact wire-byte ceiling.
+
+No eventProjection was emitted: all captured event data was discarded on cap breach. The output's captureStarted=false after cap rejection means acceptance was invalidated; it does NOT mean zero body bytes were read. This differs from the earlier metadata-only request. No raw payload schema, event content, timestamp, message, identifier or private value was inspected or retrospectively classified after discard. The worker and owned Windows Job/pipe cleanup completed.
+
+Stopped after this one outcome. ZERO restart requests or Azure mutations; no health, quota, UI/production, ARM management, alternate stream, credential/settings, provider/registry/Docker/data operations. No increased cap, extended deadline, reconnect or automatic fallback. It remains unknown whether the response contained main-app, platform/Kudu, replay/history, heartbeat or another SSE payload schema. High response volume does not establish process health, crash cause or ingress readiness.
+
+Current blocker is bounded capture acceptance, not a newly demonstrated application cause. Next smallest step: offline review of streaming/cap semantics to determine whether complete events within the same fixed budget could be classified incrementally without retaining or exposing raw data. Do not silently raise the cap, claim success from a partial body, or request another live capture without separate authority. This observation provides no justification for image/port/settings changes or a restart.
+
+Only this append-only evidence document changed. Seven fake adapter cases passed; UTF-8/LF/no BOM and git diff --check passed. PR #479 remains OPEN/UNMERGED; main-container runtime identity, listener and health acceptance remain unverified.
+
+`API_HEALTH_ACCEPTED=false`; `PUBLIC_RUNTIME_VERIFIED=False`; `liveAttemptReady=false`.
