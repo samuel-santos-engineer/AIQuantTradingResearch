@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 6](#g4-attempt-6) | Approve publication and digest readback of the exact corrected API image. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 7](#g4-attempt-7) | Approve the exact API-only staging apply, acceptance checks, and conditional rollback. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -379,3 +379,27 @@ Automation passed 87 .NET tests, 56 Python chart tests, and seven receipt tests.
 The build used the tracked API Dockerfile and bootstrap, cached pinned ASP.NET base, framework-dependent publish and source revision OCI label. Archive verification hashed exact index, Linux/amd64 manifest and config bytes. The context had only published output and bootstrap. Registry operations require separate approval. Verify the approved tag and exact registry index, Linux/amd64 child and config mapping before proposing an API-only image update. Recheck staging configuration and quota under the future approval, preserve the rollback child and use the image-only rollback procedure above on failed health or data acceptance. The UI remains excluded from API apply. No Azure, SCM, image pushes or deployment occurred.
 
 G4-A PASS. G4-B PASS. G4-C PASS. G4-D READY_FOR_SEPARATE_APPROVAL. G4 remains blocked for live acceptance. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 7
+
+BLOCKED on f5fa4163dabb80817e7798175cdb56243b831136 from 2026-11-22T19:17:49.996326Z to 2026-11-22T19:18:41.025111Z.
+
+The single approved API tag was published. Raw registry OCI index and Linux/amd64 child bytes hash-matched the verified local objects. The child referenced the exact verified local config digest. G4-D READY_FOR_SEPARATE_APPROVAL. No Azure operation occurred.
+
+Next action. Approve the exact API-only staging apply, acceptance checks, and conditional rollback.
+
+Azure mutations. 0.
+
+
+### Corrected API image publication and exact staging checkpoint
+
+The single owner-approved GHCR tag `ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-recovery-api-f5fa4163dabb` was published and read back by 2026-11-22T19:18:01.678672Z in 11.682 seconds. The OCI index `sha256:68073490abb07a4e13e7f498b9ce6105b2b1de3370fc0125287443c73a3236ea` and Linux/amd64 child `sha256:47b9bc01743b05790daf489d22da467db61a042791e4cd72d07c89fedd812be0` matched the local raw SHA-256 hashes. The child manifest references config digest `sha256:e6b1e1aed024a2b8c4169059acdadc0c759a2e91126123d06aeec0aad12f173b`, previously verified in the local OCI archive. No Docker login was invoked. No UI image tag, Azure read, Azure write, or deployment occurred.
+
+The next separately approved write may change only linuxFxVersion for `aiqr115researchstagingwus27f5eabb5`, resource group `rg-aiq-r112-wp05-wus2-7f5eabb5`, subscription `7f5eabb5-80f5-4369-88be-b14a6de763f1`. Use the API-only image PATCH procedure above, and preserve startup mode, HTTPS-only, port 52731, authentication, storage, UI and plan.
+
+- Candidate `ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:47b9bc01743b05790daf489d22da467db61a042791e4cd72d07c89fedd812be0`
+- Conditional rollback `ghcr.io/samuel-santos-engineer/aiquanttradingresearch@sha256:2744c4dc3d8b73b30a59d008fdafd94384eec684ac194a7033b31e172475efc3`
+
+Before applying, verify quota, key channel, exact expected image and blank startup override. Confirm the configured candidate digest after applying. Run the previous bounded health gate with at most three HTTPS probes and up to 180 seconds. After verified 200 Alive, send one authenticated BTC/USD snapshot and then one ETH/USD snapshot only if BTC passes. If required acceptance fails, restore the previous image once and verify its configuration readback. No explicit restart or automatic redeployment. G4 remains blocked until that separate approval and live qualification.
+
+API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
