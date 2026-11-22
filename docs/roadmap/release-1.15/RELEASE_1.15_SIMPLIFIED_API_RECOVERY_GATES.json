@@ -973,6 +973,39 @@
       "rollback_state": "Previous configured API rollback remains the last verified Azure image. No image or Azure setting was queried or changed in this pass.",
       "next_action": "Obtain an existing main-container stage record from the exact window through the owner portal if available.",
       "rest": []
+    },
+    {
+      "gate_id": "G4",
+      "attempt": 11,
+      "started_at_utc": "2026-11-22T20:19:54.935966Z",
+      "ended_at_utc": "2026-11-22T20:20:31.264500Z",
+      "status": "BLOCKED",
+      "source_commit": "c363879b7f85082405135974de28689a85bf4cc3",
+      "environment": "staging",
+      "objective": "Retry the authorized historical startup log read after the quota reset and the operator-reported Running state.",
+      "commands_or_test_ids": [
+        "One bounded CLI-authenticated SCM inventory GET /api/logs/docker"
+      ],
+      "expected": "Recognized historical application-output inventory or a fixed blocker.",
+      "observed": "The quota snapshot showed stop requests 0/15 and the operator independently reported the app Running before this retry. The single SCM request failed at the transport stage in 10.585 seconds. No HTTP status, file inventory, log body or startup marker was captured.",
+      "exit_codes": {
+        "sanitized_scm_worker": 0
+      },
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Previous API rollback remains the last image configuration verified. No image write or restart occurred.",
+      "next_action": "Use an existing retained main-container record if the portal can access the exact historical window.",
+      "rest": []
     }
   ]
 }

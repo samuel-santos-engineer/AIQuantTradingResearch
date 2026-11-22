@@ -6,7 +6,7 @@
 | G1 Local API startup | PASS | [G1 attempt 5](#g1-attempt-5) | None |
 | G2 Local REST and Streamlit | PASS | [G2 attempt 2](#g2-attempt-2) | None |
 | G3 Source-bound images and rollback | PASS | [G3 attempt 4](#g3-attempt-4) | None |
-| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 10](#g4-attempt-10) | Obtain an existing main-container stage record from the exact window through the owner portal if available. |
+| G4 Staging API-first acceptance | BLOCKED | [G4 attempt 11](#g4-attempt-11) | Use an existing retained main-container record if the portal can access the exact historical window. |
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
 
@@ -461,3 +461,15 @@ As requested, the collection used the installed Azure CLI App Service bearer ses
 Six offline checks exercised exact UTC boundaries, strict startup marker matching and unique/ambiguous/Kudu-only file selection. The local launcher initially could not import the tracked helper in the installed CLI's isolated interpreter. A local import check confirmed the issue, and the same scoped worker was launched with the required import path. Only one live SCM GET occurred. No Azure write, ARM query, setting read, restart, UI, health, or alternate log request occurred. No raw headers, log content, or token was emitted.
 
 Startup stage and running image remain unverified. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## G4 attempt 11
+
+BLOCKED on c363879b7f85082405135974de28689a85bf4cc3 from 2026-11-22T20:19:54.935966Z to 2026-11-22T20:20:31.264500Z.
+
+The quota snapshot showed stop requests 0/15 and the operator independently reported the app Running before this retry. The single SCM request failed at the transport stage in 10.585 seconds. No HTTP status, file inventory, log body or startup marker was captured.
+
+Next action. Use an existing retained main-container record if the portal can access the exact historical window.
+
+Azure mutations. 0.
+
+Retry completed at 2026-11-22T20:20:05.520966+00:00 for the unchanged November 22 19:21:13?19:23:22 UTC evidence window. No VFS request or additional retry was sent. No ARM read, health probe, Azure write or restart occurred. The transport exception was classified generically. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
