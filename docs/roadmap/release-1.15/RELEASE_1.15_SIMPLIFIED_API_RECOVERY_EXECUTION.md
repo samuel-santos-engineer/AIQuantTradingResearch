@@ -629,3 +629,22 @@ Published one tag, `ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-p
 The next approval is for the corrected child on the exact proposed parallel app and independent F1 plan in West US 2. Reverify subscription, F1 admission, names, actual app hostname, and a dedicated private key channel before use. The app name and expected hostname remain `aiqr115-parallel-lab-wus2-7f5eabb5` and `aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net`. Keep Azure-managed identity values intact. The new app starts with its own empty ephemeral storage. Old staging, Streamlit and production remain outside the scope.
 
 N0 and N1?N4 remain blocked for live execution pending that scope, with N5 comparison recorded. There were zero Azure reads or mutations in this publication pass, no resources were created and no incremental Azure cost was incurred. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N0 attempt 4
+
+BLOCKED on 599a6ce3dd7518631926a3bbdab2831aab68dff3 from 2026-11-23T01:44:27.984553Z to 2026-11-23T01:44:27.985094Z.
+
+No dedicated lab API key was present in the available process channels. The required stop condition prevented any Azure check or provisioning. The existing staging API key was not consulted or reused. The exact published candidate is retained.
+
+Next action. Approve generation and private in-memory transfer of one new dedicated lab key for the parallel experiment.
+
+Azure mutations. 0.
+
+
+### Parallel provisioning credential stop
+
+Owner approved fresh preflight and F1-only provisioning using the published parallel Linux/amd64 child `sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914`. The initial dedicated process key presence/format gate returned unavailable. For the approved scope, there was no pre-established private transfer channel for the new lab. The previous staging key was outside the experiment and was not inspected.
+
+N0?N4 remain blocked. The prior N5 comparison stands. No Azure read or write, resource creation, authentication probe, or new Azure cost occurred. Fresh quota and F1 admission were not queried after the stop. The next proposed action is explicit authorization to generate a separate lab-only key in memory, privately configure the new app on the existing HTTPS management channel, and reuse that key only in the same owned activation/probe session. Keep it out of argv, files, console output, receipts and Git. No old credentials are needed.
+
+API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

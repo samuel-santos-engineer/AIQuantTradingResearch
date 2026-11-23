@@ -1343,6 +1343,41 @@
       "rollback_state": "No Azure mutation or resource creation. Original staging, UI and production remain unchanged.",
       "next_action": "Approve fresh N0 preflight and F1-only provisioning using the verified parallel candidate.",
       "rest": []
+    },
+    {
+      "gate_id": "N0",
+      "attempt": 4,
+      "started_at_utc": "2026-11-23T01:44:27.984553Z",
+      "ended_at_utc": "2026-11-23T01:44:27.985094Z",
+      "status": "BLOCKED",
+      "source_commit": "599a6ce3dd7518631926a3bbdab2831aab68dff3",
+      "environment": "local",
+      "objective": "Verify the dedicated lab key channel before the approved parallel provisioning sequence.",
+      "commands_or_test_ids": [
+        "Process-only dedicated lab key presence and format gate, output boolean only",
+        "python -B -m unittest discover -s tests/runtime/release_1_15 -p test_recovery_gate_receipts.py -q"
+      ],
+      "expected": "A suitable key is available through a dedicated private lab channel before any Azure operation.",
+      "observed": "No dedicated lab API key was present in the available process channels. The required stop condition prevented any Azure check or provisioning. The existing staging API key was not consulted or reused. The exact published candidate is retained.",
+      "exit_codes": {
+        "receipt_schema": 0,
+        "presence_check": 0
+      },
+      "test_counts": {
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure operation and no new resources. Existing API, UI and production remain outside scope.",
+      "next_action": "Approve generation and private in-memory transfer of one new dedicated lab key for the parallel experiment.",
+      "rest": []
     }
   ]
 }
