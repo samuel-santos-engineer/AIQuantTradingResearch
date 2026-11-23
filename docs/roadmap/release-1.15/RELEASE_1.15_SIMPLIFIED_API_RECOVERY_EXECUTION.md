@@ -765,3 +765,13 @@ At 2026-11-23T02:13:24.488697Z the read-only worker completed. ARM returned 200 
 Next action. Use the parallel app's existing Azure portal log view to seek a main-container record from 2026-11-23 01:57:07?01:59:10 UTC. Capture only timestamp, role, startup stage or exception type. If unavailable, retain startup cause as unknown.
 
 Azure mutations. 0.
+
+## N5 attempt 3
+
+PASS on b9a3498d44bd5cbb6b80c19241aa570d11a7d130 from 2026-11-23T02:17:13.413624Z to 2026-11-23T02:17:37.690602Z.
+
+At 2026-11-23T02:17:19.688758Z the bounded Azure CLI-authenticated read completed with HTTP 200. The exact detector identity matched. One response row was inspected in memory and yielded zero records with both an in-window UTC timestamp and an explicit main-container role. No raw row, startup stage, exception type or image identity was emitted. Startup cause and Azure-side exception status remain unknown. The previous SCM 403 and N3 failure remain historical evidence. This pass completed the comparison only. No portal browser session, new health request, snapshot or Azure write occurred. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. If the signed-in Azure portal has retained main-container evidence for the same window, capture only its timestamp, role and fixed failure stage or exception type. Otherwise, a new startup capture needs its own plan and approval.
+
+Azure mutations. 0.

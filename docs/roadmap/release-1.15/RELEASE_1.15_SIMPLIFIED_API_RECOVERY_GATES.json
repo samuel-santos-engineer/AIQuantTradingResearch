@@ -1660,6 +1660,40 @@
       "rollback_state": "Zero Azure writes. Existing staging and parallel app configuration left in place.",
       "next_action": "Use the parallel app's existing Azure portal log view to seek a main-container record from 2026-11-23 01:57:07?01:59:10 UTC. Capture only timestamp, role, startup stage or exception type. If unavailable, retain startup cause as unknown.",
       "rest": []
+    },
+    {
+      "gate_id": "N5",
+      "attempt": 3,
+      "started_at_utc": "2026-11-23T02:17:13.413624Z",
+      "ended_at_utc": "2026-11-23T02:17:37.690602Z",
+      "status": "PASS",
+      "source_commit": "b9a3498d44bd5cbb6b80c19241aa570d11a7d130",
+      "environment": "staging",
+      "objective": "Classify any existing main-container startup evidence from the exact parallel app failure window.",
+      "commands_or_test_ids": [
+        "One read-only ARM GET /detectors/LinuxLogViewer on the parallel app, API 2025-05-01. UTC filter 2026-11-23 01:57:07 to 01:59:11. No retry."
+      ],
+      "expected": "Return only a window-matched record with an explicit main-container role, or record the evidence gap.",
+      "observed": "At 2026-11-23T02:17:19.688758Z the bounded Azure CLI-authenticated read completed with HTTP 200. The exact detector identity matched. One response row was inspected in memory and yielded zero records with both an in-window UTC timestamp and an explicit main-container role. No raw row, startup stage, exception type or image identity was emitted. Startup cause and Azure-side exception status remain unknown. The previous SCM 403 and N3 failure remain historical evidence. This pass completed the comparison only. No portal browser session, new health request, snapshot or Azure write occurred. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.",
+      "exit_codes": {
+        "offline_detector_cases": 0,
+        "owned_detector_worker": 0
+      },
+      "test_counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Zero Azure writes. No configuration or lifecycle change.",
+      "next_action": "If the signed-in Azure portal has retained main-container evidence for the same window, capture only its timestamp, role and fixed failure stage or exception type. Otherwise, a new startup capture needs its own plan and approval.",
+      "rest": []
     }
   ]
 }
