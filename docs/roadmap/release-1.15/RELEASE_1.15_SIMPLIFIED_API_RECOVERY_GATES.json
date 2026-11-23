@@ -1625,6 +1625,41 @@
       "rollback_state": "Existing environments untouched. No deletion authorized for the new lab.",
       "next_action": "Collect existing main-container startup evidence before any new apply.",
       "rest": []
+    },
+    {
+      "gate_id": "N2",
+      "attempt": 3,
+      "started_at_utc": "2026-11-23T02:13:19.877045Z",
+      "ended_at_utc": "2026-11-23T02:13:44.002047Z",
+      "status": "PASS",
+      "source_commit": "e8cf11f18e92995102085f81083c246b2ffc28ae",
+      "environment": "staging",
+      "objective": "Read back the parallel lab's logging level and look for existing startup evidence.",
+      "commands_or_test_ids": [
+        "One bounded ARM GET config/logs on the exact parallel API app",
+        "One bounded same-app SCM GET /api/logs/docker using existing Azure CLI authentication"
+      ],
+      "expected": "Verified logging level and, if accessible, one startup record from the prior deployment window.",
+      "observed": "At 2026-11-23T02:13:24.488697Z the read-only worker completed. ARM returned 200 and verified filesystem application logging at Information. SCM returned 403 at the inventory header gate. Zero SCM body bytes were read and no file was requested. The 403 reason, main-container role, running digest and Azure-side exception status remain unknown. The prior pinned image configuration readback and failed N3 health window stand. There were no new health or snapshot requests.",
+      "exit_codes": {
+        "local_sanitizer_cases": 0,
+        "owned_read_only_worker": 0
+      },
+      "test_counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Zero Azure writes. Existing staging and parallel app configuration left in place.",
+      "next_action": "Use the parallel app's existing Azure portal log view to seek a main-container record from 2026-11-23 01:57:07?01:59:10 UTC. Capture only timestamp, role, startup stage or exception type. If unavailable, retain startup cause as unknown.",
+      "rest": []
     }
   ]
 }

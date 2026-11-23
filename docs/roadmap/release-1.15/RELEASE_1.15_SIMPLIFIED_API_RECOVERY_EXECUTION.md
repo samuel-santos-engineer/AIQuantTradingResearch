@@ -755,3 +755,13 @@ New site URL `https://aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net/`. Th
 The controller returned from configuration and observation at 2026-11-23T01:59:10.634619Z with 7 management read requests in the resumed phase. The initial app PUT had no HTTP status; fresh readback proved it had taken effect. In total, 5 confirmed Azure writes were recorded, with none against the old API, UI or production. No credentials, raw logs, or dataset content are included in the receipt. Filesystem log retention was not exposed by the bounded logging readback.
 
 API_HEALTH_ACCEPTED=false for original staging. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N2 attempt 3
+
+PASS on e8cf11f18e92995102085f81083c246b2ffc28ae from 2026-11-23T02:13:19.877045Z to 2026-11-23T02:13:44.002047Z.
+
+At 2026-11-23T02:13:24.488697Z the read-only worker completed. ARM returned 200 and verified filesystem application logging at Information. SCM returned 403 at the inventory header gate. Zero SCM body bytes were read and no file was requested. The 403 reason, main-container role, running digest and Azure-side exception status remain unknown. The prior pinned image configuration readback and failed N3 health window stand. There were no new health or snapshot requests.
+
+Next action. Use the parallel app's existing Azure portal log view to seek a main-container record from 2026-11-23 01:57:07?01:59:10 UTC. Capture only timestamp, role, startup stage or exception type. If unavailable, retain startup cause as unknown.
+
+Azure mutations. 0.
