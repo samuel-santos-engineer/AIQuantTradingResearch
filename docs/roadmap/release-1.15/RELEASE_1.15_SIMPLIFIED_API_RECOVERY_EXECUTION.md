@@ -648,3 +648,110 @@ Owner approved fresh preflight and F1-only provisioning using the published para
 N0?N4 remain blocked. The prior N5 comparison stands. No Azure read or write, resource creation, authentication probe, or new Azure cost occurred. Fresh quota and F1 admission were not queried after the stop. The next proposed action is explicit authorization to generate a separate lab-only key in memory, privately configure the new app on the existing HTTPS management channel, and reuse that key only in the same owned activation/probe session. Keep it out of argv, files, console output, receipts and Git. No old credentials are needed.
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N0 attempt 5
+
+PASS on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:50:35.190751Z to 2026-11-23T02:01:15.900188Z.
+
+West US 2 advertised Linux F1. Existing regional free plans 1 against documented 10. Regional free VM counter 1/31. Proposed group absent and app name available. Old API rollback config matched. Dedicated lab-only memory channel generated for new settings and probes.
+
+Next action. Provision the bounded new F1 lab resources.
+
+Confirmed Azure mutations. 0.
+
+## N1 attempt 2
+
+BLOCKED on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:55:10.524934Z to 2026-11-23T02:01:16.070708Z.
+
+A prior local controller launch failed before HTTPS because a function shadowed the HTTP module; the group was confirmed absent and the offline binding case passed. The corrected controller created the group and F1 plan. The app PUT timed out at its 16-second request bound before a response, leaving the app outcome initially unknown.
+
+Next action. Reconcile the exact app by readback without resending the create.
+
+Confirmed Azure mutations. 2.
+
+## N1 attempt 3
+
+PASS on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:56:04.642046Z to 2026-11-23T02:01:16.256310Z.
+
+Readback confirmed all three lab resources, exact default hostname, blank initial image/startup and no configured storage mounts. The app create was not repeated. Settings verified: True. The generated lab key was transmitted only in the authenticated HTTPS request and stayed out of local files, process arguments and output.
+
+Next action. Enable best-effort filesystem diagnostics and apply the exact parallel image.
+
+Confirmed Azure mutations. 2.
+
+## N2 attempt 2
+
+PASS on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:56:45.891334Z to 2026-11-23T02:01:16.430792Z.
+
+Filesystem logging: UNVERIFIED. Candidate configuration verified: True. Startup classification: STARTUP_MARKER_UNOBSERVED_LOGGING_UNVERIFIED. Startup HTTP status: None. Fixed stage: None. A running digest was not attested.
+
+Next action. Evaluate the new app's bounded health results.
+
+Confirmed Azure mutations. 1.
+
+## N3 attempt 2
+
+FAIL on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:57:24.497284Z to 2026-11-23T02:01:16.599049Z.
+
+no status TRANSPORT_OR_RESPONSE_UNVERIFIED, 503 HEALTH_HTTP_REJECTED, 503 HEALTH_HTTP_REJECTED
+
+Next action. Collect existing main-container startup evidence before any new apply.
+
+Confirmed Azure mutations. 0.
+
+## N4 attempt 2
+
+BLOCKED on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:56:45.891334Z to 2026-11-23T02:01:16.781420Z.
+
+Not run. No authenticated dataset accepted. No private dataset transfer was performed.
+
+Next action. Resolve new app startup before authenticated probes.
+
+Confirmed Azure mutations. 0.
+
+## N5 attempt 2
+
+PASS on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:59:10.634619Z to 2026-11-23T02:01:16.980845Z.
+
+Original staging health remains unverified after rollback. New lab health: no status TRANSPORT_OR_RESPONSE_UNVERIFIED, 503 HEALTH_HTTP_REJECTED, 503 HEALTH_HTTP_REJECTED. New lab snapshots: Not run. Confirmed Azure writes confined to the new lab: 5.
+
+Next action. Collect existing main-container startup evidence before any new apply.
+
+Confirmed Azure mutations. 0.
+
+
+### Parallel staging live decision matrix
+
+| Observation | Old staging | New parallel lab |
+| --- | --- | --- |
+| Resource group and plan | Original West US 2 shared staging plan, outside write scope | West US 2 Linux F1, separate group and verified distinct plan |
+| Image | Last verified original rollback reference | sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914 configured=True. Actual running digest unverified. |
+| Site and settings | Last rollback, HTTPS-only, and blank startup readback | Exact aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net, HTTPS-only, exact lab settings verified=True. Dedicated key stored only by the new app. |
+| Storage | Historical staging ephemeral contract, current contents unknown | No configured mounts or import. New app has isolated ephemeral storage. |
+| Startup marker | Unobserved in failed corrected-image window | STARTUP_MARKER_UNOBSERVED_LOGGING_UNVERIFIED; HTTP None; stage None |
+| Health and snapshots | No current acceptance | no status TRANSPORT_OR_RESPONSE_UNVERIFIED, 503 HEALTH_HTTP_REJECTED, 503 HEALTH_HTTP_REJECTED. Not run. |
+
+| Azure operation | Attempt UTC | HTTP status | Disposition |
+| --- | --- | --- | --- |
+| CREATE_GROUP | 2026-11-23T01:55:12.542643Z | 201 | Confirmed |
+| CREATE_LINUX_F1_PLAN | 2026-11-23T01:55:18.722365Z | 200 | Confirmed |
+| CREATE_LINUX_APP | 2026-11-23T01:55:24.571082Z | No response | Confirmed by fresh app readback |
+| PRIVATE_LAB_SETTINGS | 2026-11-23T01:56:49.981110Z | 200 | Confirmed |
+| ENABLE_FILESYSTEM_LOGGING | 2026-11-23T01:56:51.341522Z | No response | Unverified, may have applied |
+| APPLY_PINNED_IMAGE | 2026-11-23T01:57:07.354445Z | 200 | Confirmed |
+
+The logging write reached its request bound before an HTTP response. The controller continued under the best-effort logging scope. It did not collect startup files because logging was unverified. No root cause or Azure-side I/O exception was established.
+
+Health request start times (UTC) and outcomes were 2026-11-23T01:57:24.497284Z (no HTTP status), 2026-11-23T01:58:09.497833Z (503), 2026-11-23T01:59:09.497554Z (503).
+
+Exact verified new resource IDs:
+
+- `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r115-parallel-lab-wus2-7f5eabb5`
+- `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r115-parallel-lab-wus2-7f5eabb5/providers/Microsoft.Web/serverfarms/asp-aiq-r115-parallel-lab-wus2-7f5eabb5`
+- `/subscriptions/7f5eabb5-80f5-4369-88be-b14a6de763f1/resourceGroups/rg-aiq-r115-parallel-lab-wus2-7f5eabb5/providers/Microsoft.Web/sites/aiqr115-parallel-lab-wus2-7f5eabb5`
+
+New site URL `https://aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net/`. The release health gate remains separate from this experiment. No paid supporting resources, custom domain, UI, data import, explicit restart or deletion were requested. F1 is the free shared-compute tier, and the separate plan does not prove physical-host isolation. No ongoing paid service was selected or observed in this experiment. [App Service hosting plans](https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans)
+
+The controller returned from configuration and observation at 2026-11-23T01:59:10.634619Z with 7 management read requests in the resumed phase. The initial app PUT had no HTTP status; fresh readback proved it had taken effect. In total, 5 confirmed Azure writes were recorded, with none against the old API, UI or production. No credentials, raw logs, or dataset content are included in the receipt. Filesystem log retention was not exposed by the bounded logging readback.
+
+API_HEALTH_ACCEPTED=false for original staging. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
