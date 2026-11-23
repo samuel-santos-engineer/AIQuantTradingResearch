@@ -610,3 +610,22 @@ All seven containers were removed after verification. Scoped .NET suites passed 
 The verified image uses the pinned cached ASP.NET base, tracked bootstrap and exact revision label. Next approval is for GHCR publication and digest readback of that image. Before any separate creation or apply, verify actual default hostname and exact app identity against the allowed pair, F1 admission and the private dedicated-lab key channel. If Azure assigns a different default hostname, stop at that mismatch. N1?N4 remain blocked. No Azure or GHCR operations, new resources, or incremental cloud cost occurred in this pass.
 
 API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+## N0 attempt 3
+
+BLOCKED on fb6d9a5e6567e5ab78cd026c78ea9bd278997305 from 2026-11-23T01:36:52.229595Z to 2026-11-23T01:37:39.603893Z.
+
+One parallel API GHCR tag was published. The registry index and child bytes matched the local hashes, and the child manifest referenced the expected locally verified config. No Azure operation, UI push, or credential disclosure. N0 still needs a fresh provisioning preflight, private lab key channel and explicit approval for the replacement child.
+
+Next action. Approve fresh N0 preflight and F1-only provisioning using the verified parallel candidate.
+
+Azure mutations. 0.
+
+
+### Exact parallel image publication
+
+Published one tag, `ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-parallel-api-fb6d9a5e6567`. Registry verification finished at 2026-11-23T01:37:08.565572Z in 16.336 seconds. OCI index `sha256:60ad871ee2b74225ef9bf24e3432f9ad64f3ac4e93862de145c9ad21e7e8ac41` and Linux/amd64 child `sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914` matched the previously verified local byte hashes. The child manifest referenced config digest `sha256:4bdc4b6abf70d3cc76a739a69f1f61840e1b681f8aa61c0c43160459d64140dd`. No other image was published.
+
+The next approval is for the corrected child on the exact proposed parallel app and independent F1 plan in West US 2. Reverify subscription, F1 admission, names, actual app hostname, and a dedicated private key channel before use. The app name and expected hostname remain `aiqr115-parallel-lab-wus2-7f5eabb5` and `aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net`. Keep Azure-managed identity values intact. The new app starts with its own empty ephemeral storage. Old staging, Streamlit and production remain outside the scope.
+
+N0 and N1?N4 remain blocked for live execution pending that scope, with N5 comparison recorded. There were zero Azure reads or mutations in this publication pass, no resources were created and no incremental Azure cost was incurred. API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

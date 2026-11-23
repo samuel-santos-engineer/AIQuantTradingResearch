@@ -1306,6 +1306,43 @@
           "data_class": "fixture"
         }
       ]
+    },
+    {
+      "gate_id": "N0",
+      "attempt": 3,
+      "started_at_utc": "2026-11-23T01:36:52.229595Z",
+      "ended_at_utc": "2026-11-23T01:37:39.603893Z",
+      "status": "BLOCKED",
+      "source_commit": "fb6d9a5e6567e5ab78cd026c78ea9bd278997305",
+      "environment": "local",
+      "objective": "Publish and verify the exact source-bound parallel lab API image.",
+      "commands_or_test_ids": [
+        "docker image inspect <approved parallel API local tag>",
+        "docker buildx imagetools inspect --raw <exact GHCR tag>",
+        "docker image tag <verified local index ID> <exact GHCR tag>",
+        "docker image push <exact GHCR tag>",
+        "docker buildx imagetools inspect --raw <GHCR tag and immutable Linux/amd64 child>"
+      ],
+      "expected": "Exact local image index and Linux/amd64 child hash-match registry bytes, and the child config descriptor matches.",
+      "observed": "One parallel API GHCR tag was published. The registry index and child bytes matched the local hashes, and the child manifest referenced the expected locally verified config. No Azure operation, UI push, or credential disclosure. N0 still needs a fresh provisioning preflight, private lab key channel and explicit approval for the replacement child.",
+      "exit_codes": {
+        "push_and_registry_readback": 0
+      },
+      "test_counts": {
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure mutation or resource creation. Original staging, UI and production remain unchanged.",
+      "next_action": "Approve fresh N0 preflight and F1-only provisioning using the verified parallel candidate.",
+      "rest": []
     }
   ]
 }
