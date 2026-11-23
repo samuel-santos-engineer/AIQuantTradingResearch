@@ -9,7 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[3]
 RECEIPTS = ROOT / "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_GATES.json"
-GATES = {"G0", "G1", "G2", "G3", "G4", "N0", "N1", "N2", "N3", "N4", "N5"}
+GATES = {"G0", "G1", "G2", "G3", "G4", "N0", "N1", "N2", "N3", "N4", "N5", "O0", "O1", "O2", "O3"}
 STATUSES = {"PASS", "FAIL", "BLOCKED", "SKIPPED"}
 ATTEMPT_KEYS = {
     "gate_id", "attempt", "started_at_utc", "ended_at_utc", "status", "source_commit",
@@ -180,16 +180,18 @@ class RecoveryReceiptTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate_artifacts(altered)
 
-    def test_parallel_experiment_gates_are_bounded(self):
-        for gate in ("N0", "N1", "N2", "N3", "N4", "N5"):
+    def test_parallel_and_observable_experiment_gates_are_bounded(self):
+        for gate in ("N0", "N1", "N2", "N3", "N4", "N5", "O0", "O1", "O2", "O3"):
             with self.subTest(gate=gate):
                 receipt = self.fixture("BLOCKED")
                 receipt["attempts"][0]["gate_id"] = gate
                 validate_receipts(receipt)
 
-        receipt["attempts"][0]["gate_id"] = "N6"
-        with self.assertRaises(ValueError):
-            validate_receipts(receipt)
+        for invalid_gate in ("N6", "O4"):
+            with self.subTest(gate=invalid_gate):
+                receipt["attempts"][0]["gate_id"] = invalid_gate
+                with self.assertRaises(ValueError):
+                    validate_receipts(receipt)
 
     def test_execution_receipts_match_schema(self):
         data = json.loads(RECEIPTS.read_text(encoding="utf-8"), object_pairs_hook=unique_keys)

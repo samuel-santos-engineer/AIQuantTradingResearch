@@ -775,3 +775,43 @@ At 2026-11-23T02:17:19.688758Z the bounded Azure CLI-authenticated read complete
 Next action. If the signed-in Azure portal has retained main-container evidence for the same window, capture only its timestamp, role and fixed failure stage or exception type. Otherwise, a new startup capture needs its own plan and approval.
 
 Azure mutations. 0.
+
+## O0 attempt 1
+
+BLOCKED on 3e8b67cd1ebde8a8499c724508a671e2b4c33c68 from 2026-11-23T02:48:55.366200Z to 2026-11-23T02:48:55.366805Z.
+
+Secure channel BLOCKED. The prior controller generated a dedicated key in its own memory, verified its Azure settings write and cleared its local references on exit. No retained dedicated channel was established by this run. An operator environment variable exists, but its value and association with the parallel lab were not verified. No key value or Azure settings were read. The current cloud baseline, quota and concurrency checks were not run after this stop condition. The historical parallel configured image and potential image-only rollback target are sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914, pending fresh verification. Running digest UNKNOWN. Microsoft documents the preview Linux startup log command. Bounded live access on this app is unverified. Earlier SCM 403 and detector attribution gaps were not retested.
+
+Next action. Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.
+
+Azure mutations. 0.
+
+## O1 attempt 1
+
+BLOCKED on 3e8b67cd1ebde8a8499c724508a671e2b4c33c68 from 2026-11-23T02:48:55.454992Z to 2026-11-23T02:48:55.455419Z.
+
+NOT RUN because O0 blocked. Offline review located the explicit parallel hostname in the existing storage and transport boundary. The parallel app is already in that allowlist and no evidence ties that check to the previous 503s. No source change, build, local runtime, OCI hash or publication.
+
+Next action. Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.
+
+Azure mutations. 0.
+
+## O2 attempt 1
+
+BLOCKED on 3e8b67cd1ebde8a8499c724508a671e2b4c33c68 from 2026-11-23T02:48:55.535017Z to 2026-11-23T02:48:55.535655Z.
+
+NOT RUN because O0 blocked. No image apply, launch, capture, health GET or BTC/ETH snapshot. HTTP status and startup stage UNKNOWN.
+
+Next action. Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.
+
+Azure mutations. 0.
+
+## O3 attempt 1
+
+BLOCKED on 3e8b67cd1ebde8a8499c724508a671e2b4c33c68 from 2026-11-23T02:48:55.615221Z to 2026-11-23T02:48:55.615589Z.
+
+NOT RUN because O0 blocked. No rollback triggered and no new evidence distinguishes container failure from a platform hypothesis. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.
+
+Azure mutations. 0.
