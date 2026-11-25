@@ -119,12 +119,24 @@ public static class ResearchStorageBoundary
         });
         stream.WriteByte(0); stream.Flush(); // No database/configuration contents; exact probe removed on close.
     }
-    internal sealed record Mount(string Device, string Root, string Path, string FileSystem, bool Writable);
-    internal static Mount ValidateLinux(string directory, IEnumerable<string> lines, string status, string? expectedMount, bool stagingEphemeral = false)
+    /// <summary>Keep the Linux service identity mandatory even for liveness-only startup.</summary>
+    public static void ValidateServiceProcessIdentity()
+    {
+        if (!OperatingSystem.IsLinux()) throw new ResearchUnavailableException();
+        ValidateLinuxUid(File.ReadAllText("/proc/self/status"));
+    }
+
+    private static void ValidateLinuxUid(string status)
     {
         var uid = status.Split('\n').SingleOrDefault(line => line.StartsWith("Uid:", StringComparison.Ordinal))?
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (uid is null || uid.Length != 5 || uid.Skip(1).Any(value => value != "1654")) throw new ResearchUnavailableException();
+    }
+
+    internal sealed record Mount(string Device, string Root, string Path, string FileSystem, bool Writable);
+    internal static Mount ValidateLinux(string directory, IEnumerable<string> lines, string status, string? expectedMount, bool stagingEphemeral = false)
+    {
+        ValidateLinuxUid(status);
         if (stagingEphemeral && (directory != StagingDirectory || expectedMount != "/")) throw new ResearchUnavailableException();
         var mounts = new List<Mount>();
         foreach (var line in lines)

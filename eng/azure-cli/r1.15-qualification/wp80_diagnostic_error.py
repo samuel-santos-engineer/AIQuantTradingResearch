@@ -714,6 +714,7 @@ _STARTUP_MARKERS = {
     "Parallel API control. stage=LISTENER_READY": ("CONTROL_LISTENER_READY", "LISTENER"),
     "Research bootstrap startup. stage=BOOTSTRAP_ENTRY": ("BOOTSTRAP_ENTRY", "UNKNOWN"),
     "Research snapshot listener started.": ("LISTENER_STARTED", "LISTENER"),
+    "Research snapshot storage unavailable. stage=STORAGE": ("STORAGE_UNAVAILABLE", "STORAGE"),
     **{"Research snapshot startup. stage=" + stage: ("WORKER_STAGE", stage)
        for stage in _STARTUP_STAGES},
     **{message.decode("ascii"): ("WORKER_FAILURE", stage) for message, stage in _STAGE_MESSAGES.items()},

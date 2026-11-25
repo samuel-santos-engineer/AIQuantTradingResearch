@@ -125,6 +125,21 @@ public static class ResearchSnapshotEndpoint
         catch (DirectoryNotFoundException) { return null; }
         return new SqliteResearchStateStore(directory, true);
     }
+    private static SqliteResearchStateStore? OpenValidatedServingStore(string directory)
+    {
+        var store = OpenExistingStore(directory);
+        try
+        {
+            store?.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true);
+            return store;
+        }
+        catch
+        {
+            store?.Dispose();
+            throw;
+        }
+    }
+
     public static Task<int> RunAsync() => RunAsync(Environment.GetEnvironmentVariable, Console.Error);
 
     /// <summary>Explicit configuration and diagnostic sinks; diagnostics never include supplied values.</summary>
@@ -151,8 +166,20 @@ public static class ResearchSnapshotEndpoint
                 setting("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException("Research configuration unavailable."),
                 setting("AIQ_RESEARCH_TLS_PASSWORD"));
             await BeginStage("STORAGE");
-            using var store = OpenExistingStore(directory);
-            store?.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
+            SqliteResearchStateStore? servingStore;
+            try
+            {
+                servingStore = OpenValidatedServingStore(directory);
+            }
+            catch (Exception error) when (transport.PlatformHttp &&
+                error is ResearchUnavailableException or IOException or UnauthorizedAccessException)
+            {
+                ResearchStorageBoundary.ValidateServiceProcessIdentity();
+                await diagnostics.WriteLineAsync("Research snapshot storage unavailable. stage=STORAGE");
+                await diagnostics.FlushAsync();
+                servingStore = null;
+            }
+            using var store = servingStore;
             await BeginStage("LISTENER");
             var addressText = setting("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
             if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException("Research configuration unavailable.");

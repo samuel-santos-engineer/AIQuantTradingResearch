@@ -984,6 +984,16 @@ class StartupShowTests(unittest.TestCase):
             ],
         })
 
+    def test_liveness_only_storage_marker_is_distinct_from_a_startup_failure(self):
+        body = self.prefix + b"Research snapshot storage unavailable. stage=STORAGE\n"
+        body += self.prefix + b"Research snapshot storage unavailable. stage=STORAGE private-text\n"
+        for content_type, payload in (("text/plain", body), ("application/json", self.envelope(body))):
+            with self.subTest(content_type=content_type):
+                result = self.collect([payload], contentType=content_type)
+                self.assertEqual([("STORAGE_UNAVAILABLE", "STORAGE")],
+                                 [(record["classification"], record["detail"]) for record in result["records"]])
+                self.assertNotIn("private-text", json.dumps(result))
+
     def test_control_markers_are_distinct_from_research_worker_evidence(self):
         lines = self.prefix + b"Parallel API control. stage=BOOTSTRAP_ENTRY\n"
         lines += self.prefix + b"Parallel API control. stage=LISTENER_READY\n"
