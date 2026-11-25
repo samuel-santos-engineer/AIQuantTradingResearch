@@ -2614,6 +2614,40 @@
       "rollback_state": "No Azure mutation. The previous verified image restore stands.",
       "next_action": "Review the exact local prototype and separately authorize publication before any Azure comparison.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 9,
+      "started_at_utc": "2026-11-25T05:01:24Z",
+      "ended_at_utc": "2026-11-25T05:02:16.049395Z",
+      "status": "PASS",
+      "source_commit": "0d222fe8aee46299a4d3ec5ec12eb6806ca8db17",
+      "environment": "local",
+      "objective": "Publish and verify only the locally qualified Research API liveness prototype.",
+      "commands_or_test_ids": [
+        "Local exact image identity inspection",
+        "Preflight source-bound GHCR tag",
+        "One exact liveness image push if tag is absent",
+        "Read back immutable registry index and runtime manifest and check config descriptor"
+      ],
+      "expected": "The source-bound GHCR tag resolves to the tested index and single Linux/amd64 child.",
+      "observed": "Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-liveness-api-6c853d05094a. Source 6c853d05094adcba7c06968a1c0dc48210bb588a. OCI index sha256:460cc90afdc97613bc7e47a18db76ebcbc2e8f5232069eab98332490416f9853. Linux/amd64 child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38. Config sha256:bc10a4b08217314c0cbb563c2754dad7bea89c3a2a9a0b83c2acd32d3b959373. Push attempted True. Qualified registry readback True. Registry index and Linux manifest bytes matched their local SHA-256 digests. The registry Linux manifest references the config digest verified byte-for-byte in the local OCI archive. No config blob was separately fetched. No Azure request, configuration update, restart, health probe or key access occurred. The existing parallel image rollback stands. Research API runtime readiness is still unverified.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure mutation. Previously restored parallel API image stays in place.",
+      "next_action": "Authorize a separate parallel-lab-only image apply with the existing approved memory-only key channel, bounded health and startup capture, and image-only rollback on failed health.",
+      "rest": []
     }
   ]
 }

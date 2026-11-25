@@ -1056,3 +1056,13 @@ Next action. Review the exact local prototype and separately authorize publicati
 Azure mutations. 0.
 
 This prototype applies only after explicit Azure lab transport validation. The existing store guard remains mandatory for any snapshot source. A partial store is disposed on validation failure, and the fallback rechecks the original Linux UID requirement before listening. Liveness-only mode keeps the source unavailable for that process. Local HTTPS retains its existing startup failure behavior, and known storage errors are handled only after they return. The prior Azure 503 cause is still unknown. No new monitoring, provider request, state import or deployment.
+
+## O1 attempt 9
+
+PASS on 0d222fe8aee46299a4d3ec5ec12eb6806ca8db17 from 2026-11-25T05:01:24Z to 2026-11-25T05:02:16.049395Z.
+
+Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-liveness-api-6c853d05094a. Source 6c853d05094adcba7c06968a1c0dc48210bb588a. OCI index sha256:460cc90afdc97613bc7e47a18db76ebcbc2e8f5232069eab98332490416f9853. Linux/amd64 child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38. Config sha256:bc10a4b08217314c0cbb563c2754dad7bea89c3a2a9a0b83c2acd32d3b959373. Push attempted True. Qualified registry readback True. Registry index and Linux manifest bytes matched their local SHA-256 digests. The registry Linux manifest references the config digest verified byte-for-byte in the local OCI archive. No config blob was separately fetched. No Azure request, configuration update, restart, health probe or key access occurred. The existing parallel image rollback stands. Research API runtime readiness is still unverified.
+
+Next action. Authorize a separate parallel-lab-only image apply with the existing approved memory-only key channel, bounded health and startup capture, and image-only rollback on failed health.
+
+Azure mutations. 0.
