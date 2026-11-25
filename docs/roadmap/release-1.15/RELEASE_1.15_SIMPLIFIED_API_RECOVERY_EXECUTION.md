@@ -969,3 +969,53 @@ Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-f1-contr
 Next action. Authorize a separate comparison limited to one control apply on the parallel F1 app, bounded health/startup observation, and restoration of the previous image after either outcome.
 
 Azure mutations. 0.
+
+## O0 attempt 6
+
+BLOCKED on 572da3af3f5b888bc5d4bcad9dccc51fa5a2cac9 from 2026-11-25T03:59:38.501311Z to 2026-11-25T04:03:44.281596Z.
+
+Activity returned HTTP 200 and zero rows. App metadata returned HTTP 200 but the baseline check failed at 2026-11-25T03:59:40.714745Z. No apply, SCM or health request occurred. One projected follow-up at 2026-11-25T04:00:16.711532Z verified all expected site fields. The original mismatch was not retained in the first worker's projection. No write occurred.
+
+Next action. Resume the same approved comparison with a fresh, complete baseline.
+
+Confirmed Azure mutations. 0.
+
+## O0 attempt 7
+
+BLOCKED on 572da3af3f5b888bc5d4bcad9dccc51fa5a2cac9 from 2026-11-25T04:00:40.804313Z to 2026-11-25T04:03:44.537336Z.
+
+Site, plan and quota returned HTTP 200. The logging GET returned no HTTP status by 2026-11-25T04:00:59.837583Z. No settings, apply, startup capture or health request followed.
+
+Next action. Try one isolated logging read before aborting the comparison.
+
+Confirmed Azure mutations. 0.
+
+## O0 attempt 8
+
+PASS on 572da3af3f5b888bc5d4bcad9dccc51fa5a2cac9 from 2026-11-25T04:00:38.162144Z to 2026-11-25T04:03:44.780694Z.
+
+Activity HTTP 200 with 0 rows. Reads SITE_RECHECK 200, PLAN_RECHECK 200, QUOTA_RECHECK 200, LOGGING_RECHECK_FROM_ISOLATED_RECOVERY 200, IMAGE_RECHECK 200, ROUTING_PORT_PROJECTION 200. Isolated logging retry status 200, verified True. Quota CpuTime 0/3600000 Milliseconds, CpuTimeShortPeriod 0/180000 Milliseconds, WPStopRequests 0/15 Count. Port verified True. Baseline verified True. The settings response was reduced to identity and port in memory. No key value was selected, used or emitted. 131 WP80 tests, eight receipt tests and four fake control-orchestration checks passed.
+
+Next action. Apply the immutable control once when all gates pass.
+
+Confirmed Azure mutations. 0.
+
+## O2 attempt 4
+
+PASS on 572da3af3f5b888bc5d4bcad9dccc51fa5a2cac9 from 2026-11-25T04:02:15.162271Z to 2026-11-25T04:03:44.984740Z.
+
+Image index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8. Linux child sha256:00c7e7212ae3bab7d3e4f80353e478949a365d38b5a677ab039eca6bec8bda23. Config sha256:09360b09d2ed079ef851fd4fe56bdce4b530c7fc3b689761b5bc01dd6953f036. Source 06583e8f35a311f811cb6e6336b748c7ff847015. Controller ended 2026-11-25T04:03:29.984343Z. Result CONTROL_HEALTH_PASS. Reason none. Operations APPLY_CONTROL_IMAGE 200 at 2026-11-25T04:02:20.512213Z, RESTORE_PRIOR_IMAGE 200 at 2026-11-25T04:03:27.086090Z. Control config verified True. Health 2026-11-25T04:02:35.512560Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-25T04:03:20.513090Z 200 ALIVE. Startup HTTP 200. Startup classification UNSUPPORTED_JSON_ENVELOPE. Fixed observations none. Runtime digest and main-container role remain unverified. No snapshot, key update or app settings mutation.
+
+Next action. Verify the prior image restoration and compare outcomes.
+
+Confirmed Azure mutations. 1.
+
+## O3 attempt 5
+
+PASS on 572da3af3f5b888bc5d4bcad9dccc51fa5a2cac9 from 2026-11-25T04:03:29.984343Z to 2026-11-25T04:03:45.139414Z.
+
+Restore status IMAGE_RESTORED. Restore reason none. Prior configured digest sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. The same F1 target returned literal 200 Alive after the control image was configured, following the 503 Research API candidate result. This narrows the next offline review to differences in the Research API image and startup path. It does not identify a particular failing guard. Post-restore health was not checked. No original staging, Streamlit or production changes. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. Compare the qualified Research API image and control startup inputs offline before any new Azure experiment.
+
+Confirmed Azure mutations. 1.
