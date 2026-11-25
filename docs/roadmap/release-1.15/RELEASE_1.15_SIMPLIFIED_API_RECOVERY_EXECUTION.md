@@ -943,3 +943,19 @@ The portal-backed detector request finished at 2026-11-25T03:23:54.147946Z with 
 Next action. If no main-container event is available in the signed-in portal for this same window, review a known-good container control on the same F1 app before approving another apply.
 
 Azure mutations. 0.
+
+## O1 attempt 5
+
+PASS on 06583e8f35a311f811cb6e6336b748c7ff847015 from 2026-11-25T03:48:45.893717Z to 2026-11-25T03:48:45.894442Z.
+
+Two Linux/amd64 starts passed, one with a read-only container root. Each returned 200 Alive on GET /health and 404 on GET /, POST /health and POST /v1/research/snapshot. Both emitted only the fixed bootstrap and listener-ready markers in order. Both owned containers were removed. Local control tag aiq-r115-f1-control:06583e8f35a3. Source 06583e8f35a311f811cb6e6336b748c7ff847015. Index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8. Linux child sha256:00c7e7212ae3bab7d3e4f80353e478949a365d38b5a677ab039eca6bec8bda23. Config sha256:09360b09d2ed079ef851fd4fe56bdce4b530c7fc3b689761b5bc01dd6953f036. All three digests verified from the local OCI archive. The control serves no dataset, requires no API key, and uses no SQLite or provider. Startup collector tests distinguish control markers from Research API markers and retain unverified role and image flags. 131 WP80 tests and eight receipt tests passed. There was no registry or Azure operation.
+
+Next action. Authorize publication of the exact tested control to the existing GHCR repository before any separately authorized Azure comparison.
+
+Azure mutations. 0.
+
+### What the offline control can distinguish
+
+On the same parallel F1 app, a control 200 Alive would show that this App Service target can pull, launch and route to the tested class of container. The Research API startup path would remain the next investigation target. Failure of both images would justify investigating the common image launch or routing path, and would leave attribution open.
+
+A future comparison would confirm a fresh exact-app F1 baseline, quota, port 52731 and the previous configured image. Apply the verified control child once with an image-only change, run the same bounded health and startup capture, and restore the verified prior image after either outcome. The control has no authenticated snapshot. Original staging, UI and production are outside scope. No publication or Azure comparison was authorized by this offline pass.

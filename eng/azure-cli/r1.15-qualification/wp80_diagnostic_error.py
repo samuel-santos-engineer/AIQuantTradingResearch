@@ -710,6 +710,8 @@ _STARTUP_SHOW_MEDIA = re.compile(
 )
 _STARTUP_SHOW_FIELDS = {"content", "filename", "date", "instance", "outcome"}
 _STARTUP_MARKERS = {
+    "Parallel API control. stage=BOOTSTRAP_ENTRY": ("CONTROL_BOOTSTRAP_ENTRY", "UNKNOWN"),
+    "Parallel API control. stage=LISTENER_READY": ("CONTROL_LISTENER_READY", "LISTENER"),
     "Research bootstrap startup. stage=BOOTSTRAP_ENTRY": ("BOOTSTRAP_ENTRY", "UNKNOWN"),
     "Research snapshot listener started.": ("LISTENER_STARTED", "LISTENER"),
     **{"Research snapshot startup. stage=" + stage: ("WORKER_STAGE", stage)

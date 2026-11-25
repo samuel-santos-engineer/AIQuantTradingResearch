@@ -2274,6 +2274,53 @@
       "rollback_state": "Existing verified image rollback stands. Zero Azure writes in this continuation.",
       "next_action": "If no main-container event is available in the signed-in portal for this same window, review a known-good container control on the same F1 app before approving another apply.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 5,
+      "started_at_utc": "2026-11-25T03:48:45.893717Z",
+      "ended_at_utc": "2026-11-25T03:48:45.894442Z",
+      "status": "PASS",
+      "source_commit": "06583e8f35a311f811cb6e6336b748c7ff847015",
+      "environment": "local",
+      "objective": "Qualify a minimal control image for comparison with the parallel Research API startup failure.",
+      "commands_or_test_ids": [
+        "Restore no-package .NET 10 project against an empty local source and publish framework-dependent Release",
+        "docker build Linux/amd64 --pull=false --network=none against the exact cached ASP.NET base",
+        "Two local Docker starts with isolated loopback probes and owned cleanup",
+        "Verify local OCI index, Linux child and config descriptor hashes from docker image save",
+        "Run focused WP80 Python and receipt unittest suites"
+      ],
+      "expected": "Same platform, ASP.NET base, shell-to-dotnet entrypoint, UID and HTTP port. Fixed Alive response with no research prerequisites.",
+      "observed": "Two Linux/amd64 starts passed, one with a read-only container root. Each returned 200 Alive on GET /health and 404 on GET /, POST /health and POST /v1/research/snapshot. Both emitted only the fixed bootstrap and listener-ready markers in order. Both owned containers were removed. Local control tag aiq-r115-f1-control:06583e8f35a3. Source 06583e8f35a311f811cb6e6336b748c7ff847015. Index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8. Linux child sha256:00c7e7212ae3bab7d3e4f80353e478949a365d38b5a677ab039eca6bec8bda23. Config sha256:09360b09d2ed079ef851fd4fe56bdce4b530c7fc3b689761b5bc01dd6953f036. All three digests verified from the local OCI archive. The control serves no dataset, requires no API key, and uses no SQLite or provider. Startup collector tests distinguish control markers from Research API markers and retain unverified role and image flags. 131 WP80 tests and eight receipt tests passed. There was no registry or Azure operation.",
+      "exit_codes": {
+        "local_publish": 0,
+        "linux_control": 0,
+        "oci_readback": 0,
+        "wp80_unittests": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 141,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [
+        "tests/runtime/release_1_15/parallel_api_control/ParallelApiControl.csproj",
+        "tests/runtime/release_1_15/parallel_api_control/Program.cs",
+        "tests/runtime/release_1_15/parallel_api_control/Dockerfile",
+        "eng/azure-cli/r1.15-qualification/wp80_diagnostic_error.py",
+        "eng/azure-cli/r1.15-qualification/test_wp80_diagnostic_error.py"
+      ],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure mutations. Previous verified parallel API image rollback stands.",
+      "next_action": "Authorize publication of the exact tested control to the existing GHCR repository before any separately authorized Azure comparison.",
+      "rest": []
     }
   ]
 }

@@ -984,6 +984,17 @@ class StartupShowTests(unittest.TestCase):
             ],
         })
 
+    def test_control_markers_are_distinct_from_research_worker_evidence(self):
+        lines = self.prefix + b"Parallel API control. stage=BOOTSTRAP_ENTRY\n"
+        lines += self.prefix + b"Parallel API control. stage=LISTENER_READY\n"
+        lines += self.prefix + b"Parallel API control. stage=LISTENER_READY private-text\n"
+        result = self.collect([self.envelope(lines)], contentType="application/json")
+        self.assertEqual(["CONTROL_BOOTSTRAP_ENTRY", "CONTROL_LISTENER_READY"],
+                         [record["classification"] for record in result["records"]])
+        self.assertFalse(result["mainContainerBound"])
+        self.assertFalse(result["runtimeImageVerified"])
+        self.assertNotIn("private-text", json.dumps(result))
+
     def test_denied_response_never_consumes_body(self):
         def forbidden():
             self.fail("unexpected body read")
