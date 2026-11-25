@@ -959,3 +959,13 @@ Azure mutations. 0.
 On the same parallel F1 app, a control 200 Alive would show that this App Service target can pull, launch and route to the tested class of container. The Research API startup path would remain the next investigation target. Failure of both images would justify investigating the common image launch or routing path, and would leave attribution open.
 
 A future comparison would confirm a fresh exact-app F1 baseline, quota, port 52731 and the previous configured image. Apply the verified control child once with an image-only change, run the same bounded health and startup capture, and restore the verified prior image after either outcome. The control has no authenticated snapshot. Original staging, UI and production are outside scope. No publication or Azure comparison was authorized by this offline pass.
+
+## O1 attempt 6
+
+PASS on e96751af2d8f0a12d8bb8ce80ccbf9aa2b33496b from 2026-11-25T03:50:53.676084Z to 2026-11-25T03:50:53.677468Z.
+
+Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-f1-control-06583e8f35a3. Source 06583e8f35a311f811cb6e6336b748c7ff847015. OCI index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8. Linux/amd64 child sha256:00c7e7212ae3bab7d3e4f80353e478949a365d38b5a677ab039eca6bec8bda23. Config sha256:09360b09d2ed079ef851fd4fe56bdce4b530c7fc3b689761b5bc01dd6953f036. Push attempted True. Qualified registry readback True. Registry index and Linux manifest bytes matched their local SHA-256 digests. The registry Linux manifest references the config digest verified byte-for-byte in the local OCI archive. No config blob was separately fetched. No Azure request, configuration update, restart, health probe or key access occurred. The existing image rollback stands.
+
+Next action. Authorize a separate comparison limited to one control apply on the parallel F1 app, bounded health/startup observation, and restoration of the previous image after either outcome.
+
+Azure mutations. 0.

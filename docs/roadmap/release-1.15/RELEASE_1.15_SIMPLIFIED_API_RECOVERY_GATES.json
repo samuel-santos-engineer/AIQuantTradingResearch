@@ -2321,6 +2321,40 @@
       "rollback_state": "No Azure mutations. Previous verified parallel API image rollback stands.",
       "next_action": "Authorize publication of the exact tested control to the existing GHCR repository before any separately authorized Azure comparison.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 6,
+      "started_at_utc": "2026-11-25T03:50:53.676084Z",
+      "ended_at_utc": "2026-11-25T03:50:53.677468Z",
+      "status": "PASS",
+      "source_commit": "e96751af2d8f0a12d8bb8ce80ccbf9aa2b33496b",
+      "environment": "local",
+      "objective": "Publish and verify only the locally qualified F1 startup control image.",
+      "commands_or_test_ids": [
+        "Local exact image identity inspection",
+        "Preflight source-bound GHCR tag",
+        "One exact control image push if tag is absent",
+        "Read back immutable registry index and runtime manifest and check config descriptor"
+      ],
+      "expected": "The source-bound GHCR tag resolves to the tested index and single Linux/amd64 child.",
+      "observed": "Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-f1-control-06583e8f35a3. Source 06583e8f35a311f811cb6e6336b748c7ff847015. OCI index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8. Linux/amd64 child sha256:00c7e7212ae3bab7d3e4f80353e478949a365d38b5a677ab039eca6bec8bda23. Config sha256:09360b09d2ed079ef851fd4fe56bdce4b530c7fc3b689761b5bc01dd6953f036. Push attempted True. Qualified registry readback True. Registry index and Linux manifest bytes matched their local SHA-256 digests. The registry Linux manifest references the config digest verified byte-for-byte in the local OCI archive. No config blob was separately fetched. No Azure request, configuration update, restart, health probe or key access occurred. The existing image rollback stands.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure mutation. Previously restored parallel API image stays in place.",
+      "next_action": "Authorize a separate comparison limited to one control apply on the parallel F1 app, bounded health/startup observation, and restoration of the previous image after either outcome.",
+      "rest": []
     }
   ]
 }
