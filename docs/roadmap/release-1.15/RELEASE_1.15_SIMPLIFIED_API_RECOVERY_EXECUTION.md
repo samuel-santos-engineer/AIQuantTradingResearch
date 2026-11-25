@@ -1019,3 +1019,28 @@ Restore status IMAGE_RESTORED. Restore reason none. Prior configured digest sha2
 Next action. Compare the qualified Research API image and control startup inputs offline before any new Azure experiment.
 
 Confirmed Azure mutations. 1.
+
+## O1 attempt 7
+
+PASS on 96de9a21064b11c92c1a46b9c7a6c6c29cbacd43 from 2026-11-25T04:25:17.399367Z to 2026-11-25T04:25:17.400383Z.
+
+Eight synthetic Linux container runs passed their expected outcomes. Both images ran on the selected ASP.NET base with Linux/amd64, user 1654:1654 and IPv4 port 52731. The baseline control and Research both returned 200 Alive. Research returned 401 without authentication and 503 DATASET_NOT_READY with the fake key on the empty store. The other three fixtures left the control healthy and made Research exit 1 at TRANSPORT or STORAGE. All owned test containers were removed. 101 .NET, 131 WP80 and eight receipt tests passed. No application change, build, registry operation or Azure request occurred in this pass. No actual Azure runtime environment or launch-stage evidence was recovered.
+
+Next action. Prototype an offline, explicit split between API liveness and authenticated storage availability, retaining the current guard and stressing real storage failures before any new Azure experiment.
+
+Azure mutations. 0.
+
+### Control and Research API startup differences
+
+The paired runs used the locally qualified control index sha256:5ef92a2179efc57af3512924a4933b307b6b24eed3b5065c92067f9cd1ba35f8 and Research API index sha256:a24c6ba6386d217884a221d7217dadbe168cb3d869e38c452df9604fe1c30bf0. Each role ran with identical synthetic site, transport and storage settings within each pair. The test client shared the owned container's isolated loopback namespace. No host port was published.
+
+| Synthetic change from baseline | F1 control | Research API |
+| --- | --- | --- |
+| None | HTTP 200 Alive | HTTP 200 Alive. Empty authenticated snapshot returned 503 DATASET_NOT_READY. |
+| Remove WEBSITE_HOSTNAME | HTTP 200 Alive | Exit 1 at TRANSPORT before listener creation. |
+| Set WEBSITES_ENABLE_APP_SERVICE_STORAGE=true | HTTP 200 Alive | Exit 1 at STORAGE before listener creation. |
+| Add a writable tmpfs directly at the private research directory | HTTP 200 Alive | Exit 1 at STORAGE before listener creation. |
+
+Both images use a shell entrypoint and the same ASP.NET base, UID and IPv4 listener. The control goes directly from shell to Kestrel. The Research Worker dispatches the API mode before composing provider services and checks transport and storage before Kestrel starts. The Azure HTTP transport expects consistent platform-provided site metadata and explicit opt-in. The storage branch requires UID 1654, a writable private container-root overlay and directory permissions, even when SQLite is absent. The Research API's in-process 503 DATASET_NOT_READY requires a listener and authentication. The earlier Azure 503 at /health remains of unknown origin.
+
+Azure control health makes a blanket port, base-image or registry incompatibility less likely on this app. The fixtures do not identify the actual Azure environment values, mount topology or failed startup branch. The next offline candidate should keep transport, authentication, TLS, UID and storage checks fail-closed. A narrow liveness split could let an already validated listener return Alive when storage is unavailable while denying authenticated snapshots without an approved store. It would not fix failures that occur before transport and listener validation.

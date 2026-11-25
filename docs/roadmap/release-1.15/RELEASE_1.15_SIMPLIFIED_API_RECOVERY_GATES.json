@@ -2528,6 +2528,46 @@
       "rollback_state": "IMAGE_RESTORED",
       "next_action": "Compare the qualified Research API image and control startup inputs offline before any new Azure experiment.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 7,
+      "started_at_utc": "2026-11-25T04:25:17.399367Z",
+      "ended_at_utc": "2026-11-25T04:25:17.400383Z",
+      "status": "PASS",
+      "source_commit": "96de9a21064b11c92c1a46b9c7a6c6c29cbacd43",
+      "environment": "local",
+      "objective": "Compare the exact qualified Research API and F1 control image startup paths and isolate differential failure modes.",
+      "commands_or_test_ids": [
+        "Inspect only exact local platform, UID, ports, entrypoint and source revision on the two cached images",
+        "Read the source-bound bootstrap, Worker early dispatch, HTTP listener and storage guard paths",
+        "Run paired Linux startup checks against four offline fixtures with cached images in isolated network namespaces",
+        "dotnet test focused ResearchSnapshotEndpointTests and ResearchStorageBoundaryTests with no build or restore",
+        "Run WP80 Python and recovery receipt unittest suites"
+      ],
+      "expected": "Observe which pre-listener prerequisites distinguish the two images without inferring Azure runtime conditions.",
+      "observed": "Eight synthetic Linux container runs passed their expected outcomes. Both images ran on the selected ASP.NET base with Linux/amd64, user 1654:1654 and IPv4 port 52731. The baseline control and Research both returned 200 Alive. Research returned 401 without authentication and 503 DATASET_NOT_READY with the fake key on the empty store. The other three fixtures left the control healthy and made Research exit 1 at TRANSPORT or STORAGE. All owned test containers were removed. 101 .NET, 131 WP80 and eight receipt tests passed. No application change, build, registry operation or Azure request occurred in this pass. No actual Azure runtime environment or launch-stage evidence was recovered.",
+      "exit_codes": {
+        "exact_image_comparison": 0,
+        "dotnet": 0,
+        "wp80_unittests": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 248,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure mutation. The previous verified prior-image restore stands.",
+      "next_action": "Prototype an offline, explicit split between API liveness and authenticated storage availability, retaining the current guard and stressing real storage failures before any new Azure experiment.",
+      "rest": []
     }
   ]
 }
