@@ -50,17 +50,28 @@ public static class ResearchStorageBoundary
     private static readonly string[] AzureMarkers = ["WEBSITE_INSTANCE_ID", "WEBSITE_SITE_NAME", "WEBSITE_HOSTNAME", "WEBSITE_ROLE_INSTANCE_ID"];
     internal const string StagingScope = "azure-f1-staging-ephemeral";
     internal const string StagingDirectory = "/tmp/aiq-research";
+    // Explicit lab opt-in and consistent App Service metadata are configuration checks.
+    // The operator still verifies the actual target, platform ingress and plan before deployment.
+    public static bool HasEphemeralStagingIdentity(Func<string, string?> setting)
+    {
+        var name = setting("WEBSITE_SITE_NAME");
+        return setting("AIQ_RESEARCH_STORAGE_SCOPE") == StagingScope &&
+            setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING") == "1" &&
+            name is { Length: >= 2 and <= 60 } && char.IsAsciiLetterOrDigit(name[0]) &&
+            char.IsAsciiLetterOrDigit(name[^1]) &&
+            name.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-') &&
+            setting("WEBSITE_HOSTNAME") == name + ".azurewebsites.net" &&
+            !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID"));
+    }
+
     internal static bool ValidateHost(Func<string, string?> setting)
     {
         var scope = setting("AIQ_RESEARCH_STORAGE_SCOPE");
         var optIn = setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING");
-        if (scope == StagingScope && optIn == "1" &&
-            setting("WEBSITE_SITE_NAME") == "aiqr115researchstagingwus27f5eabb5" &&
-            setting("WEBSITE_HOSTNAME") == "aiqr115researchstagingwus27f5eabb5.azurewebsites.net" &&
-            !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) &&
+        // The role instance ID is platform metadata, with no guaranteed zero ordinal.
+        if (HasEphemeralStagingIdentity(setting) &&
             setting("WEBSITES_ENABLE_APP_SERVICE_STORAGE") == "false" &&
-            setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/" &&
-            setting("WEBSITE_ROLE_INSTANCE_ID") == "0") return true;
+            setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/") return true;
         // Presence of any marker, unknown scope, or partial opt-in still denies by default.
         if (AzureMarkers.Any(name => setting(name) is not null) || optIn is not null ||
             setting("AIQ_RESEARCH_TRANSPORT") == "azure-app-service-http" ||
@@ -108,12 +119,24 @@ public static class ResearchStorageBoundary
         });
         stream.WriteByte(0); stream.Flush(); // No database/configuration contents; exact probe removed on close.
     }
-    internal sealed record Mount(string Device, string Root, string Path, string FileSystem, bool Writable);
-    internal static Mount ValidateLinux(string directory, IEnumerable<string> lines, string status, string? expectedMount, bool stagingEphemeral = false)
+    /// <summary>Keep the Linux service identity mandatory even for liveness-only startup.</summary>
+    public static void ValidateServiceProcessIdentity()
+    {
+        if (!OperatingSystem.IsLinux()) throw new ResearchUnavailableException();
+        ValidateLinuxUid(File.ReadAllText("/proc/self/status"));
+    }
+
+    private static void ValidateLinuxUid(string status)
     {
         var uid = status.Split('\n').SingleOrDefault(line => line.StartsWith("Uid:", StringComparison.Ordinal))?
             .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (uid is null || uid.Length != 5 || uid.Skip(1).Any(value => value != "1654")) throw new ResearchUnavailableException();
+    }
+
+    internal sealed record Mount(string Device, string Root, string Path, string FileSystem, bool Writable);
+    internal static Mount ValidateLinux(string directory, IEnumerable<string> lines, string status, string? expectedMount, bool stagingEphemeral = false)
+    {
+        ValidateLinuxUid(status);
         if (stagingEphemeral && (directory != StagingDirectory || expectedMount != "/")) throw new ResearchUnavailableException();
         var mounts = new List<Mount>();
         foreach (var line in lines)

@@ -20,12 +20,15 @@ namespace AIQuantTradingResearch.Infrastructure.Tests;
 public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutputHelper evidence)
 {
     [Theory]
-    [InlineData("CONFIGURATION")]
-    [InlineData("TRANSPORT")]
-    [InlineData("TLS")]
-    [InlineData("STORAGE")]
-    [InlineData("LISTENER")]
-    public async Task StartupFailureReportsOnlyFixedStage(string stage)
+    [InlineData("CONFIGURATION", null)]
+    [InlineData("TRANSPORT", null)]
+    [InlineData("TLS", null)]
+    [InlineData("STORAGE", null)]
+    [InlineData("LISTENER", null)]
+    [InlineData("LISTENER", "0")]
+    [InlineData("LISTENER", "65536")]
+    [InlineData("LISTENER", "+52731")]
+    public async Task StartupFailureReportsOnlyFixedStage(string stage, string? invalidLocalPort)
     {
         using var directory = new ResearchTestDirectory();
         var certificateFile = Path.Combine(Path.GetTempPath(), "aiq-startup-fake-" + Guid.NewGuid().ToString("N") + ".pfx");
@@ -49,11 +52,16 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
                 using var certificate = request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-1), DateTimeOffset.UtcNow.AddMinutes(5));
                 await File.WriteAllBytesAsync(certificateFile, certificate.Export(X509ContentType.Pfx));
                 if (stage == "STORAGE") settings["AIQ_RESEARCH_PRIVATE_DIRECTORY"] = sensitive; // Relative path rejected before store access.
+                else if (invalidLocalPort is not null) settings["AIQ_RESEARCH_LOCAL_PORT"] = invalidLocalPort;
                 else settings["AIQ_RESEARCH_BIND_ADDRESS"] = sensitive; // Rejected before listener creation.
             }
             using var diagnostics = new StringWriter();
             Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(name => settings.GetValueOrDefault(name), diagnostics));
-            Assert.Equal("Research snapshot service unavailable. stage=" + stage + Environment.NewLine, diagnostics.ToString());
+            string[] stages = ["CONFIGURATION", "TRANSPORT", "TLS", "STORAGE", "LISTENER"];
+            var expected = stages.Take(Array.IndexOf(stages, stage) + 1)
+                .Select(value => "Research snapshot startup. stage=" + value)
+                .Append("Research snapshot service unavailable. stage=" + stage);
+            Assert.Equal(string.Join(Environment.NewLine, expected) + Environment.NewLine, diagnostics.ToString());
             Assert.DoesNotContain(sensitive, diagnostics.ToString());
             Assert.DoesNotContain(directory.Path, diagnostics.ToString());
             Assert.DoesNotContain(certificateFile, diagnostics.ToString());
@@ -67,7 +75,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
     {
         using var diagnostics = new StringWriter();
         Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(_ => throw new InvalidOperationException("fake-private-path fake-secret"), diagnostics));
-        Assert.Equal("Research snapshot service unavailable. stage=CONFIGURATION" + Environment.NewLine, diagnostics.ToString());
+        Assert.Equal("Research snapshot startup. stage=CONFIGURATION" + Environment.NewLine +
+            "Research snapshot service unavailable. stage=CONFIGURATION" + Environment.NewLine, diagnostics.ToString());
     }
 
     private const string Key = "offline-test-service-key-12345678";
@@ -113,6 +122,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
     private static Dictionary<string, string?> PlatformSettings() => new()
     {
         ["AIQ_RESEARCH_TRANSPORT"] = "azure-app-service-http",
+        ["AIQ_RESEARCH_STORAGE_SCOPE"] = "azure-f1-staging-ephemeral",
+        ["AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING"] = "1",
         ["WEBSITE_SITE_NAME"] = "aiqr115researchstagingwus27f5eabb5",
         ["WEBSITE_HOSTNAME"] = "aiqr115researchstagingwus27f5eabb5.azurewebsites.net",
         ["WEBSITE_INSTANCE_ID"] = "offline-instance",
@@ -188,6 +199,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
 
     [Theory]
     [InlineData("AIQ_RESEARCH_TRANSPORT", "http")]
+    [InlineData("AIQ_RESEARCH_STORAGE_SCOPE", "local-qualification")]
+    [InlineData("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING", "0")]
     [InlineData("WEBSITE_SITE_NAME", "other")]
     [InlineData("WEBSITE_HOSTNAME", "other.azurewebsites.net")]
     [InlineData("WEBSITE_INSTANCE_ID", "")]
@@ -204,6 +217,27 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         using var dir = new ResearchTestDirectory(); using var store = dir.Open();
         Assert.Throws<ArgumentException>(() => ResearchSnapshotEndpoint.Create(new(store), Key, null));
     }
+    [Theory]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net", true)]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", true)]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", false)]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net", false)]
+    [InlineData("another-authorized-lab", "another-authorized-lab.azurewebsites.net", true)]
+    [InlineData("bad.name", "bad.name.azurewebsites.net", false)]
+    [InlineData("-invalid", "-invalid.azurewebsites.net", false)]
+    [InlineData("another-authorized-lab", "another-authorized-lab.azurewebsites.net.example.test", false)]
+    public void PlatformTransportRequiresConsistentAzureLabMetadata(string siteName, string hostname, bool accepted)
+    {
+        var settings = PlatformSettings();
+        settings["WEBSITE_SITE_NAME"] = siteName;
+        settings["WEBSITE_HOSTNAME"] = hostname;
+
+        if (accepted)
+            Assert.True(ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k)).PlatformHttp);
+        else
+            Assert.Throws<ArgumentException>(() => ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k)));
+    }
+
     [Fact] public async Task ExplicitPlatformBackendPreservesAuthenticationRoutingAndBodyBounds()
     {
         var settings = PlatformSettings(); var mode = ResearchSnapshotTransport.FromSettings(k => settings.GetValueOrDefault(k));
@@ -343,15 +377,15 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         if (string.IsNullOrEmpty(python)) return;
         using var dir = new ResearchTestDirectory();
         using var store = new SqliteResearchStateStore(dir.Path, true);
-        Seed(store); Provision(store);
+        SeedBrowserStore(store);
         using var cert = Certificate();
         using var alternateDirectory = new ResearchTestDirectory();
         using var alternate = new SqliteResearchStateStore(alternateDirectory.Path, true);
-        Seed(alternate); Provision(alternate);
+        SeedBrowserStore(alternate);
         foreach (var instrument in Enum.GetValues<ResearchInstrument>())
         {
             var state = alternate.Read(instrument);
-            alternate.Commit(new(instrument, Now, TimeSpan.Zero), new([ResearchTestDirectory.Candle(400, instrument, close: 104)]), state.Generation, state.Version);
+            alternate.Commit(new(instrument, Now, TimeSpan.Zero), new([BrowserCandle(400, instrument, close: 104)]), state.Generation, state.Version);
         }
         var reader = new BrowserReader(store);
         var clock = new Clock();
@@ -394,7 +428,7 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
                             foreach (var instrument in Enum.GetValues<ResearchInstrument>())
                             {
                                 var state = store.Read(instrument);
-                                var candle = ResearchTestDirectory.Candle(action == "gap" ? 405 : 400, instrument, close: action == "gap" ? 100 : 101);
+                                var candle = BrowserCandle(action == "gap" ? 405 : 400, instrument, close: action == "gap" ? 100 : 101);
                                 store.Commit(new(instrument, clock.Now, TimeSpan.Zero), new([candle]), state.Generation, state.Version);
                             }
                         }
@@ -436,6 +470,24 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
         evidence.WriteLine(await stdout);
         Assert.True(process.ExitCode == 0, await stderr);
     }
+    private static void SeedBrowserStore(SqliteResearchStateStore store)
+    {
+        foreach (var instrument in Enum.GetValues<ResearchInstrument>())
+        {
+            var state = store.Read(instrument);
+            var candles = Enumerable.Range(0, 401).Select(i => BrowserCandle(i, instrument));
+            store.Commit(new(instrument, Now, TimeSpan.Zero), new(candles), state.Generation, state.Version);
+        }
+        Provision(store);
+    }
+
+    private static CompletedResearchCandle BrowserCandle(int minute, ResearchInstrument instrument, decimal close = 100)
+    {
+        var candle = ResearchTestDirectory.Candle(minute, instrument, close);
+        return instrument == ResearchInstrument.BtcUsd ? candle : new(instrument, candle.OpenTimeUtc,
+            candle.Open, candle.High, candle.Low, candle.Close, volume: null);
+    }
+
     private static string FindRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

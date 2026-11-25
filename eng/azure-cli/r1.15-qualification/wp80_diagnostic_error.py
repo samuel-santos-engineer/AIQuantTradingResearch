@@ -592,6 +592,27 @@ _STARTUP_EXIT = re.compile(
 )
 
 
+def _bounded_startup_payload(chunks):
+    payload = bytearray()
+    try:
+        iterator = iter(chunks)
+    except TypeError:
+        return None, "INVALID_CHUNK"
+    try:
+        for chunk in iterator:
+            if type(chunk) is not bytes or not chunk:
+                return None, "INVALID_CHUNK"
+            # At the exact limit EOF is unverified. Stop without another pull.
+            if len(chunk) >= _STARTUP_FILE_BYTES - len(payload):
+                return None, "BODY_CAP_REACHED"
+            payload.extend(chunk)
+            if payload.count(b"\n") > _STARTUP_FILE_LINES:
+                return None, "LINE_CAP_EXCEEDED"
+    except OSError:
+        return None, "TRANSPORT_FAILURE"
+    return payload, None
+
+
 def collect_startup_file(metadata, chunks, *, observation_window):
     """Reduce one bounded plaintext startup file to reported evidence categories.
 
@@ -621,27 +642,9 @@ def collect_startup_file(metadata, chunks, *, observation_window):
         result["responseClass"] = "INVALID_WINDOW"
         return result
 
-    payload = bytearray()
-    try:
-        iterator = iter(chunks)
-    except TypeError:
-        result["responseClass"] = "INVALID_CHUNK"
-        return result
-    try:
-        for chunk in iterator:
-            if type(chunk) is not bytes or not chunk:
-                result["responseClass"] = "INVALID_CHUNK"
-                return result
-            # At the exact limit EOF is unverified. Stop without another pull.
-            if len(chunk) >= _STARTUP_FILE_BYTES - len(payload):
-                result["responseClass"] = "BODY_CAP_REACHED"
-                return result
-            payload.extend(chunk)
-            if payload.count(b"\n") > _STARTUP_FILE_LINES:
-                result["responseClass"] = "LINE_CAP_EXCEEDED"
-                return result
-    except OSError:
-        result["responseClass"] = "TRANSPORT_FAILURE"
+    payload, error = _bounded_startup_payload(chunks)
+    if error:
+        result["responseClass"] = error
         return result
     if not payload or not payload.endswith(b"\n"):
         result["responseClass"] = "EMPTY_BODY" if not payload else "INCOMPLETE_BODY"
@@ -700,3 +703,111 @@ def collect_startup_file(metadata, chunks, *, observation_window):
     result.update(responseClass="REPORTED_EVIDENCE", failureCategory=category,
                   exitCodeClass=exit_code, vocabularyClass=vocabulary)
     return result
+
+
+_STARTUP_SHOW_MEDIA = re.compile(
+    r'(text/plain|application/json)\s*(?:;\s*charset\s*=\s*(?:utf-8|"utf-8")\s*)?', re.I
+)
+_STARTUP_SHOW_FIELDS = {"content", "filename", "date", "instance", "outcome"}
+_STARTUP_MARKERS = {
+    "Parallel API control. stage=BOOTSTRAP_ENTRY": ("CONTROL_BOOTSTRAP_ENTRY", "UNKNOWN"),
+    "Parallel API control. stage=LISTENER_READY": ("CONTROL_LISTENER_READY", "LISTENER"),
+    "Research bootstrap startup. stage=BOOTSTRAP_ENTRY": ("BOOTSTRAP_ENTRY", "UNKNOWN"),
+    "Research snapshot listener started.": ("LISTENER_STARTED", "LISTENER"),
+    "Research snapshot storage unavailable. stage=STORAGE": ("STORAGE_UNAVAILABLE", "STORAGE"),
+    **{"Research snapshot startup. stage=" + stage: ("WORKER_STAGE", stage)
+       for stage in _STARTUP_STAGES},
+    **{message.decode("ascii"): ("WORKER_FAILURE", stage) for message, stage in _STAGE_MESSAGES.items()},
+}
+
+
+def classify_startup_show_response(metadata):
+    """Admit only the two expected media on an eligible startup-log response."""
+    gate = classify_scm_metadata(metadata)
+    if gate["responseClass"] not in ("HTTP_BODY_CANDIDATE_UNVERIFIED", "MEDIA_UNSUPPORTED"):
+        return gate["responseClass"]
+    match = _STARTUP_SHOW_MEDIA.fullmatch((metadata["contentType"] or "").strip())
+    if not match:
+        return "UNSUPPORTED_MEDIA"
+    return "TEXT_PLAIN" if match[1].lower() == "text/plain" else "JSON_ENVELOPE"
+
+
+def collect_startup_show(metadata, chunks, *, observation_window):
+    """Project fixed, in-window observations from one startup-log show response.
+
+    The caller verifies the exact SCM route, TLS, authorization and deadline,
+    and supplies raw response chunks without HTTP decompression. The result
+    never establishes container role, attempt identity or running image digest.
+    """
+    media = classify_startup_show_response(metadata)
+    result = dict(responseClass=media, records=[], mainContainerBound=False,
+                  startupAttemptBound=False, runtimeImageVerified=False)
+    if media not in ("TEXT_PLAIN", "JSON_ENVELOPE"):
+        return result
+    try:
+        if type(observation_window) is not tuple or len(observation_window) != 2:
+            raise ValueError("window")
+        start, end = map(_attribution_utc, observation_window)
+        if not dt.timedelta(0) < end - start <= dt.timedelta(seconds=180):
+            raise ValueError("window")
+    except ValueError:
+        return dict(result, responseClass="INVALID_WINDOW")
+
+    payload, error = _bounded_startup_payload(chunks)
+    if error or not payload:
+        return dict(result, responseClass=error or "EMPTY_BODY")
+    try:
+        text = payload.decode("utf-8")
+        if media == "JSON_ENVELOPE":
+            envelope = json.loads(text, object_pairs_hook=_pairs)
+            if (type(envelope) is not dict or not envelope.keys() <= _STARTUP_SHOW_FIELDS
+                    or type(envelope.get("content")) is not str
+                    or any(type(value) is not str or len(value) > 256
+                           for name, value in envelope.items() if name != "content")):
+                return dict(result, responseClass="UNSUPPORTED_JSON_ENVELOPE")
+            text = envelope["content"]
+            if len(text.encode("utf-8")) >= _STARTUP_FILE_BYTES:
+                return dict(result, responseClass="BODY_CAP_REACHED")
+    except (ValueError, RecursionError):
+        return dict(result, responseClass="UNSUPPORTED_BODY")
+
+    if not text or not text.endswith("\n"):
+        return dict(result, responseClass="INCOMPLETE_BODY" if text else "EMPTY_BODY")
+    text = text.replace("\r\n", "\n")
+    if any(ord(char) < 32 and char not in "\t\n" or ord(char) == 127 for char in text):
+        return dict(result, responseClass="UNSUPPORTED_BODY")
+    lines = text[:-1].split("\n")
+    if len(lines) > _STARTUP_FILE_LINES or any(len(line.encode("utf-8")) > 2048 for line in lines):
+        return dict(result, responseClass="RECORD_CAP_EXCEEDED")
+    if not any(lines):
+        return dict(result, responseClass="EMPTY_BODY")
+
+    records = set()
+    saw_current_line = False
+    for line in filter(None, lines):
+        match = _STAMP.fullmatch(line)
+        if not match:
+            return dict(result, responseClass="UNSUPPORTED_BODY")
+        stamp, message = match.groups()
+        # Keep seven-digit platform timestamps exact at the boundary.
+        remainder = int(stamp[-2]) if len(stamp) == 28 else 0
+        try:
+            when = _attribution_utc(stamp[:-2] + "Z" if len(stamp) == 28 else stamp)
+        except ValueError:
+            return dict(result, responseClass="UNSUPPORTED_BODY")
+        if not (start, 0) <= (when, remainder) <= (end, 0):
+            continue
+        saw_current_line = True
+        marker = _STARTUP_MARKERS.get(message)
+        if marker:
+            records.add((when, remainder, stamp, *marker))
+        elif (exit_record := _STARTUP_EXIT.fullmatch(message)) and 1 <= (code := int(exit_record[1])) <= 255:
+            records.add((when, remainder, stamp, "PLATFORM_LAUNCH_FAILURE", "ONE" if code == 1 else "OTHER_NONZERO"))
+
+    if len(records) > 24:
+        return dict(result, responseClass="RECORD_CAP_EXCEEDED")
+    if not records:
+        return dict(result, responseClass="NO_ATTRIBUTABLE_RECORD" if saw_current_line else "OUTSIDE_WINDOW")
+    return dict(result, responseClass="REPORTED_UNATTRIBUTED_MARKERS",
+                records=[dict(utc=stamp, classification=kind, detail=detail)
+                         for _, _, stamp, kind, detail in sorted(records)])

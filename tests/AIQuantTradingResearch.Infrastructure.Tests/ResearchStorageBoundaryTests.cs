@@ -12,6 +12,7 @@ public sealed class ResearchStorageBoundaryTests
     [InlineData("WEBSITE_INSTANCE_ID", "instance-b")]
     [InlineData("WEBSITE_HOSTNAME", "site.azurewebsites.net")]
     [InlineData("WEBSITE_ROLE_INSTANCE_ID", "0")]
+    [InlineData("WEBSITE_ROLE_INSTANCE_ID", "opaque-platform-id")]
     [InlineData("WEBSITE_SITE_NAME", "")]
     [InlineData("AIQ_RESEARCH_TRANSPORT", "azure-app-service-http")]
     [InlineData("AIQ_RESEARCH_STORAGE_SCOPE", "durable")]
@@ -55,26 +56,48 @@ public sealed class ResearchStorageBoundaryTests
         ["WEBSITE_SITE_NAME"] = "aiqr115researchstagingwus27f5eabb5",
         ["WEBSITE_HOSTNAME"] = "aiqr115researchstagingwus27f5eabb5.azurewebsites.net",
         ["WEBSITE_INSTANCE_ID"] = "offline-simulated-instance",
-        ["WEBSITE_ROLE_INSTANCE_ID"] = "0",
         ["WEBSITES_ENABLE_APP_SERVICE_STORAGE"] = "false",
         ["AIQ_RESEARCH_EXPECTED_MOUNT_PATH"] = "/"
     };
-    [Fact] public void OnlyCompleteExplicitStagingIdentitySelectsEphemeralMode()
+    [Theory]
+    [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net")]
+    [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net")]
+    [InlineData("another-authorized-lab", "unrelated-app.azurewebsites.net")]
+    public void OnlyCompleteExplicitStagingIdentitySelectsEphemeralMode(string siteName, string otherHostname)
     {
         var settings = Staging();
+        settings["WEBSITE_SITE_NAME"] = siteName;
+        settings["WEBSITE_HOSTNAME"] = siteName + ".azurewebsites.net";
         Assert.True(ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
         foreach (var name in settings.Keys)
         {
-            var incomplete = Staging(); incomplete.Remove(name);
+            var incomplete = new Dictionary<string, string?>(settings);
+            incomplete.Remove(name);
             Assert.Throws<ResearchUnavailableException>(() => ResearchStorageBoundary.ValidateHost(k => incomplete.GetValueOrDefault(k)));
         }
+
+        settings["WEBSITE_HOSTNAME"] = otherHostname;
+        Assert.Throws<ResearchUnavailableException>(() => ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
+    }
+    [Theory]
+    [InlineData(null)]
+    [InlineData("0")]
+    [InlineData("1")]
+    [InlineData("opaque-platform-id")]
+    public void ExactStagingScopeDoesNotDependOnRoleOrdinal(string? role)
+    {
+        var settings = Staging();
+        if (role is not null) settings["WEBSITE_ROLE_INSTANCE_ID"] = role;
+        Assert.True(ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
+
+        settings["WEBSITE_HOSTNAME"] = "other.azurewebsites.net";
+        Assert.Throws<ResearchUnavailableException>(() => ResearchStorageBoundary.ValidateHost(k => settings.GetValueOrDefault(k)));
     }
     [Theory]
     [InlineData("WEBSITE_SITE_NAME", "production")]
     [InlineData("WEBSITE_SITE_NAME", "aiqr112wp05wus27f5eabb5")]
     [InlineData("WEBSITE_HOSTNAME", "production.azurewebsites.net")]
     [InlineData("WEBSITE_INSTANCE_ID", " ")]
-    [InlineData("WEBSITE_ROLE_INSTANCE_ID", "1")]
     [InlineData("AIQ_RESEARCH_STORAGE_SCOPE", "local-qualification")]
     [InlineData("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING", "true")]
     [InlineData("WEBSITES_ENABLE_APP_SERVICE_STORAGE", "true")]

@@ -2,6 +2,10 @@
 # No tracing, credentials, export contents or full environment in diagnostics.
 set -eu
 mode=${AIQ_RESEARCH_BOOTSTRAP_MODE:-serve}
+# Diagnose has a separate machine-readable output contract.
+if [ "$mode" != diagnose ]; then
+  printf 'Research bootstrap startup. stage=BOOTSTRAP_ENTRY\n' >&2
+fi
 case "$mode" in
   diagnose)
     # Correlation is not attestation: independently authenticated retrieval is required.
