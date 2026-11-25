@@ -871,3 +871,15 @@ Confirmed Azure mutations. 1.
 The existing ephemeral-storage scope and explicit opt-in now gate both portable Azure transport and the storage boundary. The app must supply a consistent platform site-name and default hostname pair, instance identity, HTTPS and bind configuration. The new checks retain the original Azure port and kernel/private-directory requirements. This configuration check is not platform attestation.
 
 The combined config update was selected because changing settings separately can recycle the app before the candidate is configured. The one request was constrained to the lab and used a memory-only replacement. [App Service update configuration](https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/update-configuration) [App Service CLI startup logs](https://learn.microsoft.com/en-us/cli/azure/webapp/log/startup)
+
+## O1 attempt 3
+
+PASS on 9fd2d00ae923f4b98dc237d23ca8902d946453f1 from 2026-11-25T02:42:32.295302Z to 2026-11-25T02:42:32.296707Z.
+
+124 diagnostic tests passed, including six new startup-show tests. Eight receipt tests passed. The header gate admits HTTP 200 plaintext or UTF-8 JSON with a top-level string content field and optional allowlisted string metadata. It rejects redirects, authentication challenges, upgrades, unsupported media and compressed bodies before consuming chunks. Both formats share the under-16-KiB wire cap and require complete UTC-prefixed records in a caller-supplied window of at most 180 seconds. Up to 24 fixed observations are returned. File metadata and raw messages are discarded. Main-container role, startup attempt and runtime image remain unverified. The prior HTTP 200 response body was never read and its format remains unknown. This pass used synthetic fixtures only. Zero Azure requests and writes.
+
+Next action. Wire the header gate and bounded iterator into the one-shot runner before seeking approval for another live launch.
+
+Azure mutations. 0.
+
+The Azure CLI client handles text/plain and otherwise delegates to JSON decoding. The collector accepts a narrower JSON object with a string content field. Azure has not verified this envelope for the parallel lab. The eventual caller must verify the exact SCM route and TLS, reject ambiguous headers, enforce the request deadline and input cap before reading, and avoid redirects, retries and automatic decompression. [Azure CLI startup-log reference](https://learn.microsoft.com/en-us/cli/azure/webapp/log/startup) [Versioned Azure CLI implementation](https://github.com/Azure/azure-cli/blob/azure-cli-2.87.0/src/azure-cli/azure/cli/command_modules/appservice/custom.py#L5807)

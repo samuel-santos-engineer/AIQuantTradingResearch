@@ -2012,6 +2012,45 @@
       "rollback_state": "IMAGE_RESTORED",
       "next_action": "Offline, qualify a bounded collector for both documented Azure CLI startup-log response forms before any new launch.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 3,
+      "started_at_utc": "2026-11-25T02:42:32.295302Z",
+      "ended_at_utc": "2026-11-25T02:42:32.296707Z",
+      "status": "PASS",
+      "source_commit": "9fd2d00ae923f4b98dc237d23ca8902d946453f1",
+      "environment": "local",
+      "objective": "Qualify the startup-log show collector offline for plaintext and a strict JSON content envelope.",
+      "commands_or_test_ids": [
+        "Review installed Azure CLI 2.89.1 startup-log implementation and Microsoft preview command source",
+        "python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80_diagnostic_error.py -q",
+        "python -B -m unittest discover -s tests/runtime/release_1_15 -p test_recovery_gate_receipts.py -q"
+      ],
+      "expected": "Both response forms yield equivalent, time-bounded fixed observations and no raw content.",
+      "observed": "124 diagnostic tests passed, including six new startup-show tests. Eight receipt tests passed. The header gate admits HTTP 200 plaintext or UTF-8 JSON with a top-level string content field and optional allowlisted string metadata. It rejects redirects, authentication challenges, upgrades, unsupported media and compressed bodies before consuming chunks. Both formats share the under-16-KiB wire cap and require complete UTC-prefixed records in a caller-supplied window of at most 180 seconds. Up to 24 fixed observations are returned. File metadata and raw messages are discarded. Main-container role, startup attempt and runtime image remain unverified. The prior HTTP 200 response body was never read and its format remains unknown. This pass used synthetic fixtures only. Zero Azure requests and writes.",
+      "exit_codes": {
+        "diagnostic_unittests": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 132,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [
+        "eng/azure-cli/r1.15-qualification/wp80_diagnostic_error.py",
+        "eng/azure-cli/r1.15-qualification/test_wp80_diagnostic_error.py"
+      ],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure change. The verified image rollback in the previous O3 receipt stands.",
+      "next_action": "Wire the header gate and bounded iterator into the one-shot runner before seeking approval for another live launch.",
+      "rest": []
     }
   ]
 }
