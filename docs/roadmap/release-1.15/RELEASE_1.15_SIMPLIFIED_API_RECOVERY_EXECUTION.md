@@ -815,3 +815,59 @@ NOT RUN because O0 blocked. No rollback triggered and no new evidence distinguis
 Next action. Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.
 
 Azure mutations. 0.
+
+## O0 attempt 2
+
+BLOCKED on 93950868841471a6a313aa0c181a4a5ca9cbd7a5 from 2026-11-25T02:21:47.760134Z to 2026-11-25T02:35:49.337278Z.
+
+At 2026-11-25T02:21:52.273848Z UTC the first read returned HTTP 400 with no writes. The local controller used the Web Apps API version for the Resource Groups provider.
+
+Next action. Repeat only the read-only baseline with the established Resource Groups API version.
+
+Confirmed Azure mutations. 0.
+
+## O0 attempt 3
+
+PASS on 93950868841471a6a313aa0c181a4a5ca9cbd7a5 from 2026-11-25T02:22:23.117641Z to 2026-11-25T02:35:49.700528Z.
+
+Group, plan, quota, app and config/web returned 200. The first config/logs read produced no HTTP status. One isolated GET confirmed Information logging at 2026-11-25T02:22:58.586996Z. Plan F1 Linux West US 2. Stop requests 0/15, daily CPU 0/3600000 ms, short CPU 0/180000 ms. App Running, enabled, usage and availability Normal, HTTPS-only, port 52731 and blank startup. Exact-app Activity Log returned 200 and zero rows in the 30-minute window at 2026-11-25T02:24:39.795657Z. This is a bounded observation. The prior key name was present, and its value was discarded during private parsing. Preview CLI startup inventory returned 200 with 1 metadata record at 2026-11-25T02:25:27.833071Z, capped at 32768 bytes. No historical body read. The previously configured image and image-only rollback target were verified as sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. The owner authorized a new dedicated key. Its generation and use are confined to the same O2 worker.
+
+Next action. Locally qualify observable startup and publish the exact tested API candidate.
+
+Confirmed Azure mutations. 0.
+
+## O1 attempt 2
+
+PASS on 93950868841471a6a313aa0c181a4a5ca9cbd7a5 from 2026-11-25T02:25:27.833071Z to 2026-11-25T02:35:49.942741Z.
+
+101 .NET tests passed, zero skipped. Seven Linux cases passed and their owned containers were removed. Positive case used a synthetic consistent lab hostname with explicit opt-in and emitted BOOTSTRAP_ENTRY followed by six fixed Worker phases. Local GET /health returned 200 Alive, unauthenticated snapshot 401, fake-key empty-store snapshot 503 DATASET_NOT_READY. Invalid bootstrap mode, absent key, transport assertion, missing TLS, read-only storage and wrong UID were rejected. Source 93950868841471a6a313aa0c181a4a5ca9cbd7a5. Index sha256:a24c6ba6386d217884a221d7217dadbe168cb3d869e38c452df9604fe1c30bf0. Linux child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. Config sha256:3b589fef96f73ff405947e3f0d9c1b55e3651fc6c8800e6b9a22322204306a06. Build context SHA-256 5affd6ffd3a8dbcda9dc5f4835115746cc60f077806de6592aae64b1a0cbbfc4. Registry readback verified all image identities at ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-observable-api-939508688414. No Azure writes in this gate. No local Streamlit run.
+
+Next action. Recheck cloud preconditions and apply one candidate configuration.
+
+Confirmed Azure mutations. 0.
+
+## O2 attempt 2
+
+FAIL on 93950868841471a6a313aa0c181a4a5ca9cbd7a5 from 2026-11-25T02:33:08.669687Z to 2026-11-25T02:35:50.157066Z.
+
+Controller concluded 2026-11-25T02:35:22.981065Z. Result HEALTH_FAILED. Last control stage ROLLBACK_IMAGE_READBACK. Operations IMAGE_AND_KEY_SINGLE_PATCH at 2026-11-25T02:33:14.350258Z 200, ROLLBACK_IMAGE_ONLY at 2026-11-25T02:35:20.840612Z 200. Candidate config verified True. Replacement verification True. Other settings verification True. The replacement was used only in process memory and Azure configuration. No local copy was retained. Health 2026-11-25T02:33:29.350745Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-25T02:34:14.350901Z 503 HEALTH_REJECTED, 2026-11-25T02:35:14.350515Z 503 HEALTH_REJECTED. Snapshots not run. Startup LOGGING_UNAVAILABLE. HTTP 200 failed the text response gate, so the body was not read and no startup records were recovered. Running digest remains unverified. No credential persisted to local artifacts or reports.
+
+Next action. Evaluate acceptance and the conditional image-only rollback outcome.
+
+Confirmed Azure mutations. 1.
+
+## O3 attempt 2
+
+FAIL on 93950868841471a6a313aa0c181a4a5ca9cbd7a5 from 2026-11-25T02:35:22.981065Z to 2026-11-25T02:35:50.422085Z.
+
+Health accepted False. O3 accepted False. Startup classification LOGGING_UNAVAILABLE. Rollback status IMAGE_RESTORED. Azure readback matched the pre-experiment image. The rollback request changed the image field only. Pre-experiment parallel child sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. Candidate child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. No post-rollback health request. The original staging API and UI and production were outside scope. No deployment outcome identifies an Azure platform defect by itself. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. Offline, qualify a bounded collector for both documented Azure CLI startup-log response forms before any new launch.
+
+Confirmed Azure mutations. 1.
+
+### Observable startup configuration decision
+
+The existing ephemeral-storage scope and explicit opt-in now gate both portable Azure transport and the storage boundary. The app must supply a consistent platform site-name and default hostname pair, instance identity, HTTPS and bind configuration. The new checks retain the original Azure port and kernel/private-directory requirements. This configuration check is not platform attestation.
+
+The combined config update was selected because changing settings separately can recycle the app before the candidate is configured. The one request was constrained to the lab and used a memory-only replacement. [App Service update configuration](https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/update-configuration) [App Service CLI startup logs](https://learn.microsoft.com/en-us/cli/azure/webapp/log/startup)

@@ -1821,6 +1821,197 @@
       "rollback_state": "Zero Azure mutations. No rollback executed.",
       "next_action": "Establish an owner-controlled in-memory channel for the exact dedicated parallel-lab key. If the key cannot be recovered through an existing approved channel, obtain separate authority for a parallel-app-only replacement and private handoff.",
       "rest": []
+    },
+    {
+      "gate_id": "O0",
+      "attempt": 2,
+      "started_at_utc": "2026-11-25T02:21:47.760134Z",
+      "ended_at_utc": "2026-11-25T02:35:49.337278Z",
+      "status": "BLOCKED",
+      "source_commit": "93950868841471a6a313aa0c181a4a5ca9cbd7a5",
+      "environment": "staging",
+      "objective": "Validate exact lab identity before any use of replacement authority.",
+      "commands_or_test_ids": [
+        "Read-only ARM resource-group GET"
+      ],
+      "expected": "Confirm resource identity.",
+      "observed": "At 2026-11-25T02:21:52.273848Z UTC the first read returned HTTP 400 with no writes. The local controller used the Web Apps API version for the Resource Groups provider.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No rollback required in this gate.",
+      "next_action": "Repeat only the read-only baseline with the established Resource Groups API version.",
+      "rest": []
+    },
+    {
+      "gate_id": "O0",
+      "attempt": 3,
+      "started_at_utc": "2026-11-25T02:22:23.117641Z",
+      "ended_at_utc": "2026-11-25T02:35:49.700528Z",
+      "status": "PASS",
+      "source_commit": "93950868841471a6a313aa0c181a4a5ca9cbd7a5",
+      "environment": "staging",
+      "objective": "Verify exact F1 lab, quota, configuration, concurrent activity and startup capture.",
+      "commands_or_test_ids": [
+        "GET group, plan, plan/usages, app, config/web and config/logs",
+        "GET exact app Activity Log",
+        "POST exact app settings/list with private projection",
+        "GET preview CLI startup-log inventory"
+      ],
+      "expected": "Exact isolated lab and free tier, matching pinned image, eligible quota and reachable bounded startup capture.",
+      "observed": "Group, plan, quota, app and config/web returned 200. The first config/logs read produced no HTTP status. One isolated GET confirmed Information logging at 2026-11-25T02:22:58.586996Z. Plan F1 Linux West US 2. Stop requests 0/15, daily CPU 0/3600000 ms, short CPU 0/180000 ms. App Running, enabled, usage and availability Normal, HTTPS-only, port 52731 and blank startup. Exact-app Activity Log returned 200 and zero rows in the 30-minute window at 2026-11-25T02:24:39.795657Z. This is a bounded observation. The prior key name was present, and its value was discarded during private parsing. Preview CLI startup inventory returned 200 with 1 metadata record at 2026-11-25T02:25:27.833071Z, capped at 32768 bytes. No historical body read. The previously configured image and image-only rollback target were verified as sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. The owner authorized a new dedicated key. Its generation and use are confined to the same O2 worker.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No rollback required in this gate.",
+      "next_action": "Locally qualify observable startup and publish the exact tested API candidate.",
+      "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 2,
+      "started_at_utc": "2026-11-25T02:25:27.833071Z",
+      "ended_at_utc": "2026-11-25T02:35:49.942741Z",
+      "status": "PASS",
+      "source_commit": "93950868841471a6a313aa0c181a4a5ca9cbd7a5",
+      "environment": "staging",
+      "objective": "Qualify portable opt-in and fixed startup markers, then verify exact image provenance.",
+      "commands_or_test_ids": [
+        "dotnet test Infrastructure.Tests Release --no-restore with ResearchSnapshotEndpointTests and ResearchStorageBoundaryTests filter",
+        "dotnet publish Worker Release --no-restore framework-dependent",
+        "docker build Linux/amd64 --pull=false --network=none",
+        "Seven fake-only Linux cases against the exact image",
+        "docker image save and local OCI descriptor hashing",
+        "Push exact verified image and read back GHCR index and child"
+      ],
+      "expected": "Passing startup, auth and empty-store tests, fixed ordered diagnostics, one source-bound GHCR image.",
+      "observed": "101 .NET tests passed, zero skipped. Seven Linux cases passed and their owned containers were removed. Positive case used a synthetic consistent lab hostname with explicit opt-in and emitted BOOTSTRAP_ENTRY followed by six fixed Worker phases. Local GET /health returned 200 Alive, unauthenticated snapshot 401, fake-key empty-store snapshot 503 DATASET_NOT_READY. Invalid bootstrap mode, absent key, transport assertion, missing TLS, read-only storage and wrong UID were rejected. Source 93950868841471a6a313aa0c181a4a5ca9cbd7a5. Index sha256:a24c6ba6386d217884a221d7217dadbe168cb3d869e38c452df9604fe1c30bf0. Linux child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. Config sha256:3b589fef96f73ff405947e3f0d9c1b55e3651fc6c8800e6b9a22322204306a06. Build context SHA-256 5affd6ffd3a8dbcda9dc5f4835115746cc60f077806de6592aae64b1a0cbbfc4. Registry readback verified all image identities at ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-observable-api-939508688414. No Azure writes in this gate. No local Streamlit run.",
+      "exit_codes": {
+        "dotnet": 0,
+        "linux_cases": 0,
+        "oci_mapping": 0,
+        "registry_readback": 0
+      },
+      "test_counts": {
+        "passed": 108,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No rollback required in this gate.",
+      "next_action": "Recheck cloud preconditions and apply one candidate configuration.",
+      "rest": []
+    },
+    {
+      "gate_id": "O2",
+      "attempt": 2,
+      "started_at_utc": "2026-11-25T02:33:08.669687Z",
+      "ended_at_utc": "2026-11-25T02:35:50.157066Z",
+      "status": "FAIL",
+      "source_commit": "93950868841471a6a313aa0c181a4a5ca9cbd7a5",
+      "environment": "staging",
+      "objective": "Apply the image and dedicated replacement key once, then collect bounded startup and health.",
+      "commands_or_test_ids": [
+        "Exact parallel lab Activity Log and port recheck",
+        "Read-only app, plan, quota, image, logging and private settings recheck",
+        "One combined PATCH config/web with OCI child and dedicated replacement, if all gates pass",
+        "At most three TLS GET /health probes in the 180-second window; one startup log read capped at 16383 bytes and eight seconds",
+        "One BTC/USD and one ETH/USD authenticated snapshot only after literal Alive"
+      ],
+      "expected": "Verified one apply, attributable startup evidence and HTTP 200 Alive.",
+      "observed": "Controller concluded 2026-11-25T02:35:22.981065Z. Result HEALTH_FAILED. Last control stage ROLLBACK_IMAGE_READBACK. Operations IMAGE_AND_KEY_SINGLE_PATCH at 2026-11-25T02:33:14.350258Z 200, ROLLBACK_IMAGE_ONLY at 2026-11-25T02:35:20.840612Z 200. Candidate config verified True. Replacement verification True. Other settings verification True. The replacement was used only in process memory and Azure configuration. No local copy was retained. Health 2026-11-25T02:33:29.350745Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-25T02:34:14.350901Z 503 HEALTH_REJECTED, 2026-11-25T02:35:14.350515Z 503 HEALTH_REJECTED. Snapshots not run. Startup LOGGING_UNAVAILABLE. HTTP 200 failed the text response gate, so the body was not read and no startup records were recovered. Running digest remains unverified. No credential persisted to local artifacts or reports.",
+      "exit_codes": {
+        "offline_controller_cases": 0
+      },
+      "test_counts": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 1
+      },
+      "rollback_state": "No rollback required in this gate.",
+      "next_action": "Evaluate acceptance and the conditional image-only rollback outcome.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "HEALTH_REJECTED",
+          "data_class": "no data"
+        },
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "HEALTH_REJECTED",
+          "data_class": "no data"
+        }
+      ]
+    },
+    {
+      "gate_id": "O3",
+      "attempt": 2,
+      "started_at_utc": "2026-11-25T02:35:22.981065Z",
+      "ended_at_utc": "2026-11-25T02:35:50.422085Z",
+      "status": "FAIL",
+      "source_commit": "93950868841471a6a313aa0c181a4a5ca9cbd7a5",
+      "environment": "staging",
+      "objective": "Decide health, startup and image-only restoration separately from historical staging.",
+      "commands_or_test_ids": [
+        "Compare candidate and prior parallel config readbacks",
+        "Conditional one image-only PATCH on failed health with safe baseline",
+        "Read back exact restored digest when attempted"
+      ],
+      "expected": "HTTP 200 Alive and interpretable startup evidence, or verified safe rollback when required.",
+      "observed": "Health accepted False. O3 accepted False. Startup classification LOGGING_UNAVAILABLE. Rollback status IMAGE_RESTORED. Azure readback matched the pre-experiment image. The rollback request changed the image field only. Pre-experiment parallel child sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. Candidate child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. No post-rollback health request. The original staging API and UI and production were outside scope. No deployment outcome identifies an Azure platform defect by itself. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 1
+      },
+      "rollback_state": "IMAGE_RESTORED",
+      "next_action": "Offline, qualify a bounded collector for both documented Azure CLI startup-log response forms before any new launch.",
+      "rest": []
     }
   ]
 }
