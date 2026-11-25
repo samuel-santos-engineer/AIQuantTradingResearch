@@ -8,6 +8,7 @@ using AIQuantTradingResearch.Infrastructure.Persistence.Sqlite;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace AIQuantTradingResearch.Worker;
@@ -22,8 +23,7 @@ public sealed record ResearchSnapshotTransport
         var mode = setting("AIQ_RESEARCH_TRANSPORT") ?? "local-https";
         if (mode == "local-https") return new(false);
         if (mode != "azure-app-service-http" ||
-            !ResearchStorageBoundary.IsSupportedStagingHost(setting("WEBSITE_SITE_NAME"), setting("WEBSITE_HOSTNAME")) ||
-            string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) ||
+            !ResearchStorageBoundary.HasEphemeralStagingIdentity(setting) ||
             setting("AIQ_RESEARCH_PLATFORM_HTTPS_ONLY") != "1" ||
             setting("AIQ_RESEARCH_BIND_ADDRESS") != "0.0.0.0")
             throw new ArgumentException("Research configuration unavailable.");
@@ -131,20 +131,29 @@ public static class ResearchSnapshotEndpoint
     public static async Task<int> RunAsync(Func<string, string?> setting, TextWriter diagnostics)
     {
         var stage = "CONFIGURATION";
+
+        async Task BeginStage(string value)
+        {
+            stage = value;
+            await diagnostics.WriteLineAsync("Research snapshot startup. stage=" + value);
+            await diagnostics.FlushAsync();
+        }
+
         try
         {
+            await BeginStage("CONFIGURATION");
             var directory = setting("AIQ_RESEARCH_PRIVATE_DIRECTORY") ?? throw new ArgumentException("Research configuration unavailable.");
             var key = setting("AIQ_RESEARCH_API_KEY") ?? throw new ArgumentException("Research configuration unavailable.");
-            stage = "TRANSPORT";
+            await BeginStage("TRANSPORT");
             var transport = ResearchSnapshotTransport.FromSettings(setting);
-            stage = "TLS";
+            await BeginStage("TLS");
             using var certificate = transport.PlatformHttp ? null : X509CertificateLoader.LoadPkcs12FromFile(
                 setting("AIQ_RESEARCH_TLS_PFX") ?? throw new ArgumentException("Research configuration unavailable."),
                 setting("AIQ_RESEARCH_TLS_PASSWORD"));
-            stage = "STORAGE";
+            await BeginStage("STORAGE");
             using var store = OpenExistingStore(directory);
             store?.UseTransformSnapshot(ResearchInstrument.BtcUsd, (_, _) => true); // Never auto-provision a tuple or provider.
-            stage = "LISTENER";
+            await BeginStage("LISTENER");
             var addressText = setting("AIQ_RESEARCH_BIND_ADDRESS") ?? "127.0.0.1";
             if (addressText is not ("127.0.0.1" or "0.0.0.0")) throw new ArgumentException("Research configuration unavailable.");
             const int researchPort = 52731;
@@ -155,14 +164,18 @@ public static class ResearchSnapshotEndpoint
                     port is < 1 or > 65535))
                 throw new ArgumentException("Research configuration unavailable.");
             await using var app = Create(store is null ? null : new ResearchSnapshotSource(store), key, certificate, port, IPAddress.Parse(addressText), transport);
-            app.Lifetime.ApplicationStarted.Register(() => diagnostics.WriteLine("Research snapshot listener started."));
-            stage = "SERVING";
-            await app.RunAsync(); return 0;
+            await app.StartAsync();
+            await BeginStage("SERVING");
+            await diagnostics.WriteLineAsync("Research snapshot listener started.");
+            await diagnostics.FlushAsync();
+            await app.WaitForShutdownAsync();
+            return 0;
         }
         catch
         {
             // Only fixed control-flow labels: never exception text, paths, settings or credentials.
             await diagnostics.WriteLineAsync("Research snapshot service unavailable. stage=" + stage);
+            await diagnostics.FlushAsync();
             return 1;
         }
     }

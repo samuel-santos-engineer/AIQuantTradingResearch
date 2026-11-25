@@ -50,20 +50,26 @@ public static class ResearchStorageBoundary
     private static readonly string[] AzureMarkers = ["WEBSITE_INSTANCE_ID", "WEBSITE_SITE_NAME", "WEBSITE_HOSTNAME", "WEBSITE_ROLE_INSTANCE_ID"];
     internal const string StagingScope = "azure-f1-staging-ephemeral";
     internal const string StagingDirectory = "/tmp/aiq-research";
-    /// <summary>Require an exact staging site and hostname pair supplied by App Service.</summary>
-    public static bool IsSupportedStagingHost(string? siteName, string? hostname) =>
-        (siteName, hostname) is
-            ("aiqr115researchstagingwus27f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net") or
-            ("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net");
+    // Explicit lab opt-in and consistent App Service metadata are configuration checks.
+    // The operator still verifies the actual target, platform ingress and plan before deployment.
+    public static bool HasEphemeralStagingIdentity(Func<string, string?> setting)
+    {
+        var name = setting("WEBSITE_SITE_NAME");
+        return setting("AIQ_RESEARCH_STORAGE_SCOPE") == StagingScope &&
+            setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING") == "1" &&
+            name is { Length: >= 2 and <= 60 } && char.IsAsciiLetterOrDigit(name[0]) &&
+            char.IsAsciiLetterOrDigit(name[^1]) &&
+            name.All(c => char.IsAsciiLetterLower(c) || char.IsAsciiDigit(c) || c == '-') &&
+            setting("WEBSITE_HOSTNAME") == name + ".azurewebsites.net" &&
+            !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID"));
+    }
 
     internal static bool ValidateHost(Func<string, string?> setting)
     {
         var scope = setting("AIQ_RESEARCH_STORAGE_SCOPE");
         var optIn = setting("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING");
         // The role instance ID is platform metadata, with no guaranteed zero ordinal.
-        if (scope == StagingScope && optIn == "1" &&
-            IsSupportedStagingHost(setting("WEBSITE_SITE_NAME"), setting("WEBSITE_HOSTNAME")) &&
-            !string.IsNullOrWhiteSpace(setting("WEBSITE_INSTANCE_ID")) &&
+        if (HasEphemeralStagingIdentity(setting) &&
             setting("WEBSITES_ENABLE_APP_SERVICE_STORAGE") == "false" &&
             setting("AIQ_RESEARCH_EXPECTED_MOUNT_PATH") == "/") return true;
         // Presence of any marker, unknown scope, or partial opt-in still denies by default.

@@ -57,7 +57,11 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
             }
             using var diagnostics = new StringWriter();
             Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(name => settings.GetValueOrDefault(name), diagnostics));
-            Assert.Equal("Research snapshot service unavailable. stage=" + stage + Environment.NewLine, diagnostics.ToString());
+            string[] stages = ["CONFIGURATION", "TRANSPORT", "TLS", "STORAGE", "LISTENER"];
+            var expected = stages.Take(Array.IndexOf(stages, stage) + 1)
+                .Select(value => "Research snapshot startup. stage=" + value)
+                .Append("Research snapshot service unavailable. stage=" + stage);
+            Assert.Equal(string.Join(Environment.NewLine, expected) + Environment.NewLine, diagnostics.ToString());
             Assert.DoesNotContain(sensitive, diagnostics.ToString());
             Assert.DoesNotContain(directory.Path, diagnostics.ToString());
             Assert.DoesNotContain(certificateFile, diagnostics.ToString());
@@ -71,7 +75,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
     {
         using var diagnostics = new StringWriter();
         Assert.Equal(1, await ResearchSnapshotEndpoint.RunAsync(_ => throw new InvalidOperationException("fake-private-path fake-secret"), diagnostics));
-        Assert.Equal("Research snapshot service unavailable. stage=CONFIGURATION" + Environment.NewLine, diagnostics.ToString());
+        Assert.Equal("Research snapshot startup. stage=CONFIGURATION" + Environment.NewLine +
+            "Research snapshot service unavailable. stage=CONFIGURATION" + Environment.NewLine, diagnostics.ToString());
     }
 
     private const string Key = "offline-test-service-key-12345678";
@@ -117,6 +122,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
     private static Dictionary<string, string?> PlatformSettings() => new()
     {
         ["AIQ_RESEARCH_TRANSPORT"] = "azure-app-service-http",
+        ["AIQ_RESEARCH_STORAGE_SCOPE"] = "azure-f1-staging-ephemeral",
+        ["AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING"] = "1",
         ["WEBSITE_SITE_NAME"] = "aiqr115researchstagingwus27f5eabb5",
         ["WEBSITE_HOSTNAME"] = "aiqr115researchstagingwus27f5eabb5.azurewebsites.net",
         ["WEBSITE_INSTANCE_ID"] = "offline-instance",
@@ -192,6 +199,8 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
 
     [Theory]
     [InlineData("AIQ_RESEARCH_TRANSPORT", "http")]
+    [InlineData("AIQ_RESEARCH_STORAGE_SCOPE", "local-qualification")]
+    [InlineData("AIQ_RESEARCH_ALLOW_NON_DURABLE_STAGING", "0")]
     [InlineData("WEBSITE_SITE_NAME", "other")]
     [InlineData("WEBSITE_HOSTNAME", "other.azurewebsites.net")]
     [InlineData("WEBSITE_INSTANCE_ID", "")]
@@ -213,8 +222,11 @@ public sealed class ResearchSnapshotEndpointTests(Xunit.Abstractions.ITestOutput
     [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", true)]
     [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net", false)]
     [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net", false)]
-    [InlineData("unlisted-app", "unlisted-app.azurewebsites.net", false)]
-    public void PlatformTransportRequiresAnExactStagingHostPair(string siteName, string hostname, bool accepted)
+    [InlineData("another-authorized-lab", "another-authorized-lab.azurewebsites.net", true)]
+    [InlineData("bad.name", "bad.name.azurewebsites.net", false)]
+    [InlineData("-invalid", "-invalid.azurewebsites.net", false)]
+    [InlineData("another-authorized-lab", "another-authorized-lab.azurewebsites.net.example.test", false)]
+    public void PlatformTransportRequiresConsistentAzureLabMetadata(string siteName, string hostname, bool accepted)
     {
         var settings = PlatformSettings();
         settings["WEBSITE_SITE_NAME"] = siteName;

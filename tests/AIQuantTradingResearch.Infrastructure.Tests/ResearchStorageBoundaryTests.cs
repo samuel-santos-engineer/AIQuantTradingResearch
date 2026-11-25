@@ -62,6 +62,7 @@ public sealed class ResearchStorageBoundaryTests
     [Theory]
     [InlineData("aiqr115researchstagingwus27f5eabb5", "aiqr115-parallel-lab-wus2-7f5eabb5.azurewebsites.net")]
     [InlineData("aiqr115-parallel-lab-wus2-7f5eabb5", "aiqr115researchstagingwus27f5eabb5.azurewebsites.net")]
+    [InlineData("another-authorized-lab", "unrelated-app.azurewebsites.net")]
     public void OnlyCompleteExplicitStagingIdentitySelectsEphemeralMode(string siteName, string otherHostname)
     {
         var settings = Staging();
