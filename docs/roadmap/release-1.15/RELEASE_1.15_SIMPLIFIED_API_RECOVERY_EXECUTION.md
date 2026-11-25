@@ -933,3 +933,13 @@ Health accepted False. Startup interpretable False. Restore IMAGE_RESTORED. Last
 Next action. Check the existing parallel app portal startup records for the 2026-11-25 03:18:06 to 03:20:13 UTC window to see whether a main-container launch or failure was recorded.
 
 Confirmed Azure mutations. 1.
+
+## O3 attempt 4
+
+BLOCKED on 7235e2f959a1ae0b5224fd18169de782b2f3ec71 from 2026-11-25T03:23:48.346668Z to 2026-11-25T03:24:15.508235Z.
+
+The portal-backed detector request finished at 2026-11-25T03:23:54.147946Z with HTTP 200 and exact detector identity. One row was projected in memory. It yielded zero records with an in-window timestamp and explicit main-container role. Startup cause, Azure-side exception and running digest remain unknown. The previous health failures and verified image rollback remain the live result. No browser session, SCM read, settings read, new health request or Azure write occurred.
+
+Next action. If no main-container event is available in the signed-in portal for this same window, review a known-good container control on the same F1 app before approving another apply.
+
+Azure mutations. 0.

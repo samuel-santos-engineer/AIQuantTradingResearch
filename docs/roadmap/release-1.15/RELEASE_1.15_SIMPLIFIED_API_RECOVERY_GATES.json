@@ -2240,6 +2240,40 @@
       "rollback_state": "IMAGE_RESTORED",
       "next_action": "Check the existing parallel app portal startup records for the 2026-11-25 03:18:06 to 03:20:13 UTC window to see whether a main-container launch or failure was recorded.",
       "rest": []
+    },
+    {
+      "gate_id": "O3",
+      "attempt": 4,
+      "started_at_utc": "2026-11-25T03:23:48.346668Z",
+      "ended_at_utc": "2026-11-25T03:24:15.508235Z",
+      "status": "BLOCKED",
+      "source_commit": "7235e2f959a1ae0b5224fd18169de782b2f3ec71",
+      "environment": "staging",
+      "objective": "Find an existing main-container startup record in the parallel lab's image-only experiment window.",
+      "commands_or_test_ids": [
+        "Single ARM App Service LinuxLogViewer GET on the exact parallel app, API 2025-05-01. Filter from 2026-11-25T03:18:06.377297Z through 2026-11-25T03:20:13.590331Z. Ten-second per-request bound and 256 KiB input cap."
+      ],
+      "expected": "A timestamped main-container observation or an explicit evidence gap.",
+      "observed": "The portal-backed detector request finished at 2026-11-25T03:23:54.147946Z with HTTP 200 and exact detector identity. One row was projected in memory. It yielded zero records with an in-window timestamp and explicit main-container role. Startup cause, Azure-side exception and running digest remain unknown. The previous health failures and verified image rollback remain the live result. No browser session, SCM read, settings read, new health request or Azure write occurred.",
+      "exit_codes": {
+        "offline_detector_cases": 0,
+        "owned_read_only_worker": 0
+      },
+      "test_counts": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Existing verified image rollback stands. Zero Azure writes in this continuation.",
+      "next_action": "If no main-container event is available in the signed-in portal for this same window, review a known-good container control on the same F1 app before approving another apply.",
+      "rest": []
     }
   ]
 }
