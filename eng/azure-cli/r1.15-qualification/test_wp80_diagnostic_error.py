@@ -945,5 +945,119 @@ class StartupFileTests(unittest.TestCase):
                              self.collect([self.prefix + content + b"\n"])["failureCategory"])
 
 
+class StartupShowTests(unittest.TestCase):
+    window = StartupFileTests.window
+    header = StartupFileTests.header
+    prefix = StartupFileTests.prefix
+    log = (
+        b"2026-01-01T00:00:01Z Research bootstrap startup. stage=BOOTSTRAP_ENTRY\n"
+        b"2026-01-01T00:00:02Z Research snapshot startup. stage=CONFIGURATION\n"
+        b"2026-01-01T00:00:03Z Research snapshot service unavailable. stage=STORAGE\n"
+        + prefix + StartupFileTests.exit_record + b"\n"
+    )
+
+    def collect(self, chunks, *, window=None, **headers):
+        return m.collect_startup_show(dict(self.header, **headers), chunks,
+                                      observation_window=self.window if window is None else window)
+
+    @staticmethod
+    def envelope(log, **metadata):
+        return json.dumps(dict(content=log.decode(), **metadata)).encode()
+
+    def test_both_formats_yield_same_fixed_unattributed_records(self):
+        plain = self.collect([self.log[:50], self.log[50:]])
+        self.assertEqual("TEXT_PLAIN", m.classify_startup_show_response(self.header))
+        headers = dict(self.header, contentType='Application/JSON; charset="utf-8"')
+        self.assertEqual("JSON_ENVELOPE", m.classify_startup_show_response(headers))
+        payload = self.envelope(self.log.replace(b"\n", b"\r\n"), filename="fake-filename",
+                                date="fake-date", instance="fake-instance", outcome="fake-outcome")
+        wrapped = self.collect([payload[:22], payload[22:]], contentType=headers["contentType"])
+        self.assertEqual(plain, wrapped)
+        self.assertEqual(plain, {
+            "responseClass": "REPORTED_UNATTRIBUTED_MARKERS",
+            "mainContainerBound": False, "startupAttemptBound": False, "runtimeImageVerified": False,
+            "records": [
+                dict(utc="2026-01-01T00:00:01Z", classification="BOOTSTRAP_ENTRY", detail="UNKNOWN"),
+                dict(utc="2026-01-01T00:00:02Z", classification="WORKER_STAGE", detail="CONFIGURATION"),
+                dict(utc="2026-01-01T00:00:03Z", classification="WORKER_FAILURE", detail="STORAGE"),
+                dict(utc="2026-01-01T00:00:30.1234567Z", classification="PLATFORM_LAUNCH_FAILURE", detail="ONE"),
+            ],
+        })
+
+    def test_denied_response_never_consumes_body(self):
+        def forbidden():
+            self.fail("unexpected body read")
+            yield b""
+        cases = (
+            (dict(status=302, locationPresent=True), "REDIRECT_BLOCKED"),
+            (dict(status=403), "ACCESS_DENIED"),
+            (dict(authChallengePresent=True), "AMBIGUOUS_AUTH_OR_LOCATION"),
+            (dict(connectionUpgrade=True), "CONTRADICTORY_UPGRADE"),
+            (dict(contentType="application/json", contentEncoding="gzip"), "UNSUPPORTED_ENCODING"),
+            (dict(contentType="application/json", transferEncoding="chunked, gzip"), "UNSUPPORTED_ENCODING"),
+            (dict(contentType="text/html"), "UNSUPPORTED_MEDIA"),
+            (dict(contentType="application/json; charset=latin1"), "UNSUPPORTED_MEDIA"),
+        )
+        for headers, expected in cases:
+            with self.subTest(headers=headers):
+                self.assertEqual(expected, self.collect(forbidden(), **headers)["responseClass"])
+        self.assertEqual("INVALID_WINDOW", self.collect(forbidden(), window=("2026-01-01T00:00:00Z",
+                         "2026-01-01T00:03:01Z"))["responseClass"])
+
+    def test_rejects_non_log_json_and_duplicate_keys(self):
+        for body, expected in (
+            (b'{"files":[]}', "UNSUPPORTED_JSON_ENVELOPE"),
+            (b'{"content":[1]}', "UNSUPPORTED_JSON_ENVELOPE"),
+            (b'{"content":"x","instance":12}', "UNSUPPORTED_JSON_ENVELOPE"),
+            (b'{"content":"fake","extra":"value"}', "UNSUPPORTED_JSON_ENVELOPE"),
+            (b'{"content":"first","content":"second"}', "UNSUPPORTED_BODY"),
+            (b'{"content":"truncated', "UNSUPPORTED_BODY"),
+            (b'{"content":"\xff"}', "UNSUPPORTED_BODY"),
+            (b'{"content":"\\ud800"}', "UNSUPPORTED_BODY"),
+        ):
+            with self.subTest(expected=expected):
+                result = self.collect([body], contentType="application/json")
+                self.assertEqual(expected, result["responseClass"])
+                self.assertEqual([], result["records"])
+
+    def test_transport_failure_withholds_preceding_data(self):
+        def interrupted():
+            yield self.log
+            raise TimeoutError("fake private transport detail")
+        result = self.collect(interrupted())
+        self.assertEqual("TRANSPORT_FAILURE", result["responseClass"])
+        self.assertEqual([], result["records"])
+
+    def test_wire_decoded_line_and_record_caps(self):
+        def over_budget():
+            yield b"x" * 16384
+            self.fail("read beyond cap")
+        for media in ("text/plain", "application/json"):
+            self.assertEqual("BODY_CAP_REACHED", self.collect(over_budget(), contentType=media)["responseClass"])
+        long_line = self.envelope(self.prefix + b"x" * 2049 + b"\n")
+        too_many_lines = self.envelope(b"\n" * 257)
+        for payload in (long_line, too_many_lines):
+            self.assertEqual("RECORD_CAP_EXCEEDED",
+                             self.collect([payload], contentType="application/json")["responseClass"])
+        records = b"".join(
+            f"2026-01-01T00:00:{second:02d}Z Research snapshot startup. stage=TLS\n".encode()
+            for second in range(25)
+        )
+        self.assertEqual("RECORD_CAP_EXCEEDED", self.collect([records])["responseClass"])
+
+    def test_exact_markers_and_fine_grained_window(self):
+        template = b"2026-01-01T00:01:00.0000000Z Research snapshot startup. stage=SERVING"
+        for body, expected in (
+            (template + b"\n", "REPORTED_UNATTRIBUTED_MARKERS"),
+            (template.replace(b"0000000Z", b"0000001Z") + b"\n", "OUTSIDE_WINDOW"),
+            (template + b" quote\n", "NO_ATTRIBUTABLE_RECORD"),
+            (template, "INCOMPLETE_BODY"),
+        ):
+            with self.subTest(expected=expected):
+                result = self.collect([self.envelope(body)], contentType="application/json")
+                self.assertEqual(expected, result["responseClass"])
+                self.assertEqual(expected == "REPORTED_UNATTRIBUTED_MARKERS", bool(result["records"]))
+
+
 if __name__ == "__main__":
     unittest.main()
