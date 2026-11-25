@@ -2051,6 +2051,46 @@
       "rollback_state": "No Azure change. The verified image rollback in the previous O3 receipt stands.",
       "next_action": "Wire the header gate and bounded iterator into the one-shot runner before seeking approval for another live launch.",
       "rest": []
+    },
+    {
+      "gate_id": "O1",
+      "attempt": 4,
+      "started_at_utc": "2026-11-25T02:56:29.849214Z",
+      "ended_at_utc": "2026-11-25T02:56:29.850264Z",
+      "status": "PASS",
+      "source_commit": "33d51542d062662e67537365e46f1f501452565d",
+      "environment": "local",
+      "objective": "Wire the dual-format collector into the one-shot parallel-lab runner and verify the request budget and rollback with a fake transport.",
+      "commands_or_test_ids": [
+        "python -B -m unittest discover -s eng/azure-cli/r1.15-qualification -p test_wp80*.py -q",
+        "python -B -m unittest discover -s tests/runtime/release_1_15 -p test_recovery_gate_receipts.py -q",
+        "Run the isolated controller with injected fake ARM, SCM, health, token and clock callbacks"
+      ],
+      "expected": "One verified apply callback, bounded health and one startup response, gated snapshots and one safe image-only rollback.",
+      "observed": "130 diagnostic and runner tests passed, including six runner tests. Eight receipt tests passed. One additional fake full-controller integration passed with a combined apply, one startup JSON response and one image-only rollback readback. The rollback preserved the fake replacement key and unrelated settings. The startup request targets the existing parallel SCM host and latest startup-log path, with a read deadline of eight seconds and a 16383-byte accepted body cap. Duplicate relevant headers and conflicting transfer framing block body consumption. Health allows up to three probes in 180 seconds. Missed probe slots are skipped and no connection starts without at least three seconds remaining. Snapshots require the exact HTTP 200 Alive response. Apply readback or rollback drift blocks further action. The local wrapper has no live command entry point. No Azure, registry or Docker operations occurred.",
+      "exit_codes": {
+        "wp80_unittests": 0,
+        "receipt_unittests": 0,
+        "fake_full_controller": 0
+      },
+      "test_counts": {
+        "passed": 139,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [
+        "eng/azure-cli/r1.15-qualification/wp80_observable_attempt.py",
+        "eng/azure-cli/r1.15-qualification/test_wp80_observable_attempt.py"
+      ],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "Fake image-only rollback and drift gates verified. Existing Azure rollback receipt stands.",
+      "next_action": "Obtain separate authorization for any new live startup attempt and identify its approved private key channel before using a live transport.",
+      "rest": []
     }
   ]
 }

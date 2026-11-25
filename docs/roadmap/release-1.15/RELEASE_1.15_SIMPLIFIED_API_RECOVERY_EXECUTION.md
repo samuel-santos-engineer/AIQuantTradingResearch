@@ -883,3 +883,13 @@ Next action. Wire the header gate and bounded iterator into the one-shot runner 
 Azure mutations. 0.
 
 The Azure CLI client handles text/plain and otherwise delegates to JSON decoding. The collector accepts a narrower JSON object with a string content field. Azure has not verified this envelope for the parallel lab. The eventual caller must verify the exact SCM route and TLS, reject ambiguous headers, enforce the request deadline and input cap before reading, and avoid redirects, retries and automatic decompression. [Azure CLI startup-log reference](https://learn.microsoft.com/en-us/cli/azure/webapp/log/startup) [Versioned Azure CLI implementation](https://github.com/Azure/azure-cli/blob/azure-cli-2.87.0/src/azure-cli/azure/cli/command_modules/appservice/custom.py#L5807)
+
+## O1 attempt 4
+
+PASS on 33d51542d062662e67537365e46f1f501452565d from 2026-11-25T02:56:29.849214Z to 2026-11-25T02:56:29.850264Z.
+
+130 diagnostic and runner tests passed, including six runner tests. Eight receipt tests passed. One additional fake full-controller integration passed with a combined apply, one startup JSON response and one image-only rollback readback. The rollback preserved the fake replacement key and unrelated settings. The startup request targets the existing parallel SCM host and latest startup-log path, with a read deadline of eight seconds and a 16383-byte accepted body cap. Duplicate relevant headers and conflicting transfer framing block body consumption. Health allows up to three probes in 180 seconds. Missed probe slots are skipped and no connection starts without at least three seconds remaining. Snapshots require the exact HTTP 200 Alive response. Apply readback or rollback drift blocks further action. The local wrapper has no live command entry point. No Azure, registry or Docker operations occurred.
+
+Next action. Obtain separate authorization for any new live startup attempt and identify its approved private key channel before using a live transport.
+
+Azure mutations. 0.
