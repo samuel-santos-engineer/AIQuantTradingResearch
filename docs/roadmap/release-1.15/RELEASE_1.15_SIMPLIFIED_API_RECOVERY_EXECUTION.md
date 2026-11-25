@@ -893,3 +893,43 @@ PASS on 33d51542d062662e67537365e46f1f501452565d from 2026-11-25T02:56:29.849214
 Next action. Obtain separate authorization for any new live startup attempt and identify its approved private key channel before using a live transport.
 
 Azure mutations. 0.
+
+## O0 attempt 4
+
+BLOCKED on 908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4 from 2026-11-25T03:16:20.689145Z to 2026-11-25T03:20:25.622391Z.
+
+The app, plan and quota returned HTTP 200. The logging request produced no HTTP status by 2026-11-25T03:16:36.799471Z. The worker did not read settings or send an apply.
+
+Next action. Retry the logging read once with a 15-second request bound and fresh app, plan and quota rechecks.
+
+Confirmed Azure mutations. 0.
+
+## O0 attempt 5
+
+PASS on 908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4 from 2026-11-25T03:16:15.808783Z to 2026-11-25T03:20:25.759914Z.
+
+Activity HTTP 200. Matching event rows 0. Baseline reads SITE_RECHECK 200, PLAN_RECHECK 200, QUOTA_RECHECK 200, LOGGING_RECHECK 200, IMAGE_RECHECK 200, EXISTING_KEY_PRIVATE_READ 200. Preflight quota CpuTime 0/3600000 Milliseconds, CpuTimeShortPeriod 0/180000 Milliseconds, WPStopRequests 0/15 Count. Existing key channel verified True. The runner cleared its references on exit. No key or unrelated setting values were emitted or saved. The preflight used the prior rollback image as the required baseline. The bounded logging retry was the only retry and the preflight caused zero Azure writes.
+
+Next action. Apply once with a verified baseline.
+
+Confirmed Azure mutations. 0.
+
+## O2 attempt 3
+
+FAIL on 908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4 from 2026-11-25T03:17:59.089783Z to 2026-11-25T03:20:25.942520Z.
+
+Result HEALTH_FAILED. Final controller stage ROLLBACK_IMAGE_READBACK. Reason none. End 2026-11-25T03:20:13.590331Z. Operations APPLY_IMAGE_ONLY 200 at 2026-11-25T03:18:06.377348Z, ROLLBACK_IMAGE_ONLY 200 at 2026-11-25T03:20:10.709484Z. Candidate sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972 configured readback True. Registry index sha256:a24c6ba6386d217884a221d7217dadbe168cb3d869e38c452df9604fe1c30bf0 and config sha256:3b589fef96f73ff405947e3f0d9c1b55e3651fc6c8800e6b9a22322204306a06 were qualified in the prior O1. Health 2026-11-25T03:18:21.377762Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-25T03:19:06.377931Z 503 HEALTH_REJECTED, 2026-11-25T03:20:06.377759Z 503 HEALTH_REJECTED. Snapshot results not run. Startup HTTP 403. Header classification ACCESS_DENIED. The runner read zero SCM body bytes. No startup marker or Azure exception was recovered. Any marker remains unattributed to main-container role, attempt ID or running digest. No settings write occurred.
+
+Next action. Compare health and the conditional rollback readback.
+
+Confirmed Azure mutations. 1.
+
+## O3 attempt 3
+
+FAIL on 908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4 from 2026-11-25T03:20:13.590331Z to 2026-11-25T03:20:26.105234Z.
+
+Health accepted False. Startup interpretable False. Restore IMAGE_RESTORED. Last configuration state ROLLBACK_IMAGE_CONFIGURED. Prior parallel digest sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. Candidate child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. No post-rollback health request and no verified running image. No other apps were targeted. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. Check the existing parallel app portal startup records for the 2026-11-25 03:18:06 to 03:20:13 UTC window to see whether a main-container launch or failure was recorded.
+
+Confirmed Azure mutations. 1.

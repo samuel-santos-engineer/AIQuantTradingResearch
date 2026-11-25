@@ -2091,6 +2091,155 @@
       "rollback_state": "Fake image-only rollback and drift gates verified. Existing Azure rollback receipt stands.",
       "next_action": "Obtain separate authorization for any new live startup attempt and identify its approved private key channel before using a live transport.",
       "rest": []
+    },
+    {
+      "gate_id": "O0",
+      "attempt": 4,
+      "started_at_utc": "2026-11-25T03:16:20.689145Z",
+      "ended_at_utc": "2026-11-25T03:20:25.622391Z",
+      "status": "BLOCKED",
+      "source_commit": "908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4",
+      "environment": "staging",
+      "objective": "Verify live prerequisites before accessing the current key.",
+      "commands_or_test_ids": [
+        "GET exact parallel app, plan, usage and logging configuration"
+      ],
+      "expected": "Match the app, F1 plan, quota and logging configuration before any key read or apply.",
+      "observed": "The app, plan and quota returned HTTP 200. The logging request produced no HTTP status by 2026-11-25T03:16:36.799471Z. The worker did not read settings or send an apply.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No image rollback in this gate.",
+      "next_action": "Retry the logging read once with a 15-second request bound and fresh app, plan and quota rechecks.",
+      "rest": []
+    },
+    {
+      "gate_id": "O0",
+      "attempt": 5,
+      "started_at_utc": "2026-11-25T03:16:15.808783Z",
+      "ended_at_utc": "2026-11-25T03:20:25.759914Z",
+      "status": "PASS",
+      "source_commit": "908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4",
+      "environment": "staging",
+      "objective": "Verify the exact isolated parallel lab before reusing its existing key.",
+      "commands_or_test_ids": [
+        "Exact-app Activity Log GET",
+        "Fixed ARM site, plan, quota, logging and image rechecks",
+        "POST exact app settings/list with key confined to worker memory"
+      ],
+      "expected": "No unresolved deployment activity, verified baseline and approved key ready in memory.",
+      "observed": "Activity HTTP 200. Matching event rows 0. Baseline reads SITE_RECHECK 200, PLAN_RECHECK 200, QUOTA_RECHECK 200, LOGGING_RECHECK 200, IMAGE_RECHECK 200, EXISTING_KEY_PRIVATE_READ 200. Preflight quota CpuTime 0/3600000 Milliseconds, CpuTimeShortPeriod 0/180000 Milliseconds, WPStopRequests 0/15 Count. Existing key channel verified True. The runner cleared its references on exit. No key or unrelated setting values were emitted or saved. The preflight used the prior rollback image as the required baseline. The bounded logging retry was the only retry and the preflight caused zero Azure writes.",
+      "exit_codes": {
+        "wp80_unittests": 0,
+        "receipt_unittests": 0,
+        "existing_key_offline_cases": 0
+      },
+      "test_counts": {
+        "passed": 142,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No image rollback in this gate.",
+      "next_action": "Apply once with a verified baseline.",
+      "rest": []
+    },
+    {
+      "gate_id": "O2",
+      "attempt": 3,
+      "started_at_utc": "2026-11-25T03:17:59.089783Z",
+      "ended_at_utc": "2026-11-25T03:20:25.942520Z",
+      "status": "FAIL",
+      "source_commit": "908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4",
+      "environment": "staging",
+      "objective": "Perform one parallel-lab image-only apply and bounded observation with the dual-format collector.",
+      "commands_or_test_ids": [
+        "One PATCH config/web with linuxFxVersion only, then exact readback",
+        "Up to three TLS GET /health requests in 180 seconds",
+        "One SCM startup-show GET with 8-second network bound and 16383-byte accepted body cap",
+        "One authenticated snapshot per instrument only after HTTP 200 Alive"
+      ],
+      "expected": "Single image apply, bounded startup evidence, and health before snapshots.",
+      "observed": "Result HEALTH_FAILED. Final controller stage ROLLBACK_IMAGE_READBACK. Reason none. End 2026-11-25T03:20:13.590331Z. Operations APPLY_IMAGE_ONLY 200 at 2026-11-25T03:18:06.377348Z, ROLLBACK_IMAGE_ONLY 200 at 2026-11-25T03:20:10.709484Z. Candidate sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972 configured readback True. Registry index sha256:a24c6ba6386d217884a221d7217dadbe168cb3d869e38c452df9604fe1c30bf0 and config sha256:3b589fef96f73ff405947e3f0d9c1b55e3651fc6c8800e6b9a22322204306a06 were qualified in the prior O1. Health 2026-11-25T03:18:21.377762Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-25T03:19:06.377931Z 503 HEALTH_REJECTED, 2026-11-25T03:20:06.377759Z 503 HEALTH_REJECTED. Snapshot results not run. Startup HTTP 403. Header classification ACCESS_DENIED. The runner read zero SCM body bytes. No startup marker or Azure exception was recovered. Any marker remains unattributed to main-container role, attempt ID or running digest. No settings write occurred.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 1
+      },
+      "rollback_state": "No image rollback in this gate.",
+      "next_action": "Compare health and the conditional rollback readback.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "HEALTH_REJECTED",
+          "data_class": "no data"
+        },
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 503,
+          "response_schema": "HEALTH_REJECTED",
+          "data_class": "no data"
+        }
+      ]
+    },
+    {
+      "gate_id": "O3",
+      "attempt": 3,
+      "started_at_utc": "2026-11-25T03:20:13.590331Z",
+      "ended_at_utc": "2026-11-25T03:20:26.105234Z",
+      "status": "FAIL",
+      "source_commit": "908aa887bbdf1a7ec11e73b0f3e80712a92a4fb4",
+      "environment": "staging",
+      "objective": "Decide health acceptance and verify an image-only restore if triggered.",
+      "commands_or_test_ids": [
+        "Compare response outcomes and the prior verified image",
+        "One image-only rollback with drift readback when required"
+      ],
+      "expected": "Preserve the exact baseline on failed health, with no post-rollback probes.",
+      "observed": "Health accepted False. Startup interpretable False. Restore IMAGE_RESTORED. Last configuration state ROLLBACK_IMAGE_CONFIGURED. Prior parallel digest sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. Candidate child sha256:7d3afdd26b4f95e0d58089ea5770706b59a2cead0951b6c5124ba062d2b10972. No post-rollback health request and no verified running image. No other apps were targeted. API_HEALTH_ACCEPTED=false. PARALLEL_API_HEALTH_ACCEPTED=false. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.",
+      "exit_codes": {},
+      "test_counts": {
+        "passed": 0,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 1
+      },
+      "rollback_state": "IMAGE_RESTORED",
+      "next_action": "Check the existing parallel app portal startup records for the 2026-11-25 03:18:06 to 03:20:13 UTC window to see whether a main-container launch or failure was recorded.",
+      "rest": []
     }
   ]
 }
