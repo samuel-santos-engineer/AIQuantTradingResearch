@@ -1066,3 +1066,43 @@ Registry tag ghcr.io/samuel-santos-engineer/aiquanttradingresearch:r115-liveness
 Next action. Authorize a separate parallel-lab-only image apply with the existing approved memory-only key channel, bounded health and startup capture, and image-only rollback on failed health.
 
 Azure mutations. 0.
+
+## O0 attempt 9
+
+BLOCKED on 603fad3a2eccdd3e9f5e8601c418fd5595e215ae from 2026-11-26T01:00:19.924631Z to 2026-11-26T01:03:09.397563Z.
+
+The first logging read returned no HTTP status by 2026-11-26T01:00:36.188046Z. No settings or image mutation was attempted.
+
+Next action. Retry that isolated read once before advancing.
+
+Confirmed Azure mutations. 0.
+
+## O0 attempt 10
+
+PASS on 603fad3a2eccdd3e9f5e8601c418fd5595e215ae from 2026-11-26T01:00:13.335594Z to 2026-11-26T01:03:09.592173Z.
+
+Activity HTTP 200 with 0 matching rows. Logging HTTP 200 verified True. Reads SITE_RECHECK 200, PLAN_RECHECK 200, QUOTA_RECHECK 200, LOGGING_RECHECK_FROM_ISOLATED_RECOVERY 200, IMAGE_RECHECK 200, ROUTING_PORT_PROJECTION 200. Quota CpuTime 0/3600000 Milliseconds, CpuTimeShortPeriod 0/180000 Milliseconds, WPStopRequests 0/15 Count. Port verified True. Baseline verified True. No key value was selected, used or emitted. 132 WP80 tests, eight receipt tests and four fake controller checks passed.
+
+Next action. Apply the published candidate once.
+
+Confirmed Azure mutations. 0.
+
+## O2 attempt 5
+
+PASS on 603fad3a2eccdd3e9f5e8601c418fd5595e215ae from 2026-11-26T01:01:46.796684Z to 2026-11-26T01:03:09.739450Z.
+
+Source 6c853d05094adcba7c06968a1c0dc48210bb588a. Index sha256:460cc90afdc97613bc7e47a18db76ebcbc2e8f5232069eab98332490416f9853. Linux child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38. Config sha256:bc10a4b08217314c0cbb563c2754dad7bea89c3a2a9a0b83c2acd32d3b959373. Worker ended 2026-11-26T01:02:57.818801Z. Result LIVENESS_HEALTH_PASS. Last control stage LIVENESS_STARTUP. Reason none. Writes APPLY_LIVENESS_IMAGE 200 at 2026-11-26T01:01:51.722305Z. Control-plane candidate verified True. Health 2026-11-26T01:02:06.723206Z no HTTP status TRANSPORT_OR_RESPONSE_UNVERIFIED, 2026-11-26T01:02:51.722850Z 200 ALIVE. Startup HTTP 200. Startup response class UNSUPPORTED_JSON_ENVELOPE. Markers none. Running digest and marker attribution are unverified. No setting mutation, restart command, key use or snapshot.
+
+Next action. Report API liveness independently from startup attribution and snapshot availability.
+
+Confirmed Azure mutations. 1.
+
+## O3 attempt 6
+
+PASS on 603fad3a2eccdd3e9f5e8601c418fd5595e215ae from 2026-11-26T01:02:57.818801Z to 2026-11-26T01:03:09.885125Z.
+
+The app returned literal 200 Alive after the liveness image was configured. The approved rule retains that image. Restore state NOT_TRIGGERED. Restore reason none. Prior digest sha256:a972845fd52ad0487116c67d022770421abfa4242ca5c94928a51e4eaa89d914. PARALLEL_API_HEALTH_ACCEPTED=true. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false. Post-rollback health and data readiness remain unverified. Original staging, UI and production were outside scope.
+
+Next action. Authorize a separate authenticated BTC/USD and ETH/USD snapshot check on the exact parallel API before claiming dataset or browser readiness.
+
+Confirmed Azure mutations. 0.
