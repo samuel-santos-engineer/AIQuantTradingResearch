@@ -2869,6 +2869,58 @@
           "data_class": "no data"
         }
       ]
+    },
+    {
+      "gate_id": "N4",
+      "attempt": 4,
+      "started_at_utc": "2026-11-28T17:18:02.300907Z",
+      "ended_at_utc": "2026-11-28T17:18:32.642012Z",
+      "status": "BLOCKED",
+      "source_commit": "2b75028dd907362f1a24309f66c4a23526e78c7b",
+      "environment": "staging",
+      "objective": "Verify authenticated REST response and data readiness for BTC/USD and ETH/USD after the fresh health pass.",
+      "commands_or_test_ids": [
+        "Four exact parallel lab management reads for quota, app identity and state, image config and private key channel",
+        "One BTC/USD and one conditional ETH/USD HTTPS snapshot POST, eight seconds per request, no retry",
+        "Validate the bounded v1.0 error response against the requested instrument and epoch"
+      ],
+      "expected": "Recognized authenticated response for both instruments, with data acceptance only for validated populated snapshots.",
+      "observed": "The worker finished at 2026-11-28T17:18:07.586788Z in 5.286 seconds. Four management responses were HTTP 200. The configured liveness child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38 matched, and the dedicated key was confined to worker memory. Pre-probe plan usage was 0/15 stop requests, 0/3600000 daily CPU milliseconds and 0/180000 short-period CPU milliseconds. BTC/USD at 2026-11-28T17:18:05.899102Z and ETH/USD at 2026-11-28T17:18:06.819430Z each returned HTTP 503 with a schema-validated DATASET_NOT_READY error matching its request. Both reached the post-authentication snapshot handler. No data was returned. The response does not distinguish missing data from a storage guard rejection. No new health probe, settings mutation, data import, restart or Azure write occurred. Post-probe quota was not queried. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.",
+      "exit_codes": {
+        "offline_snapshot_cases": 0,
+        "owned_worker": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 13,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure writes or rollback. Existing parallel image left in place.",
+      "next_action": "Review the existing private storage qualification and ingestion path offline before approving any live storage check or data provisioning.",
+      "rest": [
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 503,
+          "response_schema": "BTC/USD v1.0 DATASET_NOT_READY",
+          "data_class": "no data"
+        },
+        {
+          "method": "POST",
+          "path": "/v1/research/snapshot",
+          "http_status": 503,
+          "response_schema": "ETH/USD v1.0 DATASET_NOT_READY",
+          "data_class": "no data"
+        }
+      ]
     }
   ]
 }

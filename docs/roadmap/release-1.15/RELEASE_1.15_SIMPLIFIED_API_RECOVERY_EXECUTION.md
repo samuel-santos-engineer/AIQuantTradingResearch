@@ -1126,3 +1126,13 @@ At 2026-11-28T17:16:17.241215Z the single anonymous request returned HTTP 200 wi
 Next action. Authorize one bounded BTC/USD snapshot check and one conditional ETH/USD check, with no retry and the same private key only in memory.
 
 Azure mutations. 0.
+
+## N4 attempt 4
+
+BLOCKED on 2b75028dd907362f1a24309f66c4a23526e78c7b from 2026-11-28T17:18:02.300907Z to 2026-11-28T17:18:32.642012Z.
+
+The worker finished at 2026-11-28T17:18:07.586788Z in 5.286 seconds. Four management responses were HTTP 200. The configured liveness child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38 matched, and the dedicated key was confined to worker memory. Pre-probe plan usage was 0/15 stop requests, 0/3600000 daily CPU milliseconds and 0/180000 short-period CPU milliseconds. BTC/USD at 2026-11-28T17:18:05.899102Z and ETH/USD at 2026-11-28T17:18:06.819430Z each returned HTTP 503 with a schema-validated DATASET_NOT_READY error matching its request. Both reached the post-authentication snapshot handler. No data was returned. The response does not distinguish missing data from a storage guard rejection. No new health probe, settings mutation, data import, restart or Azure write occurred. Post-probe quota was not queried. PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.
+
+Next action. Review the existing private storage qualification and ingestion path offline before approving any live storage check or data provisioning.
+
+Azure mutations. 0.
