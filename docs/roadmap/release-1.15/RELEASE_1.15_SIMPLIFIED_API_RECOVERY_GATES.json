@@ -2826,6 +2826,49 @@
       "rollback_state": "No Azure writes. No rollback or settings change.",
       "next_action": "Run one separately authorized anonymous health check on the exact parallel API to establish current reachability before another authenticated attempt.",
       "rest": []
+    },
+    {
+      "gate_id": "N3",
+      "attempt": 3,
+      "started_at_utc": "2026-11-28T17:16:16.275679Z",
+      "ended_at_utc": "2026-11-28T17:16:38.704956Z",
+      "status": "PASS",
+      "source_commit": "5b7f180cae0f85c65bdcd3c256b8db5559d7c7dd",
+      "environment": "staging",
+      "objective": "Verify current anonymous parallel Research API liveness after the bounded snapshot timeout.",
+      "commands_or_test_ids": [
+        "One TLS-verified anonymous GET /health on the exact parallel API host with eight-second request bound and 16-byte accepted success body"
+      ],
+      "expected": "HTTP 200 with literal Alive.",
+      "observed": "At 2026-11-28T17:16:17.241215Z the single anonymous request returned HTTP 200 with literal Alive in 0.966 seconds. TLS verification passed. No redirects, retries, credentials, management requests, snapshots or Azure writes occurred. This is a fresh serving observation for the parallel API. It does not classify the earlier BTC/USD timeout. Authenticated data readiness and running image identity were not established. Post-probe quota was not queried.",
+      "exit_codes": {
+        "offline_health_cases": 0,
+        "owned_health_worker": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 11,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No writes or rollback. Existing parallel image configuration left in place.",
+      "next_action": "Authorize one bounded BTC/USD snapshot check and one conditional ETH/USD check, with no retry and the same private key only in memory.",
+      "rest": [
+        {
+          "method": "GET",
+          "path": "/health",
+          "http_status": 200,
+          "response_schema": "Alive",
+          "data_class": "no data"
+        }
+      ]
     }
   ]
 }

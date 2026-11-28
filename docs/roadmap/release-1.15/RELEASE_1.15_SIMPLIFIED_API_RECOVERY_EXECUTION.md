@@ -1116,3 +1116,13 @@ Finished at 2026-11-28T17:02:20.588314Z. All four management responses were HTTP
 Next action. Run one separately authorized anonymous health check on the exact parallel API to establish current reachability before another authenticated attempt.
 
 Azure mutations. 0.
+
+## N3 attempt 3
+
+PASS on 5b7f180cae0f85c65bdcd3c256b8db5559d7c7dd from 2026-11-28T17:16:16.275679Z to 2026-11-28T17:16:38.704956Z.
+
+At 2026-11-28T17:16:17.241215Z the single anonymous request returned HTTP 200 with literal Alive in 0.966 seconds. TLS verification passed. No redirects, retries, credentials, management requests, snapshots or Azure writes occurred. This is a fresh serving observation for the parallel API. It does not classify the earlier BTC/USD timeout. Authenticated data readiness and running image identity were not established. Post-probe quota was not queried.
+
+Next action. Authorize one bounded BTC/USD snapshot check and one conditional ETH/USD check, with no retry and the same private key only in memory.
+
+Azure mutations. 0.
