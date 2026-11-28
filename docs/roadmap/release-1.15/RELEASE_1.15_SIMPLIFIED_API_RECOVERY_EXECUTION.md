@@ -1136,3 +1136,28 @@ The worker finished at 2026-11-28T17:18:07.586788Z in 5.286 seconds. Four manage
 Next action. Review the existing private storage qualification and ingestion path offline before approving any live storage check or data provisioning.
 
 Azure mutations. 0.
+
+## N4 attempt 5
+
+BLOCKED on 07cf3e3c31de03c61e79a8f880e28935214ed3f1 from 2026-11-28T17:21:45.726829Z to 2026-11-28T17:21:45.727594Z.
+
+81 .NET tests, 40 fake WP11 diagnostic tests, and eight receipt tests passed. The current authenticated DATASET_NOT_READY contract cannot identify an empty or rejected store. The storage probe classifies existing host, kernel and writable-directory checks. It can create a private test directory and a temporary write/delete probe without opening SQLite. The strict chart initializer reads capped private stdin configuration and a separate validated private file before committing both instruments under exclusive writer ownership. Normal serve captures the source at startup. No qualified path currently delivers both inputs and transfers control to the API in the same final parallel Azure container. CLI core 2.89.1 is below the documented preview exec minimum. No Azure, Docker, provider, private data or credentials access occurred.
+
+Next action. Separately qualify an authenticated interactive session into the exact parallel main container for one fixed-output storage qualification probe. Complete the storage probe before pursuing private file and stdin delivery.
+
+Azure mutations. 0.
+
+### Parallel lab storage and ingestion preflight
+
+| Component | Existing contract | Decision |
+| --- | --- | --- |
+| Live snapshot handler | Both a missing store and a storage rejection can leave the liveness image with no snapshot source. The authenticated v1.0 error is DATASET_NOT_READY in either case. | Dataset readiness and storage compatibility remain unverified. |
+| Worker storage probe | The fixed operation is dotnet /app/AIQuantTradingResearch.Worker.dll --research-storage-probe. It verifies explicit lab identity, UID 1654, writable private root overlay, path permissions and no conflicting mounts. It may create the private directory and uses a transient write/delete test. It reports only named booleans, including probeCleanup. SQLite and provider calls are outside this command. | Qualify one invocation only after an authenticated session is confirmed on the exact running parallel main container. This is a scratch-write probe. A qualified result does not establish dataset availability. |
+| Strict importer | operator-chart-stdin requires an existing private import file. The initializer reads at most 4 KiB of private configuration on stdin and at most 1 MiB of private observations. It requires 1,000 contiguous completed one-minute candles per pair, null volume, the configured generation and matching transform key tuple. It preflights both instruments and verifies C# indicators before releasing the writer. | Treat the provider label as schema metadata. Bind provenance to the approved acquisition evidence. Per-instrument commits can leave compatible partial state for an exact retry. Keep API startup gated on both instruments. |
+| Same-container transition | The bootstrap execs the API after successful initializer exit in the same container. The running liveness process captures its store source during startup. Existing configured serve mode does not invoke the initializer or reread its source after a side command. | The private file, stdin, writer exclusivity and startup transition must all be qualified together. Do not change startup mode or import into the running overlay on the assumption of hot adoption. |
+
+The prior WP11 helper targets original staging and couples diagnostic startup to stop and restore. It is excluded from this parallel workflow. Current App Service guidance offers an authenticated portal container shell and Azure CLI preview exec on 2.90.0 or later. The installed 2.89.1 CLI remains below that minimum. Detached execution does not return output or exit status, and the preview command has no file-transfer capability. SCM 403 observations leave access on this app unverified. [Microsoft App Service container access](https://learn.microsoft.com/en-us/azure/app-service/configure-linux-open-ssh-session)
+
+The smallest live diagnostic would be one approved use of the existing portal terminal in the exact parallel main container with a short operator deadline and fixed output only. Verify the target and app-container context first. If the shell or UID cannot be verified, stop. If the existing probe rejects storage or reports incomplete cleanup, stop before import. No dataset, key, path inventory, environment dump, settings change, restart or new service is part of that test. Even a passing guard check leaves private file and stdin delivery and the writer handoff to qualify. The ephemeral overlay remains non-durable. [WP58 strict initializer and handoff evidence](prompters/release-1.15-wp58-phase-f-staging-initialization-runbook.md)
+
+PUBLIC_RUNTIME_VERIFIED=False. liveAttemptReady=false.

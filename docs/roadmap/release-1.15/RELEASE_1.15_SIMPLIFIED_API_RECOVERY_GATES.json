@@ -2921,6 +2921,44 @@
           "data_class": "no data"
         }
       ]
+    },
+    {
+      "gate_id": "N4",
+      "attempt": 5,
+      "started_at_utc": "2026-11-28T17:21:45.726829Z",
+      "ended_at_utc": "2026-11-28T17:21:45.727594Z",
+      "status": "BLOCKED",
+      "source_commit": "07cf3e3c31de03c61e79a8f880e28935214ed3f1",
+      "environment": "local",
+      "objective": "Review the existing private storage qualification and strict chart ingestion path for the parallel F1 app.",
+      "commands_or_test_ids": [
+        "Read the Worker storage probe, startup, bootstrap, initializer, storage boundary, writer ownership and WP58 Phase F runbook",
+        "Inspect installed Azure CLI core version offline and review Microsoft App Service authenticated container access documentation",
+        "Run cached focused .NET storage and initializer tests without build or restore",
+        "Run offline WP11 and receipt unittests"
+      ],
+      "expected": "Identify an existing input and same-container handoff path or name the missing capability.",
+      "observed": "81 .NET tests, 40 fake WP11 diagnostic tests, and eight receipt tests passed. The current authenticated DATASET_NOT_READY contract cannot identify an empty or rejected store. The storage probe classifies existing host, kernel and writable-directory checks. It can create a private test directory and a temporary write/delete probe without opening SQLite. The strict chart initializer reads capped private stdin configuration and a separate validated private file before committing both instruments under exclusive writer ownership. Normal serve captures the source at startup. No qualified path currently delivers both inputs and transfers control to the API in the same final parallel Azure container. CLI core 2.89.1 is below the documented preview exec minimum. No Azure, Docker, provider, private data or credentials access occurred.",
+      "exit_codes": {
+        "dotnet_storage_initializer": 0,
+        "wp11_unittests": 0,
+        "receipt_unittests": 0
+      },
+      "test_counts": {
+        "passed": 129,
+        "failed": 0,
+        "skipped": 0
+      },
+      "evidence_paths": [
+        "docs/roadmap/release-1.15/RELEASE_1.15_SIMPLIFIED_API_RECOVERY_EXECUTION.md"
+      ],
+      "changed_files": [],
+      "mutations": {
+        "azure": 0
+      },
+      "rollback_state": "No Azure writes. Existing parallel API configuration and health evidence remain in place.",
+      "next_action": "Separately qualify an authenticated interactive session into the exact parallel main container for one fixed-output storage qualification probe. Complete the storage probe before pursuing private file and stdin delivery.",
+      "rest": []
     }
   ]
 }
