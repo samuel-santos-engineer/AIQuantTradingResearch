@@ -1106,3 +1106,13 @@ The app returned literal 200 Alive after the liveness image was configured. The 
 Next action. Authorize a separate authenticated BTC/USD and ETH/USD snapshot check on the exact parallel API before claiming dataset or browser readiness.
 
 Confirmed Azure mutations. 0.
+
+## N4 attempt 3
+
+BLOCKED on afdacbb09bebd76c84d168e9a72c36ee38b482df from 2026-11-28T17:02:06.521047Z to 2026-11-28T17:02:48.940507Z.
+
+Finished at 2026-11-28T17:02:20.588314Z. All four management responses were HTTP 200. The exact parallel site was Running with normal usage and availability. Pre-probe plan counters were stop requests 0/15, daily CPU 0/3600000 ms and short CPU 0/180000 ms. The published liveness child sha256:a6c05c989ebfff7c6a616ca8e6a598308bf9bf8d0bb49fb8c11af7f866e12b38 and blank startup matched the expected configuration. The dedicated key shape was validated in memory. The BTC/USD POST started at 2026-11-28T17:02:12.575675Z and returned no HTTP status within its eight-second bound. ETH/USD was skipped after the unverified BTC/USD response. No authorized or rejected API response, snapshot data, or exact transport cause was observed. There were no Azure writes or health probes. Post-probe quota and current serving state remain unknown. The prior health pass is historical and does not establish current snapshot or public readiness.
+
+Next action. Run one separately authorized anonymous health check on the exact parallel API to establish current reachability before another authenticated attempt.
+
+Azure mutations. 0.
